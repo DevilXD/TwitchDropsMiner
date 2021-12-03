@@ -1,0 +1,7 @@
+__pycache__
+.mypy_cache
+/build
+/dist
+/cookies.pickle
+/settings.json
+/*.spec
