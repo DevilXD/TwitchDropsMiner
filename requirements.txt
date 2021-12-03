@@ -1,0 +1,2 @@
+aiohttp<4.0
+pywin32
