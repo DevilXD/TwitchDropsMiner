@@ -59,6 +59,7 @@ logger.setLevel(logging_level)
 if not os.path.isfile(SETTINGS_PATH):
     default = {
         "username": "YourTwitchUsername",
+        "password": None,
         "channels": ["Channel1", "Channel2", "Channel3"],
     }
     with open(SETTINGS_PATH, 'w', encoding="utf8") as file:
