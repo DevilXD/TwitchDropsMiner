@@ -120,6 +120,8 @@ except (asyncio.CancelledError, KeyboardInterrupt):
     # notify we're free to exit
     close_event.set()
 except Exception:
+    # Remove the handler so it doesn't delay exit
+    win32api.SetConsoleCtrlHandler(clean_exit, False)
     print("Fatal error encountered:\n")
     traceback.print_exc()
     terminate()
