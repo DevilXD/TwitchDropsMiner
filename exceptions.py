@@ -25,8 +25,3 @@ class LoginException(RequestException):
 class CaptchaRequired(LoginException):
     def __init__(self):
         super().__init__("Captcha is required")
-
-
-class IncorrectCredentials(LoginException):
-    def __init__(self):
-        super().__init__("Incorrect username or password")

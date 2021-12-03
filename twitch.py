@@ -16,11 +16,12 @@ except ImportError:
 from channel import Channel
 from websocket import Websocket
 from inventory import DropsCampaign
-from exceptions import LoginException, CaptchaRequired, IncorrectCredentials
+from exceptions import LoginException, CaptchaRequired
 from constants import (
     CLIENT_ID,
     USER_AGENT,
     COOKIES_PATH,
+    AUTH_URL,
     GQL_URL,
     GQL_OPERATIONS,
     GQLOperation,
@@ -212,15 +213,38 @@ class Twitch:
             else:
                 logger.error(f"Channel viewcount update for an offline stream: {channel.name}")
 
+    async def _validate_password(self, password: str) -> bool:
+        """
+        Use Twitch's password validator to validate the password length, characters required, etc.
+        Helps avoid running into the CAPTCHA if you mistype your password by mistake.
+        """
+        payload = {"password": password}
+        async with self._session.post(
+            f"{AUTH_URL}/api/v1/password_strength", json=payload
+        ) as response:
+            strength_response = await response.json()
+        return strength_response["isValid"]
+
+    async def get_password(self) -> str:
+        """
+        A simple loop that'll keep asking for password, until it's considered valid.
+        """
+        while True:
+            password = getpass()
+            if await self._validate_password(password):
+                return password
+
     async def _login(self) -> str:
         logger.debug("Login flow started")
         if self.username is None:
             self.username = input("Username: ")
         if self.password is None:
-            self.password = getpass()
-        if not self.password:
-            # catch early empty pass
-            raise IncorrectCredentials()
+            print(
+                "\nReminder: Passwords can be pasted in by pressing right click a single time\n"
+                "inside the window. Due to security reasons, no feedback is displayed.\n"
+                "Make sure not to paste it in twice.\n"
+            )
+            self.password = await self.get_password()
 
         payload: Dict[str, Any] = {
             "username": self.username,
@@ -231,9 +255,7 @@ class Twitch:
         }
 
         for attempt in range(10):
-            async with self._session.post(
-                "https://passport.twitch.tv/login", json=payload
-            ) as response:
+            async with self._session.post(f"{AUTH_URL}/login", json=payload) as response:
                 login_response = await response.json()
 
             # Feed this back in to avoid running into CAPTCHA if possible
@@ -252,9 +274,7 @@ class Twitch:
                     # wrong password you dummy
                     logger.debug("Login failed due to incorrect login or pass")
                     print(f"Incorrect username or password.\nUsername: {self.username}")
-                    self.password = getpass()
-                    if not self.password:
-                        raise IncorrectCredentials()
+                    self.password = await self.get_password()
                 elif error_code in (
                     3011,  # Authy token needed
                     3012,  # Invalid authy token
@@ -294,22 +314,30 @@ class Twitch:
         # looks like we're missing something
         print("Logging in")
         jar = self._session.cookie_jar
-        cookie = jar.filter_cookies("https://twitch.tv")  # type: ignore
-        if not cookie:
-            # no cookie - login
-            await self._login()
-            # store our auth token inside the cookie
-            cookie["auth-token"] = cast(str, self._access_token)
-        elif self._access_token is None:
-            # have cookie - get our access token
-            self._access_token = cookie["auth-token"].value
-            logger.debug("Session restored from cookie")
-        # validate our access token, by obtaining user_id
-        async with self._session.get(
-            "https://id.twitch.tv/oauth2/validate",
-            headers={"Authorization": f"OAuth {self._access_token}"}
-        ) as response:
-            validate_response = await response.json()
+        while True:
+            cookie = jar.filter_cookies("https://twitch.tv")  # type: ignore
+            if not cookie:
+                # no cookie - login
+                await self._login()
+                # store our auth token inside the cookie
+                cookie["auth-token"] = cast(str, self._access_token)
+            elif self._access_token is None:
+                # have cookie - get our access token
+                self._access_token = cookie["auth-token"].value
+                logger.debug("Session restored from cookie")
+            # validate our access token, by obtaining user_id
+            async with self._session.get(
+                "https://id.twitch.tv/oauth2/validate",
+                headers={"Authorization": f"OAuth {self._access_token}"}
+            ) as response:
+                status = response.status
+                if status == 401:
+                    # the access token we have is invalid - clear the cookie and reauth
+                    jar.clear_domain("twitch.tv")
+                    continue
+                elif status == 200:
+                    validate_response = await response.json()
+                    break
         self._user_id = cookie["persistent"] = validate_response["user_id"]
         self._is_logged_in.set()
         print(f"Login successful, User ID: {self._user_id}")

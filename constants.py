@@ -6,6 +6,7 @@ from typing import Any, Optional, Union, Dict, Callable
 
 
 BASE_URL = "https://twitch.tv"
+AUTH_URL = "https://passport.twitch.tv"
 WEBSOCKET_URL = "wss://pubsub-edge.twitch.tv/v1"
 GQL_URL = "https://gql.twitch.tv/gql"
 CLIENT_ID = "kimne78kx3ncx6brgo4mv6wki5h1ko"
