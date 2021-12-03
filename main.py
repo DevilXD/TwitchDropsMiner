@@ -69,7 +69,11 @@ if not os.path.isfile(SETTINGS_PATH):
     )
     terminate()
 with open(SETTINGS_PATH, 'r', encoding="utf8") as file:
-    settings: Dict[str, Any] = json.load(file)
+    try:
+        settings: Dict[str, Any] = json.load(file)
+    except json.JSONDecodeError as exc:
+        print(f"Error while reading the settings file:\n{str(exc)}")
+        terminate()
 required_fields = ["channels"]
 for field_name in required_fields:
     if field_name not in settings:
