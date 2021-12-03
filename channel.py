@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import json
+import asyncio
 import logging
 from copy import copy
 from base64 import b64encode
@@ -10,7 +11,7 @@ from typing import Any, Optional, Dict, TYPE_CHECKING
 
 from inventory import Game
 from exceptions import MinerException
-from constants import BASE_URL, GQL_OPERATIONS
+from constants import BASE_URL, GQL_OPERATIONS, ONLINE_DELAY
 
 if TYPE_CHECKING:
     from twitch import Twitch
@@ -50,6 +51,7 @@ class Channel:
         self.url: str = f"{BASE_URL}/{channel_name}"
         self._spade_url: str = await self.get_spade_url()
         self.stream: Optional[Stream] = None
+        self._pending_stream_up: Optional[asyncio.Task[Any]] = None
         await self.get_stream()
 
     def __eq__(self, other: object):
@@ -66,6 +68,15 @@ class Channel:
         Returns True if the streamer is online and is currently streaming, False otherwise.
         """
         return self.stream is not None
+
+    @property
+    def pending_online(self) -> bool:
+        """
+        Returns True if the streamer is about to go online (most likely), False otherwise.
+        This is because 'stream-up' event is received way before
+        stream information becomes available.
+        """
+        return self._pending_stream_up is not None
 
     async def get_spade_url(self) -> str:
         """
@@ -108,6 +119,19 @@ class Channel:
         if stream is None:
             return False
         return True
+
+    async def _online_delay(self):
+        await asyncio.sleep(ONLINE_DELAY.total_seconds())
+        await self.get_stream()
+        self._pending_stream_up = None
+
+    def set_online(self):
+        if self.online or self.pending_online:
+            # we're already online, or about to be
+            return
+        # stream-up is sent before the stream actually goes online, so just wait a bit
+        # and check if it's actually online by then
+        self._pending_stream_up = asyncio.create_task(self._online_delay())
 
     def set_offline(self):
         # to be called externally, if we receive an event about this happening

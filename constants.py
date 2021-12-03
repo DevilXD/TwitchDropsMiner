@@ -14,6 +14,7 @@ USER_AGENT = "Twitch Drops App"
 SETTINGS_PATH = "settings.json"
 COOKIES_PATH = "cookies.pickle"
 PING_INTERVAL = timedelta(minutes=3)
+ONLINE_DELAY = timedelta(seconds=30)
 
 
 class GQLOperation(Dict[str, Any]):

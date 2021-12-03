@@ -74,9 +74,8 @@ class Twitch:
         await self.websocket.close()
         await asyncio.sleep(1)  # allows aiohttp to safely close the session
 
-    @property
-    def currently_watching(self) -> Optional[Channel]:
-        return self._watching_channel
+    def is_currently_watching(self, channel: Channel) -> bool:
+        return self._watching_channel is not None and self._watching_channel == channel
 
     async def run(self, channels: List[str] = []):
         """
@@ -189,29 +188,21 @@ class Twitch:
         if msg_type == "stream-down":
             logger.info(f"{channel.name} goes OFFLINE")
             channel.set_offline()
-            if self._watching_channel is not None and self._watching_channel.id == channel_id:
+            if self.is_currently_watching(channel):
                 # change the channel if we're currently watching it
                 self._channel_change.set()
         elif msg_type == "stream-up":
             logger.info(f"{channel.name} goes ONLINE")
-
-            # stream_up is sent before the stream actually goes online, so just wait a bit
-            # and check if it's actually online by then
-            async def online_delay(channel: Channel):
-                await asyncio.sleep(10)
-                await channel.check_online()
-
-            asyncio.create_task(online_delay(channel))
+            channel.set_online()
         elif msg_type == "viewcount":
-            if channel.stream is None:
-                # check if we've got a view count for a stream that just started
-                await channel.check_online()
-            if channel.stream is not None:
+            if not channel.online:
+                # if it's not online for some reason, set it so
+                channel.set_online()
+            else:
+                assert channel.stream is not None
                 viewers = message["viewers"]
                 channel.stream.viewer_count = viewers
                 logger.info(f"{channel.name} viewers: {viewers}")
-            else:
-                logger.error(f"Channel viewcount update for an offline stream: {channel.name}")
 
     async def _validate_password(self, password: str) -> bool:
         """
