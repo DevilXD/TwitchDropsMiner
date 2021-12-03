@@ -52,6 +52,14 @@ class Channel:
         self.stream: Optional[Stream] = None
         await self.get_stream()
 
+    def __eq__(self, other: object):
+        if isinstance(other, self.__class__):
+            return self.id == other.id
+        return NotImplemented
+
+    def __hash__(self) -> int:
+        return hash((self.__class__.__name__, self.id))
+
     @property
     def online(self) -> bool:
         """

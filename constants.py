@@ -120,7 +120,7 @@ class WebsocketTopic:
         return NotImplemented
 
     def __hash__(self) -> int:
-        return hash(self.id)
+        return hash((self.__class__.__name__, self.id))
 
 
 WEBSOCKET_TOPICS: Dict[str, str] = {
