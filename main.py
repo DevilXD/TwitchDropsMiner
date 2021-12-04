@@ -2,7 +2,6 @@ from __future__ import annotations
 
 __version__ = 2
 
-import os
 import sys
 import json
 import ctypes
@@ -56,36 +55,20 @@ handler.setFormatter(logging.Formatter("{levelname}: {message}", style='{'))
 logger.addHandler(handler)
 logger.setLevel(logging_level)
 # handle settings
-if not os.path.isfile(SETTINGS_PATH):
-    default = {
-        "username": "YourTwitchUsername",
-        "password": None,
-        "channels": ["Channel1", "Channel2", "Channel3"],
-    }
-    with open(SETTINGS_PATH, 'w', encoding="utf8") as file:
-        json.dump(default, file, indent=4)
-    print(
-        f"File '{SETTINGS_PATH}' created.\n"
-        "Please modify default settings as necessary, then relaunch the application."
-    )
-    terminate()
-with open(SETTINGS_PATH, 'r', encoding="utf8") as file:
-    try:
+try:
+    with open(SETTINGS_PATH, 'r', encoding="utf8") as file:
         settings: Dict[str, Any] = json.load(file)
-    except json.JSONDecodeError as exc:
-        print(f"Error while reading the settings file:\n{str(exc)}")
-        terminate()
-required_fields = ["channels"]
-for field_name in required_fields:
-    if field_name not in settings:
-        print(f"Field '{field_name}' is a required field in '{SETTINGS_PATH}'")
-        terminate()
+except json.JSONDecodeError as exc:
+    print(f"Error while reading the settings file:\n{str(exc)}")
+    terminate()
+except FileNotFoundError:
+    settings = {}
 # asyncio loop
 loop = asyncio.get_event_loop()
 # client init
 client = Twitch(settings.get("username"), settings.get("password"))
 # main task and it's close event
-main_task = loop.create_task(client.run(settings["channels"]))
+main_task = loop.create_task(client.run(settings.get("channels")))
 close_event = threading.Event()
 
 

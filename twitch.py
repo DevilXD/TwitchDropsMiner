@@ -6,7 +6,7 @@ import logging
 from yarl import URL
 from getpass import getpass
 from functools import partial
-from typing import Any, Optional, Union, List, Dict, cast
+from typing import Any, Optional, Union, List, Dict, Collection, cast
 
 try:
     import aiohttp
@@ -15,7 +15,7 @@ except ImportError:
 
 from channel import Channel
 from websocket import Websocket
-from inventory import DropsCampaign
+from inventory import DropsCampaign, Game
 from exceptions import LoginException, CaptchaRequired
 from constants import (
     CLIENT_ID,
@@ -24,6 +24,7 @@ from constants import (
     AUTH_URL,
     GQL_URL,
     GQL_OPERATIONS,
+    DROPS_ENABLED_TAG,
     GQLOperation,
     WebsocketTopic,
     get_topic,
@@ -77,7 +78,7 @@ class Twitch:
     def is_currently_watching(self, channel: Channel) -> bool:
         return self._watching_channel is not None and self._watching_channel == channel
 
-    async def run(self, channels: List[str] = []):
+    async def run(self, channel_names: Optional[List[str]] = None):
         """
         Main method that runs the whole client.
 
@@ -100,10 +101,22 @@ class Twitch:
                     games.add(campaign.game)
                 if drop.can_claim:
                     await drop.claim()
-        # Fetch information about all channels we're supposed to handle
-        for channel_name in channels:
-            channel: Channel = await Channel(self, channel_name)  # type: ignore
-            self.channels[channel.id] = channel
+        # games now has all games we want to farm drops for
+        if not channel_names:
+            # get a list of all channels with drops enabled
+            print("Fetching suitable live channels to watch...")
+            live_streams: Dict[Game, List[Channel]] = await self.get_live_streams(
+                games, [DROPS_ENABLED_TAG]
+            )
+            for game, channels in live_streams.items():
+                for channel in channels:
+                    self.channels[channel.id] = channel
+                    print(f"Added channel: {channel.name} for game: {game.name}")
+        else:
+            # Fetch information about all channels we're supposed to handle
+            for channel_name in channel_names:
+                channel: Channel = await Channel(self, channel_name)  # type: ignore
+                self.channels[channel.id] = channel
         # Sub to these channel updates
         topics: List[WebsocketTopic] = []
         for channel_id in self.channels:
@@ -168,7 +181,8 @@ class Twitch:
                 i = (i + 1) % 30
                 await asyncio.sleep(59)
 
-        print(f"Watching: {channel.name}")
+        game = channel.stream.game.name if channel.stream is not None else "<Unknown>"
+        print(f"Watching: {channel.name}, game: {game}")
         self._watching_channel = channel
         self._watching_task = asyncio.create_task(watcher(channel))
 
@@ -351,6 +365,28 @@ class Twitch:
         response = await self.gql_request(GQL_OPERATIONS["Inventory"])
         inventory = response["data"]["currentUser"]["inventory"]
         return [DropsCampaign(self, data) for data in inventory["dropCampaignsInProgress"]]
+
+    async def get_live_streams(
+        self, games: Collection[Game], tag_ids: List[str]
+    ) -> Dict[Game, List[Channel]]:
+        limit = int(45 / len(games))
+        live_streams = {}
+        for game in games:
+            response = await self.gql_request(
+                GQL_OPERATIONS["GameDirectory"].with_variables({
+                    "limit": limit,
+                    "name": game.name,
+                    "options": {
+                        "includeRestricted": ["SUB_ONLY_LIVE"],
+                        "tags": tag_ids,
+                    },
+                })
+            )
+            live_streams[game] = [
+                await Channel.from_directory(self, stream_channel_data["node"])
+                for stream_channel_data in response["data"]["game"]["streams"]["edges"]
+            ]
+        return live_streams
 
     async def claim_points(self, channel_id: Union[str, int], claim_id: str):
         variables = {"input": {"channelID": str(channel_id), "claimID": claim_id}}

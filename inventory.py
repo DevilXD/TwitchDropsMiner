@@ -68,6 +68,9 @@ class BaseDrop:
     def can_claim(self) -> bool:
         return self.claim_id is not None and not self.is_claimed
 
+    def rewards_text(self, delim: str = ", ") -> str:
+        return delim.join(self.rewards)
+
     async def claim(self) -> bool:
         """
         Returns True if the claim succeeded, False otherwise.

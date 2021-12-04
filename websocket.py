@@ -197,11 +197,12 @@ class Websocket:
         msg_type = message["type"]
         if msg_type == "drop-progress":
             print(
-                f"Drop progress: {drop.progress:4.0%} ({drop.remaining_minutes} minutes remaining)"
+                f"Drop: {drop.rewards_text()}: {drop.progress:4.0%} "
+                f"({drop.remaining_minutes} minutes remaining)"
             )
         elif msg_type == "drop-claim":
             await drop.claim()
-            print(f"Claimed drop: {', '.join(drop.rewards)}")
+            print(f"Claimed drop: {drop.rewards_text()}")
 
     async def process_points(self, message: Dict[str, Any]):
         msg_type = message["type"]

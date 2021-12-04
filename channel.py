@@ -11,7 +11,7 @@ from typing import Any, Optional, Dict, TYPE_CHECKING
 
 from inventory import Game
 from exceptions import MinerException
-from constants import BASE_URL, GQL_OPERATIONS, ONLINE_DELAY
+from constants import BASE_URL, GQL_OPERATIONS, ONLINE_DELAY, DROPS_ENABLED_TAG
 
 if TYPE_CHECKING:
     from twitch import Twitch
@@ -27,11 +27,24 @@ class Stream:
         stream = data["stream"]
         self.broadcast_id = int(stream["id"])
         self.viewer_count = stream["viewersCount"]
-        self.drops_enabled = any(tag["localizedName"] == "Drops Enabled" for tag in stream["tags"])
+        self.drops_enabled = any(tag["id"] == DROPS_ENABLED_TAG for tag in stream["tags"])
         settings = data["broadcastSettings"]
         self.game: Game = Game(settings["game"])
         self.title = settings["title"]
         self._timestamp = datetime.now(timezone.utc)
+
+    @classmethod
+    def from_directory(cls, channel: Channel, data: Dict[str, Any]):
+        self = super().__new__(cls)
+        self._twitch = channel._twitch
+        self.channel = channel
+        self.broadcast_id = data["id"]
+        self.viewer_count = data["viewersCount"]
+        self.drops_enabled = any(tag["id"] == DROPS_ENABLED_TAG for tag in data["tags"])
+        self.game = Game(data["game"])
+        self.title = data["title"]
+        self._timestamp = datetime.now(timezone.utc)
+        return self
 
 
 class Channel:
@@ -53,6 +66,19 @@ class Channel:
         self.stream: Optional[Stream] = None
         self._pending_stream_up: Optional[asyncio.Task[Any]] = None
         await self.get_stream()
+
+    @classmethod
+    async def from_directory(cls, twitch: Twitch, data: Dict[str, Any]):
+        self = super().__new__(cls)
+        self._twitch = twitch
+        channel = data["broadcaster"]
+        self.id = channel["id"]
+        self.name = channel["displayName"]
+        self.url = f"{BASE_URL}/{self.name}"
+        self._spade_url = await self.get_spade_url()
+        self.stream = Stream.from_directory(self, data)
+        self._pending_stream_up = None
+        return self
 
     def __eq__(self, other: object):
         if isinstance(other, self.__class__):

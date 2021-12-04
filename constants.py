@@ -15,6 +15,8 @@ SETTINGS_PATH = "settings.json"
 COOKIES_PATH = "cookies.pickle"
 PING_INTERVAL = timedelta(minutes=3)
 ONLINE_DELAY = timedelta(seconds=30)
+# tags
+DROPS_ENABLED_TAG = "c2542d6d-cd10-4532-919b-3d19f30a768b"
 
 
 class GQLOperation(Dict[str, Any]):
@@ -29,11 +31,15 @@ class GQLOperation(Dict[str, Any]):
             }
         )
         if variables is not None:
-            super().__setitem__("variables", variables)
+            self.__setitem__("variables", variables)
 
     def with_variables(self, variables: Dict[str, Any]):
         modified = copy(self)
-        modified["variables"] = variables
+        if "variables" in self:
+            existing_variables: Dict[str, Any] = modified["variables"]
+            existing_variables.update(variables)
+        else:
+            modified["variables"] = variables
         return modified
 
 
@@ -58,10 +64,6 @@ GQL_OPERATIONS: Dict[str, GQLOperation] = {
         "ChannelPointsContext",
         "9988086babc615a918a1e9a722ff41d98847acac822645209ac7379eecb27152",
     ),
-    "ModViewChannelQuery": GQLOperation(
-        "ModViewChannelQuery",
-        "df5d55b6401389afb12d3017c9b2cf1237164220c8ef4ed754eae8188068a807",
-    ),
     "Inventory": GQLOperation(  # used
         "Inventory",
         "e0765ebaa8e8eeb4043cc6dfeab3eac7f682ef5f724b81367e6e55c7aef2be4c",
@@ -78,11 +80,6 @@ GQL_OPERATIONS: Dict[str, GQLOperation] = {
         "DropsHighlightService_AvailableDrops",
         "b19ee96a0e79e3f8281c4108bc4c7b3f232266db6f96fd04a339ab393673a075",
     ),
-    # Use for replace https://api.twitch.tv/helix/users?login={self.username}
-    "ReportMenuItem": GQLOperation(
-        "ReportMenuItem",
-        "8f3628981255345ca5e5453dfd844efffb01d6413a9931498836e6268692a30c",
-    ),
     "PersonalSections": GQLOperation(
         "PersonalSections",
         "9fbdfb00156f754c26bde81eb47436dee146655c92682328457037da1a48ed39",
@@ -94,6 +91,22 @@ GQL_OPERATIONS: Dict[str, GQLOperation] = {
             "channelLogin": None,
             "withChannelUser": False,
             "creatorAnniversariesExperimentEnabled": False,
+        },
+    ),
+    "GameDirectory": GQLOperation(
+        "DirectoryPage_Game",
+        "d5c5df7ab9ae65c3ea0f225738c08a36a4a76e4c6c31db7f8c4b8dc064227f9e",
+        variables={
+            "limit": 40,
+            "name": "paladins",
+            "options": {
+                "includeRestricted": ["SUB_ONLY_LIVE"],
+                "recommendationsContext": {"platform": "web"},
+                "sort": "RELEVANCE",
+                "tags": [],
+                "requestID": "JIRA-VXP-2397",
+            },
+            "sortTypeIsRecency": False
         },
     ),
 }
