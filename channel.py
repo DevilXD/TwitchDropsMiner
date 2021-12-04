@@ -62,20 +62,20 @@ class Channel:
         self.id: int = 0  # temp, to be filled by get_stream
         self.name: str = channel_name
         self.url: str = f"{BASE_URL}/{channel_name}"
-        self._spade_url: str = await self.get_spade_url()
+        self._spade_url: Optional[str] = None
         self.stream: Optional[Stream] = None
         self._pending_stream_up: Optional[asyncio.Task[Any]] = None
         await self.get_stream()
 
     @classmethod
-    async def from_directory(cls, twitch: Twitch, data: Dict[str, Any]):
+    def from_directory(cls, twitch: Twitch, data: Dict[str, Any]):
         self = super().__new__(cls)
         self._twitch = twitch
         channel = data["broadcaster"]
         self.id = channel["id"]
         self.name = channel["displayName"]
         self.url = f"{BASE_URL}/{self.name}"
-        self._spade_url = await self.get_spade_url()
+        self._spade_url = None
         self.stream = Stream.from_directory(self, data)
         self._pending_stream_up = None
         return self
@@ -187,6 +187,8 @@ class Channel:
         """
         if not self.online:
             return
+        if self._spade_url is None:
+            self._spade_url = await self.get_spade_url()
         logger.debug(f"Sending minute-watched to {self.name}")
         async with self._twitch._session.post(
             self._spade_url, data=self._encode_payload()

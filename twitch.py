@@ -384,7 +384,7 @@ class Twitch:
                 })
             )
             live_streams[game] = [
-                await Channel.from_directory(self, stream_channel_data["node"])
+                Channel.from_directory(self, stream_channel_data["node"])
                 for stream_channel_data in response["data"]["game"]["streams"]["edges"]
             ]
         return live_streams
