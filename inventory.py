@@ -127,5 +127,17 @@ class DropsCampaign:
     def active(self):
         return self.status == "ACTIVE"
 
+    @property
+    def total_drops(self) -> int:
+        return len(self.timed_drops)
+
+    @property
+    def claimed_drops(self) -> int:
+        return sum(d.is_claimed for d in self.timed_drops.values())
+
+    @property
+    def remaining_drops(self) -> int:
+        return sum(not d.is_claimed for d in self.timed_drops.values())
+
     def get_drop(self, drop_id: str) -> Optional[TimedDrop]:
         return self.timed_drops.get(drop_id)

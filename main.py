@@ -7,6 +7,7 @@ import json
 import ctypes
 import logging
 import asyncio
+import warnings
 import traceback
 import threading
 from typing import Any, Dict, NoReturn
@@ -20,7 +21,9 @@ try:
 except (ImportError, ModuleNotFoundError):
     raise ImportError("You have to run 'python -m pip install pywin32' first")
 
-
+# disable some warnings
+warnings.simplefilter("ignore", RuntimeWarning)
+warnings.simplefilter("ignore", DeprecationWarning)
 # nice console title
 try:
     ctypes.windll.kernel32.SetConsoleTitleW(f"Twitch Drops Miner v{__version__} (by DevilXD)")

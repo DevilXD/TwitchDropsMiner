@@ -63,9 +63,13 @@ class Twitch:
         self._channel_change = asyncio.Event()
         # Inventory
         self.inventory: List[DropsCampaign] = []
+        self._campaign_change = asyncio.Event()
 
     def wait_until_login(self):
         return self._is_logged_in.wait()
+
+    def reevaluate_campaigns(self):
+        self._campaign_change.set()
 
     async def close(self):
         print("Exiting...")
@@ -87,75 +91,96 @@ class Twitch:
         • Selecting a stream to watch, and watching it
         • Changing the stream that's being watched if necessary
         """
-        # Start our websocket connection - shouldn't require task tracking
-        asyncio.create_task(self.websocket.connect())
-        # Claim the drops we can
-        self.inventory = await self.get_inventory()
-        games = set()
-        for campaign in self.inventory:
-            if campaign.status == "UPCOMING":
-                # we have no use in processing upcoming campaigns here
-                continue
-            for drop in campaign.timed_drops.values():
-                if drop.can_earn:
-                    games.add(campaign.game)
-                if drop.can_claim:
-                    await drop.claim()
-        # games now has all games we want to farm drops for
-        if not channel_names:
-            # get a list of all channels with drops enabled
-            print("Fetching suitable live channels to watch...")
-            live_streams: Dict[Game, List[Channel]] = await self.get_live_streams(
-                games, [DROPS_ENABLED_TAG]
-            )
-            for game, channels in live_streams.items():
-                for channel in channels:
-                    self.channels[channel.id] = channel
-                    print(f"Added channel: {channel.name} for game: {game.name}")
-        else:
-            # Fetch information about all channels we're supposed to handle
-            for channel_name in channel_names:
-                channel: Channel = await Channel(self, channel_name)  # type: ignore
-                self.channels[channel.id] = channel
-        # Sub to these channel updates
-        topics: List[WebsocketTopic] = []
-        for channel_id in self.channels:
-            topics.append(
-                get_topic(
-                    "VideoPlayback", channel_id, partial(self.process_stream_state, channel_id)
-                )
-            )
-        await self.websocket.add_topics(topics)
-
-        # Repeat: Change into a channel we can watch, then reset the flag
-        self._channel_change.set()
-        refresh_channels = False  # we're entering having fresh channel data already
+        # Start our websocket connection
+        self.websocket.start()
         while True:
-            # wait for the change channel signal
-            await self._channel_change.wait()
-            for channel in self.channels.values():
-                if (
-                    channel.stream is not None  # steam online
-                    and channel.stream.drops_enabled  # drops are enabled
-                    and channel.stream.game in games  # streams a game we can earn drops in
-                ):
-                    self.watch(channel)
-                    refresh_channels = True
-                    self._channel_change.clear()
-                    break
-            else:
-                # there's no available channel to watch
-                if refresh_channels:
-                    # refresh the status of all channels,
-                    # to make sure that our websocket didn't miss anything til this point
-                    print("No suitable channel to watch, refreshing...")
-                    for channel in self.channels.values():
-                        await channel.get_stream()
-                        await asyncio.sleep(0.5)
-                    refresh_channels = False
+            # Claim the drops we can
+            self.inventory = await self.get_inventory()
+            games = set()
+            for campaign in self.inventory:
+                if campaign.status == "UPCOMING":
+                    # we have no use in processing upcoming campaigns here
                     continue
-                print("No suitable channel to watch, retrying in 120 seconds")
-                await asyncio.sleep(120)
+                for drop in campaign.timed_drops.values():
+                    if drop.can_earn:
+                        games.add(campaign.game)
+                    if drop.can_claim:
+                        await drop.claim()
+            # games now has all games we want to farm drops for
+            # if it's empty, there's no point in continuing
+            if not games:
+                print(
+                    "No active campaigns to farm drops for.\n\n"
+                    "Application Terminated.\nClose the console window to exit the application.",
+                )
+                await asyncio.Future()
+            if not channel_names:
+                # get a list of all channels with drops enabled
+                print("Fetching suitable live channels to watch...")
+                live_streams: Dict[Game, List[Channel]] = await self.get_live_streams(
+                    games, [DROPS_ENABLED_TAG]
+                )
+                for game, channels in live_streams.items():
+                    for channel in channels:
+                        self.channels[channel.id] = channel
+                        print(f"Added channel: {channel.name} for game: {game.name}")
+            else:
+                # Fetch information about all channels we're supposed to handle
+                for channel_name in channel_names:
+                    channel: Channel = await Channel(self, channel_name)  # type: ignore
+                    self.channels[channel.id] = channel
+            # Sub to these channel updates
+            topics: List[WebsocketTopic] = []
+            for channel_id in self.channels:
+                topics.append(
+                    get_topic(
+                        "VideoPlayback", channel_id, partial(self.process_stream_state, channel_id)
+                    )
+                )
+            await self.websocket.add_topics(topics)
+
+            # Repeat: Change into a channel we can watch, then reset the flag
+            self._channel_change.set()
+            refresh_channels = False  # we're entering having fresh channel data already
+            while True:
+                # wait for either the change channel signal, or campaign change signal
+                await asyncio.wait(
+                    (
+                        self._channel_change.wait(),
+                        self._campaign_change.wait(),
+                    ),
+                    return_when=asyncio.FIRST_COMPLETED,
+                )
+                if self._campaign_change.is_set():
+                    # we need to reevaluate all campaigns
+                    # reconnect the websocket
+                    await self.websocket.close()
+                    self.websocket.start()
+                    break  # cycles the outer loop
+                # otherwise, it was the channel change one
+                for channel in self.channels.values():
+                    if (
+                        channel.stream is not None  # steam online
+                        and channel.stream.drops_enabled  # drops are enabled
+                        and channel.stream.game in games  # streams a game we can earn drops in
+                    ):
+                        self.watch(channel)
+                        refresh_channels = True
+                        self._channel_change.clear()
+                        break
+                else:
+                    # there's no available channel to watch
+                    if refresh_channels:
+                        # refresh the status of all channels,
+                        # to make sure that our websocket didn't miss anything til this point
+                        print("No suitable channel to watch, refreshing...")
+                        for channel in self.channels.values():
+                            await channel.get_stream()
+                            await asyncio.sleep(0.5)
+                        refresh_channels = False
+                        continue
+                    print("No suitable channel to watch, retrying in 120 seconds")
+                    await asyncio.sleep(120)
 
     def watch(self, channel: Channel):
         if self._watching_task is not None:
@@ -217,7 +242,7 @@ class Twitch:
                 assert channel.stream is not None
                 viewers = message["viewers"]
                 channel.stream.viewer_count = viewers
-                logger.info(f"{channel.name} viewers: {viewers}")
+                logger.debug(f"{channel.name} viewers: {viewers}")
 
     async def _validate_password(self, password: str) -> bool:
         """
