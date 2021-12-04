@@ -203,6 +203,7 @@ class Twitch:
             logger.info(f"{channel.name} goes OFFLINE")
             channel.set_offline()
             if self.is_currently_watching(channel):
+                print(f"{channel.name} goes OFFLINE, switching...")
                 # change the channel if we're currently watching it
                 self._channel_change.set()
         elif msg_type == "stream-up":
