@@ -1,2 +1,2 @@
-aiohttp<4.0
+aiohttp>2.0,<4.0
 pywin32
