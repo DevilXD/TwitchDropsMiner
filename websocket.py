@@ -74,7 +74,10 @@ class Websocket:
                             if ping_future is not None and not ping_future.done():
                                 ping_future.set_result(message)
                         elif msg_type == "RESPONSE":
-                            self._recv_dict.pop(message["nonce"]).set_result(message)
+                            try:
+                                self._recv_dict.pop(message["nonce"]).set_result(message)
+                            except KeyError:
+                                logger.exception("Received response for a request we didn't send")
                         elif msg_type == "RECONNECT":
                             # We've received a reconnect request
                             logger.warning("Received a Websocket Reconnect Request")
@@ -84,7 +87,10 @@ class Websocket:
                             target_topic = message["data"]["topic"]
                             for topic in self._topics:
                                 if target_topic == topic:
-                                    await topic.process(json.loads(message["data"]["message"]))
+                                    try:
+                                        await topic.process(json.loads(message["data"]["message"]))
+                                    except Exception:
+                                        logger.exception("Exception in websocket topic process")
                                     break
                         else:
                             logger.error(f"Received unknown websocket payload: {message}")
