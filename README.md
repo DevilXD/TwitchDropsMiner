@@ -1,4 +1,4 @@
-# TwitchDropsMiner
+# Twitch Drops Miner
 
 This script allows you to AFK farm timed Twitch drops, without having to worry about switching channels when the one you were watching goes offline, or even receiving the stream data itself. This helps both you and Twitch save on bandwidth and hassle. Everybody wins!
 
@@ -11,7 +11,7 @@ This script allows you to AFK farm timed Twitch drops, without having to worry a
 
 **Not managed / TODO / manual:**
 
-- Adding additional drop campaigns from other games to your inventory (requires you to do account [linking](https://www.twitch.tv/drops/campaigns) yourself)
+- Adding additional drop campaigns from other games to your inventory (requires you to do [account linking](https://www.twitch.tv/drops/campaigns) yourself)
 - Stopping the mining if the last available drop has been mined.
 - A hard limit of up to ~45 streams to manage at the same time.
 
