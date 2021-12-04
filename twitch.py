@@ -318,7 +318,7 @@ class Twitch:
             return
         # looks like we're missing something
         print("Logging in")
-        jar = self._session.cookie_jar
+        jar = cast(aiohttp.CookieJar, self._session.cookie_jar)
         while True:
             cookie = jar.filter_cookies("https://twitch.tv")  # type: ignore
             if not cookie:
@@ -346,8 +346,9 @@ class Twitch:
         self._user_id = cookie["persistent"] = validate_response["user_id"]
         self._is_logged_in.set()
         print(f"Login successful, User ID: {self._user_id}")
-        # update our cookie
+        # update our cookie and save it
         jar.update_cookies(cookie, URL("https://twitch.tv"))
+        jar.save(COOKIES_PATH)
 
     async def gql_request(self, op: GQLOperation) -> Dict[str, Any]:
         await self.check_login()
