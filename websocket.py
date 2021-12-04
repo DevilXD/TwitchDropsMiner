@@ -100,7 +100,7 @@ class Websocket:
             self.change_connection_state(True)
             # Send all our chosen topics
             topics_list = list(map(str, self._topics))
-            logger.info(f"Listening for: {', '.join(topics_list)}")
+            logger.debug(f"Listening for: {', '.join(topics_list)}")
             self.send(
                 {
                     "type": "LISTEN",
@@ -218,7 +218,7 @@ class Websocket:
         if self.connected.is_set():
             # we're already connected, so we have to send the topics list ourselves
             topics_list = list(map(str, topics))
-            logger.info(f"Listening for: {', '.join(topics_list)}")
+            logger.debug(f"Listening for: {', '.join(topics_list)}")
             return self.send(
                 {
                     "type": "LISTEN",
