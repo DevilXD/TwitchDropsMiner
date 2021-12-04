@@ -16,6 +16,7 @@
             "type": "python",
             "request": "launch",
             "program": "main.py",
+            "args": ["-vv"],
             "console": "integratedTerminal",
             "justMyCode": false
         },
