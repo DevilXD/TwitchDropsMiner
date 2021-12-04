@@ -203,7 +203,7 @@ class Websocket:
         msg_type = message["type"]
         if msg_type == "drop-progress":
             print(
-                f"Drop: {drop.rewards_text()}: {drop.progress:4.0%} "
+                f"Drop: {drop.rewards_text()}: {drop.progress:5.1%} "
                 f"({drop.remaining_minutes} minutes remaining)"
             )
         elif msg_type == "drop-claim":
