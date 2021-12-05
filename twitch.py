@@ -376,7 +376,7 @@ class Twitch:
         jar = cast(aiohttp.CookieJar, self._session.cookie_jar)
         while True:
             cookie = jar.filter_cookies("https://twitch.tv")  # type: ignore
-            if cookie:
+            if not cookie:
                 # no cookie - login
                 await self._login()
                 # store our auth token inside the cookie
