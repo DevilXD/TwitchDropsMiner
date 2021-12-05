@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import os
+import msvcrt
 import asyncio
 import logging
 from yarl import URL
-from getpass import getpass
 from functools import partial
 from typing import Any, Optional, Union, List, Dict, Collection, cast
 
@@ -250,6 +250,7 @@ class Twitch:
         """
         Use Twitch's password validator to validate the password length, characters required, etc.
         Helps avoid running into the CAPTCHA if you mistype your password by mistake.
+        Valid length: 8-71
         """
         payload = {"password": password}
         async with self._session.post(
@@ -258,12 +259,42 @@ class Twitch:
             strength_response = await response.json()
         return strength_response["isValid"]
 
-    async def get_password(self) -> str:
+    async def get_password(self, prompt: str = "Password: ") -> str:
         """
-        A simple loop that'll keep asking for password, until it's considered valid.
+        A loop that'll keep asking for password, until it's considered valid.
+        Use own implementation rather than `getpass.getpass`, to add some user feedback
+        on how many characters have been typed in.
         """
         while True:
-            password = getpass()
+            for c in prompt:
+                msvcrt.putwch(c)
+            pass_chars: List[str] = []
+            try:
+                while True:
+                    c = msvcrt.getwch()
+                    if c in "\r\n":
+                        break
+                    elif c == '\003':
+                        raise KeyboardInterrupt
+                    elif c == '\b':
+                        # backspace
+                        if not pass_chars:
+                            # we have nothing to remove
+                            continue
+                        pass_chars.pop()
+                        # move one character back
+                        msvcrt.putwch('\b')
+                        # overwrite the • with a space
+                        msvcrt.putwch(' ')
+                        # move back again
+                        msvcrt.putwch('\b')
+                    else:
+                        pass_chars.append(c)
+                        msvcrt.putwch('•')
+            finally:
+                msvcrt.putwch('\r')
+                msvcrt.putwch('\n')
+            password = ''.join(pass_chars)
             if await self._validate_password(password):
                 return password
 
@@ -272,11 +303,7 @@ class Twitch:
         if self.username is None:
             self.username = input("Username: ")
         if self.password is None:
-            print(
-                "\nReminder: Passwords can be pasted in by pressing right click a single time\n"
-                "inside the window. Due to security reasons, no feedback is displayed.\n"
-                "Make sure not to paste it in twice.\n"
-            )
+            print("\nNote: Password can be pasted in by pressing right click inside the window.\n")
             self.password = await self.get_password()
 
         payload: Dict[str, Any] = {
@@ -349,7 +376,7 @@ class Twitch:
         jar = cast(aiohttp.CookieJar, self._session.cookie_jar)
         while True:
             cookie = jar.filter_cookies("https://twitch.tv")  # type: ignore
-            if not cookie:
+            if cookie:
                 # no cookie - login
                 await self._login()
                 # store our auth token inside the cookie
