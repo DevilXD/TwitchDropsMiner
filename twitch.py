@@ -92,7 +92,6 @@ class Twitch:
         • Changing the stream that's being watched if necessary
         """
         # Start our websocket connection
-        self.websocket.start()
         while True:
             # Claim the drops we can
             self.inventory = await self.get_inventory()
@@ -114,6 +113,7 @@ class Twitch:
                     "Application Terminated.\nClose the console window to exit the application.",
                 )
                 await asyncio.Future()
+            self.websocket.start()
             if not channel_names:
                 # get a list of all channels with drops enabled
                 print("Fetching suitable live channels to watch...")
@@ -122,8 +122,9 @@ class Twitch:
                 )
                 for game, channels in live_streams.items():
                     for channel in channels:
-                        self.channels[channel.id] = channel
-                        print(f"Added channel: {channel.name} for game: {game.name}")
+                        if channel.id not in self.channels:
+                            self.channels[channel.id] = channel
+                            print(f"Added channel: {channel.name} for game: {game.name}")
             else:
                 # Fetch information about all channels we're supposed to handle
                 for channel_name in channel_names:
@@ -153,10 +154,11 @@ class Twitch:
                 )
                 if self._campaign_change.is_set():
                     # we need to reevaluate all campaigns
+                    # first of all, stop watching
+                    self.stop_watching()
                     # reconnect the websocket
                     await self.websocket.close()
-                    self.websocket.start()
-                    break  # cycles the outer loop
+                    break  # cycle the outer loop
                 # otherwise, it was the channel change one
                 for channel in self.channels.values():
                     if (
