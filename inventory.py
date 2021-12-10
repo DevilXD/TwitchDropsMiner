@@ -136,5 +136,9 @@ class DropsCampaign:
     def remaining_drops(self) -> int:
         return sum(not d.is_claimed for d in self.timed_drops.values())
 
+    @property
+    def progress(self) -> float:
+        return self.claimed_drops / self.total_drops
+
     def get_drop(self, drop_id: str) -> Optional[TimedDrop]:
         return self.timed_drops.get(drop_id)
