@@ -5,21 +5,27 @@ from datetime import timedelta
 from typing import Any, Optional, Union, Dict, Callable
 
 
+# URLs
 BASE_URL = "https://twitch.tv"
 AUTH_URL = "https://passport.twitch.tv"
 WEBSOCKET_URL = "wss://pubsub-edge.twitch.tv/v1"
 GQL_URL = "https://gql.twitch.tv/gql"
+# Misc for Twitch
 CLIENT_ID = "kimne78kx3ncx6brgo4mv6wki5h1ko"
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
     "Chrome/96.0.4664.45 Safari/537.36"
 )
+# Paths
 SETTINGS_PATH = "settings.json"
 COOKIES_PATH = "cookies.pickle"
+# Intervals and Delays
 PING_INTERVAL = timedelta(minutes=3)
 ONLINE_DELAY = timedelta(seconds=30)
-# tags
+# Tags
 DROPS_ENABLED_TAG = "c2542d6d-cd10-4532-919b-3d19f30a768b"
+# Strings
+TERMINATED_STR = "Application Terminated.\nClose the console window to exit the application."
 
 
 class GQLOperation(Dict[str, Any]):

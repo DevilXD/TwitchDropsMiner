@@ -9,25 +9,6 @@ if TYPE_CHECKING:
     from twitch import Twitch
 
 
-async def claim_drop(twitch: Twitch, claim_id: str) -> bool:
-    op = GQL_OPERATIONS["ClaimDrop"].with_variables(
-        {"input": {"dropInstanceID": claim_id}}
-    )
-    response = await twitch.gql_request(op)
-    data = response["data"]
-    if "errors" in data and data["errors"]:
-        return False
-    elif "claimDropRewards" in data:
-        if not data["claimDropRewards"]:
-            return False
-        elif (
-            data["claimDropRewards"]["status"]
-            in ["ELIGIBLE_FOR_ALL", "DROP_INSTANCE_ALREADY_CLAIMED"]
-        ):
-            return True
-    return False
-
-
 class Game:
     def __init__(self, data: Dict[str, Any]):
         self.id: int = int(data["id"])
@@ -45,7 +26,7 @@ class Game:
 class BaseDrop:
     def __init__(self, campaign: DropsCampaign, data: Dict[str, Any]):
         self._twitch: Twitch = campaign._twitch
-        self.id = data["id"]
+        self.id: str = data["id"]
         self.name: str = data["name"]
         self.campaign: DropsCampaign = campaign
         self.rewards: List[str] = [b["benefit"]["name"] for b in data["benefitEdges"]]
@@ -77,9 +58,25 @@ class BaseDrop:
         """
         if not self.can_claim:
             return False
-        assert self.claim_id is not None
-        self.is_claimed = await claim_drop(self._twitch, self.claim_id)
-        return self.is_claimed
+        if self.is_claimed:
+            return True
+        op = GQL_OPERATIONS["ClaimDrop"].with_variables(
+            {"input": {"dropInstanceID": self.claim_id}}
+        )
+        response = await self._twitch.gql_request(op)
+        data = response["data"]
+        if "errors" in data and data["errors"]:
+            return False
+        elif "claimDropRewards" in data:
+            if not data["claimDropRewards"]:
+                return False
+            elif (
+                data["claimDropRewards"]["status"]
+                in ["ELIGIBLE_FOR_ALL", "DROP_INSTANCE_ALREADY_CLAIMED"]
+            ):
+                self.is_claimed = True
+                return True
+        return False
 
 
 class TimedDrop(BaseDrop):
@@ -92,11 +89,11 @@ class TimedDrop(BaseDrop):
             self.current_minutes = self.required_minutes
 
     @property
-    def remaining_minutes(self):
+    def remaining_minutes(self) -> int:
         return self.required_minutes - self.current_minutes
 
     @property
-    def progress(self):
+    def progress(self) -> float:
         return self.current_minutes / self.required_minutes
 
     def update(self, message: Dict[str, Any]):

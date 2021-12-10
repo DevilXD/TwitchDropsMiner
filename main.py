@@ -13,7 +13,7 @@ import threading
 from typing import Any, Dict, NoReturn
 
 from twitch import Twitch
-from constants import SETTINGS_PATH
+from constants import SETTINGS_PATH, TERMINATED_STR
 
 try:
     import win32api
@@ -36,7 +36,7 @@ assert sys.platform == "win32"
 
 def terminate() -> NoReturn:
     forever = threading.Event()
-    print("\nApplication Terminated.\nClose the console window to exit the application.")
+    print(f"\n{TERMINATED_STR}")
     forever.wait()
     raise RuntimeError("Uh oh")  # this will never run, solely for MyPy
 

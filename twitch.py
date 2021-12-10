@@ -25,6 +25,7 @@ from constants import (
     GQL_URL,
     GQL_OPERATIONS,
     DROPS_ENABLED_TAG,
+    TERMINATED_STR,
     GQLOperation,
     WebsocketTopic,
     get_topic,
@@ -91,7 +92,6 @@ class Twitch:
         • Selecting a stream to watch, and watching it
         • Changing the stream that's being watched if necessary
         """
-        # Start our websocket connection
         while True:
             # Claim the drops we can
             self.inventory = await self.get_inventory()
@@ -105,14 +105,12 @@ class Twitch:
                         games.add(campaign.game)
                     if drop.can_claim:
                         await drop.claim()
-            # games now has all games we want to farm drops for
+            # 'games' now has all games we want to farm drops for
             # if it's empty, there's no point in continuing
             if not games:
-                print(
-                    "No active campaigns to farm drops for.\n\n"
-                    "Application Terminated.\nClose the console window to exit the application.",
-                )
+                print(f"No active campaigns to farm drops for.\n\n{TERMINATED_STR}")
                 await asyncio.Future()
+            # Start our websocket connection, only after we confirm that there are drops to mine
             self.websocket.start()
             if not channel_names:
                 # get a list of all channels with drops enabled
