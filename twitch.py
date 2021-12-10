@@ -161,8 +161,9 @@ class Twitch:
                 for channel in self.channels.values():
                     if (
                         channel.stream is not None  # steam online
+                        and channel.stream.game is not None  # there's game information
                         and channel.stream.drops_enabled  # drops are enabled
-                        and channel.stream.game in games  # streams a game we can earn drops in
+                        and channel.stream.game in games  # it's a game we can earn drops in
                     ):
                         self.watch(channel)
                         refresh_channels = True
@@ -204,10 +205,13 @@ class Twitch:
                         await self.claim_points(channel_data["id"], claim_available["id"])
                         logger.info("Claimed bonus points")
                 i = (i + 1) % 30
-                await asyncio.sleep(59)
+                await asyncio.sleep(58)
 
-        game = channel.stream.game.name if channel.stream is not None else "<Unknown>"
-        print(f"Watching: {channel.name}, game: {game}")
+        if channel.stream is not None and channel.stream.game is not None:
+            game_name = channel.stream.game.name
+        else:
+            game_name = "<Unknown>"
+        print(f"Watching: {channel.name}, game: {game_name}")
         self._watching_channel = channel
         self._watching_task = asyncio.create_task(watcher(channel))
 

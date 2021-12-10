@@ -29,7 +29,11 @@ class Stream:
         self.viewer_count = stream["viewersCount"]
         self.drops_enabled = any(tag["id"] == DROPS_ENABLED_TAG for tag in stream["tags"])
         settings = data["broadcastSettings"]
-        self.game: Game = Game(settings["game"])
+        self.game: Optional[Game]
+        if settings["game"] is not None:
+            self.game = Game(settings["game"])
+        else:
+            self.game = None
         self.title = settings["title"]
         self._timestamp = datetime.now(timezone.utc)
 
