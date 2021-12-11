@@ -52,6 +52,8 @@ if len(sys.argv) > 1:
     elif arg in ("-vvv", "-v3"):
         logging_level = logging.DEBUG
 # handle logging stuff
+root_logger = logging.getLogger()
+root_logger.addHandler(logging.NullHandler())
 logger = logging.getLogger("TwitchDrops")
 handler = logging.StreamHandler(sys.stdout)
 handler.setFormatter(logging.Formatter("{levelname}: {message}", style='{'))
