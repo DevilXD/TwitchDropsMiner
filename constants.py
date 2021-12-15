@@ -1,10 +1,17 @@
 from __future__ import annotations
 
+import logging
 from copy import copy
 from datetime import timedelta
 from typing import Any, Optional, Union, Dict, Callable
 
-
+# Typing
+JsonType = Dict[str, Any]
+TopicProcess = Callable[[JsonType], Any]
+# Values
+DEBUG_RAW = logging.DEBUG - 1
+MAX_WEBSOCKETS = 8
+WS_TOPICS_LIMIT = 50
 # URLs
 BASE_URL = "https://twitch.tv"
 AUTH_URL = "https://passport.twitch.tv"
@@ -28,8 +35,8 @@ DROPS_ENABLED_TAG = "c2542d6d-cd10-4532-919b-3d19f30a768b"
 TERMINATED_STR = "Application Terminated.\nClose the console window to exit the application."
 
 
-class GQLOperation(Dict[str, Any]):
-    def __init__(self, name: str, sha256: str, *, variables: Optional[Dict[str, Any]] = None):
+class GQLOperation(JsonType):
+    def __init__(self, name: str, sha256: str, *, variables: Optional[JsonType] = None):
         super().__init__(
             operationName=name,
             extensions={
@@ -42,10 +49,10 @@ class GQLOperation(Dict[str, Any]):
         if variables is not None:
             self.__setitem__("variables", variables)
 
-    def with_variables(self, variables: Dict[str, Any]):
+    def with_variables(self, variables: JsonType):
         modified = copy(self)
         if "variables" in self:
-            existing_variables: Dict[str, Any] = modified["variables"]
+            existing_variables: JsonType = modified["variables"]
             existing_variables.update(variables)
         else:
             modified["variables"] = variables
@@ -121,42 +128,47 @@ GQL_OPERATIONS: Dict[str, GQLOperation] = {
 }
 
 
-def get_topic(
-    topic_name: str, target_id: Union[str, int], process: Callable[[Dict[str, Any]], Any]
-) -> WebsocketTopic:
-    return WebsocketTopic(f"{WEBSOCKET_TOPICS[topic_name]}.{target_id}", process)
-
-
 class WebsocketTopic:
-    def __init__(self, topic_id: str, process: Callable[[Dict[str, Any]], Any]):
-        self.id: str = topic_id
-        self.process: Callable[[Dict[str, Any]], Any] = process
+    def __init__(
+        self,
+        topic_category: str,
+        topic_name: str,
+        target_id: Union[int, str],
+        process: TopicProcess,
+    ):
+        self._id: str = f"{WEBSOCKET_TOPICS[topic_category][topic_name]}.{target_id}"
+        self._process: TopicProcess = process
+
+    def __call__(self, *args):
+        return self._process(*args)
 
     def __str__(self) -> str:
-        return self.id
+        return self._id
 
     def __eq__(self, other):
         if isinstance(other, str):
-            return self.id == other
+            return self._id == other
         elif isinstance(other, WebsocketTopic):
-            return self.id == other.id
+            return self._id == other._id
         return NotImplemented
 
     def __hash__(self) -> int:
-        return hash((self.__class__.__name__, self.id))
+        return hash((self.__class__.__name__, self._id))
 
 
-WEBSOCKET_TOPICS: Dict[str, str] = {
-    # Using user_id
-    "UserDrops": "user-drop-events",
-    "UserStreamState": "stream-change-v1",
-    "UserCommunityPoints": "community-points-user-v1",
-    "Presence": "presence",
-    "Notifications": "onsite-notifications",
-    # Using channel_id
-    "ChannelDrops": "channel-drop-events",
-    "ChannelStreamState": "stream-change-by-channel",
-    "ChannelCommunityPoints": "community-points-channel-v1",
-    "VideoPlayback": "video-playback-by-id",
-    "StreamUpdate": "broadcast-settings-update",
+WEBSOCKET_TOPICS: Dict[str, Dict[str, str]] = {
+    "User": {  # Using user_id
+        "Drops": "user-drop-events",
+        "StreamState": "stream-change-v1",
+        "CommunityPoints": "community-points-user-v1",
+        "Presence": "presence",
+        "Notifications": "onsite-notifications",
+    },
+    "Channel": {  # Using channel_id
+        "Drops": "channel-drop-events",
+        "StreamState": "stream-change-by-channel",
+        "CommunityPoints": "community-points-channel-v1",
+        "VideoPlayback": "video-playback-by-id",
+        "StreamUpdate": "broadcast-settings-update",
+    },
 }

@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Optional, List, Dict, TYPE_CHECKING
+from typing import Optional, List, Dict, TYPE_CHECKING
 
-from constants import GQL_OPERATIONS
+from constants import JsonType, GQL_OPERATIONS
 
 if TYPE_CHECKING:
     from twitch import Twitch
 
 
 class Game:
-    def __init__(self, data: Dict[str, Any]):
+    def __init__(self, data: JsonType):
         self.id: int = int(data["id"])
         self.name: str = data["name"]
 
@@ -24,7 +24,7 @@ class Game:
 
 
 class BaseDrop:
-    def __init__(self, campaign: DropsCampaign, data: Dict[str, Any]):
+    def __init__(self, campaign: DropsCampaign, data: JsonType):
         self._twitch: Twitch = campaign._twitch
         self.id: str = data["id"]
         self.name: str = data["name"]
@@ -80,7 +80,7 @@ class BaseDrop:
 
 
 class TimedDrop(BaseDrop):
-    def __init__(self, campaign: DropsCampaign, data: Dict[str, Any]):
+    def __init__(self, campaign: DropsCampaign, data: JsonType):
         super().__init__(campaign, data)
         self.current_minutes: int = data["self"]["currentMinutesWatched"]
         self.required_minutes: int = data["requiredMinutesWatched"]
@@ -96,7 +96,7 @@ class TimedDrop(BaseDrop):
     def progress(self) -> float:
         return self.current_minutes / self.required_minutes
 
-    def update(self, message: Dict[str, Any]):
+    def update(self, message: JsonType):
         # {"type": "drop-progress", data: {"current_progress_min": 3, "required_progress_min": 10}}
         # {"type": "drop-claim", data: {"drop_instance_id": ...}}
         msg_type = message["type"]
@@ -108,7 +108,7 @@ class TimedDrop(BaseDrop):
 
 
 class DropsCampaign:
-    def __init__(self, twitch: Twitch, data: Dict[str, Any]):
+    def __init__(self, twitch: Twitch, data: JsonType):
         self._twitch: Twitch = twitch
         self.id: str = data["id"]
         self.name: str = data["name"]

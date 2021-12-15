@@ -14,11 +14,14 @@ except ImportError:
     raise ImportError("You have to run 'python -m pip install aiohttp' first")
 
 from channel import Channel
-from websocket import Websocket
+from websocket import WebsocketPool
 from inventory import DropsCampaign, Game
 from exceptions import LoginException, CaptchaRequired
 from constants import (
+    JsonType,
+    WebsocketTopic,
     CLIENT_ID,
+    DEBUG_RAW,
     USER_AGENT,
     COOKIES_PATH,
     AUTH_URL,
@@ -27,8 +30,6 @@ from constants import (
     DROPS_ENABLED_TAG,
     TERMINATED_STR,
     GQLOperation,
-    WebsocketTopic,
-    get_topic,
 )
 
 
@@ -55,8 +56,6 @@ class Twitch:
         self._access_token: Optional[str] = None
         self._user_id: Optional[int] = None
         self._is_logged_in = asyncio.Event()
-        # Websocket
-        self.websocket = Websocket(self)
         # Storing, watching and changing channels
         self.channels: Dict[int, Channel] = {}
         self._watching_channel: Optional[Channel] = None
@@ -65,6 +64,8 @@ class Twitch:
         # Inventory
         self.inventory: List[DropsCampaign] = []
         self._campaign_change = asyncio.Event()
+        # Websocket
+        self.websocket = WebsocketPool(self)
 
     def wait_until_login(self):
         return self._is_logged_in.wait()
@@ -77,7 +78,7 @@ class Twitch:
         self._session.cookie_jar.save(COOKIES_PATH)  # type: ignore
         self.stop_watching()
         await self._session.close()
-        await self.websocket.close()
+        await self.websocket.stop()
         await asyncio.sleep(1)  # allows aiohttp to safely close the session
 
     def is_currently_watching(self, channel: Channel) -> bool:
@@ -111,7 +112,7 @@ class Twitch:
                 print(f"No active campaigns to farm drops for.\n\n{TERMINATED_STR}")
                 await asyncio.Future()
             # Start our websocket connection, only after we confirm that there are drops to mine
-            self.websocket.start()
+            await self.websocket.start()
             if not channel_names:
                 # get a list of all channels with drops enabled
                 print("Fetching suitable live channels to watch...")
@@ -129,14 +130,16 @@ class Twitch:
                     channel: Channel = await Channel(self, channel_name)  # type: ignore
                     self.channels[channel.id] = channel
             # Sub to these channel updates
-            topics: List[WebsocketTopic] = []
-            for channel_id in self.channels:
-                topics.append(
-                    get_topic(
-                        "VideoPlayback", channel_id, partial(self.process_stream_state, channel_id)
-                    )
+            topics: List[WebsocketTopic] = [
+                WebsocketTopic(
+                    "Channel",
+                    "VideoPlayback",
+                    channel_id,
+                    partial(self.process_stream_state, channel_id),
                 )
-            await self.websocket.add_topics(topics)
+                for channel_id in self.channels
+            ]
+            self.websocket.add_topics(topics)
 
             # Repeat: Change into a channel we can watch, then reset the flag
             self._channel_change.set()
@@ -152,10 +155,10 @@ class Twitch:
                 )
                 if self._campaign_change.is_set():
                     # we need to reevaluate all campaigns
-                    # first of all, stop watching
+                    # stop watching
                     self.stop_watching()
-                    # reconnect the websocket
-                    await self.websocket.close()
+                    # close the websocket
+                    await self.websocket.stop()
                     break  # cycle the outer loop
                 # otherwise, it was the channel change one
                 for channel in self.channels.values():
@@ -197,8 +200,8 @@ class Twitch:
                 if i == 0:
                     # ensure every 30 minutes that we don't have unclaimed points bonus
                     response = await self.gql_request(op)
-                    channel_data: Dict[str, Any] = response["data"]["community"]["channel"]
-                    claim_available: Dict[str, Any] = (
+                    channel_data: JsonType = response["data"]["community"]["channel"]
+                    claim_available: JsonType = (
                         channel_data["self"]["communityPoints"]["availableClaim"]
                     )
                     if claim_available:
@@ -222,7 +225,7 @@ class Twitch:
             self._watching_task = None
         self._watching_channel = None
 
-    async def process_stream_state(self, channel_id: int, message: Dict[str, Any]):
+    async def process_stream_state(self, channel_id: int, message: JsonType):
         msg_type = message["type"]
         channel = self.channels.get(channel_id)
         if channel is None:
@@ -308,7 +311,7 @@ class Twitch:
             print("\nNote: Password can be pasted in by pressing right click inside the window.\n")
             self.password = await self.get_password()
 
-        payload: Dict[str, Any] = {
+        payload: JsonType = {
             "username": self.username,
             "password": self.password,
             "client_id": CLIENT_ID,
@@ -407,16 +410,16 @@ class Twitch:
         jar.update_cookies(cookie, URL("https://twitch.tv"))
         jar.save(COOKIES_PATH)
 
-    async def gql_request(self, op: GQLOperation) -> Dict[str, Any]:
+    async def gql_request(self, op: GQLOperation) -> JsonType:
         await self.check_login()
         headers = {
             "Authorization": f"OAuth {self._access_token}",
             "Client-Id": CLIENT_ID,
         }
-        logger.debug(f"GQL Request: {op}")
+        logger.log(DEBUG_RAW, f"GQL Request: {op}")
         async with self._session.post(GQL_URL, json=op, headers=headers) as response:
             response_json = await response.json()
-            logger.debug(f"GQL Response: {response_json}")
+            logger.log(DEBUG_RAW, f"GQL Response: {response_json}")
             return response_json
 
     async def get_inventory(self) -> List[DropsCampaign]:
@@ -427,7 +430,7 @@ class Twitch:
     async def get_live_streams(
         self, games: Collection[Game], tag_ids: List[str]
     ) -> Dict[Game, List[Channel]]:
-        limit = int(45 / len(games))
+        limit = 100
         live_streams = {}
         for game in games:
             response = await self.gql_request(

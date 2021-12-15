@@ -7,11 +7,11 @@ import logging
 from copy import copy
 from base64 import b64encode
 from datetime import datetime, timezone
-from typing import Any, Optional, Dict, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING
 
 from inventory import Game
 from exceptions import MinerException
-from constants import BASE_URL, GQL_OPERATIONS, ONLINE_DELAY, DROPS_ENABLED_TAG
+from constants import JsonType, BASE_URL, GQL_OPERATIONS, ONLINE_DELAY, DROPS_ENABLED_TAG
 
 if TYPE_CHECKING:
     from twitch import Twitch
@@ -21,7 +21,7 @@ logger = logging.getLogger("TwitchDrops")
 
 
 class Stream:
-    def __init__(self, channel: Channel, data: Dict[str, Any]):
+    def __init__(self, channel: Channel, data: JsonType):
         self._twitch = channel._twitch
         self.channel = channel
         stream = data["stream"]
@@ -38,7 +38,7 @@ class Stream:
         self._timestamp = datetime.now(timezone.utc)
 
     @classmethod
-    def from_directory(cls, channel: Channel, data: Dict[str, Any]):
+    def from_directory(cls, channel: Channel, data: JsonType):
         self = super().__new__(cls)
         self._twitch = channel._twitch
         self.channel = channel
@@ -72,7 +72,7 @@ class Channel:
         await self.get_stream()
 
     @classmethod
-    def from_directory(cls, twitch: Twitch, data: Dict[str, Any]):
+    def from_directory(cls, twitch: Twitch, data: JsonType):
         self = super().__new__(cls)
         self._twitch = twitch
         channel = data["broadcaster"]
