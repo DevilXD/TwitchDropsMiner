@@ -277,8 +277,8 @@ class WebsocketPool:
         return self._running.wait()
 
     async def start(self):
-        await self._twitch.wait_until_login()
         self._running.set()
+        await self._twitch.wait_until_login()
         # Add default topics
         assert self._twitch._user_id is not None
         user_id = self._twitch._user_id
