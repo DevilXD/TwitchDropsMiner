@@ -86,9 +86,13 @@ class Websocket:
             return
         if self._handle_task is None:
             self._handle_task = asyncio.create_task(self._handle())
-        else:
-            self.request_reconnect()
         await self.wait_until_connected()
+
+    def start_nowait(self):
+        if self.connected:
+            return
+        if self._handle_task is None:
+            self._handle_task = asyncio.create_task(self._handle())
 
     async def stop(self):
         if self._ws is not None:
@@ -97,17 +101,10 @@ class Websocket:
             await self._handle_task
             self._handle_task = None
 
-    def start_nowait(self):
-        if self.connected:
-            return
-        if self._handle_task is None:
-            self._handle_task = asyncio.create_task(self._handle())
-        else:
-            self.request_reconnect()
-
     def stop_nowait(self):
         if self._ws is not None:
             asyncio.create_task(self._ws.close())
+        # note: this detaches the handle task, so we have to assume it closes properly
         self._handle_task = None
 
     @task_wrapper
@@ -280,7 +277,6 @@ class WebsocketPool:
         return self._running.wait()
 
     async def start(self):
-        self._running.set()
         await self._twitch.wait_until_login()
         # Add default topics
         assert self._twitch._user_id is not None
@@ -289,6 +285,7 @@ class WebsocketPool:
             WebsocketTopic("User", "Drops", user_id, self.process_drops),
             WebsocketTopic("User", "CommunityPoints", user_id, self.process_points),
         ])
+        self._running.set()
         await asyncio.gather(*(ws.start() for ws in self.websockets))
 
     async def stop(self):
@@ -311,8 +308,8 @@ class WebsocketPool:
                 ws = self.websockets[ws_idx]
             else:
                 # create new
-                ws = Websocket(self, len(self.websockets))
-                if self._running:
+                ws = Websocket(self, ws_idx)
+                if self.running:
                     ws.start_nowait()
                 self.websockets.append(ws)
             # ask websocket to take any topics it can - this modifies the set in-place
