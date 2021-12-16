@@ -403,7 +403,8 @@ class Twitch:
                 elif status == 200:
                     validate_response = await response.json()
                     break
-        self._user_id = cookie["persistent"] = validate_response["user_id"]
+        self._user_id = int(validate_response["user_id"])
+        cookie["persistent"] = str(self._user_id)
         self._is_logged_in.set()
         print(f"Login successful, User ID: {self._user_id}")
         # update our cookie and save it
