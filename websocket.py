@@ -354,13 +354,13 @@ class WebsocketPool:
             return
         drop.update(message)
         msg_type = message["type"]
+        campaign = drop.campaign
         if msg_type == "drop-progress":
             print(
-                f"Drop: {drop.rewards_text()}: {drop.progress:6.1%} "
-                f"({drop.remaining_minutes} minutes remaining)"
+                f"Drop: {drop.rewards_text()} ({campaign.claimed_drops}/{campaign.total_drops}): "
+                f"{drop.progress:6.1%} ({drop.remaining_minutes} minutes remaining)"
             )
         elif msg_type == "drop-claim":
-            campaign = drop.campaign
             await drop.claim()
             print(
                 f"Claimed drop: {drop.rewards_text()} "
