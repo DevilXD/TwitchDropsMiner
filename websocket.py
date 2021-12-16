@@ -18,7 +18,6 @@ from exceptions import MinerException
 from constants import (
     JsonType,
     WebsocketTopic,
-    DEBUG_RAW,
     WEBSOCKET_URL,
     PING_INTERVAL,
     MAX_WEBSOCKETS,
@@ -29,7 +28,7 @@ if TYPE_CHECKING:
     from twitch import Twitch
 
 
-logger = logging.getLogger("TwitchDrops")
+ws_logger = logging.getLogger("TwitchDrops.websocket")
 NONCE_CHARS = string.ascii_letters + string.digits
 
 
@@ -43,7 +42,7 @@ def task_wrapper(afunc):
         try:
             await afunc(self, *args, **kwargs)
         except Exception:
-            logger.exception("Exception in websocket task")
+            ws_logger.exception("Exception in websocket task")
             raise  # raise up to the wrapping task
     return wrapper
 
@@ -79,6 +78,7 @@ class Websocket:
         return self._connected_flag.wait()
 
     def request_reconnect(self):
+        ws_logger.warning(f"Websocket[{self._idx}] requested reconnect.")
         self._reconnect_requested.set()
 
     async def start(self):
@@ -114,7 +114,7 @@ class Websocket:
     async def _handle(self):
         # ensure we're logged in before connecting
         await self._twitch.wait_until_login()
-        logger.info("Connecting to Websocket")
+        ws_logger.info(f"Websocket[{self._idx}] connecting...")
         # Connect/Reconnect loop
         async for websocket in websocket_connect(WEBSOCKET_URL, ssl=True, ping_interval=None):
             websocket.BACKOFF_MAX = 3 * 60  # type: ignore  # 3 minutes
@@ -131,21 +131,25 @@ class Websocket:
                     self._submitted.clear()
                     self._connected_flag.clear()
                 # A reconnect was requested
-                continue
             except ConnectionClosed as exc:
                 if isinstance(exc, ConnectionClosedOK):
                     if exc.rcvd_then_sent:
                         # server closed the connection, not us - reconnect
-                        logger.warning("Server Disconnected - Reconnecting")
-                        continue
-                    # we closed it - exit
-                    return
-                # otherwise, reconnect
-                logger.warning("Websocket Closed - Reconnecting")
-                continue
+                        ws_logger.warning(f"Websocket[{self._idx}] disconnected.")
+                    else:
+                        # we closed it - exit
+                        ws_logger.info(f"Websocket[{self._idx}] stopped.")
+                        return
+                if exc.rcvd is not None:
+                    code = exc.rcvd.code
+                elif exc.sent is not None:
+                    code = exc.sent.code
+                else:
+                    code = -1
+                ws_logger.warning(f"Websocket[{self._idx}] closed unexpectedly: {code}")
             except Exception:
-                logger.exception("Exception in Websocket - Reconnecting")
-                continue
+                ws_logger.exception(f"Exception in Websocket[{self._idx}]")
+            ws_logger.warning(f"Websocket[{self._idx}] reconnecting...")
 
     async def _handle_ping(self):
         now = time()
@@ -166,7 +170,7 @@ class Websocket:
         removed = self._submitted.difference(current)
         if removed:
             topics_list = list(map(str, removed))
-            logger.debug(f"Websocket[{self._idx}]: Removing topics: {', '.join(topics_list)}")
+            ws_logger.debug(f"Websocket[{self._idx}]: Removing topics: {', '.join(topics_list)}")
             await self.send(
                 {
                     "type": "UNLISTEN",
@@ -181,7 +185,7 @@ class Websocket:
         added = current.difference(self._submitted)
         if added:
             topics_list = list(map(str, added))
-            logger.debug(f"Websocket[{self._idx}]: Adding topics: {', '.join(topics_list)}")
+            ws_logger.debug(f"Websocket[{self._idx}]: Adding topics: {', '.join(topics_list)}")
             await self.send(
                 {
                     "type": "LISTEN",
@@ -202,7 +206,7 @@ class Websocket:
         while True:
             raw_message = await self._ws.recv()
             message = json.loads(raw_message)
-            logger.log(DEBUG_RAW, f"Websocket received: {message}")
+            ws_logger.debug(f"Websocket[{self._idx}] received: {message}")
             messages.append(message)
 
     def _handle_message(self, message):
@@ -233,10 +237,9 @@ class Websocket:
                 pass
             elif msg_type == "RECONNECT":
                 # We've received a reconnect request
-                logger.warning("Received a Websocket Reconnect Request")
                 self.request_reconnect()
             else:
-                logger.error(f"Received unknown websocket payload: {message}")
+                ws_logger.warning(f"Websocket[{self._idx}] received unknown payload: {message}")
 
     def add_topics(self, topics_set: Set[WebsocketTopic]):
         while topics_set and len(self.topics) < WS_TOPICS_LIMIT:
@@ -260,7 +263,7 @@ class Websocket:
         if message["type"] != "PING":
             message["nonce"] = create_nonce()
         await self._ws.send(json.dumps(message, separators=(',', ':')))
-        logger.log(DEBUG_RAW, f"Websocket sent: {message}")
+        ws_logger.debug(f"Websocket[{self._idx}] sent: {message}")
 
 
 class WebsocketPool:
@@ -350,7 +353,7 @@ class WebsocketPool:
             if drop is not None:
                 break
         else:
-            logger.error(f"Drop with ID of {drop_id} not found!")
+            ws_logger.warning(f"Drop with ID of {drop_id} not found!")
             return
         drop.update(message)
         msg_type = message["type"]

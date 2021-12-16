@@ -7,13 +7,14 @@ import json
 import ctypes
 import logging
 import asyncio
+import argparse
 import warnings
 import traceback
 import threading
-from typing import NoReturn
+from typing import Literal, NoReturn
 
 from twitch import Twitch
-from constants import JsonType, SETTINGS_PATH, TERMINATED_STR, DEBUG_RAW
+from constants import JsonType, SETTINGS_PATH, TERMINATED_STR
 
 try:
     import win32api
@@ -41,29 +42,55 @@ def terminate() -> NoReturn:
     raise RuntimeError("Uh oh")  # this will never run, solely for MyPy
 
 
-# extra debug logging level
-logging.addLevelName(DEBUG_RAW, "DEBUG_RAW")
-# handle extra stackable '-v' parameter, that switches the logging level
-logging_level = logging.ERROR
-if len(sys.argv) > 1:
-    arg = sys.argv[1]
-    if arg == ("-v", "-v1"):
-        logging_level = logging.WARNING
-    elif arg in ("-vv", "-v2"):
-        logging_level = logging.INFO
-    elif arg in ("-vvv", "-v3"):
-        logging_level = logging.DEBUG
-    elif arg in ("-vvvv", "-v4"):
-        # enables debugging raw messages
-        logging_level = DEBUG_RAW
+class ParsedArgs(argparse.Namespace):
+    _verbose: int
+    debug_ws: Literal[Literal[0], Literal[10]]
+    debug_gql: Literal[Literal[0], Literal[10]]
+
+    @property
+    def logging_level(self) -> int:
+        return {
+            0: logging.ERROR,
+            1: logging.WARNING,
+            2: logging.INFO,
+            3: logging.DEBUG,
+        }.get(self._verbose, logging.DEBUG)
+
+
+# handle input parameters
+parser = argparse.ArgumentParser(
+    f"TwitchDropsMiner.v{__version__}.exe",
+    description="A program that allows you to mine timed drops on Twitch.",
+)
+parser.add_argument("-V", "--version", action="version", version=f"v{__version__}")
+parser.add_argument("-v", dest="_verbose", action="count", default=0)
+parser.add_argument(
+    "--debug-ws",
+    dest="debug_ws",
+    action="store_const",
+    const=logging.DEBUG,
+    default=logging.NOTSET,
+)
+parser.add_argument(
+    "--debug-gql",
+    dest="debug_gql",
+    action="store_const",
+    const=logging.DEBUG,
+    default=logging.NOTSET,
+)
+options: ParsedArgs = parser.parse_args(namespace=ParsedArgs())
 # handle logging stuff
-root_logger = logging.getLogger()
-root_logger.addHandler(logging.NullHandler())
+if options.logging_level > logging.DEBUG:
+    # redirect the root logger into a NullHandler, effectively ignoring all logging calls
+    # that aren't ours. This always runs, unless the main logging level is DEBUG or below.
+    logging.getLogger().addHandler(logging.NullHandler())
 logger = logging.getLogger("TwitchDrops")
 handler = logging.StreamHandler(sys.stdout)
 handler.setFormatter(logging.Formatter("{levelname}: {message}", style='{'))
 logger.addHandler(handler)
-logger.setLevel(logging_level)
+logger.setLevel(options.logging_level)
+logging.getLogger("TwitchDrops.gql").setLevel(options.debug_gql)
+logging.getLogger("TwitchDrops.websocket").setLevel(options.debug_ws)
 # handle settings
 try:
     with open(SETTINGS_PATH, 'r', encoding="utf8") as file:

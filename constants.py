@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from copy import copy
 from datetime import timedelta
 from typing import Any, Optional, Union, Dict, Callable
@@ -9,7 +8,6 @@ from typing import Any, Optional, Union, Dict, Callable
 JsonType = Dict[str, Any]
 TopicProcess = Callable[[JsonType], Any]
 # Values
-DEBUG_RAW = logging.DEBUG - 1
 MAX_WEBSOCKETS = 8
 WS_TOPICS_LIMIT = 50
 # URLs

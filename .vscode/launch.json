@@ -29,5 +29,14 @@
             "console": "integratedTerminal",
             "justMyCode": false
         },
+        {
+            "name": "Run App (DEBUG+WS)",
+            "type": "python",
+            "request": "launch",
+            "program": "main.py",
+            "args": ["-vvv", "--debug-ws"],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
     ]
 }

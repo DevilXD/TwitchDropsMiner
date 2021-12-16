@@ -21,7 +21,6 @@ from constants import (
     JsonType,
     WebsocketTopic,
     CLIENT_ID,
-    DEBUG_RAW,
     USER_AGENT,
     COOKIES_PATH,
     AUTH_URL,
@@ -34,6 +33,7 @@ from constants import (
 
 
 logger = logging.getLogger("TwitchDrops")
+gql_logger = logging.getLogger("TwitchDrops.gql")
 
 
 class Twitch:
@@ -417,10 +417,10 @@ class Twitch:
             "Authorization": f"OAuth {self._access_token}",
             "Client-Id": CLIENT_ID,
         }
-        logger.log(DEBUG_RAW, f"GQL Request: {op}")
+        gql_logger.debug(f"GQL Request: {op}")
         async with self._session.post(GQL_URL, json=op, headers=headers) as response:
             response_json = await response.json()
-            logger.log(DEBUG_RAW, f"GQL Response: {response_json}")
+            gql_logger.debug(f"GQL Response: {response_json}")
             return response_json
 
     async def get_inventory(self) -> List[DropsCampaign]:
