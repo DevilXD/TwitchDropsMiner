@@ -28,6 +28,8 @@ from constants import (
     GQL_OPERATIONS,
     DROPS_ENABLED_TAG,
     TERMINATED_STR,
+    MAX_WEBSOCKETS,
+    WS_TOPICS_LIMIT,
     GQLOperation,
 )
 
@@ -431,7 +433,7 @@ class Twitch:
     async def get_live_streams(
         self, games: Collection[Game], tag_ids: List[str]
     ) -> Dict[Game, List[Channel]]:
-        limit = 100
+        limit = min(int((MAX_WEBSOCKETS * WS_TOPICS_LIMIT) // len(games)), 100)
         live_streams = {}
         for game in games:
             response = await self.gql_request(
