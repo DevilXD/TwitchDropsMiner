@@ -20,6 +20,7 @@ from constants import (
     WebsocketTopic,
     WEBSOCKET_URL,
     PING_INTERVAL,
+    PING_TIMEOUT,
     MAX_WEBSOCKETS,
     WS_TOPICS_LIMIT,
 )
@@ -62,8 +63,8 @@ class Websocket:
         # set when the topics changed
         self._topics_changed = asyncio.Event()
         # ping timestamps
-        self._next_ping = time()
-        self._max_pong = time()
+        self._next_ping: float = time()
+        self._max_pong: float = self._next_ping + PING_TIMEOUT.total_seconds()
         # main task, responsible for receiving messages, sending them, and websocket ping
         self._handle_task: Optional[asyncio.Task[Any]] = None
         # topics stuff
@@ -79,6 +80,8 @@ class Websocket:
 
     def request_reconnect(self):
         ws_logger.warning(f"Websocket[{self._idx}] requested reconnect.")
+        # reset our ping interval, so we send a PING after reconnect right away
+        self._next_ping = time()
         self._reconnect_requested.set()
 
     async def start(self):
@@ -152,7 +155,7 @@ class Websocket:
         now = time()
         if now >= self._next_ping:
             self._next_ping = now + PING_INTERVAL.total_seconds()
-            self._max_pong = now + 10  # wait for a PONG for up to 10s
+            self._max_pong = now + PING_TIMEOUT.total_seconds()  # wait for a PONG for up to 10s
             await self.send({"type": "PING"})
         elif now >= self._max_pong:
             # it's been more than 10s and there was no PONG
