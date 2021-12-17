@@ -11,7 +11,7 @@ import argparse
 import warnings
 import traceback
 import threading
-from typing import Literal, NoReturn
+from typing import NoReturn
 
 from twitch import Twitch
 from constants import JsonType, SETTINGS_PATH, TERMINATED_STR
@@ -44,8 +44,8 @@ def terminate() -> NoReturn:
 
 class ParsedArgs(argparse.Namespace):
     _verbose: int
-    debug_ws: Literal[Literal[0], Literal[10]]
-    debug_gql: Literal[Literal[0], Literal[10]]
+    _debug_ws: bool
+    _debug_gql: bool
 
     @property
     def logging_level(self) -> int:
@@ -56,6 +56,27 @@ class ParsedArgs(argparse.Namespace):
             3: logging.DEBUG,
         }.get(self._verbose, logging.DEBUG)
 
+    @property
+    def debug_ws(self) -> int:
+        """
+        If the debug flag is True, return DEBUG.
+        If the main logging level is DEBUG, return INFO to avoid seeing raw messages.
+        Otherwise, return NOTSET to inherit the global logging level.
+        """
+        if self._debug_ws:
+            return logging.DEBUG
+        elif self._verbose >= 3:
+            return logging.INFO
+        return logging.NOTSET
+
+    @property
+    def debug_gql(self) -> int:
+        if self._debug_gql:
+            return logging.DEBUG
+        elif self._verbose >= 3:
+            return logging.INFO
+        return logging.NOTSET
+
 
 # handle input parameters
 parser = argparse.ArgumentParser(
@@ -64,20 +85,8 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("-V", "--version", action="version", version=f"v{__version__}")
 parser.add_argument("-v", dest="_verbose", action="count", default=0)
-parser.add_argument(
-    "--debug-ws",
-    dest="debug_ws",
-    action="store_const",
-    const=logging.DEBUG,
-    default=logging.NOTSET,
-)
-parser.add_argument(
-    "--debug-gql",
-    dest="debug_gql",
-    action="store_const",
-    const=logging.DEBUG,
-    default=logging.NOTSET,
-)
+parser.add_argument("--debug-ws", dest="_debug_ws", action="store_true")
+parser.add_argument("--debug-gql", dest="_debug_gql", action="store_true")
 options: ParsedArgs = parser.parse_args(namespace=ParsedArgs())
 # handle logging stuff
 if options.logging_level > logging.DEBUG:
