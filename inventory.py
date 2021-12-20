@@ -14,6 +14,9 @@ class Game:
         self.id: int = int(data["id"])
         self.name: str = data["name"]
 
+    def __str__(self) -> str:
+        return self.name
+
     def __eq__(self, other: object):
         if isinstance(other, self.__class__):
             return self.id == other.id
