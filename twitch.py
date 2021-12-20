@@ -222,7 +222,7 @@ class Twitch:
 
     def stop_watching(self):
         if self._watching_task is not None:
-            logger.warning("Watching stopped.")
+            logger.info("Watching stopped.")
             self._watching_task.cancel()
             self._watching_task = None
         self._watching_channel = None
