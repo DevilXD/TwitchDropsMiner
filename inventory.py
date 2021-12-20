@@ -85,7 +85,7 @@ class TimedDrop(BaseDrop):
         self.current_minutes: int = data["self"]["currentMinutesWatched"]
         self.required_minutes: int = data["requiredMinutesWatched"]
         if self.is_claimed:
-            # correct minutes for claimed drops
+            # claimed drops report 0 current minutes, so we need to make a correction
             self.current_minutes = self.required_minutes
 
     @property
@@ -135,6 +135,10 @@ class DropsCampaign:
     @property
     def remaining_drops(self) -> int:
         return sum(not d.is_claimed for d in self.timed_drops.values())
+
+    @property
+    def remaining_minutes(self) -> int:
+        return sum(d.remaining_minutes for d in self.timed_drops.values())
 
     @property
     def progress(self) -> float:
