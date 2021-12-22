@@ -29,11 +29,9 @@ class Stream:
         self.viewer_count = stream["viewersCount"]
         self.drops_enabled = any(tag["id"] == DROPS_ENABLED_TAG for tag in stream["tags"])
         settings = data["broadcastSettings"]
-        self.game: Optional[Game]
+        self.game: Optional[Game] = None
         if settings["game"] is not None:
             self.game = Game(settings["game"])
-        else:
-            self.game = None
         self.title = settings["title"]
         self._timestamp = datetime.now(timezone.utc)
 
@@ -165,11 +163,13 @@ class Channel:
 
     def set_offline(self):
         # to be called externally, if we receive an event about this happening
+        if self._pending_stream_up is not None:
+            self._pending_stream_up.cancel()
+            self._pending_stream_up = None
         self.stream = None
 
     def _encode_payload(self):
         assert self.stream is not None
-        assert self._twitch._user_id is not None
         payload = [
             {
                 "event": "minute-watched",
