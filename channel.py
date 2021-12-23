@@ -4,7 +4,6 @@ import re
 import json
 import asyncio
 import logging
-from copy import copy
 from base64 import b64encode
 from datetime import datetime, timezone
 from typing import Any, Optional, TYPE_CHECKING
@@ -131,8 +130,9 @@ class Channel:
         return match.group(1)
 
     async def get_stream(self) -> Optional[Stream]:
-        op = copy(GQL_OPERATIONS["GetStreamInfo"].with_variables({"channel": self.name}))
-        response = await self._twitch.gql_request(op)
+        response = await self._twitch.gql_request(
+            GQL_OPERATIONS["GetStreamInfo"].with_variables({"channel": self.name})
+        )
         if response:
             stream_data = response["data"]["user"]
             self.id = int(stream_data["id"])  # fill channel_id
