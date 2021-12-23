@@ -74,7 +74,7 @@ class Channel:
         self = super().__new__(cls)
         self._twitch = twitch
         channel = data["broadcaster"]
-        self.id = channel["id"]
+        self.id = int(channel["id"])
         self.name = channel["displayName"]
         self.url = f"{BASE_URL}/{self.name}"
         self._spade_url = None
