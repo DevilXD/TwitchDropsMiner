@@ -205,7 +205,7 @@ class Twitch:
                         await self.claim_points(channel_data["id"], claim_available["id"])
                         logger.info("Claimed bonus points")
                 i = (i + 1) % 30
-                await asyncio.sleep(58)
+                await asyncio.sleep(58.5)
 
         if channel.stream is not None and channel.stream.game is not None:
             game_name = channel.stream.game.name
