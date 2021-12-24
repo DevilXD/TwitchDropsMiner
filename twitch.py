@@ -137,7 +137,7 @@ class Twitch:
                 for channel_id in self.channels
             ]
             self.websocket.add_topics(topics)
-
+            self._campaign_change.clear()
             # Repeat: Change into a channel we can watch, then reset the flag
             self._channel_change.set()
             refresh_channels = False  # we're entering having fresh channel data already
