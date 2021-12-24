@@ -247,14 +247,14 @@ class Websocket:
             self.topics[str(topic)] = topic
             self._topics_changed.set()
 
-    def remove_topics(self, topics_set: Set[WebsocketTopic]):
-        existing = topics_set.intersection(self.topics.values())
+    def remove_topics(self, topics_set: Set[str]):
+        existing = topics_set.intersection(self.topics.keys())
         if not existing:
             # nothing to remove from here
             return
         topics_set.difference_update(existing)
         for topic in existing:
-            del self.topics[str(topic)]
+            del self.topics[topic]
         self._topics_changed.set()
 
     async def send(self, message: JsonType):
@@ -281,6 +281,8 @@ class WebsocketPool:
 
     async def start(self):
         await self._twitch.wait_until_login()
+        if self.running:
+            return
         # Add default topics
         assert self._twitch._user_id is not None
         user_id = self._twitch._user_id
@@ -301,7 +303,7 @@ class WebsocketPool:
         if not topics_set:
             # nothing to add
             return
-        topics_set.difference_update(ws.topics.values() for ws in self.websockets)
+        topics_set.difference_update(*(ws.topics.values() for ws in self.websockets))
         if not topics_set:
             # none left to add
             return
@@ -323,7 +325,7 @@ class WebsocketPool:
         # if we're here, there were leftover topics after filling up all websockets
         raise MinerException("Maximum topics limit has been reached")
 
-    def remove_topics(self, topics: Iterable[WebsocketTopic]):
+    def remove_topics(self, topics: Iterable[str]):
         topics_set = set(topics)
         if not topics_set:
             # nothing to remove
@@ -332,20 +334,20 @@ class WebsocketPool:
             ws.remove_topics(topics_set)
         # count up all the topics - if we happen to have more websockets connected than needed,
         # stop the last one and recycle topics from it - repeat until we have enough
-        topics = []
+        recycled_topics: List[WebsocketTopic] = []
         while True:
             count = sum(len(ws.topics) for ws in self.websockets)
             if count <= (len(self.websockets) - 1) * WS_TOPICS_LIMIT:
                 ws = self.websockets.pop()
-                topics.extend(ws.topics.values())
+                recycled_topics.extend(ws.topics.values())
                 ws.stop_nowait()
             else:
                 break
-        if topics:
-            self.add_topics(topics)
+        if recycled_topics:
+            self.add_topics(recycled_topics)
 
     @task_wrapper
-    async def process_drops(self, message: JsonType):
+    async def process_drops(self, user_id: int, message: JsonType):
         drop_id = message["data"]["drop_id"]
         drop: Optional[TimedDrop] = None
         for campaign in self._twitch.inventory:
@@ -373,7 +375,7 @@ class WebsocketPool:
                 self._twitch.reevaluate_campaigns()
 
     @task_wrapper
-    async def process_points(self, message: JsonType):
+    async def process_points(self, user_id: int, message: JsonType):
         msg_type = message["type"]
         if msg_type == "points-earned":
             points = message["data"]["point_gain"]["total_points"]

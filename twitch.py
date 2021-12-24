@@ -133,12 +133,7 @@ class Twitch:
                     self.channels[channel.id] = channel
             # Sub to these channel updates
             topics: List[WebsocketTopic] = [
-                WebsocketTopic(
-                    "Channel",
-                    "VideoPlayback",
-                    channel_id,
-                    partial(self.process_stream_state, channel_id),
-                )
+                WebsocketTopic("Channel", "VideoPlayback", channel_id, self.process_stream_state)
                 for channel_id in self.channels
             ]
             self.websocket.add_topics(topics)

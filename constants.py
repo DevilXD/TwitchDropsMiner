@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from copy import copy
 from datetime import timedelta
-from typing import Any, Optional, Union, Dict, Callable
+from typing import Any, Optional, Dict, Literal, Callable
 
 # Typing
 JsonType = Dict[str, Any]
-TopicProcess = Callable[[JsonType], Any]
+TopicProcess = Callable[[int, JsonType], Any]
 # Values
 MAX_WEBSOCKETS = 8
 WS_TOPICS_LIMIT = 50
@@ -130,25 +130,34 @@ GQL_OPERATIONS: Dict[str, GQLOperation] = {
 class WebsocketTopic:
     def __init__(
         self,
-        topic_category: str,
+        category: Literal["User", "Channel"],
         topic_name: str,
-        target_id: Union[int, str],
+        target_id: int,
         process: TopicProcess,
     ):
-        self._id: str = f"{WEBSOCKET_TOPICS[topic_category][topic_name]}.{target_id}"
+        self._id: str = f"{WEBSOCKET_TOPICS[category][topic_name]}.{target_id}"
+        assert isinstance(target_id, int)
+        self._target_id = target_id
         self._process: TopicProcess = process
 
-    def __call__(self, *args):
-        return self._process(*args)
+    @classmethod
+    def as_str(cls, category: Literal["User", "Channel"], topic_name: str, target_id: int) -> str:
+        return f"{WEBSOCKET_TOPICS[category][topic_name]}.{target_id}"
+
+    def __call__(self, message: JsonType):
+        return self._process(self._target_id, message)
 
     def __str__(self) -> str:
         return self._id
 
+    def __repr__(self) -> str:
+        return f"Topic({self._id})"
+
     def __eq__(self, other):
-        if isinstance(other, str):
-            return self._id == other
-        elif isinstance(other, WebsocketTopic):
+        if isinstance(other, WebsocketTopic):
             return self._id == other._id
+        elif isinstance(other, str):
+            return self._id == other
         return NotImplemented
 
     def __hash__(self) -> int:
