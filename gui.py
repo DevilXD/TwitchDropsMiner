@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import sys
 import asyncio
 import logging
 import tkinter as tk
@@ -20,6 +22,12 @@ if TYPE_CHECKING:
 
 digits = ceil(log10(WS_TOPICS_LIMIT))
 WS_FONT = ("Courier New", 10)
+
+
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    base_path = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
 
 
 class TKOutputHandler(logging.Handler):
@@ -656,7 +664,7 @@ class GUIManager:
         self._closed = asyncio.Event()
         self._root = root = Tk()
         root.resizable(False, True)
-        root.iconbitmap("pickaxe.ico")  # window icon
+        root.iconbitmap(resource_path("pickaxe.ico"))  # window icon
         root.title(f"Twitch Drops Miner v{__version__} (by DevilXD)")  # window title
         root.protocol("WM_DELETE_WINDOW", self._on_close)
         root.bind_all("<KeyPress-Escape>", self.unfocus)
