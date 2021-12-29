@@ -105,6 +105,12 @@ class PlaceholderEntry(ttk.Entry):
         self.config(foreground=self._ph_color, show='')
         self.insert(0, self._ph_text)
 
+    def enable(self):
+        super().configure(state="normal")
+
+    def disable(self):
+        super().configure(state="disabled")
+
 
 class _WSEntry(TypedDict):
     status: str
@@ -237,7 +243,7 @@ class LoginForm:
         self._confirm.clear()
         self.enable(button=True)
         await self._confirm.wait()
-        self._button.config(state="disabled")
+        self.enable(button=False)
         data = LoginData(self._login_entry.get(), self._pass_entry.get(), self._token_entry.get())
         return data
 
