@@ -17,6 +17,9 @@ class Game:
     def __str__(self) -> str:
         return self.name
 
+    def __repr__(self) -> str:
+        return f"Game({self.id}, {self.name})"
+
     def __eq__(self, other: object):
         if isinstance(other, self.__class__):
             return self.id == other.id
@@ -93,21 +96,24 @@ class TimedDrop(BaseDrop):
 
     @property
     def remaining_minutes(self) -> int:
-        return self.required_minutes - self.current_minutes
+        return self.required_minutes - self.current_minutes + 1
 
     @property
     def progress(self) -> float:
         return self.current_minutes / self.required_minutes
 
     def update(self, message: JsonType):
-        # {"type": "drop-progress", data: {"current_progress_min": 3, "required_progress_min": 10}}
-        # {"type": "drop-claim", data: {"drop_instance_id": ...}}
+        # See Twitch.process_drop for message examples
         msg_type = message["type"]
         if msg_type == "drop-progress":
             self.current_minutes = message["data"]["current_progress_min"]
             self.required_minutes = message["data"]["required_progress_min"]
         elif msg_type == "drop-claim":
             self.claim_id = message["data"]["drop_instance_id"]
+
+    def bump_minutes(self):
+        if self.current_minutes < self.required_minutes:
+            self.current_minutes += 1
 
 
 class DropsCampaign:
@@ -149,3 +155,9 @@ class DropsCampaign:
 
     def get_drop(self, drop_id: str) -> Optional[TimedDrop]:
         return self.timed_drops.get(drop_id)
+
+    def get_active_drop(self) -> Optional[TimedDrop]:
+        for drop in self.timed_drops.values():
+            if drop.can_earn:
+                return drop
+        return None

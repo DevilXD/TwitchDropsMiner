@@ -2,6 +2,6 @@ __pycache__
 .mypy_cache
 /build
 /dist
-/cookies.pickle
+/cookies.jar
 /settings.json
 /*.spec

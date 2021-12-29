@@ -13,7 +13,6 @@ from typing import Any, Optional, List, Dict, Set, Iterable, TYPE_CHECKING
 from websockets.exceptions import ConnectionClosed, ConnectionClosedOK
 from websockets.client import WebSocketClientProtocol, connect as websocket_connect
 
-from inventory import TimedDrop
 from exceptions import MinerException
 from constants import (
     JsonType,
@@ -29,6 +28,7 @@ if TYPE_CHECKING:
     from twitch import Twitch
 
 
+logger = logging.getLogger("TwitchDrops")
 ws_logger = logging.getLogger("TwitchDrops.websocket")
 NONCE_CHARS = string.ascii_letters + string.digits
 
@@ -39,11 +39,11 @@ def create_nonce(length: int = 30) -> str:
 
 def task_wrapper(afunc):
     @wraps(afunc)
-    async def wrapper(self: Websocket, *args, **kwargs):
+    async def wrapper(self, *args, **kwargs):
         try:
             await afunc(self, *args, **kwargs)
         except Exception:
-            ws_logger.exception("Exception in websocket task")
+            logger.exception("Exception in task")
             raise  # raise up to the wrapping task
     return wrapper
 
@@ -55,7 +55,7 @@ class Websocket:
         # websocket index
         self._idx: int = index
         # current websocket connection
-        self._ws: WebSocketClientProtocol
+        self._ws: Optional[WebSocketClientProtocol] = None
         # set when there's an active websocket connection
         self._connected_flag = asyncio.Event()
         # set when the websocket needs to reconnect
@@ -70,6 +70,8 @@ class Websocket:
         # topics stuff
         self.topics: Dict[str, WebsocketTopic] = {}
         self._submitted: Set[WebsocketTopic] = set()
+        # notify GUI
+        self.set_status("Disconnected")
 
     @property
     def connected(self) -> bool:
@@ -78,11 +80,24 @@ class Websocket:
     def wait_until_connected(self):
         return self._connected_flag.wait()
 
+    def set_status(self, status: Optional[str] = None, refresh_topics: bool = False):
+        kwargs: Dict[str, Any] = {}
+        if status is not None:
+            kwargs["status"] = status
+        if refresh_topics:
+            kwargs["topics"] = len(self.topics)
+        self._twitch.gui.websockets.update(self._idx, **kwargs)
+
     def request_reconnect(self):
         ws_logger.warning(f"Websocket[{self._idx}] requested reconnect.")
         # reset our ping interval, so we send a PING after reconnect right away
         self._next_ping = time()
         self._reconnect_requested.set()
+
+    async def close(self):
+        self.set_status("Disconnecting...")
+        if self._ws is not None:
+            await self._ws.close()
 
     async def start(self):
         if self.connected:
@@ -98,27 +113,35 @@ class Websocket:
             self._handle_task = asyncio.create_task(self._handle())
 
     async def stop(self):
-        if self._ws is not None:
-            await self._ws.close()
+        await self.close()
         if self._handle_task is not None:
+            # this raises back any stray exceptions
             await self._handle_task
             self._handle_task = None
 
     def stop_nowait(self):
-        if self._ws is not None:
-            asyncio.create_task(self._ws.close())
+        asyncio.create_task(self.close())
         # note: this detaches the handle task, so we have to assume it closes properly
         self._handle_task = None
+
+    def remove(self):
+        # this stops the websocket, and then removes it from the gui list
+        async def remover():
+            await self.stop()
+            self._twitch.gui.websockets.remove(self._idx)
+        asyncio.create_task(remover())
 
     @task_wrapper
     async def _handle(self):
         # ensure we're logged in before connecting
         await self._twitch.wait_until_login()
+        self.set_status("Connecting...")
         ws_logger.info(f"Websocket[{self._idx}] connecting...")
         # Connect/Reconnect loop
         async for websocket in websocket_connect(WEBSOCKET_URL, ssl=True, ping_interval=None):
             websocket.BACKOFF_MAX = 3 * 60  # type: ignore  # 3 minutes
             self._ws = websocket
+            self.set_status("Connected")
             try:
                 try:
                     self._reconnect_requested.clear()
@@ -135,20 +158,24 @@ class Websocket:
                 if isinstance(exc, ConnectionClosedOK):
                     if exc.rcvd_then_sent:
                         # server closed the connection, not us - reconnect
-                        ws_logger.warning(f"Websocket[{self._idx}] disconnected.")
+                        ws_logger.warning(f"Websocket[{self._idx}] got disconnected.")
                     else:
                         # we closed it - exit
+                        self._ws = None
                         ws_logger.info(f"Websocket[{self._idx}] stopped.")
+                        self.set_status("Disconnected")
                         return
-                if exc.rcvd is not None:
-                    code = exc.rcvd.code
-                elif exc.sent is not None:
-                    code = exc.sent.code
                 else:
-                    code = -1
-                ws_logger.warning(f"Websocket[{self._idx}] closed unexpectedly: {code}")
+                    if exc.rcvd is not None:
+                        code = exc.rcvd.code
+                    elif exc.sent is not None:
+                        code = exc.sent.code
+                    else:
+                        code = -1
+                    ws_logger.warning(f"Websocket[{self._idx}] closed unexpectedly: {code}")
             except Exception:
                 ws_logger.exception(f"Exception in Websocket[{self._idx}]")
+            self.set_status("Reconnecting...")
             ws_logger.warning(f"Websocket[{self._idx}] reconnecting...")
 
     async def _handle_ping(self):
@@ -203,6 +230,7 @@ class Websocket:
         Gather incoming messages over the timeout specified.
         Note that there's no return value - this modifies `messages` in-place.
         """
+        assert self._ws is not None
         while True:
             raw_message = await self._ws.recv()
             message = json.loads(raw_message)
@@ -211,10 +239,10 @@ class Websocket:
 
     def _handle_message(self, message):
         # request the assigned topic to process the response
-        topic_process = self.topics.get(message["data"]["topic"])
-        if topic_process is not None:
+        topic = self.topics.get(message["data"]["topic"])
+        if topic is not None:
             # use a task to not block the websocket
-            asyncio.create_task(topic_process(json.loads(message["data"]["message"])))
+            asyncio.create_task(topic(json.loads(message["data"]["message"])))
 
     async def _handle_recv(self):
         """
@@ -246,6 +274,7 @@ class Websocket:
             topic = topics_set.pop()
             self.topics[str(topic)] = topic
             self._topics_changed.set()
+        self.set_status(refresh_topics=True)
 
     def remove_topics(self, topics_set: Set[str]):
         existing = topics_set.intersection(self.topics.keys())
@@ -256,6 +285,7 @@ class Websocket:
         for topic in existing:
             del self.topics[topic]
         self._topics_changed.set()
+        self.set_status(refresh_topics=True)
 
     async def send(self, message: JsonType):
         if self._ws is None:
@@ -283,17 +313,12 @@ class WebsocketPool:
         await self._twitch.wait_until_login()
         if self.running:
             return
-        # Add default topics
-        assert self._twitch._user_id is not None
-        user_id = self._twitch._user_id
-        self.add_topics([
-            WebsocketTopic("User", "Drops", user_id, self.process_drops),
-            WebsocketTopic("User", "CommunityPoints", user_id, self.process_points),
-        ])
         self._running.set()
         await asyncio.gather(*(ws.start() for ws in self.websockets))
 
     async def stop(self):
+        if not self.running:
+            return
         self._running.clear()
         await asyncio.gather(*(ws.stop() for ws in self.websockets))
 
@@ -340,49 +365,8 @@ class WebsocketPool:
             if count <= (len(self.websockets) - 1) * WS_TOPICS_LIMIT:
                 ws = self.websockets.pop()
                 recycled_topics.extend(ws.topics.values())
-                ws.stop_nowait()
+                ws.remove()
             else:
                 break
         if recycled_topics:
             self.add_topics(recycled_topics)
-
-    @task_wrapper
-    async def process_drops(self, user_id: int, message: JsonType):
-        drop_id = message["data"]["drop_id"]
-        drop: Optional[TimedDrop] = None
-        for campaign in self._twitch.inventory:
-            drop = campaign.get_drop(drop_id)
-            if drop is not None:
-                break
-        else:
-            ws_logger.warning(f"Drop with ID of {drop_id} not found!")
-            return
-        drop.update(message)
-        msg_type = message["type"]
-        campaign = drop.campaign
-        if msg_type == "drop-progress":
-            print(
-                f"Drop: {drop.rewards_text()} ({campaign.claimed_drops}/{campaign.total_drops}): "
-                f"{drop.progress:6.1%} ({drop.remaining_minutes} minutes remaining)"
-            )
-        elif msg_type == "drop-claim":
-            await drop.claim()
-            print(
-                f"Claimed drop: {drop.rewards_text()} "
-                f"({campaign.claimed_drops}/{campaign.total_drops})"
-            )
-            if campaign.remaining_drops == 0:
-                self._twitch.reevaluate_campaigns()
-
-    @task_wrapper
-    async def process_points(self, user_id: int, message: JsonType):
-        msg_type = message["type"]
-        if msg_type == "points-earned":
-            points = message["data"]["point_gain"]["total_points"]
-            balance = message["data"]["balance"]["balance"]
-            print(f"Earned points for watching: {points:3}, total: {balance}")
-        elif msg_type == "claim-available":
-            claim_data = message["data"]["claim"]
-            points = claim_data["point_gain"]["total_points"]
-            await self._twitch.claim_points(claim_data["channel_id"], claim_data["id"])
-            print(f"Claimed bonus points: {points}")

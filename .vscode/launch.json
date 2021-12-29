@@ -38,5 +38,13 @@
             "console": "integratedTerminal",
             "justMyCode": false
         },
+        {
+            "name": "Debug GUI",
+            "type": "python",
+            "request": "launch",
+            "program": "gui.py",
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
     ]
 }

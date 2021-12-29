@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import copy
+from enum import Enum, auto
 from datetime import timedelta
 from typing import Any, Optional, Dict, Literal, Callable
 
@@ -23,15 +24,22 @@ USER_AGENT = (
 )
 # Paths
 SETTINGS_PATH = "settings.json"
-COOKIES_PATH = "cookies.pickle"
+COOKIES_PATH = "cookies.jar"
 # Intervals and Delays
 PING_INTERVAL = timedelta(minutes=3)
 PING_TIMEOUT = timedelta(seconds=10)
-ONLINE_DELAY = timedelta(seconds=30)
+ONLINE_DELAY = timedelta(seconds=60)
+WATCH_INTERVAL = timedelta(seconds=58.5)
 # Tags
 DROPS_ENABLED_TAG = "c2542d6d-cd10-4532-919b-3d19f30a768b"
-# Strings
-TERMINATED_STR = "Application Terminated.\nClose the console window to exit the application."
+
+
+class State(Enum):
+    INVENTORY_FETCH = auto()
+    GAME_SELECT = auto()
+    CHANNEL_FETCH = auto()
+    CHANNEL_CLEANUP = auto()
+    CHANNEL_SWITCH = auto()
 
 
 class GQLOperation(JsonType):
@@ -82,6 +90,10 @@ GQL_OPERATIONS: Dict[str, GQLOperation] = {
     "Inventory": GQLOperation(  # used
         "Inventory",
         "e0765ebaa8e8eeb4043cc6dfeab3eac7f682ef5f724b81367e6e55c7aef2be4c",
+    ),
+    "CurrentDrop": GQLOperation(
+        "DropCurrentSessionContext",
+        "2e4b3630b91552eb05b76a94b6850eb25fe42263b7cf6d06bee6d156dd247c1c",
     ),
     "ViewerDropsDashboard": GQLOperation(
         "ViewerDropsDashboard",

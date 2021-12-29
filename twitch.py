@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import os
-import msvcrt
 import asyncio
 import logging
+import traceback
 from yarl import URL
+from time import time
+from itertools import chain
 from functools import partial
-from typing import Any, Optional, Union, List, Dict, Collection, cast
+from typing import Any, Callable, Iterable, Optional, Union, List, Dict, Set, cast, TYPE_CHECKING
 
 try:
     import aiohttp
@@ -14,10 +16,12 @@ except ImportError:
     raise ImportError("You have to run 'python -m pip install aiohttp' first")
 
 from channel import Channel
-from websocket import WebsocketPool
-from inventory import DropsCampaign, Game
+from gui import GUIManager, LoginData
+from websocket import WebsocketPool, task_wrapper
+from inventory import DropsCampaign, Game, TimedDrop
 from exceptions import LoginException, CaptchaRequired
 from constants import (
+    State,
     JsonType,
     WebsocketTopic,
     CLIENT_ID,
@@ -27,11 +31,11 @@ from constants import (
     GQL_URL,
     GQL_OPERATIONS,
     DROPS_ENABLED_TAG,
-    TERMINATED_STR,
-    MAX_WEBSOCKETS,
-    WS_TOPICS_LIMIT,
     GQLOperation,
 )
+
+if TYPE_CHECKING:
+    from main import ParsedArgs
 
 
 logger = logging.getLogger("TwitchDrops")
@@ -39,54 +43,107 @@ gql_logger = logging.getLogger("TwitchDrops.gql")
 
 
 class Twitch:
-    def __init__(
-        self,
-        username: Optional[str] = None,
-        password: Optional[str] = None,
-        *,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
-    ):
-        self.username: Optional[str] = username
-        self.password: Optional[str] = password
+    def __init__(self, options: ParsedArgs):
+        self._options = options
+        # GUI
+        self.gui = GUIManager(self)
         # Cookies, session and auth
         cookie_jar = aiohttp.CookieJar()
         if os.path.isfile(COOKIES_PATH):
             cookie_jar.load(COOKIES_PATH)
         self._session = aiohttp.ClientSession(
-            cookie_jar=cookie_jar, headers={"User-Agent": USER_AGENT}, loop=loop
+            cookie_jar=cookie_jar, headers={"User-Agent": USER_AGENT}
         )
         self._access_token: Optional[str] = None
         self._user_id: Optional[int] = None
         self._is_logged_in = asyncio.Event()
-        # Storing, watching and changing channels
+        # State management
+        self._state: State = State.INVENTORY_FETCH
+        self._state_change = asyncio.Event()
+        self.inventory: List[DropsCampaign] = []  # inventory
+        # Storing and watching channels
         self.channels: Dict[int, Channel] = {}
         self._watching_channel: Optional[Channel] = None
         self._watching_task: Optional[asyncio.Task[Any]] = None
-        self._channel_change = asyncio.Event()
-        # Inventory
-        self.inventory: List[DropsCampaign] = []
-        self._campaign_change = asyncio.Event()
+        self._last_watch = time() - 60
         # Websocket
         self.websocket = WebsocketPool(self)
+        # Runner task
+        self._main_task: Optional[asyncio.Task[None]] = None
 
     def wait_until_login(self):
         return self._is_logged_in.wait()
 
-    def reevaluate_campaigns(self):
-        self._campaign_change.set()
+    def change_state(self, state: State) -> None:
+        self._state = state
+        self._state_change.set()
+
+    def state_change(self, state: State) -> Callable[[], None]:
+        # this is identical to change_state, but defers the call
+        # perfect for GUI usage
+        return partial(self.change_state, state)
+
+    def request_close(self):
+        """
+        Called when the application is requested to close,
+        usually by the console or application window being closed.
+        """
+        self.stop()
+
+    def start(self):
+        self._loop = loop = asyncio.get_event_loop()
+        self._main_task = loop.create_task(self._run())
+
+        try:
+            loop.run_until_complete(self._main_task)
+        except asyncio.CancelledError:
+            # happens when the user requests close
+            pass
+        except KeyboardInterrupt:
+            # KeyboardInterrupt causes run_until_complete to exit, but without cancelling the task.
+            # The loop stops and thus the task gets frozen, until the loop runs again.
+            # Because we don't want anything from there to actually run during cleanup,
+            # we need to explicitly cancel the task ourselves here.
+            self.stop()
+        except CaptchaRequired:
+            self.gui.prevent_close()
+            self.gui.print(
+                "Your login attempt was denied by CAPTCHA.\nPlease try again in +12 hours."
+            )
+        except Exception:
+            self.gui.prevent_close()
+            self.gui.print("Fatal error encountered:\n")
+            self.gui.print(traceback.format_exc())
+        finally:
+            loop.run_until_complete(self.close())
+            loop.run_until_complete(loop.shutdown_asyncgens())
+        if not self.gui.close_requested:
+            self.gui.print(
+                "\nApplication Terminated.\nClose the window to exit the application."
+            )
+        loop.run_until_complete(self.gui.wait_until_closed())
+        loop.close()
+
+    def stop(self):
+        if self._main_task is not None:
+            self._main_task.cancel()
+            self._main_task = None
 
     async def close(self):
-        print("Exiting...")
-        self._session.cookie_jar.save(COOKIES_PATH)  # type: ignore
+        start_time = time()
+        self.gui.print("Exiting...")
         self.stop_watching()
+        self._session.cookie_jar.save(COOKIES_PATH)  # type: ignore
         await self._session.close()
         await self.websocket.stop()
-        await asyncio.sleep(1)  # allows aiohttp to safely close the session
+        # wait at least one full second + whatever it takes to complete the closing
+        # this allows aiohttp to safely close the session
+        await asyncio.sleep(start_time + 1 - time())
 
-    def is_currently_watching(self, channel: Channel) -> bool:
+    def is_watching(self, channel: Channel) -> bool:
         return self._watching_channel is not None and self._watching_channel == channel
 
-    async def run(self, channel_names: Optional[List[str]] = None):
+    async def _run(self):
         """
         Main method that runs the whole client.
 
@@ -95,129 +152,130 @@ class Twitch:
         • Selecting a stream to watch, and watching it
         • Changing the stream that's being watched if necessary
         """
+        self.gui.start()
+        await self.check_login()
+        # Add default topics
+        assert self._user_id is not None
+        self.websocket.add_topics([
+            WebsocketTopic("User", "Drops", self._user_id, self.process_drops),
+            WebsocketTopic("User", "CommunityPoints", self._user_id, self.process_points),
+        ])
+        await self.websocket.start()
+        games: Set[Game] = set()
+        selected_game: Optional[Game] = None
+        self.change_state(State.INVENTORY_FETCH)
         while True:
-            # Claim the drops we can
-            self.inventory = await self.get_inventory()
-            games = set()
-            for campaign in self.inventory:
-                if campaign.status == "UPCOMING":
-                    # we have no use in processing upcoming campaigns here
-                    continue
-                for drop in campaign.timed_drops.values():
-                    if drop.can_earn:
-                        games.add(campaign.game)
-                    if drop.can_claim:
-                        await drop.claim()
-            # 'games' now has all games we want to farm drops for
-            # if it's empty, there's no point in continuing
-            if not games:
-                print(f"No active campaigns to farm drops for.\n\n{TERMINATED_STR}")
-                await asyncio.Future()
-            # Start our websocket connection, only after we confirm that there are drops to mine
-            await self.websocket.start()
-            if not channel_names:
-                # get a list of all channels with drops enabled
-                print("Fetching suitable live channels to watch...")
-                live_streams: Dict[Game, List[Channel]] = await self.get_live_streams(
-                    games, [DROPS_ENABLED_TAG]
-                )
-                for game, channels in live_streams.items():
-                    for channel in channels:
-                        if channel.id not in self.channels:
-                            self.channels[channel.id] = channel
-                            print(f"Added channel: {channel.name} for game: {game.name}")
-            else:
-                # Fetch information about all channels we're supposed to handle
-                for channel_name in channel_names:
-                    channel: Channel = await Channel(self, channel_name)  # type: ignore
-                    self.channels[channel.id] = channel
-            # Sub to these channel updates
-            topics: List[WebsocketTopic] = [
-                WebsocketTopic("Channel", "VideoPlayback", channel_id, self.process_stream_state)
-                for channel_id in self.channels
-            ]
-            self.websocket.add_topics(topics)
-            self._campaign_change.clear()
-            # Repeat: Change into a channel we can watch, then reset the flag
-            self._channel_change.set()
-            refresh_channels = False  # we're entering having fresh channel data already
-            while True:
-                # wait for either the change channel signal, or campaign change signal
-                await asyncio.wait(
-                    (
-                        self._channel_change.wait(),
-                        self._campaign_change.wait(),
-                    ),
-                    return_when=asyncio.FIRST_COMPLETED,
-                )
-                if self._campaign_change.is_set():
-                    # we need to reevaluate all campaigns
-                    # stop watching
-                    self.stop_watching()
-                    # close the websocket
-                    await self.websocket.stop()
-                    break  # cycle the outer loop
-                # otherwise, it was the channel change one
-                for channel in self.channels.values():
-                    if (
-                        channel.stream is not None  # steam online
-                        and channel.stream.game is not None  # there's game information
-                        and channel.stream.drops_enabled  # drops are enabled
-                        and channel.stream.game in games  # it's a game we can earn drops in
-                    ):
-                        self.watch(channel)
-                        refresh_channels = True
-                        self._channel_change.clear()
-                        break
-                else:
-                    # there's no available channel to watch
-                    if refresh_channels:
-                        # refresh the status of all channels,
-                        # to make sure that our websocket didn't miss anything til this point
-                        print("No suitable channel to watch, refreshing...")
-                        for channel in self.channels.values():
-                            await channel.get_stream()
-                            await asyncio.sleep(0.5)
-                        refresh_channels = False
+            if self._state is State.INVENTORY_FETCH:
+                # Claim the drops we can
+                await self.fetch_inventory()
+                games.clear()
+                for campaign in self.inventory:
+                    if campaign.status == "UPCOMING":
+                        # we have no use in processing upcoming campaigns here
                         continue
-                    print("No suitable channel to watch, retrying in 120 seconds")
-                    await asyncio.sleep(120)
+                    for drop in campaign.timed_drops.values():
+                        if drop.can_earn:
+                            games.add(campaign.game)
+                        if drop.can_claim:
+                            await drop.claim()
+                self.change_state(State.GAME_SELECT)
+            elif self._state is State.GAME_SELECT:
+                # 'games' has all games we want to farm drops for
+                # if it's empty, there's no point in continuing
+                if not games:
+                    self.gui.print("No active campaigns to farm drops for.")
+                    return
+                self.gui.games.set_games(games)
+                selected_game = self.gui.games.get_selection()
+                self.change_state(State.CHANNEL_FETCH)
+            elif self._state is State.CHANNEL_FETCH:
+                if selected_game is None:
+                    self.change_state(State.GAME_SELECT)
+                else:
+                    # get a list of all live channels with drops enabled
+                    live_streams: List[Channel] = await self.get_live_streams(
+                        selected_game, [DROPS_ENABLED_TAG]
+                    )
+                    # filter out ones we already have
+                    live_streams = [ch for ch in live_streams if ch.id not in self.channels]
+                    for channel in live_streams:
+                        self.channels[channel.id] = channel
+                        channel.display()
+                    # load points
+                    # asyncio.gather(*(channel.claim_bonus() for channel in live_streams))
+                    # Sub to these channel updates
+                    topics: List[WebsocketTopic] = [
+                        WebsocketTopic(
+                            "Channel", "VideoPlayback", channel_id, self.process_stream_state
+                        )
+                        for channel_id in self.channels
+                    ]
+                    self.websocket.add_topics(topics)
+                    self.change_state(State.CHANNEL_SWITCH)
+            elif self._state is State.CHANNEL_CLEANUP:
+                # remove all channels that are offline,
+                # or aren't streaming the game we want anymore
+                to_remove = [
+                    channel for channel in self.channels.values()
+                    if not (channel.online or channel.pending_online)
+                    or channel.game is None or channel.game != selected_game
+                ]
+                self.websocket.remove_topics(
+                    WebsocketTopic.as_str("Channel", "VideoPlayback", channel.id)
+                    for channel in to_remove
+                )
+                for channel in to_remove:
+                    del self.channels[channel.id]
+                    channel.remove()
+                self.change_state(State.CHANNEL_FETCH)
+            elif self._state is State.CHANNEL_SWITCH:
+                if selected_game is None:
+                    self.change_state(State.GAME_SELECT)
+                else:
+                    # Change into the selected channel
+                    channels: Iterable[Channel]
+                    selected_channel = self.gui.channels.get_selection()
+                    if selected_channel is not None:
+                        self.gui.channels.clear_selection()
+                        channels = chain([selected_channel], self.channels.values())
+                    else:
+                        channels = self.channels.values()
+                    # If there's no selected channel, change into a channel we can watch
+                    for channel in channels:
+                        if (
+                            channel.online  # steam online
+                            and channel.drops_enabled  # drops are enabled
+                            and channel.game == selected_game  # it's a game we've selected
+                        ):
+                            self.watch(channel)
+                            # break the state change chain by clearing the flag
+                            self._state_change.clear()
+                            break
+                    else:
+                        self.stop_watching()
+                        selected_game = self.gui.games.get_next_selection()
+                        if selected_game is None:
+                            self.gui.print("No suitable channel to watch.")
+                            # TODO: Figure out what to do here.
+                            return
+                        self.change_state(State.CHANNEL_CLEANUP)
+            await self._state_change.wait()
 
     def watch(self, channel: Channel):
+        if self.is_watching(channel):
+            # we're already watching the same channel, so there's no point switching
+            return
         if self._watching_task is not None:
             self._watching_task.cancel()
-
-        async def watcher(channel: Channel):
-            op = GQL_OPERATIONS["ChannelPointsContext"].with_variables(
-                {"channelLogin": channel.name}
-            )
-            i = 0
-            while True:
-                await channel._send_watch()
-                if i == 0:
-                    # ensure every 30 minutes that we don't have unclaimed points bonus
-                    response = await self.gql_request(op)
-                    channel_data: JsonType = response["data"]["community"]["channel"]
-                    claim_available: JsonType = (
-                        channel_data["self"]["communityPoints"]["availableClaim"]
-                    )
-                    if claim_available:
-                        await self.claim_points(channel_data["id"], claim_available["id"])
-                        logger.info("Claimed bonus points")
-                i = (i + 1) % 30
-                await asyncio.sleep(58.5)
-
-        if channel.stream is not None and channel.stream.game is not None:
-            game_name = channel.stream.game.name
-        else:
-            game_name = "<Unknown>"
-        print(f"Watching: {channel.name}, game: {game_name}")
+        self.gui.channels.set_watching(channel)
         self._watching_channel = channel
-        self._watching_task = asyncio.create_task(watcher(channel))
+        self._watching_task = asyncio.create_task(channel.watch_loop())
+        self.gui.progress.start_timer()
 
     def stop_watching(self):
+        self.gui.progress.stop_timer()
+        self.gui.channels.clear_watching()
         if self._watching_task is not None:
-            logger.info("Watching stopped.")
             self._watching_task.cancel()
             self._watching_task = None
         self._watching_channel = None
@@ -231,10 +289,10 @@ class Twitch:
         if msg_type == "stream-down":
             logger.info(f"{channel.name} goes OFFLINE")
             channel.set_offline()
-            if self.is_currently_watching(channel):
-                print(f"{channel.name} goes OFFLINE, switching...")
+            if self.is_watching(channel):
+                self.gui.print(f"{channel.name} goes OFFLINE, switching...")
                 # change the channel if we're currently watching it
-                self._channel_change.set()
+                self.change_state(State.CHANNEL_SWITCH)
         elif msg_type == "stream-up":
             logger.info(f"{channel.name} goes ONLINE")
             channel.set_online()
@@ -243,10 +301,131 @@ class Twitch:
                 # if it's not online for some reason, set it so
                 channel.set_online()
             else:
-                assert channel.stream is not None
                 viewers = message["viewers"]
-                channel.stream.viewer_count = viewers
+                channel.viewers = viewers
                 logger.debug(f"{channel.name} viewers: {viewers}")
+
+    @task_wrapper
+    async def process_drops(self, user_id: int, message: JsonType):
+        # Message examples:
+        # {"type": "drop-progress", data: {"current_progress_min": 3, "required_progress_min": 10}}
+        # {"type": "drop-claim", data: {"drop_instance_id": ...}}
+        msg_type: str = message["type"]
+        if msg_type not in ("drop-progress", "drop-claim"):
+            return
+        drop_id: str = message["data"]["drop_id"]
+        drop: Optional[TimedDrop] = self.get_drop(drop_id)
+        if msg_type == "drop-claim" and drop is None:
+            logger.error(
+                f"Received a drop claim ID for a non-existing drop: {drop_id}\n"
+                f"Drop claim ID: {message['data']['drop_instance_id']}"
+            )
+            return
+        # Sometimes, the drop update we receive doesn't actually match what we're mining.
+        # This is a Twitch bug workaround: use GQL to get the current drop progress.
+        if msg_type == "drop-progress" and (drop is None or not drop.campaign.active):
+            logger.debug(
+                "Received a drop update for an inactive campaign, using drop context instead"
+            )
+            context = await self.gql_request(GQL_OPERATIONS["CurrentDrop"])
+            drop_data = context["data"]["currentUser"]["dropCurrentSession"]
+            drop_id = drop_data["dropID"]
+            drop = self.get_drop(drop_id)
+            if drop is None:
+                logger.warning(f"Received an update for a non-existing drop: {drop_id}")
+                return
+            if not drop.campaign.active:
+                # Sometimes, even GQL fails to give us the correct drop.
+                # In that case, we can use the locally cached inventory to try and put together
+                # the drop that we're actually mining right now.
+                # TODO: Find a better way of figuring out the correct game
+                game = drop.campaign.game
+                drop = None
+                for campaign in self.inventory:
+                    if campaign.game == game:
+                        drop = campaign.get_active_drop()
+                        break
+                if drop is None or not drop.campaign.active:
+                    logger.error("Active drop search failed")
+                    return
+                drop.bump_minutes()
+                self.gui.progress.update(drop)
+                return
+            else:
+                # TODO: Use a cleaner solution than modifying the raw payload
+                message["data"]["current_progress_min"] = drop_data["currentMinutesWatched"]
+                message["data"]["required_progress_min"] = drop_data["requiredMinutesWatched"]
+        assert drop is not None
+        drop.update(message)
+        if msg_type == "drop-claim":
+            campaign = drop.campaign
+            await drop.claim()
+            self.gui.print(
+                f"Claimed drop: {drop.rewards_text()} "
+                f"({campaign.claimed_drops}/{campaign.total_drops})"
+            )
+            if campaign.remaining_drops == 0:
+                self.change_state(State.INVENTORY_FETCH)
+        self.gui.progress.update(drop)
+
+    @task_wrapper
+    async def process_points(self, user_id: int, message: JsonType):
+        # Example payloads:
+        # {
+        #     "type": "points-earned",
+        #     "data": {
+        #         "timestamp": "YYYY-MM-DDTHH:MM:SS.123456789Z",
+        #         "channel_id": "123456789",
+        #         "point_gain": {
+        #             "user_id": "12345678",
+        #             "channel_id": "123456789",
+        #             "total_points": 10,
+        #             "baseline_points": 10,
+        #             "reason_code": "WATCH",
+        #             "multipliers": []
+        #         },
+        #         "balance": {
+        #             "user_id": "12345678",
+        #             "channel_id": "123456789",
+        #             "balance": 12345
+        #         }
+        #     }
+        # }
+        # {
+        #     "type": "claim-available",
+        #     "data": {
+        #         "timestamp":"2021-12-23T21:41:35.784041064Z",
+        #         "claim": {
+        #             "id": "4ae6fefd-3658-40ae-ad3d-92254c576a91",
+        #             "user_id": "94275183",
+        #             "channel_id": "218893986",
+        #             "point_gain": {
+        #                 "user_id": "94275183",
+        #                 "channel_id": "218893986",
+        #                 "total_points": 50,
+        #                 "baseline_points": 50,
+        #                 "reason_code": "CLAIM",
+        #                 "multipliers": []
+        #             },
+        #             "created_at": "2021-12-23T21:41:31Z"
+        #         }
+        #     }
+        # }
+        msg_type = message["type"]
+        if msg_type == "points-earned":
+            data = message["data"]
+            channel = self.channels.get(int(data["channel_id"]))
+            points = data["point_gain"]["total_points"]
+            balance = data["balance"]["balance"]
+            if channel is not None:
+                channel.points = balance
+                self.gui.channels.display(channel)
+            self.gui.print(f"Earned points for watching: {points:3}, total: {balance}")
+        elif msg_type == "claim-available":
+            claim_data = message["data"]["claim"]
+            points = claim_data["point_gain"]["total_points"]
+            await self.claim_points(claim_data["channel_id"], claim_data["id"])
+            self.gui.print(f"Claimed bonus points: {points}")
 
     async def _validate_password(self, password: str) -> bool:
         """
@@ -254,6 +433,8 @@ class Twitch:
         Helps avoid running into the CAPTCHA if you mistype your password by mistake.
         Valid length: 8-71
         """
+        if not 8 <= len(password) <= 71:
+            return False
         payload = {"password": password}
         async with self._session.post(
             f"{AUTH_URL}/api/v1/password_strength", json=payload
@@ -261,120 +442,97 @@ class Twitch:
             strength_response = await response.json()
         return strength_response["isValid"]
 
-    async def get_password(self, prompt: str = "Password: ") -> str:
-        """
-        A loop that'll keep asking for password, until it's considered valid.
-        Use own implementation rather than `getpass.getpass`, to add some user feedback
-        on how many characters have been typed in.
-        """
+    async def ask_login(self) -> LoginData:
         while True:
-            for c in prompt:
-                msvcrt.putwch(c)
-            pass_chars: List[str] = []
-            try:
-                while True:
-                    c = msvcrt.getwch()
-                    if c in "\r\n":
-                        break
-                    elif c == '\003':
-                        raise KeyboardInterrupt
-                    elif c == '\b':
-                        # backspace
-                        if not pass_chars:
-                            # we have nothing to remove
-                            continue
-                        pass_chars.pop()
-                        # move one character back
-                        msvcrt.putwch('\b')
-                        # overwrite the • with a space
-                        msvcrt.putwch(' ')
-                        # move back again
-                        msvcrt.putwch('\b')
-                    else:
-                        pass_chars.append(c)
-                        msvcrt.putwch('•')
-            finally:
-                msvcrt.putwch('\r')
-                msvcrt.putwch('\n')
-            password = ''.join(pass_chars)
-            if await self._validate_password(password):
-                return password
+            data = await self.gui.login.ask_login()
+            if await self._validate_password(data.password):
+                return data
 
     async def _login(self) -> str:
         logger.debug("Login flow started")
-        if self.username is None:
-            self.username = input("Username: ")
-        if self.password is None:
-            print("\nNote: Password can be pasted in by pressing right click inside the window.\n")
-            self.password = await self.get_password()
 
         payload: JsonType = {
-            "username": self.username,
-            "password": self.password,
             "client_id": CLIENT_ID,
             "undelete_user": False,
             "remember_me": True,
         }
 
-        for attempt in range(10):
-            async with self._session.post(f"{AUTH_URL}/login", json=payload) as response:
-                login_response = await response.json()
+        while True:
+            username, password, token = await self.ask_login()
+            payload["username"] = username
+            payload["password"] = password
+            # remove stale 2FA tokens, if present
+            payload.pop("authy_token", None)
+            payload.pop("twitchguard_code", None)
+            for attempt in range(2):
+                async with self._session.post(f"{AUTH_URL}/login", json=payload) as response:
+                    login_response: JsonType = await response.json()
 
-            # Feed this back in to avoid running into CAPTCHA if possible
-            if "captcha_proof" in login_response:
-                payload["captcha"] = {"proof": login_response["captcha_proof"]}
+                # Feed this back in to avoid running into CAPTCHA if possible
+                if "captcha_proof" in login_response:
+                    payload["captcha"] = {"proof": login_response["captcha_proof"]}
 
-            # Error handling
-            if "error_code" in login_response:
-                error_code = login_response["error_code"]
-                logger.debug(f"Login error code: {error_code}")
-                if error_code == 1000:
-                    # we've failed bois
-                    logger.debug("Login failed due to CAPTCHA")
-                    raise CaptchaRequired()
-                elif error_code == 3001:
-                    # wrong password you dummy
-                    logger.debug("Login failed due to incorrect login or pass")
-                    print(f"Incorrect username or password.\nUsername: {self.username}")
-                    self.password = await self.get_password()
-                elif error_code in (
-                    3011,  # Authy token needed
-                    3012,  # Invalid authy token
-                    3022,  # Email code needed
-                    3023,  # Invalid email code
-                ):
-                    # 2FA handling
-                    email = error_code in (3022, 3023)
-                    logger.debug("2FA token required")
-                    token = input("2FA token: ")
-                    if email:
-                        # email code
-                        payload["twitchguard_code"] = token
+                # Error handling
+                if "error_code" in login_response:
+                    error_code: int = login_response["error_code"]
+                    logger.debug(f"Login error code: {error_code}")
+                    if error_code == 1000:
+                        # we've failed bois
+                        logger.debug("Login failed due to CAPTCHA")
+                        raise CaptchaRequired()
+                    elif error_code == 3001:
+                        # wrong password you dummy
+                        logger.debug("Login failed due to incorrect login or pass")
+                        self.gui.print("Incorrect username or password.")
+                        self.gui.login.clear(password=True)
+                        break
+                    elif error_code in (
+                        3012,  # Invalid authy token
+                        3023,  # Invalid email code
+                    ):
+                        logger.debug("Login failed due to incorrect 2FA code")
+                        if error_code == 3023:
+                            self.gui.print("Incorrect email code.")
+                        else:
+                            self.gui.print("Incorrect 2FA code.")
+                        self.gui.login.clear(token=True)
+                        break
+                    elif error_code in (
+                        3011,  # Authy token needed
+                        3022,  # Email code needed
+                    ):
+                        # 2FA handling
+                        email = error_code == 3022
+                        if not token:
+                            logger.debug("2FA token required")
+                            # user didn't provide a token, so ask them for it
+                            if email:
+                                self.gui.print("Email code required. Check your email.")
+                            else:
+                                self.gui.print("2FA token required.")
+                            break
+                        if email:
+                            payload["twitchguard_code"] = token
+                        else:
+                            payload["authy_token"] = token
+                        continue
                     else:
-                        # authy token
-                        payload["authy_token"] = token
-                    continue
-                else:
-                    raise LoginException(login_response["error"])
-
-            # Success handling
-            if "access_token" in login_response:
-                # we're in bois
-                self._access_token = login_response["access_token"]
-                logger.debug(f"Access token: {self._access_token}")
-                break
-
-        if self._access_token is None:
-            # this means we've ran out of retries
-            raise LoginException("Ran out of login retries")
-        return self._access_token
+                        raise LoginException(login_response["error"])
+                # Success handling
+                if "access_token" in login_response:
+                    # we're in bois
+                    self._access_token = cast(str, login_response["access_token"])
+                    logger.debug("Access token granted")
+                    self.gui.login.clear()
+                    return self._access_token
 
     async def check_login(self) -> None:
         if self._access_token is not None and self._user_id is not None:
             # we're all good
             return
         # looks like we're missing something
-        print("Logging in")
+        logger.debug("Checking login")
+        self.gui.login.update("Logging in...", None)
         jar = cast(aiohttp.CookieJar, self._session.cookie_jar)
         while True:
             cookie = jar.filter_cookies("https://twitch.tv")  # type: ignore
@@ -386,7 +544,7 @@ class Twitch:
             elif self._access_token is None:
                 # have cookie - get our access token
                 self._access_token = cookie["auth-token"].value
-                logger.debug("Session restored from cookie")
+                logger.debug("Restoring session from cookie")
             # validate our access token, by obtaining user_id
             async with self._session.get(
                 "https://id.twitch.tv/oauth2/validate",
@@ -395,6 +553,7 @@ class Twitch:
                 status = response.status
                 if status == 401:
                     # the access token we have is invalid - clear the cookie and reauth
+                    logger.debug("Restored session is invalid")
                     jar.clear_domain("twitch.tv")
                     continue
                 elif status == 200:
@@ -403,7 +562,8 @@ class Twitch:
         self._user_id = int(validate_response["user_id"])
         cookie["persistent"] = str(self._user_id)
         self._is_logged_in.set()
-        print(f"Login successful, User ID: {self._user_id}")
+        logger.debug(f"Login successful, user ID: {self._user_id}")
+        self.gui.login.update("Logged in", self._user_id)
         # update our cookie and save it
         jar.update_cookies(cookie, URL("https://twitch.tv"))
         jar.save(COOKIES_PATH)
@@ -420,34 +580,38 @@ class Twitch:
             gql_logger.debug(f"GQL Response: {response_json}")
             return response_json
 
-    async def get_inventory(self) -> List[DropsCampaign]:
+    async def fetch_inventory(self) -> None:
         response = await self.gql_request(GQL_OPERATIONS["Inventory"])
         inventory = response["data"]["currentUser"]["inventory"]
-        return [DropsCampaign(self, data) for data in inventory["dropCampaignsInProgress"]]
+        self.inventory = [
+            DropsCampaign(self, data) for data in inventory["dropCampaignsInProgress"]
+        ]
 
-    async def get_live_streams(
-        self, games: Collection[Game], tag_ids: List[str]
-    ) -> Dict[Game, List[Channel]]:
-        limit = min(int((MAX_WEBSOCKETS * WS_TOPICS_LIMIT) // len(games)), 100)
-        live_streams = {}
-        for game in games:
-            response = await self.gql_request(
-                GQL_OPERATIONS["GameDirectory"].with_variables({
-                    "limit": limit,
-                    "name": game.name,
-                    "options": {
-                        "includeRestricted": ["SUB_ONLY_LIVE"],
-                        "tags": tag_ids,
-                    },
-                })
-            )
-            live_streams[game] = [
-                Channel.from_directory(self, stream_channel_data["node"])
-                for stream_channel_data in response["data"]["game"]["streams"]["edges"]
-            ]
-        return live_streams
+    def get_drop(self, drop_id: str) -> Optional[TimedDrop]:
+        for campaign in self.inventory:
+            drop = campaign.get_drop(drop_id)
+            if drop is not None:
+                return drop
+        return None
 
-    async def claim_points(self, channel_id: Union[str, int], claim_id: str):
+    async def get_live_streams(self, game: Game, tag_ids: List[str]) -> List[Channel]:
+        limit = 45
+        response = await self.gql_request(
+            GQL_OPERATIONS["GameDirectory"].with_variables({
+                "limit": limit,
+                "name": game.name,
+                "options": {
+                    "includeRestricted": ["SUB_ONLY_LIVE"],
+                    "tags": tag_ids,
+                },
+            })
+        )
+        return [
+            Channel.from_directory(self, stream_channel_data["node"])
+            for stream_channel_data in response["data"]["game"]["streams"]["edges"]
+        ]
+
+    async def claim_points(self, channel_id: Union[str, int], claim_id: str) -> None:
         variables = {"input": {"channelID": str(channel_id), "claimID": claim_id}}
         await self.gql_request(
             GQL_OPERATIONS["ClaimCommunityPoints"].with_variables(variables)
