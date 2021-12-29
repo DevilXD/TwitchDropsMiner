@@ -188,7 +188,7 @@ class LoginForm:
         frame.columnconfigure(0, weight=2)
         frame.columnconfigure(1, weight=1)
         frame.rowconfigure(4, weight=1)
-        ttk.Label(frame, text=("Status:\nUser ID:")).grid(column=0, row=0)
+        ttk.Label(frame, text="Status:\nUser ID:").grid(column=0, row=0)
         ttk.Label(frame, textvariable=self._var, justify="center").grid(column=1, row=0)
         self._login_entry = PlaceholderEntry(frame, placeholder="Username")
         self._login_entry.grid(column=0, row=1, columnspan=2)
