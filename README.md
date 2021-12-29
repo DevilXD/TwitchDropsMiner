@@ -5,20 +5,19 @@ This script allows you to AFK farm timed Twitch drops, without having to worry a
 **Features:**
 
 - Stream-less drop mining - save on bandwidth.
-- Stream tags vs drop campaign validation, so you don't end up watching a stream that can't earn you the drop.
+- Stream tags and drop campaign validation, so you don't end up watching a stream that can't earn you the drop.
 - Stream switching when the one you were currently watching goes offline.
 - Cookie saving between sessions, so you don't need to login every time.
+- Mining is stopped if the last available drop has been mined.
 
 **Not managed / TODO / manual:**
 
 - Adding additional drop campaigns from other games to your inventory (requires you to do [account linking](https://www.twitch.tv/drops/campaigns) yourself)
-- Stopping the mining if the last available drop has been mined.
-- A hard limit of up to ~45 streams to manage at the same time.
 
 **Usage:**
 
 - Download the [lastest release](https://github.com/DevilXD/TwitchDropsMiner/releases) - it's recommended to keep it in the folder it comes with.
-- Run it - it should ask you for your Twitch username and password, and a 2FA key if you have one setup.
-- After successful login, it should fetch a list of all available live channels and start mining right away.
-- Cookies will be stored in the `cookies.pickle` file, from which the authorization information will be restored on each subsequent run.
-- Note: Username and password are only needed for initial login, and thus can be safely removed from the settings file afterwards. Make sure to keep your cookies file safe, as the authorization information it stores can give another person access to your Twitch account.
+- Run it and login into your Twitch using your username and password, and a 2FA key if you have one setup.
+- After successful login, the app should fetch a list of all available live channels and start mining right away.
+- Persistent cookies will be stored in the `cookies.jar` file, from which the authorization information will be restored on each subsequent run.
+- Note: Make sure to keep your cookies file safe, as the authorization information it stores can give another person access to your Twitch account.
