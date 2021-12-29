@@ -534,7 +534,7 @@ class Twitch:
         logger.debug("Checking login")
         self.gui.login.update("Logging in...", None)
         jar = cast(aiohttp.CookieJar, self._session.cookie_jar)
-        while True:
+        for attempt in range(2):
             cookie = jar.filter_cookies("https://twitch.tv")  # type: ignore
             if not cookie:
                 # no cookie - login
@@ -559,6 +559,8 @@ class Twitch:
                 elif status == 200:
                     validate_response = await response.json()
                     break
+        else:
+            raise RuntimeError("Login verification failure")
         self._user_id = int(validate_response["user_id"])
         cookie["persistent"] = str(self._user_id)
         self._is_logged_in.set()
