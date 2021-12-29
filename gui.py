@@ -211,7 +211,8 @@ class LoginForm:
             self._token_entry.clear()
 
     async def ask_login(self) -> LoginData:
-        self._manager.print("Please log in.")
+        self.update("Login required", None)
+        self._manager.print("Please log in to continue.")
         self._confirm.clear()
         self._button.config(state="normal")
         await self._confirm.wait()
@@ -821,15 +822,16 @@ if __name__ == "__main__":
             game=game_obj,
             viewers=viewers,
         )
-
-    # Game selctor
-    gui.games.set_games([
-        create_game(491115, "Paladins"),
-        create_game(460630, "Tom Clancy's Rainbow Six Siege"),
-    ])
-    game = gui.games.get_next_selection()
-    game = gui.games.get_next_selection()
-    game = gui.games.get_next_selection()
+    # Login form
+    gui.login.update("Login required", None)
+    # Game selector
+    # gui.games.set_games([
+    #     create_game(491115, "Paladins"),
+    #     create_game(460630, "Tom Clancy's Rainbow Six Siege"),
+    # ])
+    # game = gui.games.get_next_selection()
+    # game = gui.games.get_next_selection()
+    # game = gui.games.get_next_selection()
     # Channel list
     gui.channels.display(create_channel("PaladinsGame", 0, None, 0, 0))
     channel = create_channel("Traitus", 1, None, 0, 0)
