@@ -502,9 +502,9 @@ class Twitch:
                         3022,  # Email code needed
                     ):
                         # 2FA handling
+                        logger.debug("2FA token required")
                         email = error_code == 3022
                         if not token:
-                            logger.debug("2FA token required")
                             # user didn't provide a token, so ask them for it
                             if email:
                                 self.gui.print("Email code required. Check your email.")

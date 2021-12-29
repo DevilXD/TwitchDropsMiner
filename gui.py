@@ -177,7 +177,7 @@ class LoginForm:
     def __init__(self, manager: GUIManager, master: tk.Misc):
         self._manager = manager
         self._var = StringVar()
-        frame = ttk.LabelFrame(master, text="Login Status", padding=(4, 0, 4, 4))
+        frame = ttk.LabelFrame(master, text="Login Form", padding=(4, 0, 4, 4))
         frame.grid(column=1, row=0, sticky="nsew", padx=2)
         frame.columnconfigure(0, weight=2)
         frame.columnconfigure(1, weight=1)
@@ -204,10 +204,38 @@ class LoginForm:
         if token or clear_all:
             self._token_entry.clear()
 
+    def enable(
+        self,
+        login: Optional[bool] = None,
+        password: Optional[bool] = None,
+        token: Optional[bool] = None,
+        button: Optional[bool] = None,
+    ):
+        if login is not None:
+            if login:
+                self._login_entry.enable()
+            else:
+                self._login_entry.disable()
+        if password is not None:
+            if password:
+                self._pass_entry.enable()
+            else:
+                self._pass_entry.disable()
+        if token is not None:
+            if token:
+                self._token_entry.enable()
+            else:
+                self._token_entry.disable()
+        if button is not None:
+            if button:
+                self._button.config(state="normal")
+            else:
+                self._button.config(state="disabled")
+
     async def ask_login(self) -> LoginData:
         self._manager.print("Please log in.")
         self._confirm.clear()
-        self._button.config(state="normal")
+        self.enable(button=True)
         await self._confirm.wait()
         self._button.config(state="disabled")
         data = LoginData(self._login_entry.get(), self._pass_entry.get(), self._token_entry.get())
