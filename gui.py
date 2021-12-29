@@ -194,7 +194,7 @@ class LoginForm:
         self._login_entry.grid(column=0, row=1, columnspan=2)
         self._pass_entry = PlaceholderEntry(frame, placeholder="Password", show='•')
         self._pass_entry.grid(column=0, row=2, columnspan=2)
-        self._token_entry = PlaceholderEntry(frame, placeholder="2FA Code")
+        self._token_entry = PlaceholderEntry(frame, placeholder="2FA Code (optional)")
         self._token_entry.grid(column=0, row=3, columnspan=2)
         self._confirm = asyncio.Event()
         self._button = ttk.Button(frame, text="Login", command=self._confirm.set, state="disabled")
