@@ -632,9 +632,9 @@ class ChannelList:
     def display(self, channel: Channel):
         # status
         if channel.online:
-            status_str = "ONLINE  ✅"
+            status_str = "ONLINE  ✔"
         elif channel.pending_online:
-            status_str = "OFFLINE ⏰"
+            status_str = "OFFLINE ⏳"
         else:
             status_str = "OFFLINE ❌"
         # game
