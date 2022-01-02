@@ -160,7 +160,6 @@ class Twitch:
             WebsocketTopic("User", "Drops", self._user_id, self.process_drops),
             WebsocketTopic("User", "CommunityPoints", self._user_id, self.process_points),
         ])
-        await self.websocket.start()
         games: Set[Game] = set()
         selected_game: Optional[Game] = None
         self.change_state(State.INVENTORY_FETCH)
@@ -185,6 +184,8 @@ class Twitch:
                 if not games:
                     self.gui.print("No active campaigns to farm drops for.")
                     return
+                # only start the websocket after we confirm there are drops to mine
+                await self.websocket.start()
                 self.gui.games.set_games(games)
                 selected_game = self.gui.games.get_selection()
                 self.change_state(State.CHANNEL_FETCH)
