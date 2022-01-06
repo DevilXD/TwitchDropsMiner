@@ -1,6 +1,6 @@
 # Twitch Drops Miner
 
-This script allows you to AFK farm timed Twitch drops, without having to worry about switching channels when the one you were watching goes offline, or even receiving the stream data itself. This helps both you and Twitch save on bandwidth and hassle. Everybody wins!
+This application allows you to AFK farm timed Twitch drops, without having to worry about switching channels when the one you were watching goes offline, or even receiving the stream data itself. This helps both you and Twitch save on bandwidth and hassle. Everybody wins!
 
 **Features:**
 
@@ -21,3 +21,7 @@ This script allows you to AFK farm timed Twitch drops, without having to worry a
 - After successful login, the app should fetch a list of all available live channels and start mining right away.
 - Persistent cookies will be stored in the `cookies.jar` file, from which the authorization information will be restored on each subsequent run.
 - Note: Make sure to keep your cookies file safe, as the authorization information it stores can give another person access to your Twitch account.
+
+**Notes:**
+
+- Successfully logging into your Twitch account in the application, may cause Twitch to send you a "New Login" notification email. This is normal - you can verify that it comes from your own IP address. The application uses Chrome's user agent, so the detected browser during the login should signify that as well.
