@@ -96,20 +96,20 @@ class TimedDrop(BaseDrop):
 
     @property
     def remaining_minutes(self) -> int:
-        return self.required_minutes - self.current_minutes + 1
+        return self.required_minutes - self.current_minutes
 
     @property
     def progress(self) -> float:
         return self.current_minutes / self.required_minutes
 
-    def update(self, message: JsonType):
-        # See Twitch.process_drop for message examples
-        msg_type = message["type"]
-        if msg_type == "drop-progress":
-            self.current_minutes = message["data"]["current_progress_min"]
-            self.required_minutes = message["data"]["required_progress_min"]
-        elif msg_type == "drop-claim":
-            self.claim_id = message["data"]["drop_instance_id"]
+    def update_claim(self, claim_id: str):
+        self.claim_id = claim_id
+
+    def update_minutes(self, minutes: int):
+        self.current_minutes = minutes
+
+    def display(self, *, countdown: bool = True):
+        self.campaign._twitch.gui.progress.display(self, countdown=countdown)
 
     def bump_minutes(self):
         if self.current_minutes < self.required_minutes:

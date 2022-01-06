@@ -5,3 +5,4 @@ __pycache__
 /cookies.jar
 /settings.json
 /*.spec
+/log*.txt

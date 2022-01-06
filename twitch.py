@@ -29,6 +29,7 @@ from constants import (
     COOKIES_PATH,
     AUTH_URL,
     GQL_URL,
+    WATCH_INTERVAL,
     GQL_OPERATIONS,
     DROPS_ENABLED_TAG,
     GQLOperation,
@@ -66,6 +67,7 @@ class Twitch:
         self._watching_channel: Optional[Channel] = None
         self._watching_task: Optional[asyncio.Task[Any]] = None
         self._last_watch = time() - 60
+        self._drop_update: Optional[asyncio.Future[bool]] = None
         # Websocket
         self.websocket = WebsocketPool(self)
         # Runner task
@@ -188,6 +190,13 @@ class Twitch:
                 await self.websocket.start()
                 self.gui.games.set_games(games)
                 selected_game = self.gui.games.get_selection()
+                # pre-display the active drop without a countdown
+                for campaign in self.inventory:
+                    if campaign.active and campaign.game == selected_game:
+                        active_drop = campaign.get_active_drop()
+                        if active_drop is not None:
+                            active_drop.display(countdown=False)
+                            break
                 self.change_state(State.CHANNEL_CLEANUP)
             elif self._state is State.CHANNEL_FETCH:
                 if selected_game is None:
@@ -262,6 +271,80 @@ class Twitch:
                         self.change_state(State.CHANNEL_CLEANUP)
             await self._state_change.wait()
 
+    async def _watch_loop(self, channel: Channel):
+        # last_watch is a timestamp of the last time we've sent a watch payload
+        # We need this because watch_loop can be cancelled and rescheduled multiple times
+        # in quick succession, and apparently Twitch doesn't like that very much
+        interval = WATCH_INTERVAL.total_seconds()
+        await asyncio.sleep(self._last_watch + interval - time())
+        i = 0
+        while True:
+            await channel.send_watch()
+            self._last_watch = time()
+            self._drop_update = asyncio.Future()
+            try:
+                updated = await asyncio.wait_for(self._drop_update, timeout=10)
+            except asyncio.TimeoutError:
+                # there was no websocket update within 10s
+                self._drop_update = None
+                selected_game = self.gui.games.get_selection()
+                drop = None
+                for campaign in self.inventory:
+                    if campaign.active and campaign.game == selected_game:
+                        drop = campaign.get_active_drop()
+                        break
+                if drop is not None and drop.campaign.active:
+                    drop.bump_minutes()
+                    drop.display()
+                else:
+                    logger.error("Active drop search failed")
+            else:
+                self._drop_update = None
+                if not updated:
+                    # there was no websocket update, or the update was for an unrelated drop
+                    # we need to use GQL to get the current progress
+                    context = await self.gql_request(GQL_OPERATIONS["CurrentDrop"])
+                    drop_data: JsonType = context["data"]["currentUser"]["dropCurrentSession"]
+                    drop_id = drop_data["dropID"]
+                    drop = self.get_drop(drop_id)
+                    if drop is None:
+                        logger.error(f"Missing drop: {drop_id}")
+                    elif not drop.campaign.active:
+                        # Sometimes, even GQL fails to give us the correct drop.
+                        # In that case, we can use the locally cached inventory to try
+                        # and put together the drop that we're actually mining right now.
+                        selected_game = self.gui.games.get_selection()
+                        drop = None
+                        for campaign in self.inventory:
+                            if campaign.active and campaign.game == selected_game:
+                                drop = campaign.get_active_drop()
+                                break
+                        if drop is not None and drop.campaign.active:
+                            drop.bump_minutes()
+                            drop.display()
+                        else:
+                            logger.error("Active drop search failed")
+                    else:
+                        # drop is not None and campaign.active
+                        drop.update_minutes(drop_data["currentMinutesWatched"])
+                        drop.display()
+                        with open("log.txt", 'a') as file:
+                            print(
+                                time(),
+                                drop_id,
+                                "GQL",
+                                drop_data["currentMinutesWatched"],
+                                drop.current_minutes,
+                                drop.is_claimed,
+                                sep='\t',
+                                file=file,
+                            )
+            if i == 0:
+                # ensure every 30 minutes that we don't have unclaimed points bonus
+                await channel.claim_bonus()
+            i = (i + 1) % 30
+            await asyncio.sleep(self._last_watch + interval - time())
+
     def watch(self, channel: Channel):
         if self.is_watching(channel):
             # we're already watching the same channel, so there's no point switching
@@ -270,8 +353,7 @@ class Twitch:
             self._watching_task.cancel()
         self.gui.channels.set_watching(channel)
         self._watching_channel = channel
-        self._watching_task = asyncio.create_task(channel.watch_loop())
-        self.gui.progress.start_timer()
+        self._watching_task = asyncio.create_task(self._watch_loop(channel))
 
     def stop_watching(self):
         self.gui.progress.stop_timer()
@@ -316,58 +398,63 @@ class Twitch:
             return
         drop_id: str = message["data"]["drop_id"]
         drop: Optional[TimedDrop] = self.get_drop(drop_id)
-        if msg_type == "drop-claim" and drop is None:
-            logger.error(
-                f"Received a drop claim ID for a non-existing drop: {drop_id}\n"
-                f"Drop claim ID: {message['data']['drop_instance_id']}"
-            )
-            return
-        # Sometimes, the drop update we receive doesn't actually match what we're mining.
-        # This is a Twitch bug workaround: use GQL to get the current drop progress.
-        if msg_type == "drop-progress" and (drop is None or not drop.campaign.active):
-            logger.debug(
-                "Received a drop update for an inactive campaign, using drop context instead"
-            )
-            context = await self.gql_request(GQL_OPERATIONS["CurrentDrop"])
-            drop_data = context["data"]["currentUser"]["dropCurrentSession"]
-            drop_id = drop_data["dropID"]
-            drop = self.get_drop(drop_id)
-            if drop is None:
-                logger.warning(f"Received an update for a non-existing drop: {drop_id}")
-                return
-            if not drop.campaign.active:
-                # Sometimes, even GQL fails to give us the correct drop.
-                # In that case, we can use the locally cached inventory to try and put together
-                # the drop that we're actually mining right now.
-                # TODO: Find a better way of figuring out the correct game
-                game = drop.campaign.game
-                drop = None
-                for campaign in self.inventory:
-                    if campaign.game == game:
-                        drop = campaign.get_active_drop()
-                        break
-                if drop is None or not drop.campaign.active:
-                    logger.error("Active drop search failed")
-                    return
-                drop.bump_minutes()
-                self.gui.progress.update(drop)
-                return
-            else:
-                # TODO: Use a cleaner solution than modifying the raw payload
-                message["data"]["current_progress_min"] = drop_data["currentMinutesWatched"]
-                message["data"]["required_progress_min"] = drop_data["requiredMinutesWatched"]
-        assert drop is not None
-        drop.update(message)
         if msg_type == "drop-claim":
+            if drop is None:
+                logger.error(
+                    f"Received a drop claim ID for a non-existing drop: {drop_id}\n"
+                    f"Drop claim ID: {message['data']['drop_instance_id']}"
+                )
+                return
+            drop.update_claim(message["data"]["drop_instance_id"])
             campaign = drop.campaign
-            await drop.claim()
-            self.gui.print(
-                f"Claimed drop: {drop.rewards_text()} "
-                f"({campaign.claimed_drops}/{campaign.total_drops})"
-            )
+            mined = await drop.claim()
+            if mined:
+                self.gui.print(
+                    f"Claimed drop: {drop.rewards_text()} "
+                    f"({campaign.claimed_drops}/{campaign.total_drops})"
+                )
+            else:
+                logger.error(f"Drop claim failed! Drop ID: {drop_id}")
             if campaign.remaining_drops == 0:
                 self.change_state(State.INVENTORY_FETCH)
-        self.gui.progress.update(drop)
+                return
+            # About 6s after claiming the drop, next drop can be started
+            # by resending the watch payload
+            await asyncio.sleep(6)
+            # Force-restart the watch task to send the watch payload right away
+            channel = self._watching_channel
+            if channel is not None:
+                self.stop_watching()
+                self._last_watch = time() - 60
+                self.watch(channel)
+            return
+        assert msg_type == "drop-progress"
+        if self._drop_update is None:
+            # we aren't actually waiting for a progress update right now, so we can just
+            # ignore the event this time
+            return
+        elif drop is not None and drop.campaign.active:
+            drop.update_minutes(message["data"]["current_progress_min"])
+            drop.display()
+            self._drop_update.set_result(True)
+            self._drop_update = None  # TODO: remove this together with debug code below
+            with open("log.txt", 'a') as file:
+                print(
+                    time(),
+                    drop_id,
+                    "WS",
+                    message["data"]["current_progress_min"],
+                    drop.current_minutes,
+                    drop.is_claimed,
+                    sep='\t',
+                    file=file,
+                )
+        else:
+            # Sometimes, the drop update we receive doesn't actually match what we're mining.
+            # This is a Twitch bug workaround: signal the watch loop to use GQL
+            # to get the current drop progress.
+            self._drop_update.set_result(False)
+        self._drop_update = None
 
     @task_wrapper
     async def process_points(self, user_id: int, message: JsonType):
@@ -589,6 +676,15 @@ class Twitch:
         self.inventory = [
             DropsCampaign(self, data) for data in inventory["dropCampaignsInProgress"]
         ]
+        context = await self.gql_request(GQL_OPERATIONS["CurrentDrop"])
+        drop_data = context["data"]["currentUser"]["dropCurrentSession"]
+        with open("log.txt", 'a') as file:
+            if drop_data is None:
+                print(time(), None, sep='\t', file=file, flush=True)
+            else:
+                print(
+                    time(), drop_data.get("currentMinutesWatched"), sep='\t', file=file, flush=True
+                )
 
     def get_drop(self, drop_id: str) -> Optional[TimedDrop]:
         for campaign in self.inventory:

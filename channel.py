@@ -11,9 +11,7 @@ from typing import Any, Optional, TYPE_CHECKING
 
 from inventory import Game
 from exceptions import MinerException
-from constants import (
-    JsonType, BASE_URL, GQL_OPERATIONS, ONLINE_DELAY, WATCH_INTERVAL, DROPS_ENABLED_TAG
-)
+from constants import JsonType, BASE_URL, GQL_OPERATIONS, ONLINE_DELAY, DROPS_ENABLED_TAG
 
 if TYPE_CHECKING:
     from twitch import Twitch
@@ -252,7 +250,7 @@ class Channel:
         json_event = json.dumps(payload, separators=(",", ":"))
         return {"data": (b64encode(json_event.encode("utf8"))).decode("utf8")}
 
-    async def _send_watch(self) -> bool:
+    async def send_watch(self) -> bool:
         """
         This uses the encoded payload on spade url to simulate watching the stream.
         Optimally, send every 60 seconds to advance drops.
@@ -267,18 +265,3 @@ class Channel:
             self._spade_url, data=self._encode_payload()
         ) as response:
             return response.status == 204
-
-    async def watch_loop(self):
-        # last_watch is a timestamp of the last time we've sent a watch payload
-        # We need this because watch_loop can be cancelled and rescheduled multiple times
-        # in quick succession, and apparently Twitch doesn't like that very much
-        interval = WATCH_INTERVAL.total_seconds()
-        await asyncio.sleep(self._twitch._last_watch + interval - time())
-        i = 0
-        while True:
-            await self._send_watch()
-            if i == 0:
-                # ensure every 30 minutes that we don't have unclaimed points bonus
-                await self.claim_bonus()
-            i = (i + 1) % 30
-            await asyncio.sleep(interval)

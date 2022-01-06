@@ -9,7 +9,9 @@ from math import log10, ceil
 from tkinter.font import Font
 from collections import namedtuple, OrderedDict
 from tkinter import Tk, ttk, StringVar, DoubleVar
-from typing import Any, Optional, List, Dict, Set, TypedDict, Iterable, NoReturn, TYPE_CHECKING
+from typing import (
+    Any, Optional, List, Dict, Set, Tuple, TypedDict, Iterable, NoReturn, TYPE_CHECKING
+)
 
 from version import __version__
 from constants import WS_TOPICS_LIMIT, MAX_WEBSOCKETS, State
@@ -324,7 +326,6 @@ class _DropVars(_BaseVars):
 class _ProgressVars(TypedDict):
     campaign: _CampaignVars
     drop: _DropVars
-    seconds: int
 
 
 class CampaignProgress:
@@ -346,7 +347,6 @@ class CampaignProgress:
                 "remaining": StringVar(),  # as above
                 "minutes": 0,  # as above
             },
-            "seconds": 1,  # remaining seconds (common for both campaign and drop)
         }
         self._frame = frame = ttk.LabelFrame(
             master, text="Campaign Progress", padding=(4, 0, 4, 4)
@@ -386,65 +386,48 @@ class CampaignProgress:
             variable=self._vars["drop"]["progress"],
         ).grid(column=0, row=10, columnspan=2)
         self._timer_task: Optional[asyncio.Task[None]] = None
-        self._update_time()
+        self._update_time(0)
 
-    def _update_time(self) -> bool:
-        # read vars
-        minutes_changed: bool = False
-        seconds: int = self._vars["seconds"]
+    @staticmethod
+    def _divmod(minutes: int, subone: bool = False) -> Tuple[int, int]:
+        hours, minutes = divmod(minutes, 60)
+        if subone and minutes > 0:
+            minutes -= 1
+        return (hours, minutes)
+
+    def _update_time(self, seconds: int):
         drop_vars: _DropVars = self._vars["drop"]
         campaign_vars: _CampaignVars = self._vars["campaign"]
-        drop_minutes: int = drop_vars["minutes"]
-        campaign_minutes: int = campaign_vars["minutes"]
-        # handle seconds
-        if seconds <= 0:
-            if drop_minutes > 0:
-                drop_minutes -= 1
-                minutes_changed = True
-            if campaign_minutes > 0:
-                campaign_minutes -= 1
-                minutes_changed = True
-            if minutes_changed:
-                seconds = 60
-        if seconds > 0:
-            seconds -= 1
-        # display time
-        hours, minutes = divmod(drop_minutes, 60)
-        drop_vars["remaining"].set(f"{hours:>2}:{minutes:02}:{seconds:02} remaining")
-        hours, minutes = divmod(campaign_minutes, 60)
-        campaign_vars["remaining"].set(f"{hours:>2}:{minutes:02}:{seconds:02} remaining")
-        # store back
-        self._vars["seconds"] = seconds
-        if minutes_changed:
-            drop_vars["minutes"] = drop_minutes
-            campaign_vars["minutes"] = campaign_minutes
-        # if there's no time left, stop the loop
-        if campaign_minutes + drop_minutes + seconds > 0:
-            return True
-        return False
+        dseconds = seconds % 60
+        hours, minutes = self._divmod(drop_vars["minutes"], seconds < 60)
+        drop_vars["remaining"].set(f"{hours:>2}:{minutes:02}:{dseconds:02} remaining")
+        hours, minutes = self._divmod(campaign_vars["minutes"], seconds < 60)
+        campaign_vars["remaining"].set(f"{hours:>2}:{minutes:02}:{dseconds:02} remaining")
 
     async def _timer_loop(self):
-        run = self._update_time()
-        while run:
+        seconds = 60
+        self._update_time(seconds)
+        while seconds > 0:
             await asyncio.sleep(1)
-            run = self._update_time()
+            seconds -= 1
+            self._update_time(seconds)
         self._timer_task = None
 
     def start_timer(self):
         if self._timer_task is None:
-            self._vars["seconds"] = 1
-            self._timer_task = asyncio.create_task(self._timer_loop())
+            if self._vars["drop"]["minutes"] <= 0:
+                # if we're starting the timer at 0 drop minutes, all we need
+                # is a single instant time update setting seconds to 0
+                self._update_time(0)
+            else:
+                self._timer_task = asyncio.create_task(self._timer_loop())
 
     def stop_timer(self):
         if self._timer_task is not None:
             self._timer_task.cancel()
             self._timer_task = None
 
-    def restart_timer(self):
-        self.stop_timer()
-        self.start_timer()
-
-    def update(self, drop: TimedDrop):
+    def display(self, drop: TimedDrop, *, countdown: bool = True):
         # campaign update
         campaign = drop.campaign
         vars_campaign = self._vars["campaign"]
@@ -460,8 +443,15 @@ class CampaignProgress:
         vars_drop["progress"].set(drop.progress)
         vars_drop["percentage"].set(f"{drop.progress:6.1%}")
         vars_drop["minutes"] = drop.remaining_minutes
-        # reschedule our seconds update timer
-        self.restart_timer()
+        if countdown:
+            # reschedule our seconds update timer
+            self.stop_timer()
+            self.start_timer()
+        else:
+            # display the current remaining time at 0 seconds (after substracting the minute)
+            # this is because the watch loop will substract this minute
+            # right after the first watch payload is sent
+            self._update_time(0)
 
 
 class ConsoleOutput:
@@ -745,8 +735,13 @@ class GUIManager:
         """
         update = self._root.update
         while True:
-            update()
+            try:
+                update()
+            except tk.TclError:
+                # root has been destroyed
+                break
             await asyncio.sleep(0.05)
+        self._poll_task = None
 
     def unfocus(self, event):
         self._root.focus_set()
@@ -823,22 +818,61 @@ if __name__ == "__main__":
             game=game_obj,
             viewers=viewers,
         )
-    # Login form
-    gui.login.update("Login required", None)
-    # Game selector
-    # gui.games.set_games([
-    #     create_game(491115, "Paladins"),
-    #     create_game(460630, "Tom Clancy's Rainbow Six Siege"),
-    # ])
-    # game = gui.games.get_next_selection()
-    # game = gui.games.get_next_selection()
-    # game = gui.games.get_next_selection()
-    # Channel list
-    gui.channels.display(create_channel("PaladinsGame", 0, None, 0, 0))
-    channel = create_channel("Traitus", 1, None, 0, 0)
-    gui.channels.display(channel)
-    gui.channels.display(create_channel("Testus", 2, "Paladins", 42, 1234567))
-    gui.channels.set_watching(channel)
-    gui._root.update()
-    gui.channels.get_selection()
-    gui._root.mainloop()
+
+    def create_drop(
+        campaign_name: str,
+        rewards: str,
+        claimed_drops: int,
+        total_drops: int,
+        current_minutes: int,
+        total_minutes: int,
+    ):
+        cd = claimed_drops
+        td = total_drops
+        cm = current_minutes
+        tm = total_minutes
+        mock = SimpleNamespace(
+            id="0",
+            campaign=SimpleNamespace(
+                name=campaign_name,
+                timed_drops={},
+                claimed_drops=cd,
+                total_drops=td,
+                remaining_drops=td - cd,
+                progress=(cd * tm + cm) / (td * tm),
+                remaining_minutes=(td - cd) * tm - cm,
+            ),
+            rewards_text=lambda: rewards,
+            progress=cm/tm,
+            current_minutes=cm,
+            required_minutes=tm,
+            remaining_minutes=tm-cm,
+        )
+        mock.campaign.timed_drops["0"] = mock
+        return mock
+
+    async def main():
+        # Drop progress
+        gui.progress.display(create_drop("Wardrobe Cleaning", "Fancy Pants", 2, 7, 134, 240))
+        # Login form
+        gui.login.update("Login required", None)
+        # Game selector
+        gui.games.set_games([
+            create_game(491115, "Paladins"),
+            # create_game(460630, "Tom Clancy's Rainbow Six Siege"),
+        ])
+        gui.games.get_next_selection()
+        gui.games.get_next_selection()
+        gui.games.get_next_selection()
+        # Channel list
+        gui.channels.display(create_channel("PaladinsGame", 0, None, 0, 0))
+        channel = create_channel("Traitus", 1, None, 0, 0)
+        gui.channels.display(channel)
+        gui.channels.display(create_channel("Testus", 2, "Paladins", 42, 1234567))
+        gui.channels.set_watching(channel)
+        gui._root.update()
+        gui.channels.get_selection()
+    # asyncio stuff
+    loop = asyncio.get_event_loop()
+    loop.create_task(main())
+    loop.run_until_complete(gui._poll())
