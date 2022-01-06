@@ -282,50 +282,28 @@ class Twitch:
             await channel.send_watch()
             self._last_watch = time()
             self._drop_update = asyncio.Future()
+            use_active = False
             try:
-                updated = await asyncio.wait_for(self._drop_update, timeout=10)
+                handled = await asyncio.wait_for(self._drop_update, timeout=10)
             except asyncio.TimeoutError:
                 # there was no websocket update within 10s
-                self._drop_update = None
-                selected_game = self.gui.games.get_selection()
-                drop = None
-                for campaign in self.inventory:
-                    if campaign.active and campaign.game == selected_game:
-                        drop = campaign.get_active_drop()
-                        break
-                if drop is not None and drop.campaign.active:
-                    drop.bump_minutes()
-                    drop.display()
-                else:
-                    logger.error("Active drop search failed")
-            else:
-                self._drop_update = None
-                if not updated:
-                    # there was no websocket update, or the update was for an unrelated drop
+                handled = False
+                use_active = True
+            self._drop_update = None
+            if not handled:
+                # websocket update timed out, or the update was for an unrelated drop
+                if not use_active:
                     # we need to use GQL to get the current progress
                     context = await self.gql_request(GQL_OPERATIONS["CurrentDrop"])
                     drop_data: JsonType = context["data"]["currentUser"]["dropCurrentSession"]
                     drop_id = drop_data["dropID"]
                     drop = self.get_drop(drop_id)
                     if drop is None:
+                        use_active = True
                         logger.error(f"Missing drop: {drop_id}")
                     elif not drop.campaign.active:
-                        # Sometimes, even GQL fails to give us the correct drop.
-                        # In that case, we can use the locally cached inventory to try
-                        # and put together the drop that we're actually mining right now.
-                        selected_game = self.gui.games.get_selection()
-                        drop = None
-                        for campaign in self.inventory:
-                            if campaign.active and campaign.game == selected_game:
-                                drop = campaign.get_active_drop()
-                                break
-                        if drop is not None and drop.campaign.active:
-                            drop.bump_minutes()
-                            drop.display()
-                        else:
-                            logger.error("Active drop search failed")
+                        use_active = True
                     else:
-                        # drop is not None and campaign.active
                         drop.update_minutes(drop_data["currentMinutesWatched"])
                         drop.display()
                         with open("log.txt", 'a') as file:
@@ -333,12 +311,32 @@ class Twitch:
                                 time(),
                                 drop_id,
                                 "GQL",
-                                drop_data["currentMinutesWatched"],
                                 drop.current_minutes,
                                 drop.is_claimed,
                                 sep='\t',
                                 file=file,
                             )
+                if use_active:
+                    # Sometimes, even GQL fails to give us the correct drop.
+                    # In that case, we can use the locally cached inventory to try
+                    # and put together the drop that we're actually mining right now
+                    selected_game = self.gui.games.get_selection()
+                    drop = self.get_active_drop(selected_game)
+                    if drop is not None and drop.campaign.active:
+                        drop.bump_minutes()
+                        drop.display()
+                        with open("log.txt", 'a') as file:
+                            print(
+                                time(),
+                                drop_id,
+                                "ACT",
+                                drop.current_minutes,
+                                drop.is_claimed,
+                                sep='\t',
+                                file=file,
+                            )
+                    else:
+                        logger.error("Active drop search failed")
             if i == 0:
                 # ensure every 30 minutes that we don't have unclaimed points bonus
                 await channel.claim_bonus()
@@ -443,7 +441,6 @@ class Twitch:
                     time(),
                     drop_id,
                     "WS",
-                    message["data"]["current_progress_min"],
                     drop.current_minutes,
                     drop.is_claimed,
                     sep='\t',
@@ -691,6 +688,19 @@ class Twitch:
             drop = campaign.get_drop(drop_id)
             if drop is not None:
                 return drop
+        return None
+
+    def get_active_drop(self, game: Game) -> Optional[TimedDrop]:
+        drops = sorted(
+            (
+                campaign.get_active_drop()
+                for campaign in self.inventory
+                if campaign.active and campaign.game == game
+            ),
+            key=lambda d: d.remaining_minutes,
+        )
+        if drops:
+            return drops[0]
         return None
 
     async def get_live_streams(self, game: Game, tag_ids: List[str]) -> List[Channel]:
