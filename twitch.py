@@ -188,7 +188,7 @@ class Twitch:
                 await self.websocket.start()
                 self.gui.games.set_games(games)
                 selected_game = self.gui.games.get_selection()
-                self.change_state(State.CHANNEL_FETCH)
+                self.change_state(State.CHANNEL_CLEANUP)
             elif self._state is State.CHANNEL_FETCH:
                 if selected_game is None:
                     self.change_state(State.GAME_SELECT)

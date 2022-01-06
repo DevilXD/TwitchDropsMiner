@@ -281,6 +281,7 @@ class GameSelector:
             self._selection = None
         else:
             self._selection = self._list.get(current[0])
+        self._manager._twitch.change_state(State.GAME_SELECT)
 
     def get_selection(self) -> Game:
         if self._selection is None:
