@@ -356,6 +356,15 @@ class Twitch:
             self._watching_task = None
         self._watching_channel = None
 
+    def restart_watching(self, channel: Optional[Channel] = None):
+        # this forcibly re-sends the watching payload to the specified or currently watched channel
+        if channel is None:
+            channel = self._watching_channel
+        if channel is not None:
+            self.stop_watching()
+            self._last_watch = time() - 60
+            self.watch(channel)
+
     async def process_stream_state(self, channel_id: int, message: JsonType):
         msg_type = message["type"]
         channel = self.channels.get(channel_id)
@@ -408,18 +417,21 @@ class Twitch:
                 )
             else:
                 logger.error(f"Drop claim failed! Drop ID: {drop_id}")
-            if campaign.remaining_drops == 0:
+            if not mined or campaign.remaining_drops == 0:
                 self.change_state(State.INVENTORY_FETCH)
                 return
-            # About 6s after claiming the drop, next drop can be started
-            # by resending the watch payload
-            await asyncio.sleep(6)
-            # Force-restart the watch task to send the watch payload right away
-            channel = self._watching_channel
-            if channel is not None:
-                self.stop_watching()
-                self._last_watch = time() - 60
-                self.watch(channel)
+            # About 4-6s after claiming the drop, next drop can be started
+            # by re-sending the watch payload
+            await asyncio.sleep(4)
+            for attempt in range(6):
+                context = await self.gql_request(GQL_OPERATIONS["CurrentDrop"])
+                drop_data: JsonType = context["data"]["currentUser"]["dropCurrentSession"]
+                with open("log.txt", 'a') as file:
+                    print(format(time(), ".6f"), attempt, drop_data["dropID"], file=file)
+                if drop_data["dropID"] != drop.id:
+                    self.restart_watching()
+                    break
+                await asyncio.sleep(1)
             return
         assert msg_type == "drop-progress"
         if self._drop_update is None:
