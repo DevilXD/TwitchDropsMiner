@@ -458,7 +458,7 @@ class Twitch:
         # {
         #     "type": "points-earned",
         #     "data": {
-        #         "timestamp": "YYYY-MM-DDTHH:MM:SS.123456789Z",
+        #         "timestamp": "YYYY-MM-DDTHH:MM:SS.UUUUUUUUUZ",
         #         "channel_id": "123456789",
         #         "point_gain": {
         #             "user_id": "12345678",
@@ -478,20 +478,20 @@ class Twitch:
         # {
         #     "type": "claim-available",
         #     "data": {
-        #         "timestamp":"2021-12-23T21:41:35.784041064Z",
+        #         "timestamp":"YYYY-MM-DDTHH:MM:SS.UUUUUUUUUZ",
         #         "claim": {
-        #             "id": "4ae6fefd-3658-40ae-ad3d-92254c576a91",
-        #             "user_id": "94275183",
-        #             "channel_id": "218893986",
+        #             "id": "4ae6fefd-1234-40ae-ad3d-92254c576a91",
+        #             "user_id": "12345678",
+        #             "channel_id": "123456789",
         #             "point_gain": {
-        #                 "user_id": "94275183",
-        #                 "channel_id": "218893986",
+        #                 "user_id": "12345678",
+        #                 "channel_id": "123456789",
         #                 "total_points": 50,
         #                 "baseline_points": 50,
         #                 "reason_code": "CLAIM",
         #                 "multipliers": []
         #             },
-        #             "created_at": "2021-12-23T21:41:31Z"
+        #             "created_at": "YYYY-MM-DDTHH:MM:SSZ"
         #         }
         #     }
         # }
