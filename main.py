@@ -6,12 +6,14 @@ from typing import Optional
 
 from twitch import Twitch
 from version import __version__
+from constants import FORMATTER, LOG_PATH
 
 
 class ParsedArgs(argparse.Namespace):
     _verbose: int
     _debug_ws: bool
     _debug_gql: bool
+    log: bool
     game: Optional[str]
 
     @property
@@ -55,14 +57,19 @@ parser.add_argument("-v", dest="_verbose", action="count", default=0)
 parser.add_argument("--debug-ws", dest="_debug_ws", action="store_true")
 parser.add_argument("--debug-gql", dest="_debug_gql", action="store_true")
 parser.add_argument("-g", "--game", default=None)
+parser.add_argument("-l", "--log", action="store_true")
 options: ParsedArgs = parser.parse_args(namespace=ParsedArgs())
 # handle logging stuff
 if options.logging_level > logging.DEBUG:
     # redirect the root logger into a NullHandler, effectively ignoring all logging calls
-    # that aren't ours. This always runs, unless the main logging level is DEBUG or below.
+    # that aren't ours. This always runs, unless the main logging level is DEBUG or lower.
     logging.getLogger().addHandler(logging.NullHandler())
 logger = logging.getLogger("TwitchDrops")
 logger.setLevel(options.logging_level)
+if options.log:
+    handler = logging.FileHandler(LOG_PATH)
+    handler.setFormatter(FORMATTER)
+    logger.addHandler(handler)
 logging.getLogger("TwitchDrops.gql").setLevel(options.debug_gql)
 logging.getLogger("TwitchDrops.websocket").setLevel(options.debug_ws)
 # client run

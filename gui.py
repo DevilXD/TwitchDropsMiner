@@ -14,7 +14,7 @@ from typing import (
 )
 
 from version import __version__
-from constants import WS_TOPICS_LIMIT, MAX_WEBSOCKETS, State
+from constants import FORMATTER, WS_TOPICS_LIMIT, MAX_WEBSOCKETS, State
 
 if TYPE_CHECKING:
     from twitch import Twitch
@@ -687,9 +687,7 @@ class GUIManager:
         root.minsize(width=0, height=root.winfo_reqheight())
         # register logging handler
         handler = TKOutputHandler(self)
-        handler.setFormatter(
-            logging.Formatter("{asctime}: {levelname}: {message}", style='{', datefmt="%H:%M:%S")
-        )
+        handler.setFormatter(FORMATTER)
         logging.getLogger("TwitchDrops").addHandler(handler)
 
     # https://stackoverflow.com/questions/56329342/tkinter-treeview-background-tag-not-working

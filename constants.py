@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from copy import copy
 from enum import Enum, auto
 from datetime import timedelta
@@ -23,8 +24,9 @@ USER_AGENT = (
     "Chrome/96.0.4664.45 Safari/537.36"
 )
 # Paths
-SETTINGS_PATH = "settings.json"
+LOG_PATH = "log.txt"
 COOKIES_PATH = "cookies.jar"
+SETTINGS_PATH = "settings.json"
 # Intervals and Delays
 PING_INTERVAL = timedelta(minutes=3)
 PING_TIMEOUT = timedelta(seconds=10)
@@ -32,6 +34,11 @@ ONLINE_DELAY = timedelta(seconds=60)
 WATCH_INTERVAL = timedelta(seconds=58.7)
 # Tags
 DROPS_ENABLED_TAG = "c2542d6d-cd10-4532-919b-3d19f30a768b"
+FORMATTER = logging.Formatter(
+    "{asctime}.{msecs:<03}:\t{levelname:>7}:\t{message}",
+    style='{',
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
 
 class State(Enum):
