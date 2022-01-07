@@ -551,7 +551,7 @@ class ChannelList:
         cid: str,
         name: str,
         *,
-        anchor: str = "center",
+        anchor: tk._Anchor = "center",
         width: Optional[int] = None,
         width_template: Optional[str] = None,
     ):
