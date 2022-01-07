@@ -102,6 +102,12 @@ class TimedDrop(BaseDrop):
     def progress(self) -> float:
         return self.current_minutes / self.required_minutes
 
+    async def claim(self) -> bool:
+        result = await super().claim()
+        if result:
+            self.current_minutes = self.required_minutes
+        return result
+
     def update_claim(self, claim_id: str):
         self.claim_id = claim_id
 
