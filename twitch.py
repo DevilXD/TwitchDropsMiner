@@ -420,10 +420,11 @@ class Twitch:
             if not mined or campaign.remaining_drops == 0:
                 self.change_state(State.INVENTORY_FETCH)
                 return
-            # About 4-6s after claiming the drop, next drop can be started
-            # by re-sending the watch payload
+            # About 4-20s after claiming the drop, next drop can be started
+            # by re-sending the watch payload. We can test for it by fetching the current drop
+            # via GQL, and then comparing drop IDs.
             await asyncio.sleep(4)
-            for attempt in range(6):
+            for attempt in range(8):
                 context = await self.gql_request(GQL_OPERATIONS["CurrentDrop"])
                 drop_data: JsonType = context["data"]["currentUser"]["dropCurrentSession"]
                 with open("log.txt", 'a') as file:
@@ -431,7 +432,7 @@ class Twitch:
                 if drop_data["dropID"] != drop.id:
                     self.restart_watching()
                     break
-                await asyncio.sleep(1)
+                await asyncio.sleep(2)
             return
         assert msg_type == "drop-progress"
         if self._drop_update is None:
