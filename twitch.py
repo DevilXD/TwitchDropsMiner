@@ -43,6 +43,18 @@ logger = logging.getLogger("TwitchDrops")
 gql_logger = logging.getLogger("TwitchDrops.gql")
 
 
+def debug_log(file, category: str, drop: TimedDrop):
+    print(
+        format(time(), ".6f"),
+        drop.id,
+        category,
+        drop.current_minutes,
+        drop.is_claimed,
+        sep='\t',
+        file=file,
+    )
+
+
 class Twitch:
     def __init__(self, options: ParsedArgs):
         self._options = options
@@ -53,7 +65,9 @@ class Twitch:
         if os.path.isfile(COOKIES_PATH):
             cookie_jar.load(COOKIES_PATH)
         self._session = aiohttp.ClientSession(
-            cookie_jar=cookie_jar, headers={"User-Agent": USER_AGENT}
+            cookie_jar=cookie_jar,
+            headers={"User-Agent": USER_AGENT},
+            timeout=aiohttp.ClientTimeout(connect=5, total=10),
         )
         self._access_token: Optional[str] = None
         self._user_id: Optional[int] = None
@@ -304,34 +318,18 @@ class Twitch:
                         drop.update_minutes(drop_data["currentMinutesWatched"])
                         drop.display()
                         with open("log.txt", 'a') as file:
-                            print(
-                                time(),
-                                drop_id,
-                                "GQL",
-                                drop.current_minutes,
-                                drop.is_claimed,
-                                sep='\t',
-                                file=file,
-                            )
+                            debug_log(file, "GQL", drop)
                 if use_active:
                     # Sometimes, even GQL fails to give us the correct drop.
                     # In that case, we can use the locally cached inventory to try
                     # and put together the drop that we're actually mining right now
                     selected_game = self.gui.games.get_selection()
                     drop = self.get_active_drop(selected_game)
-                    if drop is not None and drop.campaign.active:
+                    if drop is not None:
                         drop.bump_minutes()
                         drop.display()
                         with open("log.txt", 'a') as file:
-                            print(
-                                time(),
-                                drop_id,
-                                "ACT",
-                                drop.current_minutes,
-                                drop.is_claimed,
-                                sep='\t',
-                                file=file,
-                            )
+                            debug_log(file, "ACT", drop)
                     else:
                         logger.error("Active drop search failed")
             if i == 0:
@@ -434,15 +432,7 @@ class Twitch:
             self._drop_update.set_result(True)
             self._drop_update = None  # TODO: remove this together with debug code below
             with open("log.txt", 'a') as file:
-                print(
-                    time(),
-                    drop_id,
-                    "WS",
-                    drop.current_minutes,
-                    drop.is_claimed,
-                    sep='\t',
-                    file=file,
-                )
+                debug_log(file, "WS", drop)
         else:
             # Sometimes, the drop update we receive doesn't actually match what we're mining.
             # This is a Twitch bug workaround: signal the watch loop to use GQL
