@@ -191,12 +191,9 @@ class Twitch:
                 self.gui.games.set_games(games)
                 selected_game = self.gui.games.get_selection()
                 # pre-display the active drop without a countdown
-                for campaign in self.inventory:
-                    if campaign.active and campaign.game == selected_game:
-                        active_drop = campaign.get_active_drop()
-                        if active_drop is not None:
-                            active_drop.display(countdown=False)
-                            break
+                active_drop = self.get_active_drop(selected_game)
+                if active_drop is not None:
+                    active_drop.display(countdown=False)
                 self.change_state(State.CHANNEL_CLEANUP)
             elif self._state is State.CHANNEL_FETCH:
                 if selected_game is None:
@@ -693,9 +690,11 @@ class Twitch:
     def get_active_drop(self, game: Game) -> Optional[TimedDrop]:
         drops = sorted(
             (
-                campaign.get_active_drop()
+                drop
                 for campaign in self.inventory
                 if campaign.active and campaign.game == game
+                for drop in campaign.timed_drops.values()
+                if drop.can_earn
             ),
             key=lambda d: d.remaining_minutes,
         )

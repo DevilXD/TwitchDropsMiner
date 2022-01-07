@@ -155,12 +155,3 @@ class DropsCampaign:
 
     def get_drop(self, drop_id: str) -> Optional[TimedDrop]:
         return self.timed_drops.get(drop_id)
-
-    def get_active_drop(self) -> TimedDrop:
-        if not self.active:
-            raise RuntimeError("You can't call this for an unactive campaign")
-        drops = sorted(
-            (drop for drop in self.timed_drops.values() if drop.can_earn),
-            key=lambda d: d.remaining_minutes,
-        )
-        return drops[0]
