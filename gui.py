@@ -389,9 +389,9 @@ class CampaignProgress:
         self._update_time(0)
 
     @staticmethod
-    def _divmod(minutes: int, subone: bool = False) -> Tuple[int, int]:
+    def _divmod(minutes: int, seconds: int) -> Tuple[int, int]:
         hours, minutes = divmod(minutes, 60)
-        if subone and minutes > 0:
+        if seconds < 60 and minutes > 0:
             minutes -= 1
         return (hours, minutes)
 
@@ -399,9 +399,9 @@ class CampaignProgress:
         drop_vars: _DropVars = self._vars["drop"]
         campaign_vars: _CampaignVars = self._vars["campaign"]
         dseconds = seconds % 60
-        hours, minutes = self._divmod(drop_vars["minutes"], seconds < 60)
+        hours, minutes = self._divmod(drop_vars["minutes"], seconds)
         drop_vars["remaining"].set(f"{hours:>2}:{minutes:02}:{dseconds:02} remaining")
-        hours, minutes = self._divmod(campaign_vars["minutes"], seconds < 60)
+        hours, minutes = self._divmod(campaign_vars["minutes"], seconds)
         campaign_vars["remaining"].set(f"{hours:>2}:{minutes:02}:{dseconds:02} remaining")
 
     async def _timer_loop(self):
