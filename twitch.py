@@ -43,18 +43,6 @@ logger = logging.getLogger("TwitchDrops")
 gql_logger = logging.getLogger("TwitchDrops.gql")
 
 
-def debug_log(file, category: str, drop: TimedDrop):
-    print(
-        format(time(), ".6f"),
-        drop.id,
-        category,
-        drop.current_minutes,
-        drop.is_claimed,
-        sep='\t',
-        file=file,
-    )
-
-
 class Twitch:
     def __init__(self, options: ParsedArgs):
         self._options = options
@@ -317,8 +305,6 @@ class Twitch:
                     else:
                         drop.update_minutes(drop_data["currentMinutesWatched"])
                         drop.display()
-                        with open("log.txt", 'a') as file:
-                            debug_log(file, "GQL", drop)
                 if use_active:
                     # Sometimes, even GQL fails to give us the correct drop.
                     # In that case, we can use the locally cached inventory to try
@@ -328,8 +314,6 @@ class Twitch:
                     if drop is not None:
                         drop.bump_minutes()
                         drop.display()
-                        with open("log.txt", 'a') as file:
-                            debug_log(file, "ACT", drop)
                     else:
                         logger.error("Active drop search failed")
             if i == 0:
@@ -427,8 +411,6 @@ class Twitch:
             for attempt in range(8):
                 context = await self.gql_request(GQL_OPERATIONS["CurrentDrop"])
                 drop_data: JsonType = context["data"]["currentUser"]["dropCurrentSession"]
-                with open("log.txt", 'a') as file:
-                    print(format(time(), ".6f"), drop_data["dropID"], attempt+1, file=file)
                 if drop_data["dropID"] != drop.id:
                     self.restart_watching()
                     break
@@ -442,14 +424,12 @@ class Twitch:
         elif drop is not None and drop.campaign.active:
             drop.update_minutes(message["data"]["current_progress_min"])
             drop.display()
+            # Let the watch loop know we've handled it here
             self._drop_update.set_result(True)
-            self._drop_update = None  # TODO: remove this together with debug code below
-            with open("log.txt", 'a') as file:
-                debug_log(file, "WS", drop)
         else:
             # Sometimes, the drop update we receive doesn't actually match what we're mining.
             # This is a Twitch bug workaround: signal the watch loop to use GQL
-            # to get the current drop progress.
+            # to get the current drop progress instead.
             self._drop_update.set_result(False)
         self._drop_update = None
 
@@ -673,19 +653,6 @@ class Twitch:
         self.inventory = [
             DropsCampaign(self, data) for data in inventory["dropCampaignsInProgress"]
         ]
-        context = await self.gql_request(GQL_OPERATIONS["CurrentDrop"])
-        drop_data = context["data"]["currentUser"]["dropCurrentSession"]
-        with open("log.txt", 'a') as file:
-            if drop_data is None:
-                print(format(time(), ".6f"), None, sep='\t', file=file, flush=True)
-            else:
-                print(
-                    format(time(), ".6f"),
-                    drop_data.get("currentMinutesWatched"),
-                    sep='\t',
-                    file=file,
-                    flush=True,
-                )
 
     def get_drop(self, drop_id: str) -> Optional[TimedDrop]:
         for campaign in self.inventory:
