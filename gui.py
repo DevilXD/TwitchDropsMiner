@@ -252,7 +252,7 @@ class GameSelector:
 
     def set_games(self, games: Iterable[Game]):
         self._games.clear()
-        self._games.update((str(g), g) for g in sorted(games, key=lambda g: g.name))
+        self._games.update((str(g), g) for g in games)
         self._list.delete(0, "end")
         self._list.insert("end", *self._games.keys())
         self._list.config(width=0)  # autoadjust listbox width

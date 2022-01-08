@@ -8,7 +8,7 @@ from yarl import URL
 from time import time
 from itertools import chain
 from functools import partial
-from typing import Any, Callable, Iterable, Optional, Union, List, Dict, Set, cast, TYPE_CHECKING
+from typing import Any, Callable, Iterable, Optional, Union, List, Dict, cast, TYPE_CHECKING
 
 try:
     import aiohttp
@@ -176,7 +176,7 @@ class Twitch:
             WebsocketTopic("User", "Drops", self._user_id, self.process_drops),
             WebsocketTopic("User", "CommunityPoints", self._user_id, self.process_points),
         ])
-        games: Set[Game] = set()
+        games: List[Game] = []
         selected_game: Optional[Game] = None
         self.change_state(State.INVENTORY_FETCH)
         while True:
@@ -189,8 +189,8 @@ class Twitch:
                         # we have no use in processing upcoming campaigns here
                         continue
                     for drop in campaign.timed_drops.values():
-                        if drop.can_earn:
-                            games.add(campaign.game)
+                        if drop.can_earn and (game := campaign.game) not in games:
+                            games.append(game)
                         if drop.can_claim:
                             await drop.claim()
                 self.change_state(State.GAME_SELECT)
