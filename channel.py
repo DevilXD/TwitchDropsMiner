@@ -56,7 +56,7 @@ class Channel:
         The instance is returned after initialization completes.
         """
         self = super().__new__(cls)
-        await self.__init__(*args, **kwargs)
+        await self.__init__(*args, **kwargs)  # type: ignore
         return self
 
     async def __init__(self, twitch: Twitch, channel_name: str):  # type: ignore
