@@ -217,11 +217,11 @@ class Twitch:
                     live_streams: List[Channel] = await self.get_live_streams(
                         selected_game, [DROPS_ENABLED_TAG]
                     )
-                    # filter out ones we already have
-                    live_streams = [ch for ch in live_streams if ch.id not in self.channels]
+                    # add them, filtering out ones we already have
                     for channel in live_streams:
-                        self.channels[channel.id] = channel
-                        channel.display()
+                        if channel.id not in self.channels:
+                            self.channels[channel.id] = channel
+                            channel.display()
                     # load points
                     # asyncio.gather(*(channel.claim_bonus() for channel in live_streams))
                     # Sub to these channel updates
