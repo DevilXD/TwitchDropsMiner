@@ -250,10 +250,6 @@ class GameSelector:
         self._games: OrderedDict[str, Game] = OrderedDict()
         self._list.bind("<<ListboxSelect>>", self._on_select)
 
-    @property
-    def selected(self) -> Optional[str]:
-        return self._selection
-
     def set_games(self, games: Iterable[Game]):
         self._games.clear()
         self._games.update((str(g), g) for g in sorted(games, key=lambda g: g.name))
@@ -280,10 +276,12 @@ class GameSelector:
         current = self._list.curselection()
         if not current:
             # can happen when the user clicks on an empty list
-            self._selection = None
+            new_selection = None
         else:
-            self._selection = self._list.get(current[0])
-        self._manager._twitch.change_state(State.GAME_SELECT)
+            new_selection = self._list.get(current[0])
+        if new_selection != self._selection:
+            self._selection = new_selection
+            self._manager._twitch.change_state(State.GAME_SELECT)
 
     def get_selection(self) -> Game:
         if self._selection is None:
