@@ -390,9 +390,9 @@ class CampaignProgress:
 
     @staticmethod
     def _divmod(minutes: int, seconds: int) -> Tuple[int, int]:
-        hours, minutes = divmod(minutes, 60)
         if seconds < 60 and minutes > 0:
             minutes -= 1
+        hours, minutes = divmod(minutes, 60)
         return (hours, minutes)
 
     def _update_time(self, seconds: int):
