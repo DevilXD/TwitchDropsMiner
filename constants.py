@@ -31,7 +31,7 @@ SETTINGS_PATH = "settings.json"
 PING_INTERVAL = timedelta(minutes=3)
 PING_TIMEOUT = timedelta(seconds=10)
 ONLINE_DELAY = timedelta(seconds=60)
-WATCH_INTERVAL = timedelta(seconds=58.7)
+WATCH_INTERVAL = timedelta(seconds=58.8)
 # Tags
 DROPS_ENABLED_TAG = "c2542d6d-cd10-4532-919b-3d19f30a768b"
 FORMATTER = logging.Formatter(
