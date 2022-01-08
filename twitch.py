@@ -428,7 +428,7 @@ class Twitch:
                 context = await self.gql_request(GQL_OPERATIONS["CurrentDrop"])
                 drop_data: JsonType = context["data"]["currentUser"]["dropCurrentSession"]
                 with open("log.txt", 'a') as file:
-                    print(format(time(), ".6f"), attempt+1, drop_data["dropID"], file=file)
+                    print(format(time(), ".6f"), drop_data["dropID"], attempt+1, file=file)
                 if drop_data["dropID"] != drop.id:
                     self.restart_watching()
                     break
@@ -677,10 +677,14 @@ class Twitch:
         drop_data = context["data"]["currentUser"]["dropCurrentSession"]
         with open("log.txt", 'a') as file:
             if drop_data is None:
-                print(time(), None, sep='\t', file=file, flush=True)
+                print(format(time(), ".6f"), None, sep='\t', file=file, flush=True)
             else:
                 print(
-                    time(), drop_data.get("currentMinutesWatched"), sep='\t', file=file, flush=True
+                    format(time(), ".6f"),
+                    drop_data.get("currentMinutesWatched"),
+                    sep='\t',
+                    file=file,
+                    flush=True,
                 )
 
     def get_drop(self, drop_id: str) -> Optional[TimedDrop]:
