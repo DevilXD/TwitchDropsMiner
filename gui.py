@@ -416,9 +416,10 @@ class CampaignProgress:
     def start_timer(self):
         if self._timer_task is None:
             if self._vars["drop"]["minutes"] <= 0:
-                # if we're starting the timer at 0 drop minutes, all we need
-                # is a single instant time update setting seconds to 0
-                self._update_time(0)
+                # if we're starting the timer at 0 drop minutes,
+                # all we need is a single instant time update setting seconds to 60,
+                # to avoid substracting a minute from campaign minutes
+                self._update_time(60)
             else:
                 self._timer_task = asyncio.create_task(self._timer_loop())
 
@@ -850,8 +851,6 @@ if __name__ == "__main__":
         return mock
 
     async def main():
-        # Drop progress
-        gui.progress.display(create_drop("Wardrobe Cleaning", "Fancy Pants", 2, 7, 134, 240))
         # Login form
         gui.login.update("Login required", None)
         # Game selector
@@ -870,6 +869,24 @@ if __name__ == "__main__":
         gui.channels.set_watching(channel)
         gui._root.update()
         gui.channels.get_selection()
+        # Drop progress
+        drop = create_drop("Wardrobe Cleaning", "Fancy Pants", 2, 7, 239, 240)
+        gui.progress.display(drop)
+        await asyncio.sleep(63)
+        drop.current_minutes = 240
+        drop.remaining_minutes = 0
+        drop.progress = 1.0
+        campaign = drop.campaign
+        campaign.remaining_minutes -= 1
+        campaign.progress = 3/7
+        campaign.claimed_drops = 3
+        campaign.remaining_drops = 4
+        gui.progress.display(drop)
+        await asyncio.sleep(10)
+        drop.current_minutes = 0
+        drop.remaining_minutes = 240
+        drop.progress = 0.0
+        gui.progress.display(drop)
     # asyncio stuff
     loop = asyncio.get_event_loop()
     loop.create_task(main())
