@@ -53,7 +53,7 @@ class BaseDrop:
 
     @property
     def can_claim(self) -> bool:
-        return self.claim_id is not None and not self.is_claimed
+        return self.claim_id is not None
 
     def rewards_text(self, delim: str = ", ") -> str:
         return delim.join(self.rewards)
