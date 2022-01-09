@@ -300,7 +300,7 @@ class Twitch:
                     if drop is None:
                         use_active = True
                         logger.error(f"Missing drop: {drop_id}")
-                    elif not drop.campaign.active:
+                    elif not drop.can_earn:
                         use_active = True
                     else:
                         drop.update_minutes(drop_data["currentMinutesWatched"])
@@ -421,7 +421,7 @@ class Twitch:
             # we aren't actually waiting for a progress update right now, so we can just
             # ignore the event this time
             return
-        elif drop is not None and drop.campaign.active:
+        elif drop is not None and drop.can_earn:
             drop.update_minutes(message["data"]["current_progress_min"])
             drop.display()
             # Let the watch loop know we've handled it here

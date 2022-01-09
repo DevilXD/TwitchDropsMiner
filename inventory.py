@@ -49,6 +49,7 @@ class BaseDrop:
             self._preconditions  # preconditions are met
             and self.campaign.active  # campaign is active
             and not self.is_claimed  # drop isn't already claimed
+            and self.starts_at <= datetime.utcnow() < self.ends_at  # it's within the timeframe
         )
 
     @property
