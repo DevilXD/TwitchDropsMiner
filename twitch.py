@@ -183,10 +183,10 @@ class Twitch:
                             await drop.claim()
                 self.change_state(State.GAME_SELECT)
             elif self._state is State.GAME_SELECT:
-                # 'games' has all games we want to farm drops for
+                # 'games' has all games we want to mine drops for
                 # if it's empty, there's no point in continuing
                 if not games:
-                    self.gui.print("No active campaigns to farm drops for.")
+                    self.gui.print("No active campaigns to mine drops for.")
                     return
                 # only start the websocket after we confirm there are drops to mine
                 await self.websocket.start()

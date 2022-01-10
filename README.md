@@ -1,6 +1,6 @@
 # Twitch Drops Miner
 
-This application allows you to AFK farm timed Twitch drops, without having to worry about switching channels when the one you were watching goes offline, or even receiving the stream data itself. This helps both you and Twitch save on bandwidth and hassle. Everybody wins!
+This application allows you to AFK mine timed Twitch drops, without having to worry about switching channels when the one you were watching goes offline, or even receiving the stream data itself. This helps both you and Twitch save on bandwidth and hassle. Everybody wins!
 
 **Features:**
 
