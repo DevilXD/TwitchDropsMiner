@@ -132,6 +132,10 @@ class DropsCampaign:
         self.starts_at: datetime = datetime.strptime(data["startAt"], "%Y-%m-%dT%H:%M:%SZ")
         self.ends_at: datetime = datetime.strptime(data["endAt"], "%Y-%m-%dT%H:%M:%SZ")
         self.status: str = data["status"]
+        allowed = data["allow"]
+        self.allowed_channels: List[str] = []
+        if allowed["channels"] is not None:
+            self.allowed_channels.extend(ch["name"] for ch in allowed["channels"])
         self.timed_drops: Dict[str, TimedDrop] = {
             d["id"]: TimedDrop(self, d) for d in data["timeBasedDrops"]
         }
