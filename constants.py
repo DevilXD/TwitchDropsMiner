@@ -78,41 +78,55 @@ GQL_OPERATIONS: Dict[str, GQLOperation] = {
         "WithIsStreamLiveQuery",
         "04e46329a6786ff3a81c01c50bfa5d725902507a0deb83b0edbf7abe7a3716ea",
     ),
-    "GetStreamInfo": GQLOperation(  # used
+    # returns stream information for a particular channel
+    "GetStreamInfo": GQLOperation(
         "VideoPlayerStreamInfoOverlayChannel",
         "a5f2e34d626a9f4f5c0204f910bab2194948a9502089be558bb6e779a9e1b3d2",
     ),
-    "ClaimCommunityPoints": GQLOperation(  # used
+    # can be used to claim channel points
+    "ClaimCommunityPoints": GQLOperation(
         "ClaimCommunityPoints",
         "46aaeebe02c99afdf4fc97c7c0cba964124bf6b0af229395f1f6d1feed05b3d0",
     ),
-    "ClaimDrop": GQLOperation(  # used
+    # can be used to claim a drop
+    "ClaimDrop": GQLOperation(
         "DropsPage_ClaimDropRewards",
         "2f884fa187b8fadb2a49db0adc033e636f7b6aaee6e76de1e2bba9a7baf0daf6",
     ),
-    "ChannelPointsContext": GQLOperation(  # used
+    # returns current state of points (balance, claim available) for a particular channel
+    "ChannelPointsContext": GQLOperation(
         "ChannelPointsContext",
         "9988086babc615a918a1e9a722ff41d98847acac822645209ac7379eecb27152",
     ),
-    "Inventory": GQLOperation(  # used
+    # returns all in-progress campaigns
+    "Inventory": GQLOperation(
         "Inventory",
         "e0765ebaa8e8eeb4043cc6dfeab3eac7f682ef5f724b81367e6e55c7aef2be4c",
     ),
+    # returns current state of drops (current drop progress)
     "CurrentDrop": GQLOperation(
         "DropCurrentSessionContext",
         "2e4b3630b91552eb05b76a94b6850eb25fe42263b7cf6d06bee6d156dd247c1c",
     ),
-    "ViewerDropsDashboard": GQLOperation(
+    # returns all available campaigns
+    "Campaigns": GQLOperation(
         "ViewerDropsDashboard",
-        "c4d61d7b71d03b324914d3cf8ca0bc23fe25dacf54120cc954321b9704a3f4e2",
+        "e8b98b52bbd7ccd37d0b671ad0d47be5238caa5bea637d2a65776175b4a23a64",
     ),
-    "DropCampaignDetails": GQLOperation(
+    # returns extended information about a particular campaign
+    "CampaignDetails": GQLOperation(
         "DropCampaignDetails",
-        "14b5e8a50777165cfc3971e1d93b4758613fe1c817d5542c398dce70b7a45c05",
+        "f6396f5ffdde867a8f6f6da18286e4baf02e5b98d14689a69b5af320a4c7b7b8",
+        variables={
+            "channelLogin": ...,  # user ID
+            "dropID": ...,  # campaign ID
+        },
     ),
-    "AvailableDrops": GQLOperation(
+    # returns drops available for a particular channel
+    "ChannelDrops": GQLOperation(
         "DropsHighlightService_AvailableDrops",
         "b19ee96a0e79e3f8281c4108bc4c7b3f232266db6f96fd04a339ab393673a075",
+        variables={"channelID": ...},
     ),
     "PersonalSections": GQLOperation(
         "PersonalSections",
@@ -127,12 +141,13 @@ GQL_OPERATIONS: Dict[str, GQLOperation] = {
             "creatorAnniversariesExperimentEnabled": False,
         },
     ),
+    # returns live channels for a particular game
     "GameDirectory": GQLOperation(
         "DirectoryPage_Game",
         "d5c5df7ab9ae65c3ea0f225738c08a36a4a76e4c6c31db7f8c4b8dc064227f9e",
         variables={
             "limit": 40,
-            "name": "paladins",
+            "name": "<game_name>",
             "options": {
                 "includeRestricted": ["SUB_ONLY_LIVE"],
                 "recommendationsContext": {"platform": "web"},
@@ -140,7 +155,7 @@ GQL_OPERATIONS: Dict[str, GQLOperation] = {
                 "tags": [],
                 "requestID": "JIRA-VXP-2397",
             },
-            "sortTypeIsRecency": False
+            "sortTypeIsRecency": False,
         },
     ),
 }
