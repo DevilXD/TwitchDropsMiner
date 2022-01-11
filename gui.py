@@ -596,6 +596,8 @@ class ChannelList:
         iids = self._table.get_children()
         if iids:  # table needs to have at least one item
             for column in columns:
+                if column in self._const_width:
+                    continue
                 width = max(self._measure(self._table.set(i, column)) for i in iids)
                 self._table.column(column, minwidth=width, width=width)
         self._redraw()
