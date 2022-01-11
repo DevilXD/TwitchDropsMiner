@@ -14,8 +14,8 @@ from typing import (
 
 try:
     import aiohttp
-except ImportError:
-    raise ImportError("You have to run 'python -m pip install aiohttp' first")
+except ModuleNotFoundError as exc:
+    raise ImportError("You have to run 'pip install aiohttp' first") from exc
 
 from channel import Channel
 from gui import GUIManager, LoginData

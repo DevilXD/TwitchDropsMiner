@@ -13,8 +13,14 @@ from typing import (
     Any, Optional, List, Dict, Set, Tuple, TypedDict, Iterable, NoReturn, TYPE_CHECKING
 )
 
-from PIL import Image
-import pystray
+try:
+    from PIL import Image
+except ModuleNotFoundError as exc:
+    raise ImportError("You have to run 'pip install Pillow' first") from exc
+try:
+    import pystray
+except ModuleNotFoundError as exc:
+    raise ImportError("You have to run 'pip install pystray' first") from exc
 
 from version import __version__
 from constants import FORMATTER, WS_TOPICS_LIMIT, MAX_WEBSOCKETS, State

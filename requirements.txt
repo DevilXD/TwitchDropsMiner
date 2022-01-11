@@ -1,2 +1,3 @@
 aiohttp>2.0,<4.0
-pywin32
+Pillow
+pystray
