@@ -583,6 +583,10 @@ class ChannelList:
         # we need this because columns have 9-10 pixels of padding that cuts text off
         return self._font.measure(text) + 10
 
+    def _redraw(self):
+        # this forces a redraw that recalculates widget width
+        self._table.event_generate("<<ThemeChanged>>")
+
     def _adjust_width(self, column: str, value: str):
         # causes the column to expand if the value's width is greater than the current width
         if column in self._const_width:
@@ -591,7 +595,16 @@ class ChannelList:
         curr_width = self._table.column(column, "width")
         if value_width > curr_width:
             self._table.column(column, minwidth=value_width, width=value_width)
-            self._table.event_generate("<<ThemeChanged>>")  # force redraw
+            self._redraw()
+
+    def shrink(self):
+        # causes the columns to shrink back after long values have been removed from it
+        columns = self._table.cget("columns")
+        iids = self._table.get_children()
+        for column in columns:
+            width = max(self._measure(self._table.set(i, column)) for i in iids)
+            self._table.column(column, minwidth=width, width=width)
+        self._redraw()
 
     def _set(self, iid: str, column: str, value: str):
         self._table.set(iid, column, value)

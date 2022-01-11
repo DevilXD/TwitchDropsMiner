@@ -212,6 +212,7 @@ class Twitch:
                 for channel in to_remove:
                     del self.channels[channel.id]
                     channel.remove()
+                self.gui.channels.shrink()
                 self.change_state(State.CHANNEL_FETCH)
             elif self._state is State.CHANNEL_FETCH:
                 if selected_game is None:
