@@ -197,6 +197,22 @@ class Twitch:
                 if active_drop is not None:
                     active_drop.display(countdown=False)
                 self.change_state(State.CHANNEL_CLEANUP)
+            elif self._state is State.CHANNEL_CLEANUP:
+                # remove all channels that are offline,
+                # or aren't streaming the game we want anymore
+                to_remove = [
+                    channel for channel in self.channels.values()
+                    if not (channel.online or channel.pending_online)
+                    or channel.game is None or channel.game != selected_game
+                ]
+                self.websocket.remove_topics(
+                    WebsocketTopic.as_str("Channel", "VideoPlayback", channel.id)
+                    for channel in to_remove
+                )
+                for channel in to_remove:
+                    del self.channels[channel.id]
+                    channel.remove()
+                self.change_state(State.CHANNEL_FETCH)
             elif self._state is State.CHANNEL_FETCH:
                 if selected_game is None:
                     self.change_state(State.GAME_SELECT)
@@ -221,22 +237,6 @@ class Twitch:
                     ]
                     self.websocket.add_topics(topics)
                     self.change_state(State.CHANNEL_SWITCH)
-            elif self._state is State.CHANNEL_CLEANUP:
-                # remove all channels that are offline,
-                # or aren't streaming the game we want anymore
-                to_remove = [
-                    channel for channel in self.channels.values()
-                    if not (channel.online or channel.pending_online)
-                    or channel.game is None or channel.game != selected_game
-                ]
-                self.websocket.remove_topics(
-                    WebsocketTopic.as_str("Channel", "VideoPlayback", channel.id)
-                    for channel in to_remove
-                )
-                for channel in to_remove:
-                    del self.channels[channel.id]
-                    channel.remove()
-                self.change_state(State.CHANNEL_FETCH)
             elif self._state is State.CHANNEL_SWITCH:
                 if selected_game is None:
                     self.change_state(State.GAME_SELECT)
