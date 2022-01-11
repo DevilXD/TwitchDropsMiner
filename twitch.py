@@ -179,7 +179,8 @@ class Twitch:
         await asyncio.sleep(start_time + 1 - time())
 
     def is_watching(self, channel: Channel) -> bool:
-        return self._watching_channel is not None and self._watching_channel == channel
+        watching_channel = self._watching_channel.get_with_default(None)
+        return watching_channel is not None and watching_channel == channel
 
     async def _run(self):
         """
