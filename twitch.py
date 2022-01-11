@@ -687,14 +687,12 @@ class Twitch:
 
     async def fetch_inventory(self) -> None:
         response = await self.gql_request(GQL_OPERATIONS["Inventory"])
-        inventory = response["data"]["currentUser"]["inventory"]
-        if inventory["dropCampaignsInProgress"]:  # None with no available campaigns
-            self.inventory = [
-                DropsCampaign(self, data) for data in inventory["dropCampaignsInProgress"]
-            ]
-        else:
-            # can happen if the user has no active campaigns yet
-            self.inventory = []
+        inventory = response["data"]["currentUser"]["inventory"]["dropCampaignsInProgress"] or []
+        campaigns = sorted(
+            (DropsCampaign(self, data) for data in inventory),
+            key=lambda c: c.ends_at,
+        )
+        self.inventory = campaigns
 
     def get_drop(self, drop_id: str) -> Optional[TimedDrop]:
         for campaign in self.inventory:
