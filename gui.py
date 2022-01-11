@@ -489,7 +489,6 @@ class ConsoleOutput:
 
 class Buttons(TypedDict):
     frame: ttk.Frame
-    cleanup: ttk.Button
     switch: ttk.Button
     load_points: ttk.Button
 
@@ -506,11 +505,6 @@ class ChannelList:
         buttons_frame = ttk.Frame(frame)
         self._buttons: Buttons = {
             "frame": buttons_frame,
-            "cleanup": ttk.Button(
-                buttons_frame,
-                text="Cleanup",
-                command=manager._twitch.state_change(State.CHANNEL_CLEANUP),
-            ),
             "switch": ttk.Button(
                 buttons_frame,
                 text="Switch",
@@ -522,9 +516,8 @@ class ChannelList:
             ),
         }
         buttons_frame.grid(column=0, row=0, columnspan=2)
-        self._buttons["cleanup"].grid(column=0, row=0)
-        self._buttons["switch"].grid(column=1, row=0)
-        self._buttons["load_points"].grid(column=2, row=0)
+        self._buttons["switch"].grid(column=0, row=0)
+        self._buttons["load_points"].grid(column=1, row=0)
         scroll = ttk.Scrollbar(frame, orient="vertical")
         self._table = table = ttk.Treeview(
             frame,
@@ -601,9 +594,10 @@ class ChannelList:
         # causes the columns to shrink back after long values have been removed from it
         columns = self._table.cget("columns")
         iids = self._table.get_children()
-        for column in columns:
-            width = max(self._measure(self._table.set(i, column)) for i in iids)
-            self._table.column(column, minwidth=width, width=width)
+        if iids:  # table needs to have at least one item
+            for column in columns:
+                width = max(self._measure(self._table.set(i, column)) for i in iids)
+                self._table.column(column, minwidth=width, width=width)
         self._redraw()
 
     def _set(self, iid: str, column: str, value: str):
