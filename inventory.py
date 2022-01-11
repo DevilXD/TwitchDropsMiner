@@ -168,6 +168,3 @@ class DropsCampaign:
     @property
     def progress(self) -> float:
         return sum(d.progress for d in self.timed_drops.values()) / self.total_drops
-
-    def get_drop(self, drop_id: str) -> Optional[TimedDrop]:
-        return self.timed_drops.get(drop_id)

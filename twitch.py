@@ -698,7 +698,7 @@ class Twitch:
 
     def get_drop(self, drop_id: str) -> Optional[TimedDrop]:
         for campaign in self.inventory:
-            drop = campaign.get_drop(drop_id)
+            drop = campaign.timed_drops.get(drop_id)
             if drop is not None:
                 return drop
         return None
