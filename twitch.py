@@ -157,6 +157,7 @@ class Twitch:
                 "\nApplication Terminated.\nClose the window to exit the application."
             )
         loop.run_until_complete(self.gui.wait_until_closed())
+        self.gui.stop()
         loop.close()
 
     def stop(self):

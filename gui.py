@@ -13,6 +13,9 @@ from typing import (
     Any, Optional, List, Dict, Set, Tuple, TypedDict, Iterable, NoReturn, TYPE_CHECKING
 )
 
+from PIL import Image
+import pystray
+
 from version import __version__
 from constants import FORMATTER, WS_TOPICS_LIMIT, MAX_WEBSOCKETS, State
 
@@ -44,7 +47,7 @@ class TKOutputHandler(logging.Handler):
 class PlaceholderEntry(ttk.Entry):
     def __init__(
         self,
-        master,
+        master: ttk.Widget,
         *args,
         placeholder: str,
         placeholdercolor: str = "grey60",
@@ -120,7 +123,7 @@ class _WSEntry(TypedDict):
 
 
 class WebsocketStatus:
-    def __init__(self, manager: GUIManager, master: tk.Misc):
+    def __init__(self, manager: GUIManager, master: ttk.Widget):
         self._status_var = StringVar()
         self._topics_var = StringVar()
         frame = ttk.LabelFrame(master, text="Websocket Status", padding=(4, 0, 4, 4))
@@ -182,7 +185,7 @@ LoginData = namedtuple("LoginData", ["username", "password", "token"])
 
 
 class LoginForm:
-    def __init__(self, manager: GUIManager, master: tk.Misc):
+    def __init__(self, manager: GUIManager, master: ttk.Widget):
         self._manager = manager
         self._var = StringVar()
         frame = ttk.LabelFrame(master, text="Login Form", padding=(4, 0, 4, 4))
@@ -231,7 +234,7 @@ class LoginForm:
 
 
 class GameSelector:
-    def __init__(self, manager: GUIManager, master: tk.Misc):
+    def __init__(self, manager: GUIManager, master: ttk.Widget):
         self._manager = manager
         self._var = StringVar()
         frame = ttk.LabelFrame(master, text="Game Selector", padding=(4, 0, 4, 4))
@@ -331,7 +334,7 @@ class _ProgressVars(TypedDict):
 class CampaignProgress:
     BAR_LENGTH = 240
 
-    def __init__(self, manager: GUIManager, master: tk.Misc):
+    def __init__(self, manager: GUIManager, master: ttk.Widget):
         self._vars: _ProgressVars = {
             "campaign": {
                 "name": StringVar(),  # campaign name
@@ -456,12 +459,13 @@ class CampaignProgress:
 
 
 class ConsoleOutput:
-    def __init__(self, manager: GUIManager, master: tk.Misc):
+    def __init__(self, manager: GUIManager, master: ttk.Widget):
         frame = ttk.LabelFrame(master, text="Output", padding=(4, 0, 4, 4))
         frame.grid(column=0, row=2, columnspan=2, sticky="nsew", padx=2)
         frame.rowconfigure(0, weight=1)  # let the frame expand
         frame.columnconfigure(0, weight=1)
-        master.rowconfigure(2, weight=1)  # tell master frame that the containing row can expand
+        # tell master frame that the containing row can expand
+        master.rowconfigure(2, weight=1)
         xscroll = ttk.Scrollbar(frame, orient="horizontal")
         yscroll = ttk.Scrollbar(frame, orient="vertical")
         self._text = tk.Text(
@@ -494,14 +498,15 @@ class Buttons(TypedDict):
 
 
 class ChannelList:
-    def __init__(self, manager: GUIManager, master: tk.Misc):
+    def __init__(self, manager: GUIManager, master: ttk.Widget):
         self._manager = manager
         frame = ttk.LabelFrame(master, text="Channels", padding=(4, 0, 4, 4))
-        frame.grid(column=2, row=0, rowspan=3, sticky="nsew", padx=2)
+        frame.grid(column=0, row=1, sticky="nsew", padx=2)
         frame.rowconfigure(1, weight=1)
         frame.columnconfigure(0, weight=1)
-        # tell master frame that the containing column can expand
-        master.columnconfigure(2, weight=1)
+        # tell master frame that the containing column and row can expand
+        master.columnconfigure(0, weight=1)
+        master.rowconfigure(1, weight=1)
         buttons_frame = ttk.Frame(frame)
         self._buttons: Buttons = {
             "frame": buttons_frame,
@@ -665,6 +670,58 @@ class ChannelList:
         self._table.delete(iid)
 
 
+class TrayIcon:
+    def __init__(self, manager: GUIManager, master: ttk.Widget):
+        self._manager = manager
+        self._icon: Optional[pystray.Icon] = None
+        self._button = ttk.Button(master, command=self.minimize, text="Minimize to Tray")
+        self._button.grid(column=0, row=0, sticky="e")
+
+    def is_tray(self) -> bool:
+        return self._icon is not None
+
+    def start(self):
+        if self._icon is None:
+            loop = self._manager._twitch._loop
+
+            # we need this because tray icon lives in a separate thread
+            def bridge(func):
+                return lambda: loop.call_soon_threadsafe(func)
+
+            menu = pystray.Menu(
+                pystray.MenuItem("Show", bridge(self.restore), default=True),
+                pystray.Menu.SEPARATOR,
+                pystray.MenuItem("Quit", bridge(self.quit)),
+            )
+            self._icon = pystray.Icon(
+                "twitch_miner",
+                Image.open(resource_path("pickaxe.ico")),
+                "Twitch Drops Miner",
+                menu,
+            )
+            self._icon.run_detached()
+            self._icon.visible = True
+
+    def stop(self):
+        if self._icon is not None:
+            self._icon.stop()
+            self._icon = None
+
+    def quit(self):
+        self.stop()
+        self._manager.close()
+
+    def minimize(self):
+        if not self.is_tray():
+            self.start()
+            self._manager._root.withdraw()
+
+    def restore(self):
+        if self.is_tray():
+            self.stop()
+            self._manager._root.deiconify()
+
+
 class GUIManager:
     def __init__(self, twitch: Twitch):
         self._twitch: Twitch = twitch
@@ -674,7 +731,7 @@ class GUIManager:
         root.resizable(False, True)
         root.iconbitmap(resource_path("pickaxe.ico"))  # window icon
         root.title(f"Twitch Drops Miner v{__version__} (by DevilXD)")  # window title
-        root.protocol("WM_DELETE_WINDOW", self._on_close)
+        root.protocol("WM_DELETE_WINDOW", self.close)
         root.bind_all("<KeyPress-Escape>", self.unfocus)
         self._style = ttk.Style(root)
         self._style.map(
@@ -691,7 +748,11 @@ class GUIManager:
         self.progress = CampaignProgress(self, main_frame)
         self.games = GameSelector(self, main_frame)
         self.output = ConsoleOutput(self, main_frame)
-        self.channels = ChannelList(self, main_frame)
+        second_frame = ttk.Frame(main_frame)
+        second_frame.grid(column=2, row=0, rowspan=3, sticky="nsew")
+        main_frame.columnconfigure(2, weight=1)
+        self.tray = TrayIcon(self, second_frame)
+        self.channels = ChannelList(self, second_frame)
         # clamp minimum window height (update first, so that geometry calculates the size)
         root.update_idletasks()
         root.minsize(width=0, height=root.winfo_reqheight())
@@ -751,14 +812,15 @@ class GUIManager:
             await asyncio.sleep(0.05)
         self._poll_task = None
 
-    def unfocus(self, event):
-        self._root.focus_set()
-        self.channels.clear_selection()
-
-    def _on_close(self):
+    def close(self):
         self._closed.set()
         # notify client we're supposed to close
         self._twitch.request_close()
+
+    def unfocus(self, event):
+        # support pressing ESC to unfocus
+        self._root.focus_set()
+        self.channels.clear_selection()
 
     def prevent_close(self):
         self._closed.clear()
@@ -766,12 +828,6 @@ class GUIManager:
     async def wait_until_closed(self):
         # wait until the user closes the window
         await self._closed.wait()
-
-    def close(self):
-        self.stop()
-        if self._root is not None:
-            self._root.destroy()
-        self._closed.set()
 
     def print(self, *args, **kwargs):
         # print to our custom output
@@ -793,8 +849,10 @@ if __name__ == "__main__":
             gui.print(f"State change: {state.value}")
         return changer
 
+    loop = asyncio.get_event_loop()
     gui: GUIManager
     mock = SimpleNamespace(
+        _loop=loop,
         _options=SimpleNamespace(game=None),
         state_change=state_change,
     )
@@ -896,7 +954,6 @@ if __name__ == "__main__":
         drop.remaining_minutes = 240
         drop.progress = 0.0
         gui.progress.display(drop)
-    # asyncio stuff
-    loop = asyncio.get_event_loop()
+
     loop.create_task(main())
     loop.run_until_complete(gui._poll())
