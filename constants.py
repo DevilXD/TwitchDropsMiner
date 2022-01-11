@@ -35,7 +35,7 @@ WATCH_INTERVAL = timedelta(seconds=58.8)
 # Tags
 DROPS_ENABLED_TAG = "c2542d6d-cd10-4532-919b-3d19f30a768b"
 FORMATTER = logging.Formatter(
-    "{asctime}.{msecs:<03}:\t{levelname:>7}:\t{message}",
+    "{asctime}.{msecs:03.0f}:\t{levelname:>7}:\t{message}",
     style='{',
     datefmt="%Y-%m-%d %H:%M:%S",
 )
