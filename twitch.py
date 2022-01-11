@@ -434,10 +434,12 @@ class Twitch:
             campaign = drop.campaign
             mined = await drop.claim()
             if mined:
-                self.gui.print(
-                    f"Claimed drop: {drop.rewards_text()} "
+                claim_text = (
+                    f"{drop.rewards_text()} "
                     f"({campaign.claimed_drops}/{campaign.total_drops})"
                 )
+                self.gui.print(f"Claimed drop: {claim_text}")
+                self.gui.tray.notify(claim_text, "Mined Drop")
             else:
                 logger.error(f"Drop claim failed! Drop ID: {drop_id}")
             if not mined or campaign.remaining_drops == 0:

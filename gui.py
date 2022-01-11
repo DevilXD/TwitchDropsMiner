@@ -727,6 +727,17 @@ class TrayIcon:
             self.stop()
             self._manager._root.deiconify()
 
+    def notify(self, message: str, title: Optional[str] = None, duration: float = 10):
+        if self._icon is not None:
+            icon = self._icon
+
+            async def notifier():
+                icon.notify(message, title)
+                await asyncio.sleep(duration)
+                icon.remove_notification()
+
+            asyncio.create_task(notifier())
+
 
 class GUIManager:
     def __init__(self, twitch: Twitch):
@@ -942,6 +953,10 @@ if __name__ == "__main__":
         gui.channels.set_watching(channel)
         gui._root.update()
         gui.channels.get_selection()
+        # Tray
+        # gui.tray.minimize()
+        # await asyncio.sleep(1)
+        # gui.tray.notify("Bounty Coins (3/7)", "Mined Drop")
         # Drop progress
         drop = create_drop("Wardrobe Cleaning", "Fancy Pants", 2, 7, 239, 240)
         gui.progress.display(drop)
