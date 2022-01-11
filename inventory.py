@@ -41,12 +41,17 @@ class BaseDrop:
         # If claim_id is not None, we can use it to claim the drop
         self.claim_id: Optional[str] = data["self"]["dropInstanceID"]
         self.is_claimed: bool = data["self"]["isClaimed"]
-        self._preconditions: bool = data["self"]["hasPreconditionsMet"]
+        self._precondition_drops: List[str] = [d["id"] for d in (data["preconditionDrops"] or [])]
+
+    @property
+    def preconditions(self) -> bool:
+        campaign = self.campaign
+        return all(campaign.timed_drops[pid].is_claimed for pid in self._precondition_drops)
 
     @property
     def can_earn(self) -> bool:
         return (
-            self._preconditions  # preconditions are met
+            self.preconditions  # preconditions are met
             and self.campaign.active  # campaign is active
             and not self.is_claimed  # drop isn't already claimed
             and self.starts_at <= datetime.utcnow() < self.ends_at  # it's within the timeframe
