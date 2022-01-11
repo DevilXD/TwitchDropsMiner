@@ -262,7 +262,7 @@ class Twitch:
                             break
                     else:
                         self.stop_watching()
-                        selected_game = self.gui.games.get_next_selection()
+                        selected_game = self.gui.games.select_next()
                         if selected_game is None:
                             self.gui.print("No suitable channel to watch.")
                             # TODO: Figure out what to do here.
