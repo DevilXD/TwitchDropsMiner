@@ -543,8 +543,8 @@ class ChannelList:
         self._column("channel", "Channel", width=100, anchor='w')
         self._column("status", "Status", width_template="OFFLINE ❌")
         self._column("game", "Game", width=50)
-        self._column("viewers", "Viewers", width_template="0000000")
-        self._column("points", "Points", width_template="0000000")
+        self._column("viewers", "Viewers", width_template="1234567")
+        self._column("points", "Points", width_template="1234567")
         self._channel_map: Dict[str, Channel] = {}
 
     def _column(
