@@ -210,7 +210,7 @@ class Twitch:
                 await self.fetch_inventory()
                 games.clear()
                 for campaign in self.inventory:
-                    if campaign.status == "UPCOMING":
+                    if campaign.upcoming:
                         # we have no use in processing upcoming campaigns here
                         continue
                     for drop in campaign.timed_drops.values():

@@ -52,8 +52,8 @@ class BaseDrop:
     def can_earn(self) -> bool:
         return (
             self.preconditions  # preconditions are met
-            and self.campaign.active  # campaign is active
             and not self.is_claimed  # drop isn't already claimed
+            and self.campaign.active  # campaign is active
             and self.starts_at <= datetime.utcnow() < self.ends_at  # it's within the timeframe
         )
 
@@ -136,7 +136,6 @@ class DropsCampaign:
         self.game: Game = Game(data["game"])
         self.starts_at: datetime = datetime.strptime(data["startAt"], "%Y-%m-%dT%H:%M:%SZ")
         self.ends_at: datetime = datetime.strptime(data["endAt"], "%Y-%m-%dT%H:%M:%SZ")
-        self.status: str = data["status"]
         allowed = data["allow"]
         self.allowed_channels: List[str] = []
         if allowed["channels"] is not None:
@@ -147,7 +146,15 @@ class DropsCampaign:
 
     @property
     def active(self):
-        return self.status == "ACTIVE"
+        return self.starts_at <= datetime.utcnow() < self.ends_at
+
+    @property
+    def upcoming(self) -> bool:
+        return datetime.utcnow() < self.starts_at
+
+    @property
+    def expired(self) -> bool:
+        return self.ends_at <= datetime.utcnow()
 
     @property
     def total_drops(self) -> int:
