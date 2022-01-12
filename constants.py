@@ -43,9 +43,10 @@ FORMATTER = logging.Formatter(
 
 class State(Enum):
     INVENTORY_FETCH = auto()
+    GAMES_UPDATE = auto()
     GAME_SELECT = auto()
-    CHANNEL_FETCH = auto()
-    CHANNEL_CLEANUP = auto()
+    CHANNELS_FETCH = auto()
+    CHANNELS_CLEANUP = auto()
     CHANNEL_SWITCH = auto()
 
 

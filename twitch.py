@@ -206,18 +206,19 @@ class Twitch:
         self.change_state(State.INVENTORY_FETCH)
         while True:
             if self._state is State.INVENTORY_FETCH:
-                # Claim the drops we can
                 await self.fetch_inventory()
+                self.change_state(State.GAMES_UPDATE)
+            elif self._state is State.GAMES_UPDATE:
+                # Figure out which games to watch, and claim the drops we can
                 games.clear()
                 for campaign in self.inventory:
-                    if campaign.upcoming:
-                        # we have no use in processing upcoming campaigns here
-                        continue
-                    for drop in campaign.timed_drops.values():
-                        if drop.can_earn and (game := campaign.game) not in games:
-                            games.append(game)
-                        if drop.can_claim:
-                            await drop.claim()
+                    # we have no use in processing upcoming campaigns here
+                    if not campaign.upcoming:
+                        for drop in campaign.timed_drops.values():
+                            if drop.can_claim:
+                                await drop.claim()
+                            if drop.can_earn and (game := campaign.game) not in games:
+                                games.append(game)
                 self.change_state(State.GAME_SELECT)
             elif self._state is State.GAME_SELECT:
                 # 'games' has all games we want to mine drops for
@@ -233,8 +234,8 @@ class Twitch:
                 active_drop = self.get_active_drop(selected_game)
                 if active_drop is not None:
                     active_drop.display(countdown=False)
-                self.change_state(State.CHANNEL_CLEANUP)
-            elif self._state is State.CHANNEL_CLEANUP:
+                self.change_state(State.CHANNELS_CLEANUP)
+            elif self._state is State.CHANNELS_CLEANUP:
                 # remove all channels that are offline,
                 # or aren't streaming the game we want anymore
                 to_remove = [
@@ -250,8 +251,8 @@ class Twitch:
                     del self.channels[channel.id]
                     channel.remove()
                 self.gui.channels.shrink()
-                self.change_state(State.CHANNEL_FETCH)
-            elif self._state is State.CHANNEL_FETCH:
+                self.change_state(State.CHANNELS_FETCH)
+            elif self._state is State.CHANNELS_FETCH:
                 if selected_game is None:
                     self.change_state(State.GAME_SELECT)
                 else:
@@ -305,7 +306,7 @@ class Twitch:
                             self.gui.print("No suitable channel to watch.")
                             # TODO: Figure out what to do here.
                             return
-                        self.change_state(State.CHANNEL_CLEANUP)
+                        self.change_state(State.CHANNELS_CLEANUP)
             await self._state_change.wait()
 
     async def _watch_loop(self) -> None:
@@ -355,8 +356,8 @@ class Twitch:
                 # ensure every 30 minutes that we don't have unclaimed points bonus
                 await channel.claim_bonus()
             if i % 60 == 0:
-                # refresh inventory every hour
-                self.change_state(State.INVENTORY_FETCH)
+                # cleanup channels every hour
+                self.change_state(State.CHANNELS_CLEANUP)
             i = (i + 1) % 3600
             self._watching_restart.clear()
             try:
@@ -443,7 +444,7 @@ class Twitch:
             else:
                 logger.error(f"Drop claim failed! Drop ID: {drop_id}")
             if not mined or campaign.remaining_drops == 0:
-                self.change_state(State.INVENTORY_FETCH)
+                self.change_state(State.GAMES_UPDATE)
                 return
             # About 4-20s after claiming the drop, next drop can be started
             # by re-sending the watch payload. We can test for it by fetching the current drop
