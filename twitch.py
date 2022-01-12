@@ -238,7 +238,7 @@ class Twitch:
             elif self._state is State.CHANNELS_CLEANUP:
                 # remove all channels that are offline,
                 # or aren't streaming the game we want anymore
-                to_remove = [
+                to_remove: List[Channel] = [
                     channel for channel in self.channels.values()
                     if not (channel.online or channel.pending_online)
                     or channel.game is None or channel.game != selected_game
@@ -248,6 +248,9 @@ class Twitch:
                     for channel in to_remove
                 )
                 for channel in to_remove:
+                    if self.is_watching(channel):
+                        # we're removing a channel we're watching
+                        self.stop_watching()
                     del self.channels[channel.id]
                     channel.remove()
                 self.gui.channels.shrink()
