@@ -14,10 +14,6 @@ from typing import (
 )
 
 try:
-    from PIL import Image
-except ModuleNotFoundError as exc:
-    raise ImportError("You have to run 'pip install Pillow' first") from exc
-try:
     import pystray
 except ModuleNotFoundError as exc:
     raise ImportError("You have to run 'pip install pystray' first") from exc
@@ -39,6 +35,15 @@ def resource_path(relative_path):
     """Get absolute path to resource, works for dev and for PyInstaller"""
     base_path = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
     return os.path.join(base_path, relative_path)
+
+
+class ICOImage:
+    def __init__(self, path: str):
+        with open(path, 'rb') as file:
+            self._data = file.read()
+
+    def save(self, file, format):
+        file.write(self._data)
 
 
 class TKOutputHandler(logging.Handler):
@@ -702,7 +707,7 @@ class TrayIcon:
             )
             self._icon = pystray.Icon(
                 "twitch_miner",
-                Image.open(resource_path("pickaxe.ico")),
+                ICOImage(resource_path("pickaxe.ico")),
                 "Twitch Drops Miner",
                 menu,
             )
@@ -954,9 +959,9 @@ if __name__ == "__main__":
         gui._root.update()
         gui.channels.get_selection()
         # Tray
-        # gui.tray.minimize()
-        # await asyncio.sleep(1)
-        # gui.tray.notify("Bounty Coins (3/7)", "Mined Drop")
+        gui.tray.minimize()
+        await asyncio.sleep(1)
+        gui.tray.notify("Bounty Coins (3/7)", "Mined Drop")
         # Drop progress
         drop = create_drop("Wardrobe Cleaning", "Fancy Pants", 2, 7, 239, 240)
         gui.progress.display(drop)
