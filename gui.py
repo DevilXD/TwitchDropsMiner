@@ -707,7 +707,6 @@ class TrayIcon:
                 menu,
             )
             self._icon.run_detached()
-            self._icon.visible = True
 
     def stop(self):
         if self._icon is not None:
