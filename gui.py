@@ -171,6 +171,7 @@ class WebsocketStatus:
     def remove(self, idx: int):
         if idx in self._items:
             del self._items[idx]
+            self._update()
 
     def _update(self):
         status_lines: List[str] = []
