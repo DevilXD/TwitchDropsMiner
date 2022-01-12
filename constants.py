@@ -21,7 +21,7 @@ GQL_URL = "https://gql.twitch.tv/gql"
 CLIENT_ID = "kimne78kx3ncx6brgo4mv6wki5h1ko"
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/96.0.4664.45 Safari/537.36"
+    "Chrome/97.0.4692.71 Safari/537.36"
 )
 # Paths
 LOG_PATH = "log.txt"
@@ -30,7 +30,7 @@ SETTINGS_PATH = "settings.json"
 # Intervals and Delays
 PING_INTERVAL = timedelta(minutes=3)
 PING_TIMEOUT = timedelta(seconds=10)
-ONLINE_DELAY = timedelta(seconds=60)
+ONLINE_DELAY = timedelta(seconds=120)
 WATCH_INTERVAL = timedelta(seconds=58.8)
 # Tags
 DROPS_ENABLED_TAG = "c2542d6d-cd10-4532-919b-3d19f30a768b"

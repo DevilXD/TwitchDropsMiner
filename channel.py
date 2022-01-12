@@ -4,7 +4,6 @@ import re
 import json
 import asyncio
 import logging
-from time import time
 from base64 import b64encode
 from datetime import datetime, timezone
 from typing import Any, Optional, TYPE_CHECKING
@@ -97,7 +96,9 @@ class Channel:
 
     @property
     def iid(self) -> str:
-        # this is responsible for the ID/Key of the columns inside channel list
+        """
+        Returns a string to be used as ID/key of the columns inside channel list.
+        """
         return str(self.id)
 
     @property
@@ -193,6 +194,10 @@ class Channel:
         return True
 
     async def _online_delay(self):
+        """
+        The 'stream-up' event is sent before the stream actually goes online,
+        so just wait a bit and check if it's actually online by then.
+        """
         self.display()
         await asyncio.sleep(ONLINE_DELAY.total_seconds())
         await self.check_online()
@@ -200,24 +205,34 @@ class Channel:
         self.display()
 
     def set_online(self):
+        """
+        Sets the channel status to OFFLINE.
+
+        This is called externally, if we receive an event about this happening.
+        """
         if self.online or self.pending_online:
             # we're already online, or about to be
             return
-        # stream-up is sent before the stream actually goes online, so just wait a bit
-        # and check if it's actually online by then
         self._pending_stream_up = asyncio.create_task(self._online_delay())
         # display is called from within the task
 
     def set_offline(self):
-        # to be called externally, if we receive an event about this happening
+        """
+        Sets the channel status to OFFLINE.
+
+        This is called externally, if we receive an event about this happening.
+        """
         if self._pending_stream_up is not None:
             self._pending_stream_up.cancel()
             self._pending_stream_up = None
-        self._stream = None
-        self.display()
+        if self.online:
+            self._stream = None
+            self.display()
 
     async def claim_bonus(self):
-        # this also fills out the 'points' attribute
+        """
+        This claims bonus points if they're available, and fills out the 'points' attribute.
+        """
         response = await self._twitch.gql_request(
             GQL_OPERATIONS["ChannelPointsContext"].with_variables({"channelLogin": self.name})
         )
@@ -230,8 +245,8 @@ class Channel:
             await self._twitch.claim_points(channel_data["id"], claim_available["id"])
             logger.info("Claimed bonus points")
         else:
-            # calling claim_points is going to refresh the display, so if we're not calling it,
-            # we need to do it ourselves
+            # calling 'claim_points' is going to refresh the display via the websocket payload,
+            # so if we're not calling it, we need to do it ourselves
             self.display()
 
     def _encode_payload(self):
@@ -260,7 +275,6 @@ class Channel:
         if self._spade_url is None:
             self._spade_url = await self.get_spade_url()
         logger.debug(f"Sending minute-watched to {self.name}")
-        self._twitch._last_watch = time()
         async with self._twitch._session.post(
             self._spade_url, data=self._encode_payload()
         ) as response:
