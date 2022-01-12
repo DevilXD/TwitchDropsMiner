@@ -280,14 +280,18 @@ class Twitch:
                 if selected_game is None:
                     self.change_state(State.GAME_SELECT)
                 else:
-                    # Change into the selected channel
+                    # Change into the selected channel, stay in the watching channel,
+                    # or select a new channel that meets the required conditions
                     channels: Iterable[Channel]
+                    priority_channels: List[Channel] = []
                     selected_channel = self.gui.channels.get_selection()
                     if selected_channel is not None:
                         self.gui.channels.clear_selection()
-                        channels = chain([selected_channel], self.channels.values())
-                    else:
-                        channels = self.channels.values()
+                        priority_channels.append(selected_channel)
+                    watching_channel = self._watching_channel.get_with_default(None)
+                    if watching_channel is not None:
+                        priority_channels.append(watching_channel)
+                    channels = chain(priority_channels, self.channels.values())
                     # If there's no selected channel, change into a channel we can watch
                     for channel in channels:
                         if (
