@@ -698,6 +698,9 @@ class TrayIcon:
         self.icon: Optional[pystray.Icon] = None
         self._button = ttk.Button(master, command=self.minimize, text="Minimize to Tray")
         self._button.grid(column=0, row=0, sticky="e")
+        if manager._twitch._options.tray:
+            # start hidden in tray
+            self._manager._root.after_idle(self.minimize)
 
     def is_tray(self) -> bool:
         return self.icon is not None
@@ -774,6 +777,8 @@ class GUIManager:
         self._poll_task: Optional[asyncio.Task[NoReturn]] = None
         self._closed = asyncio.Event()
         self._root = root = Tk()
+        # withdraw immediately to prevent the window from flashing
+        self._root.withdraw()
         root.resizable(False, True)
         root.iconbitmap(resource_path("pickaxe.ico"))  # window icon
         root.title(f"Twitch Drops Miner v{__version__} (by DevilXD)")  # window title
@@ -806,6 +811,9 @@ class GUIManager:
         handler = TKOutputHandler(self)
         handler.setFormatter(FORMATTER)
         logging.getLogger("TwitchDrops").addHandler(handler)
+        # show the window when ready
+        if not self._twitch._options.tray:
+            self._root.deiconify()
 
     # https://stackoverflow.com/questions/56329342/tkinter-treeview-background-tag-not-working
     def _fixed_map(self, option):
@@ -899,7 +907,7 @@ if __name__ == "__main__":
     gui: GUIManager
     mock = SimpleNamespace(
         _loop=loop,
-        _options=SimpleNamespace(game=None),
+        _options=SimpleNamespace(game=None, tray=True),
         state_change=state_change,
     )
     gui = GUIManager(mock)  # type: ignore
@@ -983,7 +991,7 @@ if __name__ == "__main__":
         gui._root.update()
         gui.channels.get_selection()
         # Tray
-        gui.tray.minimize()
+        # gui.tray.minimize()
         await asyncio.sleep(1)
         gui.tray.notify("Bounty Coins (3/7)", "Mined Drop")
         # Drop progress
