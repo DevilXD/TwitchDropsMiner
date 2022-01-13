@@ -49,7 +49,7 @@ class ParsedArgs(argparse.Namespace):
 
 # handle input parameters
 parser = argparse.ArgumentParser(
-    f"TwitchDropsMiner.v{__version__}.exe",
+    "Twitch Drops Miner (by DevilXD).exe",
     description="A program that allows you to mine timed drops on Twitch.",
 )
 parser.add_argument("-V", "--version", action="version", version=f"v{__version__}")
