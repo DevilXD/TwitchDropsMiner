@@ -10,6 +10,14 @@ if TYPE_CHECKING:
     from twitch import Twitch
 
 
+def _invalidate_cache(instance, *attrnames):
+    for name in attrnames:
+        try:
+            delattr(instance, name)
+        except AttributeError:
+            pass
+
+
 class Game:
     def __init__(self, data: JsonType):
         self.id: int = int(data["id"])
@@ -72,7 +80,7 @@ class BaseDrop:
         return self.claim_id is not None
 
     def _on_claim(self) -> None:
-        del self.preconditions
+        _invalidate_cache(self, "preconditions")
 
     def update_claim(self, claim_id: str):
         self.claim_id = claim_id
@@ -147,8 +155,7 @@ class TimedDrop(BaseDrop):
         return self.current_minutes / self.required_minutes
 
     def _on_minutes_changed(self) -> None:
-        del self.progress
-        del self.remaining_minutes
+        _invalidate_cache(self, "progress", "remaining_minutes")
         self.campaign._on_minutes_changed()
 
     async def claim(self) -> bool:
@@ -222,11 +229,9 @@ class DropsCampaign:
         return sum(d.progress for d in self.timed_drops.values()) / self.total_drops
 
     def _on_claim(self) -> None:
-        del self.claimed_drops
-        del self.remaining_drops
+        _invalidate_cache(self, "claimed_drops", "remaining_drops")
         for drop in self.timed_drops.values():
             drop._on_claim()
 
     def _on_minutes_changed(self) -> None:
-        del self.progress
-        del self.remaining_minutes
+        _invalidate_cache(self, "progress", "remaining_minutes")
