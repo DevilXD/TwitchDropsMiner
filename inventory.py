@@ -44,6 +44,15 @@ class BaseDrop:
         self.is_claimed: bool = data["self"]["isClaimed"]
         self._precondition_drops: List[str] = [d["id"] for d in (data["preconditionDrops"] or [])]
 
+    def __repr__(self) -> str:
+        if self.is_claimed:
+            additional = ", claimed=True"
+        elif self.can_earn:
+            additional = ", can_earn=True"
+        else:
+            additional = ''
+        return f"Drop({self.rewards_text()}{additional})"
+
     @cached_property
     def preconditions(self) -> bool:
         campaign = self.campaign
@@ -116,6 +125,19 @@ class TimedDrop(BaseDrop):
             # claimed drops report 0 current minutes, so we need to make a correction
             self.current_minutes = self.required_minutes
 
+    def __repr__(self) -> str:
+        if self.is_claimed:
+            additional = ", claimed=True"
+        elif self.can_earn:
+            additional = ", can_earn=True"
+        else:
+            additional = ''
+        if 0 < self.current_minutes < self.required_minutes:
+            minutes = f", {self.current_minutes}/{self.required_minutes}"
+        else:
+            minutes = ''
+        return f"Drop({self.rewards_text()}{minutes}{additional})"
+
     @cached_property
     def remaining_minutes(self) -> int:
         return self.required_minutes - self.current_minutes
@@ -163,6 +185,9 @@ class DropsCampaign:
         self.timed_drops: Dict[str, TimedDrop] = {
             d["id"]: TimedDrop(self, d) for d in data["timeBasedDrops"]
         }
+
+    def __repr__(self) -> str:
+        return f"Campaign({self.name}({self.game!s}), {self.claimed_drops}/{self.total_drops})"
 
     @property
     def active(self):
