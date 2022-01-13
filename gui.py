@@ -327,7 +327,6 @@ class _BaseVars(TypedDict):
     progress: DoubleVar
     percentage: StringVar
     remaining: StringVar
-    minutes: int
 
 
 class _CampaignVars(_BaseVars):
@@ -347,20 +346,19 @@ class CampaignProgress:
     BAR_LENGTH = 240
 
     def __init__(self, manager: GUIManager, master: ttk.Widget):
+        self._manager = manager
         self._vars: _ProgressVars = {
             "campaign": {
                 "name": StringVar(),  # campaign name
                 "progress": DoubleVar(),  # controls the progress bar
                 "percentage": StringVar(),  # percentage display string
                 "remaining": StringVar(),  # time remaining string
-                "minutes": 0,  # remaining minutes
             },
             "drop": {
                 "rewards": StringVar(),  # drop rewards
                 "progress": DoubleVar(),  # as above
                 "percentage": StringVar(),  # as above
                 "remaining": StringVar(),  # as above
-                "minutes": 0,  # as above
             },
         }
         self._frame = frame = ttk.LabelFrame(
@@ -400,6 +398,7 @@ class CampaignProgress:
             maximum=1,
             variable=self._vars["drop"]["progress"],
         ).grid(column=0, row=10, columnspan=2)
+        self._drop: Optional[TimedDrop] = None
         self._timer_task: Optional[asyncio.Task[None]] = None
         self._update_time(0)
 
@@ -411,12 +410,19 @@ class CampaignProgress:
         return (hours, minutes)
 
     def _update_time(self, seconds: int):
+        drop = self._drop
+        if drop is not None:
+            drop_minutes = drop.remaining_minutes
+            campaign_minutes = drop.campaign.remaining_minutes
+        else:
+            drop_minutes = 0
+            campaign_minutes = 0
         drop_vars: _DropVars = self._vars["drop"]
         campaign_vars: _CampaignVars = self._vars["campaign"]
         dseconds = seconds % 60
-        hours, minutes = self._divmod(drop_vars["minutes"], seconds)
+        hours, minutes = self._divmod(drop_minutes, seconds)
         drop_vars["remaining"].set(f"{hours:>2}:{minutes:02}:{dseconds:02} remaining")
-        hours, minutes = self._divmod(campaign_vars["minutes"], seconds)
+        hours, minutes = self._divmod(campaign_minutes, seconds)
         campaign_vars["remaining"].set(f"{hours:>2}:{minutes:02}:{dseconds:02} remaining")
 
     async def _timer_loop(self):
@@ -430,7 +436,7 @@ class CampaignProgress:
 
     def start_timer(self):
         if self._timer_task is None:
-            if self._vars["drop"]["minutes"] <= 0:
+            if self._drop is None or self._drop.remaining_minutes <= 0:
                 # if we're starting the timer at 0 drop minutes,
                 # all we need is a single instant time update setting seconds to 60,
                 # to avoid substracting a minute from campaign minutes
@@ -444,6 +450,12 @@ class CampaignProgress:
             self._timer_task = None
 
     def display(self, drop: TimedDrop, *, countdown: bool = True):
+        self._drop = drop
+        # drop update
+        vars_drop = self._vars["drop"]
+        vars_drop["rewards"].set(drop.rewards_text())
+        vars_drop["progress"].set(drop.progress)
+        vars_drop["percentage"].set(f"{drop.progress:6.1%}")
         # campaign update
         campaign = drop.campaign
         vars_campaign = self._vars["campaign"]
@@ -452,13 +464,9 @@ class CampaignProgress:
         vars_campaign["percentage"].set(
             f"{campaign.progress:6.1%} ({campaign.claimed_drops}/{campaign.total_drops})"
         )
-        vars_campaign["minutes"] = campaign.remaining_minutes
-        # drop update
-        vars_drop = self._vars["drop"]
-        vars_drop["rewards"].set(drop.rewards_text())
-        vars_drop["progress"].set(drop.progress)
-        vars_drop["percentage"].set(f"{drop.progress:6.1%}")
-        vars_drop["minutes"] = drop.remaining_minutes
+        # tray
+        tray = self._manager.tray
+        tray.display_progress(drop)
         if countdown:
             # reschedule our seconds update timer
             self.stop_timer()
@@ -683,18 +691,30 @@ class ChannelList:
 
 
 class TrayIcon:
+    TITLE = "Twitch Drops Miner"
+
     def __init__(self, manager: GUIManager, master: ttk.Widget):
         self._manager = manager
-        self._icon: Optional[pystray.Icon] = None
+        self.icon: Optional[pystray.Icon] = None
         self._button = ttk.Button(master, command=self.minimize, text="Minimize to Tray")
         self._button.grid(column=0, row=0, sticky="e")
 
     def is_tray(self) -> bool:
-        return self._icon is not None
+        return self.icon is not None
+
+    def get_title(self, drop: Optional[TimedDrop]) -> str:
+        if drop is None:
+            return self.TITLE
+        return (
+            f"{self.TITLE}\n"
+            f"{drop.rewards_text()}: {drop.progress:.1%} "
+            f"({drop.campaign.claimed_drops}/{drop.campaign.total_drops})"
+        )
 
     def start(self):
-        if self._icon is None:
+        if self.icon is None:
             loop = self._manager._twitch._loop
+            drop = self._manager.progress._drop
 
             # we need this because tray icon lives in a separate thread
             def bridge(func):
@@ -705,18 +725,18 @@ class TrayIcon:
                 pystray.Menu.SEPARATOR,
                 pystray.MenuItem("Quit", bridge(self.quit)),
             )
-            self._icon = pystray.Icon(
+            self.icon = pystray.Icon(
                 "twitch_miner",
                 ICOImage(resource_path("pickaxe.ico")),
-                "Twitch Drops Miner",
+                self.get_title(drop),
                 menu,
             )
-            self._icon.run_detached()
+            self.icon.run_detached()
 
     def stop(self):
-        if self._icon is not None:
-            self._icon.stop()
-            self._icon = None
+        if self.icon is not None:
+            self.icon.stop()
+            self.icon = None
 
     def quit(self):
         self.stop()
@@ -733,8 +753,8 @@ class TrayIcon:
             self._manager._root.deiconify()
 
     def notify(self, message: str, title: Optional[str] = None, duration: float = 10):
-        if self._icon is not None:
-            icon = self._icon
+        if self.icon is not None:
+            icon = self.icon
 
             async def notifier():
                 icon.notify(message, title)
@@ -742,6 +762,10 @@ class TrayIcon:
                 icon.remove_notification()
 
             asyncio.create_task(notifier())
+
+    def display_progress(self, drop: TimedDrop):
+        if self.icon is not None:
+            self.icon.title = self.get_title(drop)
 
 
 class GUIManager:
