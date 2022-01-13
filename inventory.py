@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from functools import cached_property
 from typing import Optional, List, Dict, TYPE_CHECKING
 
 from constants import JsonType, GQL_OPERATIONS
@@ -43,7 +44,7 @@ class BaseDrop:
         self.is_claimed: bool = data["self"]["isClaimed"]
         self._precondition_drops: List[str] = [d["id"] for d in (data["preconditionDrops"] or [])]
 
-    @property
+    @cached_property
     def preconditions(self) -> bool:
         campaign = self.campaign
         return all(campaign.timed_drops[pid].is_claimed for pid in self._precondition_drops)
@@ -61,10 +62,25 @@ class BaseDrop:
     def can_claim(self) -> bool:
         return self.claim_id is not None
 
+    def _on_claim(self) -> None:
+        del self.preconditions
+
+    def update_claim(self, claim_id: str):
+        self.claim_id = claim_id
+
     def rewards_text(self, delim: str = ", ") -> str:
         return delim.join(self.rewards)
 
     async def claim(self) -> bool:
+        result = await self._claim()
+        if result:
+            self.is_claimed = True
+            # notify the campaign about claiming
+            # this will cause it to call our _on_claim, so no need to call it ourselves here
+            self.campaign._on_claim()
+        return result
+
+    async def _claim(self) -> bool:
         """
         Returns True if the claim succeeded, False otherwise.
         """
@@ -72,10 +88,11 @@ class BaseDrop:
             return False
         if self.is_claimed:
             return True
-        op = GQL_OPERATIONS["ClaimDrop"].with_variables(
-            {"input": {"dropInstanceID": self.claim_id}}
+        response = await self._twitch.gql_request(
+            GQL_OPERATIONS["ClaimDrop"].with_variables(
+                {"input": {"dropInstanceID": self.claim_id}}
+            )
         )
-        response = await self._twitch.gql_request(op)
         data = response["data"]
         if "errors" in data and data["errors"]:
             return False
@@ -86,7 +103,6 @@ class BaseDrop:
                 data["claimDropRewards"]["status"]
                 in ["ELIGIBLE_FOR_ALL", "DROP_INSTANCE_ALREADY_CLAIMED"]
             ):
-                self.is_claimed = True
                 return True
         return False
 
@@ -100,13 +116,18 @@ class TimedDrop(BaseDrop):
             # claimed drops report 0 current minutes, so we need to make a correction
             self.current_minutes = self.required_minutes
 
-    @property
+    @cached_property
     def remaining_minutes(self) -> int:
         return self.required_minutes - self.current_minutes
 
-    @property
+    @cached_property
     def progress(self) -> float:
         return self.current_minutes / self.required_minutes
+
+    def _on_minutes_changed(self) -> None:
+        del self.progress
+        del self.remaining_minutes
+        self.campaign._on_minutes_changed()
 
     async def claim(self) -> bool:
         result = await super().claim()
@@ -114,11 +135,9 @@ class TimedDrop(BaseDrop):
             self.current_minutes = self.required_minutes
         return result
 
-    def update_claim(self, claim_id: str):
-        self.claim_id = claim_id
-
     def update_minutes(self, minutes: int):
         self.current_minutes = minutes
+        self._on_minutes_changed()
 
     def display(self, *, countdown: bool = True):
         self.campaign._twitch.gui.progress.display(self, countdown=countdown)
@@ -126,6 +145,7 @@ class TimedDrop(BaseDrop):
     def bump_minutes(self):
         if self.current_minutes < self.required_minutes:
             self.current_minutes += 1
+            self._on_minutes_changed()
 
 
 class DropsCampaign:
@@ -160,18 +180,28 @@ class DropsCampaign:
     def total_drops(self) -> int:
         return len(self.timed_drops)
 
-    @property
+    @cached_property
     def claimed_drops(self) -> int:
         return sum(d.is_claimed for d in self.timed_drops.values())
 
-    @property
+    @cached_property
     def remaining_drops(self) -> int:
         return sum(not d.is_claimed for d in self.timed_drops.values())
 
-    @property
+    @cached_property
     def remaining_minutes(self) -> int:
         return sum(d.remaining_minutes for d in self.timed_drops.values())
 
-    @property
+    @cached_property
     def progress(self) -> float:
         return sum(d.progress for d in self.timed_drops.values()) / self.total_drops
+
+    def _on_claim(self) -> None:
+        del self.claimed_drops
+        del self.remaining_drops
+        for drop in self.timed_drops.values():
+            drop._on_claim()
+
+    def _on_minutes_changed(self) -> None:
+        del self.progress
+        del self.remaining_minutes
