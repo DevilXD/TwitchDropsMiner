@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 import ctypes
 import logging
 import argparse
@@ -57,7 +58,7 @@ except AttributeError:
     exists = False
 if exists:
     # already running - exit
-    quit()
+    sys.exit()
 # handle input parameters
 parser = argparse.ArgumentParser(
     "Twitch Drops Miner (by DevilXD).exe",
