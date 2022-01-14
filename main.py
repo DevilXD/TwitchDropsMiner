@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import ctypes
 import logging
 import argparse
 from typing import Optional
 
 from twitch import Twitch
 from version import __version__
-from constants import FORMATTER, LOG_PATH
+from constants import FORMATTER, LOG_PATH, WINDOW_TITLE
 
 
 class ParsedArgs(argparse.Namespace):
@@ -48,6 +49,15 @@ class ParsedArgs(argparse.Namespace):
         return logging.NOTSET
 
 
+# check if we're not already running
+try:
+    exists = ctypes.windll.user32.FindWindowW(None, WINDOW_TITLE)
+except AttributeError:
+    # we're not on Windows - continue
+    exists = False
+if exists:
+    # already running - exit
+    quit()
 # handle input parameters
 parser = argparse.ArgumentParser(
     "Twitch Drops Miner (by DevilXD).exe",

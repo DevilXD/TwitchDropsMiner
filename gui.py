@@ -18,8 +18,7 @@ try:
 except ModuleNotFoundError as exc:
     raise ImportError("You have to run 'pip install pystray' first") from exc
 
-from version import __version__
-from constants import FORMATTER, WS_TOPICS_LIMIT, MAX_WEBSOCKETS, State
+from constants import FORMATTER, WS_TOPICS_LIMIT, MAX_WEBSOCKETS, WINDOW_TITLE, State
 
 if TYPE_CHECKING:
     from twitch import Twitch
@@ -781,7 +780,7 @@ class GUIManager:
         self._root.withdraw()
         root.resizable(False, True)
         root.iconbitmap(resource_path("pickaxe.ico"))  # window icon
-        root.title(f"Twitch Drops Miner v{__version__} (by DevilXD)")  # window title
+        root.title(WINDOW_TITLE)  # window title
         root.protocol("WM_DELETE_WINDOW", self.close)
         root.bind_all("<KeyPress-Escape>", self.unfocus)
         self._style = ttk.Style(root)
