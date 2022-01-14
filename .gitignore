@@ -1,8 +1,11 @@
+# Cache files
 __pycache__
 .mypy_cache
+# Build files
 /build
-/dist
+/*.spec
+/Twitch Drops Miner
+# Dev files
 /cookies.jar
 /settings.json
-/*.spec
 /log*.txt

@@ -1,1 +1,2 @@
-pyinstaller -F -w -n "Twitch Drops Miner (by DevilXD)" -i pickaxe.ico --add-data pickaxe.ico;. main.py
+pyinstaller --onefile --noconsole --name "Twitch Drops Miner (by DevilXD)" --icon pickaxe.ico ^
+--add-data pickaxe.ico;. --distpath "./Twitch Drops Miner" main.py
