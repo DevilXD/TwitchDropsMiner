@@ -8,7 +8,7 @@ import logging
 from time import time
 from functools import wraps
 from contextlib import suppress
-from typing import Any, Optional, List, Dict, Set, Iterable, TYPE_CHECKING
+from typing import Optional, List, Dict, Set, Iterable, TYPE_CHECKING
 
 from websockets.exceptions import ConnectionClosed, ConnectionClosedOK
 from websockets.client import WebSocketClientProtocol, connect as websocket_connect
@@ -66,7 +66,7 @@ class Websocket:
         self._next_ping: float = time()
         self._max_pong: float = self._next_ping + PING_TIMEOUT.total_seconds()
         # main task, responsible for receiving messages, sending them, and websocket ping
-        self._handle_task: Optional[asyncio.Task[Any]] = None
+        self._handle_task: Optional[asyncio.Task[None]] = None
         # topics stuff
         self.topics: Dict[str, WebsocketTopic] = {}
         self._submitted: Set[WebsocketTopic] = set()
@@ -81,12 +81,9 @@ class Websocket:
         return self._connected_flag.wait()
 
     def set_status(self, status: Optional[str] = None, refresh_topics: bool = False):
-        kwargs: Dict[str, Any] = {}
-        if status is not None:
-            kwargs["status"] = status
-        if refresh_topics:
-            kwargs["topics"] = len(self.topics)
-        self._twitch.gui.websockets.update(self._idx, **kwargs)
+        self._twitch.gui.websockets.update(
+            self._idx, status=status, topics=refresh_topics and len(self.topics) or None
+        )
 
     def request_reconnect(self):
         ws_logger.warning(f"Websocket[{self._idx}] requested reconnect.")
