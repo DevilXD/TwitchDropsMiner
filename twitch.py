@@ -316,6 +316,7 @@ class Twitch:
                         self.change_state(State.CHANNELS_CLEANUP)
             await self._state_change.wait()
 
+    @task_wrapper
     async def _watch_loop(self) -> None:
         interval = WATCH_INTERVAL.total_seconds()
         i = 1
@@ -396,6 +397,7 @@ class Twitch:
             self.gui.channels.set_watching(channel)
             self._watching_restart.set()
 
+    @task_wrapper
     async def process_stream_state(self, channel_id: int, message: JsonType):
         msg_type = message["type"]
         channel = self.channels.get(channel_id)
