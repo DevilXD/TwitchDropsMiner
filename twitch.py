@@ -161,6 +161,10 @@ class Twitch:
         loop.close()
 
     def stop(self):
+        self.stop_watching()
+        if self._watching_task is not None:
+            self._watching_task.cancel()
+            self._watching_task = None
         if self._main_task is not None:
             self._main_task.cancel()
             self._main_task = None
@@ -168,13 +172,12 @@ class Twitch:
     async def close(self):
         start_time = time()
         self.gui.print("Exiting...")
-        self.stop_watching()
-        if self._watching_task is not None:
-            self._watching_task.cancel()
-            self._watching_task = None
+        self.stop()
+        # save our cookies
         self._session.cookie_jar.save(COOKIES_PATH)  # type: ignore
-        await self._session.close()
+        # stop websocket and close session
         await self.websocket.stop()
+        await self._session.close()
         # wait at least one full second + whatever it takes to complete the closing
         # this allows aiohttp to safely close the session
         await asyncio.sleep(start_time + 1 - time())
@@ -372,6 +375,8 @@ class Twitch:
                 # cleanup channels every hour
                 self.change_state(State.CHANNELS_CLEANUP)
             i = (i + 1) % 3600
+            # we use wait_for here to allow an asyncio.sleep that can be ended prematurely,
+            # without cancelling the containing task
             self._watching_restart.clear()
             try:
                 await asyncio.wait_for(
