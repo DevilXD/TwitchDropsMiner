@@ -9,7 +9,6 @@ This application allows you to AFK mine timed Twitch drops, without having to wo
 - Stream tags and drop campaign validation, so you don't end up watching a stream that can't earn you the drop.
 - Channel stream switching, when the one you were currently watching goes offline.
 - Cookie saving between sessions, so you don't need to login every time.
-- Game switching once there's no more drops available for the selected game.
 - Mining is stopped automatically when the last available drop has been mined.
 
 **Not managed / TODO / manual:**

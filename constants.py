@@ -47,6 +47,7 @@ FORMATTER = logging.Formatter(
 
 
 class State(Enum):
+    IDLE = auto()
     INVENTORY_FETCH = auto()
     GAMES_UPDATE = auto()
     GAME_SELECT = auto()

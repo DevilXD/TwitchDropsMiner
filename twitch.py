@@ -205,7 +205,10 @@ class Twitch:
         selected_game: Optional[Game] = None
         self.change_state(State.INVENTORY_FETCH)
         while True:
-            if self._state is State.INVENTORY_FETCH:
+            if self._state is State.IDLE:
+                # clear the flag and wait until it's set again
+                self._state_change.clear()
+            elif self._state is State.INVENTORY_FETCH:
                 await self.fetch_inventory()
                 self.change_state(State.GAMES_UPDATE)
             elif self._state is State.GAMES_UPDATE:
@@ -308,12 +311,8 @@ class Twitch:
                             break
                     else:
                         self.stop_watching()
-                        selected_game = self.gui.games.select_next()
-                        if selected_game is None:
-                            self.gui.print("No suitable channel to watch.")
-                            # TODO: Figure out what to do here.
-                            return
-                        self.change_state(State.CHANNELS_CLEANUP)
+                        self.gui.print(f"No suitable channel to watch for game: {selected_game}")
+                        self.change_state(State.IDLE)
             await self._state_change.wait()
 
     @task_wrapper

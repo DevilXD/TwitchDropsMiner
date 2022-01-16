@@ -281,6 +281,7 @@ class GameSelector:
             )
             if selected_index is not None:
                 # reselect the currently selected item
+                self._list.selection_clear(0, "end")
                 self._list.selection_set(selected_index)
             else:
                 # the game we've had selected isn't there anymore - clear selection
@@ -302,24 +303,12 @@ class GameSelector:
             if not self._games:
                 raise RuntimeError("No games to select from")
             # select and return the first game from the list
+            self._list.selection_clear(0, "end")
             self._list.selection_set(0)
             first_game = next(iter(self._games.values()))
             self._selection = str(first_game)
             return first_game
         return self._games[self._selection]
-
-    def select_next(self) -> Optional[Game]:
-        current = self._list.curselection()
-        if not current:
-            return self.get_selection()
-        next_idx = current[0]+1
-        game_name = self._list.get(next_idx)
-        if not game_name:
-            # this was the last game on the list
-            return None
-        self._list.selection_set(next_idx)
-        self._selection = game_name
-        return self._games[game_name]
 
 
 class _BaseVars(TypedDict):
@@ -978,9 +967,6 @@ if __name__ == "__main__":
             create_game(491115, "Paladins"),
             # create_game(460630, "Tom Clancy's Rainbow Six Siege"),
         ])
-        gui.games.select_next()
-        gui.games.select_next()
-        gui.games.select_next()
         # Channel list
         gui.channels.display(create_channel("PaladinsGame", 0, None, 0, 0))
         channel = create_channel("Traitus", 1, None, 0, 0)
