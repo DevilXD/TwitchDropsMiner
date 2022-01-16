@@ -437,7 +437,7 @@ class CampaignProgress:
             self._timer_task.cancel()
             self._timer_task = None
 
-    def display(self, drop: TimedDrop, *, countdown: bool = True):
+    def display(self, drop: TimedDrop, *, countdown: bool = True, subone: bool = False):
         self._drop = drop
         # drop update
         vars_drop = self._vars["drop"]
@@ -459,11 +459,14 @@ class CampaignProgress:
             # reschedule our seconds update timer
             self.stop_timer()
             self.start_timer()
-        else:
+        elif subone:
             # display the current remaining time at 0 seconds (after substracting the minute)
             # this is because the watch loop will substract this minute
-            # right after the first watch payload is sent
+            # right after the first watch payload returns with a time update
             self._update_time(0)
+        else:
+            # display full time with no substracting
+            self._update_time(60)
 
 
 class ConsoleOutput:

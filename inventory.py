@@ -174,8 +174,8 @@ class TimedDrop(BaseDrop):
         self.current_minutes = minutes
         self._on_minutes_changed()
 
-    def display(self, *, countdown: bool = True):
-        self.campaign._twitch.gui.progress.display(self, countdown=countdown)
+    def display(self, *, countdown: bool = True, subone: bool = False):
+        self.campaign._twitch.gui.progress.display(self, countdown=countdown, subone=subone)
 
     def bump_minutes(self):
         if self.current_minutes < self.required_minutes:

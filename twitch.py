@@ -266,6 +266,12 @@ class Twitch:
                     live_streams: List[Channel] = await self.get_live_streams(
                         selected_game, [DROPS_ENABLED_TAG]
                     )
+                    if live_streams:
+                        # there are online streams, so let's pre-display the active drop again,
+                        # but this time with a substracted minute
+                        active_drop = self.get_active_drop(selected_game)
+                        if active_drop is not None:
+                            active_drop.display(countdown=False, subone=True)
                     # add them, filtering out ones we already have
                     for channel in live_streams:
                         if channel.id not in self.channels:
