@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from functools import cached_property
-from typing import Optional, List, Dict, TYPE_CHECKING
+from typing import Optional, List, Dict, Set, TYPE_CHECKING
 
 from constants import JsonType, GQL_OPERATIONS
 
@@ -39,7 +39,7 @@ class Game:
 
 
 class BaseDrop:
-    def __init__(self, campaign: DropsCampaign, data: JsonType):
+    def __init__(self, campaign: DropsCampaign, data: JsonType, claimed_benefits: Set[str]):
         self._twitch: Twitch = campaign._twitch
         self.id: str = data["id"]
         self.name: str = data["name"]
@@ -47,9 +47,13 @@ class BaseDrop:
         self.rewards: List[str] = [b["benefit"]["name"] for b in data["benefitEdges"]]
         self.starts_at: datetime = datetime.strptime(data["startAt"], "%Y-%m-%dT%H:%M:%SZ")
         self.ends_at: datetime = datetime.strptime(data["endAt"], "%Y-%m-%dT%H:%M:%SZ")
-        # If claim_id is not None, we can use it to claim the drop
-        self.claim_id: Optional[str] = data["self"]["dropInstanceID"]
-        self.is_claimed: bool = data["self"]["isClaimed"]
+        self.claim_id: Optional[str] = None
+        self.is_claimed: bool = False
+        if "self" in data:
+            self.claim_id = data["self"]["dropInstanceID"]
+            self.is_claimed = data["self"]["isClaimed"]
+        elif all(b["benefit"]["id"] in claimed_benefits for b in data["benefitEdges"]):
+            self.is_claimed = True
         self._precondition_drops: List[str] = [d["id"] for d in (data["preconditionDrops"] or [])]
 
     def __repr__(self) -> str:
@@ -101,10 +105,10 @@ class BaseDrop:
         """
         Returns True if the claim succeeded, False otherwise.
         """
-        if not self.can_claim:
-            return False
         if self.is_claimed:
             return True
+        if not self.can_claim:
+            return False
         response = await self._twitch.gql_request(
             GQL_OPERATIONS["ClaimDrop"].with_variables(
                 {"input": {"dropInstanceID": self.claim_id}}
@@ -125,9 +129,11 @@ class BaseDrop:
 
 
 class TimedDrop(BaseDrop):
-    def __init__(self, campaign: DropsCampaign, data: JsonType):
-        super().__init__(campaign, data)
-        self.current_minutes: int = data["self"]["currentMinutesWatched"]
+    def __init__(self, campaign: DropsCampaign, data: JsonType, claimed_benefits: Set[str]):
+        super().__init__(campaign, data, claimed_benefits)
+        self.current_minutes: int = 0
+        if "self" in data:
+            self.current_minutes = data["self"]["currentMinutesWatched"]
         self.required_minutes: int = data["requiredMinutesWatched"]
         if self.is_claimed:
             # claimed drops report 0 current minutes, so we need to make a correction
@@ -178,7 +184,7 @@ class TimedDrop(BaseDrop):
 
 
 class DropsCampaign:
-    def __init__(self, twitch: Twitch, data: JsonType):
+    def __init__(self, twitch: Twitch, data: JsonType, claimed_benefits: Set[str]):
         self._twitch: Twitch = twitch
         self.id: str = data["id"]
         self.name: str = data["name"]
@@ -190,7 +196,8 @@ class DropsCampaign:
         if allowed["channels"] is not None:
             self.allowed_channels.extend(ch["name"] for ch in allowed["channels"])
         self.timed_drops: Dict[str, TimedDrop] = {
-            d["id"]: TimedDrop(self, d) for d in data["timeBasedDrops"]
+            drop_data["id"]: TimedDrop(self, drop_data, claimed_benefits)
+            for drop_data in data["timeBasedDrops"]
         }
 
     def __repr__(self) -> str:

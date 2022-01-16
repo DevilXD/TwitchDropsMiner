@@ -9,7 +9,7 @@ from time import time
 from itertools import chain
 from functools import partial
 from typing import (
-    Callable, Iterable, Optional, Union, List, Dict, Generic, TypeVar, cast, TYPE_CHECKING
+    Optional, Union, List, Dict, Set, Callable, Iterable, Generic, TypeVar, cast, TYPE_CHECKING
 )
 
 try:
@@ -697,13 +697,42 @@ class Twitch:
             gql_logger.debug(f"GQL Response: {response_json}")
             return response_json
 
-    async def fetch_inventory(self) -> None:
-        response = await self.gql_request(GQL_OPERATIONS["Inventory"])
-        inventory = response["data"]["currentUser"]["inventory"]["dropCampaignsInProgress"] or []
-        campaigns = sorted(
-            (DropsCampaign(self, data) for data in inventory),
-            key=lambda c: c.ends_at,
+    async def fetch_campaign(self, campaign_id: str, claimed_benefits: Set[str]) -> DropsCampaign:
+        response = await self.gql_request(
+            GQL_OPERATIONS["CampaignDetails"].with_variables(
+                {"channelLogin": str(self._user_id), "dropID": campaign_id}
+            )
         )
+        return DropsCampaign(self, response["data"]["user"]["dropCampaign"], claimed_benefits)
+
+    async def fetch_inventory(self) -> None:
+        # fetch all available campaign IDs, that are currently ACTIVE and account is connected
+        response = await self.gql_request(GQL_OPERATIONS["Campaigns"])
+        data = response["data"]["currentUser"]["dropCampaigns"] or []
+        available_campaigns: Set[str] = set(
+            c["id"] for c in data
+            if c["status"] == "ACTIVE" and c["self"]["isAccountConnected"]
+        )
+        # fetch in-progress campaigns (inventory)
+        response = await self.gql_request(GQL_OPERATIONS["Inventory"])
+        inventory = response["data"]["currentUser"]["inventory"]
+        ongoing_campaigns = inventory["dropCampaignsInProgress"] or []
+        # this contains claimed benefit edge IDs, not drop IDs
+        claimed_benefits: Set[str] = set(d["id"] for d in inventory["gameEventDrops"])
+        campaigns: List[DropsCampaign] = [
+            DropsCampaign(self, campaign_data, claimed_benefits)
+            for campaign_data in ongoing_campaigns
+        ]
+        # filter out in-progress campaigns from all available campaigns,
+        # since we already have all information needed for them
+        for campaign in campaigns:
+            available_campaigns.discard(campaign.id)
+        # add campaigns that remained, that can be earned but are not in-progress yet
+        for campaign_id in available_campaigns:
+            campaign = await self.fetch_campaign(campaign_id, claimed_benefits)
+            if any(drop.can_earn for drop in campaign.timed_drops.values()):
+                campaigns.append(campaign)
+        campaigns.sort(key=lambda c: c.ends_at)
         self.inventory = campaigns
 
     def get_drop(self, drop_id: str) -> Optional[TimedDrop]:
