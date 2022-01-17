@@ -2,12 +2,16 @@ from __future__ import annotations
 
 import sys
 import ctypes
+import signal
+import asyncio
 import logging
 import argparse
+import traceback
 from typing import Optional
 
 from twitch import Twitch
 from version import __version__
+from exceptions import CaptchaRequired
 from constants import FORMATTER, LOG_PATH, WINDOW_TITLE
 
 
@@ -85,6 +89,33 @@ if options.log:
     logger.addHandler(handler)
 logging.getLogger("TwitchDrops.gql").setLevel(options.debug_gql)
 logging.getLogger("TwitchDrops.websocket").setLevel(options.debug_ws)
+
 # client run
-client = Twitch(options)
-client.start()
+loop = asyncio.get_event_loop()
+client = Twitch(loop, options)
+signal.signal(signal.SIGINT, lambda *_: client.close())
+signal.signal(signal.SIGTERM, lambda *_: client.close())
+try:
+    loop.run_until_complete(client.run())
+except CaptchaRequired:
+    client.prevent_close()
+    client.print(
+        "Your login attempt was denied by CAPTCHA.\nPlease try again in +12 hours."
+    )
+except Exception:
+    client.prevent_close()
+    client.print("Fatal error encountered:\n")
+    client.print(traceback.format_exc())
+finally:
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+    signal.signal(signal.SIGTERM, signal.SIG_DFL)
+    loop.run_until_complete(client.shutdown())
+if not client.gui.close_requested:
+    client.print(
+        "\nApplication Terminated.\nClose the window to exit the application."
+    )
+loop.run_until_complete(client.gui.wait_until_closed())
+client.gui.stop()
+client.gui.close_window()
+loop.run_until_complete(loop.shutdown_asyncgens())
+loop.close()

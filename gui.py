@@ -260,7 +260,7 @@ class GameSelector:
             highlightthickness=0,
         )
         self._list.pack(fill="both", expand=True)
-        self._selection: Optional[str] = self._manager._twitch._options.game
+        self._selection: Optional[str] = self._manager._twitch.options.game
         self._games: OrderedDict[str, Game] = OrderedDict()
         self._list.bind("<<ListboxSelect>>", self._on_select)
 
@@ -481,11 +481,11 @@ class ConsoleOutput:
         yscroll = ttk.Scrollbar(frame, orient="vertical")
         self._text = tk.Text(
             frame,
-            exportselection=False,
-            height=10,
             width=52,
+            height=10,
             wrap="none",
             state="disabled",
+            exportselection=False,
             xscrollcommand=xscroll.set,
             yscrollcommand=yscroll.set,
         )
@@ -689,7 +689,7 @@ class TrayIcon:
         self.icon: Optional[pystray.Icon] = None
         self._button = ttk.Button(master, command=self.minimize, text="Minimize to Tray")
         self._button.grid(column=0, row=0, sticky="e")
-        if manager._twitch._options.tray:
+        if manager._twitch.options.tray:
             # start hidden in tray
             self._manager._root.after_idle(self.minimize)
 
@@ -799,11 +799,11 @@ class GUIManager:
         root.update_idletasks()
         root.minsize(width=0, height=root.winfo_reqheight())
         # register logging handler
-        handler = TKOutputHandler(self)
-        handler.setFormatter(FORMATTER)
-        logging.getLogger("TwitchDrops").addHandler(handler)
+        self._handler = TKOutputHandler(self)
+        self._handler.setFormatter(FORMATTER)
+        logging.getLogger("TwitchDrops").addHandler(self._handler)
         # show the window when ready
-        if not self._twitch._options.tray:
+        if not self._twitch.options.tray:
             self._root.deiconify()
 
     # https://stackoverflow.com/questions/56329342/tkinter-treeview-background-tag-not-working
@@ -858,9 +858,20 @@ class GUIManager:
         self._poll_task = None
 
     def close(self):
+        """
+        Requests the application to close.
+        The window itself will be closed in the closing sequence later.
+        """
         self._closed.set()
         # notify client we're supposed to close
         self._twitch.request_close()
+
+    def close_window(self):
+        """
+        Closes the window. Invalidates the logger.
+        """
+        self._root.destroy()
+        logging.getLogger("TwitchDrops").removeHandler(self._handler)
 
     def unfocus(self, event):
         # support pressing ESC to unfocus

@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 import asyncio
 import logging
-import traceback
 from yarl import URL
 from time import time
 from itertools import chain
@@ -75,8 +74,9 @@ class _AwaitableValue(Generic[_V]):
 
 
 class Twitch:
-    def __init__(self, options: ParsedArgs):
-        self._options = options
+    def __init__(self, loop: asyncio.AbstractEventLoop, options: ParsedArgs):
+        self._loop = loop
+        self.options = options
         # GUI
         self.gui = GUIManager(self)
         # Cookies, session and auth
@@ -84,6 +84,7 @@ class Twitch:
         if os.path.isfile(COOKIES_PATH):
             cookie_jar.load(COOKIES_PATH)
         self._session = aiohttp.ClientSession(
+            loop=loop,
             cookie_jar=cookie_jar,
             headers={"User-Agent": USER_AGENT},
             timeout=aiohttp.ClientTimeout(connect=5, total=10),
@@ -94,7 +95,7 @@ class Twitch:
         # State management
         self._state: State = State.INVENTORY_FETCH
         self._state_change = asyncio.Event()
-        self.inventory: List[DropsCampaign] = []  # inventory
+        self.inventory: List[DropsCampaign] = []
         # Storing and watching channels
         self.channels: Dict[int, Channel] = {}
         self._watching_channel: _AwaitableValue[Channel] = _AwaitableValue()
@@ -103,14 +104,14 @@ class Twitch:
         self._drop_update: Optional[asyncio.Future[bool]] = None
         # Websocket
         self.websocket = WebsocketPool(self)
-        # Runner task
-        self._main_task: Optional[asyncio.Task[None]] = None
 
     def wait_until_login(self):
         return self._is_logged_in.wait()
 
     def change_state(self, state: State) -> None:
-        self._state = state
+        if self._state is not State.EXIT:
+            # prevent state changing once we switch to exit state
+            self._state = state
         self._state_change.set()
 
     def state_change(self, state: State) -> Callable[[], None]:
@@ -118,58 +119,40 @@ class Twitch:
         # perfect for GUI usage
         return partial(self.change_state, state)
 
+    def close(self):
+        """
+        Called when the application is requested to close by the operating system,
+        usually by receiving a SIGINT or SIGTERM.
+        """
+        self.gui.close()
+
     def request_close(self):
         """
-        Called when the application is requested to close,
+        Called when the application is requested to close by the user,
         usually by the console or application window being closed.
         """
-        self.stop()
+        self.change_state(State.EXIT)
 
-    def start(self):
-        self._loop = loop = asyncio.get_event_loop()
-        self._main_task = loop.create_task(self._run())
+    def prevent_close(self):
+        """
+        Called when the application window has to be prevented from closing, even after the user
+        closes it with X. Usually used solely to display tracebacks drom the closing sequence.
+        """
+        self.gui.prevent_close()
 
-        try:
-            loop.run_until_complete(self._main_task)
-        except asyncio.CancelledError:
-            # happens when the user requests close
-            pass
-        except KeyboardInterrupt:
-            # KeyboardInterrupt causes run_until_complete to exit, but without cancelling the task.
-            # The loop stops and thus the task gets frozen, until the loop runs again.
-            # Because we don't want anything from there to actually run during cleanup,
-            # we need to explicitly cancel the task ourselves here.
-            self.stop()
-        except CaptchaRequired:
-            self.gui.prevent_close()
-            self.gui.print(
-                "Your login attempt was denied by CAPTCHA.\nPlease try again in +12 hours."
-            )
-        except Exception:
-            self.gui.prevent_close()
-            self.gui.print("Fatal error encountered:\n")
-            self.gui.print(traceback.format_exc())
-        finally:
-            loop.run_until_complete(self.close())
-            loop.run_until_complete(loop.shutdown_asyncgens())
-        if not self.gui.close_requested:
-            self.gui.print(
-                "\nApplication Terminated.\nClose the window to exit the application."
-            )
-        loop.run_until_complete(self.gui.wait_until_closed())
-        self.gui.stop()
-        loop.close()
+    def print(self, *args, **kwargs):
+        """
+        Can be used to print messages within the GUI.
+        """
+        self.gui.print(*args, **kwargs)
 
     def stop(self):
         self.stop_watching()
         if self._watching_task is not None:
             self._watching_task.cancel()
             self._watching_task = None
-        if self._main_task is not None:
-            self._main_task.cancel()
-            self._main_task = None
 
-    async def close(self):
+    async def shutdown(self):
         start_time = time()
         self.gui.print("Exiting...")
         self.stop()
@@ -186,7 +169,7 @@ class Twitch:
         watching_channel = self._watching_channel.get_with_default(None)
         return watching_channel is not None and watching_channel == channel
 
-    async def _run(self):
+    async def run(self):
         """
         Main method that runs the whole client.
 
@@ -322,6 +305,9 @@ class Twitch:
                         self.stop_watching()
                         self.gui.print(f"No suitable channel to watch for game: {selected_game}")
                         self.change_state(State.IDLE)
+            elif self._state is State.EXIT:
+                # we've been requested to exit the application
+                break
             await self._state_change.wait()
 
     @task_wrapper
