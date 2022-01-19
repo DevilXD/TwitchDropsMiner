@@ -569,7 +569,7 @@ class ChannelList:
             width = self._measure(width_template)
             self._const_width.add(cid)
         assert width is not None
-        self._table.column(cid, width=width, stretch=False)
+        self._table.column(cid, minwidth=width, width=width, stretch=False)
         self._table.heading(cid, text=name, anchor=anchor)
 
     def _disable_column_resize(self, event):
@@ -603,19 +603,24 @@ class ChannelList:
         value_width = self._measure(value)
         curr_width = self._table.column(column, "width")
         if value_width > curr_width:
-            self._table.column(column, minwidth=value_width, width=value_width)
+            self._table.column(column, width=value_width)
             self._redraw()
 
     def shrink(self):
         # causes the columns to shrink back after long values have been removed from it
         columns = self._table.cget("columns")
         iids = self._table.get_children()
-        if iids:  # table needs to have at least one item
-            for column in columns:
-                if column in self._const_width:
-                    continue
+        for column in columns:
+            if column in self._const_width:
+                continue
+            if iids:
+                # table haa at least one item
                 width = max(self._measure(self._table.set(i, column)) for i in iids)
-                self._table.column(column, minwidth=width, width=width)
+                self._table.column(column, width=width)
+            else:
+                # no items - use minwidth
+                minwidth = self._table.column(column, "minwidth")
+                self._table.column(column, width=minwidth)
         self._redraw()
 
     def _set(self, iid: str, column: str, value: str):
