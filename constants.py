@@ -109,7 +109,7 @@ GQL_OPERATIONS: Dict[str, GQLOperation] = {
     # returns all in-progress campaigns
     "Inventory": GQLOperation(
         "Inventory",
-        "e0765ebaa8e8eeb4043cc6dfeab3eac7f682ef5f724b81367e6e55c7aef2be4c",
+        "27f074f54ff74e0b05c8244ef2667180c2f911255e589ccd693a1a52ccca7367",
     ),
     # returns current state of drops (current drop progress)
     "CurrentDrop": GQLOperation(

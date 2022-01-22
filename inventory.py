@@ -12,6 +12,11 @@ if TYPE_CHECKING:
     from twitch import Twitch
 
 
+class Benefit:
+    def __init__(self) -> None:
+        pass
+
+
 class BaseDrop:
     def __init__(self, campaign: DropsCampaign, data: JsonType, claimed_benefits: Set[str]):
         self._twitch: Twitch = campaign._twitch
@@ -172,10 +177,10 @@ class DropsCampaign:
         allowed = data["allow"]
         self.allowed_channels: List[Channel] = (
             [
-                Channel(twitch, ch["id"], ch["displayName"], priority=True)
+                Channel(twitch, ch["id"], ch.get("displayName", ch["name"]), priority=True)
                 for ch in allowed["channels"]
             ]
-            if allowed["channels"] and allowed["isEnabled"] else []
+            if allowed["channels"] and allowed.get("isEnabled", True) else []
         )
         self.timed_drops: Dict[str, TimedDrop] = {
             drop_data["id"]: TimedDrop(self, drop_data, claimed_benefits)

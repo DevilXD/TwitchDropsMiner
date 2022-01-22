@@ -200,7 +200,9 @@ class Channel:
         )
         if response:
             stream_data = response["data"]["user"]
-            self.id = int(stream_data["id"])  # fill channel_id
+            # fill channel_id and name
+            self.id = int(stream_data["id"])
+            self.name = stream_data["displayName"]
             if stream_data["stream"]:
                 self._stream = Stream(self, stream_data)
             else:
