@@ -9,6 +9,8 @@ from functools import cached_property
 from datetime import datetime, timezone
 from typing import Any, Optional, SupportsInt, TYPE_CHECKING
 
+import aiohttp
+
 from exceptions import MinerException
 from utils import Game, invalidate_cache
 from constants import JsonType, BASE_URL, GQL_OPERATIONS, ONLINE_DELAY, DROPS_ENABLED_TAG
@@ -304,5 +306,12 @@ class Channel:
         if self._spade_url is None:
             self._spade_url = await self.get_spade_url()
         logger.debug(f"Sending minute-watched to {self.name}")
-        async with self._twitch._session.post(self._spade_url, data=self._payload) as response:
-            return response.status == 204
+        for attempt in range(5):
+            try:
+                async with self._twitch._session.post(
+                    self._spade_url, data=self._payload
+                ) as response:
+                    return response.status == 204
+            except (aiohttp.ClientConnectionError, aiohttp.ServerTimeoutError):
+                continue
+        return False

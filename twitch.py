@@ -7,6 +7,7 @@ from yarl import URL
 from time import time
 from itertools import chain
 from functools import partial
+from contextlib import suppress
 from typing import (
     Optional, Union, List, Dict, Set, OrderedDict, Callable, Iterable, cast, TYPE_CHECKING
 )
@@ -309,13 +310,25 @@ class Twitch:
                 break
             await self._state_change.wait()
 
+    async def _watch_sleep(self, delay: float) -> None:
+        # we use wait_for here to allow an asyncio.sleep that can be ended prematurely,
+        # without cancelling the containing task
+        self._watching_restart.clear()
+        with suppress(asyncio.TimeoutError):
+            await asyncio.wait_for(self._watching_restart.wait(), timeout=delay)
+
     @task_wrapper
     async def _watch_loop(self) -> None:
         interval = WATCH_INTERVAL.total_seconds()
         i = 1
         while True:
             channel = await self.watching_channel.get()
-            await channel.send_watch()
+            succeeded = await channel.send_watch()
+            if not succeeded:
+                # this usually means there are connection problems
+                self.gui.print()
+                await self._watch_sleep(60)
+                continue
             last_watch = time()
             self._drop_update = asyncio.Future()
             use_active = False
@@ -359,15 +372,7 @@ class Twitch:
                 # cleanup channels every hour
                 self.change_state(State.CHANNELS_CLEANUP)
             i = (i + 1) % 3600
-            # we use wait_for here to allow an asyncio.sleep that can be ended prematurely,
-            # without cancelling the containing task
-            self._watching_restart.clear()
-            try:
-                await asyncio.wait_for(
-                    self._watching_restart.wait(), timeout=last_watch + interval - time()
-                )
-            except asyncio.TimeoutError:
-                pass
+            await self._watch_sleep(last_watch + interval - time())
 
     def can_watch(self, channel: Channel) -> bool:
         if self.game is None:
@@ -712,10 +717,15 @@ class Twitch:
             "Client-Id": CLIENT_ID,
         }
         gql_logger.debug(f"GQL Request: {op}")
-        async with self._session.post(GQL_URL, json=op, headers=headers) as response:
-            response_json = await response.json()
-            gql_logger.debug(f"GQL Response: {response_json}")
-            return response_json
+        for attempt in range(5):
+            try:
+                async with self._session.post(GQL_URL, json=op, headers=headers) as response:
+                    response_json = await response.json()
+                    gql_logger.debug(f"GQL Response: {response_json}")
+                    return response_json
+            except (aiohttp.ClientConnectionError, aiohttp.ServerTimeoutError):
+                continue
+        raise RuntimeError(f"Ran out of attempts while handling a GQL request: {op}")
 
     async def fetch_campaign(self, campaign_id: str, claimed_benefits: Set[str]) -> DropsCampaign:
         response = await self.gql_request(
