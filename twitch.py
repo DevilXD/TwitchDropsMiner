@@ -789,7 +789,10 @@ class Twitch:
                 if campaign.active
                 for drop in campaign.drops
                 if drop.can_earn and (
-                    watching_channel is None or watching_channel in campaign.allowed_channels
+                    not campaign.allowed_channels  # campaign has no ACL
+                    or watching_channel is None  # we aren't watching anything yet
+                    # we are watching a channel that applies to this campaign
+                    or watching_channel in campaign.allowed_channels
                 )
             ),
             key=lambda d: d.remaining_minutes,
