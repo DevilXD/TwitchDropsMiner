@@ -772,6 +772,16 @@ class Twitch:
             self.inventory[game].append(campaign)
 
     def get_drop(self, drop_id: str) -> Optional[TimedDrop]:
+        """
+        Returns a drop from the inventory, based on it's ID.
+        """
+        # try it with the currently selected game first
+        if self.game is not None:
+            for campaign in self.inventory[self.game]:
+                drop = campaign.timed_drops.get(drop_id)
+                if drop is not None:
+                    return drop
+        # fallback to checking all campaigns
         for campaign in chain(*self.inventory.values()):
             drop = campaign.timed_drops.get(drop_id)
             if drop is not None:
