@@ -249,7 +249,7 @@ class Twitch:
                         else:
                             no_acl = True
                     # set them online if possible
-                    await asyncio.gather(*(channel.get_stream() for channel in new_channels))
+                    await asyncio.gather(*(channel.check_online() for channel in new_channels))
                     if no_acl:
                         # if there's at least one game without an ACL,
                         # get a list of all live channels with drops enabled

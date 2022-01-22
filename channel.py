@@ -5,11 +5,12 @@ import json
 import asyncio
 import logging
 from base64 import b64encode
+from functools import cached_property
 from datetime import datetime, timezone
 from typing import Any, Optional, SupportsInt, TYPE_CHECKING
 
-from utils import Game
 from exceptions import MinerException
+from utils import Game, invalidate_cache
 from constants import JsonType, BASE_URL, GQL_OPERATIONS, ONLINE_DELAY, DROPS_ENABLED_TAG
 
 if TYPE_CHECKING:
@@ -93,7 +94,9 @@ class Channel:
         self._stream = None
         self._pending_stream_up = None
         self.priority = priority
-        await self.get_stream()
+        stream = await self.get_stream()
+        if stream is not None:
+            self._stream = stream
         return self
 
     def __repr__(self) -> str:
@@ -204,15 +207,15 @@ class Channel:
             self.id = int(stream_data["id"])
             self.name = stream_data["displayName"]
             if stream_data["stream"]:
-                self._stream = Stream(self, stream_data)
-            else:
-                self._stream = None
-        return self._stream
+                return Stream(self, stream_data)
+        return None
 
     async def check_online(self) -> bool:
         stream = await self.get_stream()
         if stream is None:
+            invalidate_cache(self, "_payload")
             return False
+        self._stream = stream
         return True
 
     async def _online_delay(self):
@@ -250,6 +253,7 @@ class Channel:
             self.display()
         if self.online:
             self._stream = None
+            invalidate_cache(self, "_payload")
             self.display()
             self._twitch.on_offline(self)
 
@@ -273,7 +277,8 @@ class Channel:
             # so if we're not calling it, we need to do it ourselves
             self.display()
 
-    def _encode_payload(self):
+    @cached_property
+    def _payload(self):
         assert self._stream is not None
         payload = [
             {
@@ -299,7 +304,5 @@ class Channel:
         if self._spade_url is None:
             self._spade_url = await self.get_spade_url()
         logger.debug(f"Sending minute-watched to {self.name}")
-        async with self._twitch._session.post(
-            self._spade_url, data=self._encode_payload()
-        ) as response:
+        async with self._twitch._session.post(self._spade_url, data=self._payload) as response:
             return response.status == 204
