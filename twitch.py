@@ -622,7 +622,7 @@ class Twitch:
                         raise CaptchaRequired()
                     elif error_code == 3001:
                         # wrong password you dummy
-                        logger.debug("Login failed due to incorrect login or pass")
+                        logger.debug("Login failed due to incorrect username or password")
                         self.gui.print("Incorrect username or password.")
                         self.gui.login.clear(password=True)
                         break
