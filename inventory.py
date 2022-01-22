@@ -2,40 +2,14 @@ from __future__ import annotations
 
 from datetime import datetime
 from functools import cached_property
-from typing import Optional, List, Dict, Set, TYPE_CHECKING
+from typing import Optional, List, Dict, Set, Iterable, TYPE_CHECKING
 
+from channel import Channel
+from utils import invalidate_cache, Game
 from constants import JsonType, GQL_OPERATIONS
 
 if TYPE_CHECKING:
     from twitch import Twitch
-
-
-def _invalidate_cache(instance, *attrnames):
-    for name in attrnames:
-        try:
-            delattr(instance, name)
-        except AttributeError:
-            pass
-
-
-class Game:
-    def __init__(self, data: JsonType):
-        self.id: int = int(data["id"])
-        self.name: str = data["name"]
-
-    def __str__(self) -> str:
-        return self.name
-
-    def __repr__(self) -> str:
-        return f"Game({self.id}, {self.name})"
-
-    def __eq__(self, other: object):
-        if isinstance(other, self.__class__):
-            return self.id == other.id
-        return NotImplemented
-
-    def __hash__(self) -> int:
-        return hash((self.__class__.__name__, self.id))
 
 
 class BaseDrop:
@@ -53,6 +27,9 @@ class BaseDrop:
             self.claim_id = data["self"]["dropInstanceID"]
             self.is_claimed = data["self"]["isClaimed"]
         elif all(b["benefit"]["id"] in claimed_benefits for b in data["benefitEdges"]):
+            # NOTE: this may erroneously mark drops from an unprogressed campaign as claimed
+            # if the benefits repeat, but shouldn't cause a problem
+            # once the campaign is in-progress
             self.is_claimed = True
         self._precondition_drops: List[str] = [d["id"] for d in (data["preconditionDrops"] or [])]
 
@@ -84,7 +61,7 @@ class BaseDrop:
         return self.claim_id is not None
 
     def _on_claim(self) -> None:
-        _invalidate_cache(self, "preconditions")
+        invalidate_cache(self, "preconditions")
 
     def update_claim(self, claim_id: str):
         self.claim_id = claim_id
@@ -161,7 +138,7 @@ class TimedDrop(BaseDrop):
         return self.current_minutes / self.required_minutes
 
     def _on_minutes_changed(self) -> None:
-        _invalidate_cache(self, "progress", "remaining_minutes")
+        invalidate_cache(self, "progress", "remaining_minutes")
         self.campaign._on_minutes_changed()
 
     async def claim(self) -> bool:
@@ -192,9 +169,13 @@ class DropsCampaign:
         self.starts_at: datetime = datetime.strptime(data["startAt"], "%Y-%m-%dT%H:%M:%SZ")
         self.ends_at: datetime = datetime.strptime(data["endAt"], "%Y-%m-%dT%H:%M:%SZ")
         allowed = data["allow"]
-        self.allowed_channels: List[str] = []
-        if allowed["channels"] is not None:
-            self.allowed_channels.extend(ch["name"] for ch in allowed["channels"])
+        self.allowed_channels: List[Channel] = (
+            [
+                Channel(twitch, ch["id"], ch["displayName"], priority=True)
+                for ch in allowed["channels"]
+            ]
+            if allowed["channels"] and allowed["isEnabled"] else []
+        )
         self.timed_drops: Dict[str, TimedDrop] = {
             drop_data["id"]: TimedDrop(self, drop_data, claimed_benefits)
             for drop_data in data["timeBasedDrops"]
@@ -202,6 +183,10 @@ class DropsCampaign:
 
     def __repr__(self) -> str:
         return f"Campaign({self.name}({self.game!s}), {self.claimed_drops}/{self.total_drops})"
+
+    @property
+    def drops(self) -> Iterable[TimedDrop]:
+        return self.timed_drops.values()
 
     @property
     def active(self):
@@ -221,11 +206,11 @@ class DropsCampaign:
 
     @cached_property
     def claimed_drops(self) -> int:
-        return sum(d.is_claimed for d in self.timed_drops.values())
+        return sum(d.is_claimed for d in self.drops)
 
     @cached_property
     def remaining_drops(self) -> int:
-        return sum(not d.is_claimed for d in self.timed_drops.values())
+        return sum(not d.is_claimed for d in self.drops)
 
     @cached_property
     def remaining_minutes(self) -> int:
@@ -233,12 +218,12 @@ class DropsCampaign:
 
     @cached_property
     def progress(self) -> float:
-        return sum(d.progress for d in self.timed_drops.values()) / self.total_drops
+        return sum(d.progress for d in self.drops) / self.total_drops
 
     def _on_claim(self) -> None:
-        _invalidate_cache(self, "claimed_drops", "remaining_drops")
-        for drop in self.timed_drops.values():
+        invalidate_cache(self, "claimed_drops", "remaining_drops")
+        for drop in self.drops:
             drop._on_claim()
 
     def _on_minutes_changed(self) -> None:
-        _invalidate_cache(self, "progress", "remaining_minutes")
+        invalidate_cache(self, "progress", "remaining_minutes")

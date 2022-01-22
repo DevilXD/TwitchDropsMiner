@@ -16,7 +16,7 @@
             "type": "python",
             "request": "launch",
             "program": "main.py",
-            "args": ["-vv"],
+            "args": ["--debug", "-vv"],
             "console": "integratedTerminal",
             "justMyCode": false
         },
@@ -25,7 +25,7 @@
             "type": "python",
             "request": "launch",
             "program": "main.py",
-            "args": ["-vvv"],
+            "args": ["--debug", "-vvv"],
             "console": "integratedTerminal",
             "justMyCode": false
         },
@@ -34,7 +34,7 @@
             "type": "python",
             "request": "launch",
             "program": "main.py",
-            "args": ["-vvv", "--debug-ws"],
+            "args": ["--debug", "-vvv", "--debug-ws"],
             "console": "integratedTerminal",
             "justMyCode": false
         },

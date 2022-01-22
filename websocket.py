@@ -1,12 +1,9 @@
 from __future__ import annotations
 
 import json
-import random
-import string
 import asyncio
 import logging
 from time import time
-from functools import wraps
 from contextlib import suppress
 from typing import Optional, List, Dict, Set, Iterable, TYPE_CHECKING
 
@@ -14,6 +11,7 @@ from websockets.exceptions import ConnectionClosed, ConnectionClosedOK
 from websockets.client import WebSocketClientProtocol, connect as websocket_connect
 
 from exceptions import MinerException
+from utils import task_wrapper, create_nonce
 from constants import (
     JsonType,
     WebsocketTopic,
@@ -30,22 +28,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("TwitchDrops")
 ws_logger = logging.getLogger("TwitchDrops.websocket")
-NONCE_CHARS = string.ascii_letters + string.digits
-
-
-def create_nonce(length: int = 30) -> str:
-    return ''.join(random.choices(NONCE_CHARS, k=length))
-
-
-def task_wrapper(afunc):
-    @wraps(afunc)
-    async def wrapper(self, *args, **kwargs):
-        try:
-            await afunc(self, *args, **kwargs)
-        except Exception:
-            logger.exception("Exception in task")
-            raise  # raise up to the wrapping task
-    return wrapper
 
 
 class Websocket:

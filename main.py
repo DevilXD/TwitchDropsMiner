@@ -21,6 +21,7 @@ class ParsedArgs(argparse.Namespace):
     _debug_gql: bool
     log: bool
     tray: bool
+    debug: bool
     game: Optional[str]
 
     @property
@@ -54,15 +55,6 @@ class ParsedArgs(argparse.Namespace):
         return logging.NOTSET
 
 
-# check if we're not already running
-try:
-    exists = ctypes.windll.user32.FindWindowW(None, WINDOW_TITLE)
-except AttributeError:
-    # we're not on Windows - continue
-    exists = False
-if exists:
-    # already running - exit
-    sys.exit()
 # handle input parameters
 parser = argparse.ArgumentParser(
     "Twitch Drops Miner (by DevilXD).exe",
@@ -70,12 +62,22 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("-V", "--version", action="version", version=f"v{__version__}")
 parser.add_argument("-v", dest="_verbose", action="count", default=0)
+parser.add_argument("--debug", dest="debug", action="store_true")
 parser.add_argument("--debug-ws", dest="_debug_ws", action="store_true")
 parser.add_argument("--debug-gql", dest="_debug_gql", action="store_true")
 parser.add_argument("-g", "--game", default=None)
 parser.add_argument("--tray", action="store_true")
 parser.add_argument("-l", "--log", action="store_true")
 options: ParsedArgs = parser.parse_args(namespace=ParsedArgs())
+# check if we're not already running
+try:
+    exists = ctypes.windll.user32.FindWindowW(None, WINDOW_TITLE)
+except AttributeError:
+    # we're not on Windows - continue
+    exists = False
+if exists and not options.debug:
+    # already running - exit
+    sys.exit()
 # handle logging stuff
 if options.logging_level > logging.DEBUG:
     # redirect the root logger into a NullHandler, effectively ignoring all logging calls

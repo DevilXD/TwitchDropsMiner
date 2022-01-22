@@ -6,9 +6,9 @@ import asyncio
 import logging
 from base64 import b64encode
 from datetime import datetime, timezone
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, Optional, SupportsInt, TYPE_CHECKING
 
-from inventory import Game
+from utils import Game
 from exceptions import MinerException
 from constants import JsonType, BASE_URL, GQL_OPERATIONS, ONLINE_DELAY, DROPS_ENABLED_TAG
 
@@ -28,9 +28,7 @@ class Stream:
         self.viewers: int = stream["viewersCount"]
         self.drops_enabled: bool = any(tag["id"] == DROPS_ENABLED_TAG for tag in stream["tags"])
         settings = data["broadcastSettings"]
-        self.game: Optional[Game] = None
-        if settings["game"] is not None:
-            self.game = Game(settings["game"])
+        self.game: Optional[Game] = Game(settings["game"]) if settings["game"] else None
         self.title: str = settings["title"]
         self._timestamp = datetime.now(timezone.utc)
 
@@ -39,38 +37,34 @@ class Stream:
         self = super().__new__(cls)
         self._twitch = channel._twitch
         self.channel = channel
-        self.broadcast_id = data["id"]
+        self.broadcast_id = int(data["id"])
         self.viewers = data["viewersCount"]
         self.drops_enabled = any(tag["id"] == DROPS_ENABLED_TAG for tag in data["tags"])
-        self.game = Game(data["game"])
+        self.game = Game(data["game"])  # has to be there since we searched with it
         self.title = data["title"]
         self._timestamp = datetime.now(timezone.utc)
         return self
 
 
 class Channel:
-    async def __new__(cls, *args, **kwargs):
-        """
-        Enables __init__ to be async.
-        The instance is returned after initialization completes.
-        """
-        self = super().__new__(cls)
-        await self.__init__(*args, **kwargs)  # type: ignore
-        return self
-
-    async def __init__(self, twitch: Twitch, channel_name: str):  # type: ignore
+    def __init__(
+        self, twitch: Twitch, channel_id: SupportsInt, channel_name: str, *, priority: bool = False
+    ):
         self._twitch: Twitch = twitch
-        self.id: int = 0  # temp, to be filled by get_stream
+        self.id: int = int(channel_id)
         self.name: str = channel_name
         self.url: str = f"{BASE_URL}/{channel_name}"
         self._spade_url: Optional[str] = None
         self.points: Optional[int] = None
         self._stream: Optional[Stream] = None
         self._pending_stream_up: Optional[asyncio.Task[Any]] = None
-        await self.get_stream()
+        # Priority channels are considered first when switching channels,
+        # and if we're watching a non-priority channel,
+        # a priority channel going up triggers a switch
+        self.priority: bool = priority
 
     @classmethod
-    def from_directory(cls, twitch: Twitch, data: JsonType):
+    def from_directory(cls, twitch: Twitch, data: JsonType, *, priority: bool = False) -> Channel:
         self = super().__new__(cls)
         self._twitch = twitch
         channel = data["broadcaster"]
@@ -81,6 +75,24 @@ class Channel:
         self.points = None
         self._stream = Stream.from_directory(self, data)
         self._pending_stream_up = None
+        self.priority = priority
+        return self
+
+    @classmethod
+    async def from_name(
+        cls, twitch: Twitch, channel_name: str, *, priority: bool = False
+    ) -> Channel:
+        self = super().__new__(cls)
+        self._twitch = twitch
+        # self.id to be filled by get_stream
+        self.name = channel_name
+        self.url = f"{BASE_URL}/{channel_name}"
+        self._spade_url = None
+        self.points = None
+        self._stream = None
+        self._pending_stream_up = None
+        self.priority = priority
+        await self.get_stream()
         return self
 
     def __repr__(self) -> str:
@@ -136,10 +148,10 @@ class Channel:
         self.display()
 
     @property
-    def drops_enabled(self) -> Optional[bool]:
+    def drops_enabled(self) -> bool:
         if self._stream is not None:
             return self._stream.drops_enabled
-        return None
+        return False
 
     def display(self):
         self._twitch.gui.channels.display(self)
@@ -200,9 +212,11 @@ class Channel:
         """
         self.display()
         await asyncio.sleep(ONLINE_DELAY.total_seconds())
-        await self.check_online()
+        online = await self.check_online()
         self._pending_stream_up = None
         self.display()
+        if online:
+            self._twitch.on_online(self)
 
     def set_online(self):
         """
@@ -228,6 +242,7 @@ class Channel:
         if self.online:
             self._stream = None
             self.display()
+            self._twitch.on_offline(self)
 
     async def claim_bonus(self):
         """

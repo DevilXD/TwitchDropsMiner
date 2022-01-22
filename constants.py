@@ -48,13 +48,13 @@ FORMATTER = logging.Formatter(
 
 class State(Enum):
     IDLE = auto()
-    EXIT = auto()
     INVENTORY_FETCH = auto()
     GAMES_UPDATE = auto()
     GAME_SELECT = auto()
     CHANNELS_FETCH = auto()
     CHANNELS_CLEANUP = auto()
     CHANNEL_SWITCH = auto()
+    EXIT = auto()
 
 
 class GQLOperation(JsonType):
