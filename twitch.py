@@ -256,18 +256,19 @@ class Twitch:
                         live_streams: List[Channel] = await self.get_live_streams()
                         for channel in live_streams:
                             new_channels.add(channel)
-                    if new_channels:
-                        # there are online streams, so let's pre-display the active drop again,
-                        # but this time with a substracted minute
+                    if any(self.can_watch(channel) for channel in new_channels):
+                        # there are streams we can watch, so let's pre-display the active drop
+                        # again, but this time with a substracted minute
                         active_drop = self.get_active_drop()
                         if active_drop is not None:
                             active_drop.display(countdown=False, subone=True)
                     # add them, filtering out ones we already have
                     for channel in new_channels:
-                        if channel.id not in self.channels:
-                            self.channels[channel.id] = channel
+                        channel_id = channel.id
+                        if channel_id not in self.channels:
+                            self.channels[channel_id] = channel
                             channel.display()
-                    # Sub to these channel updates
+                    # Subscribe to these channel's state updates
                     topics: List[WebsocketTopic] = [
                         WebsocketTopic(
                             "Channel", "VideoPlayback", channel_id, self.process_stream_state
