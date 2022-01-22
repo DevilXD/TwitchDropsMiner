@@ -204,25 +204,28 @@ class Twitch:
                 self.restart_watching()
                 self.change_state(State.CHANNELS_CLEANUP)
             elif self._state is State.CHANNELS_CLEANUP:
-                # remove all channels that are offline,
-                # or aren't streaming the game we want anymore
                 if self.game is None:
                     # remove everything
                     to_remove: List[Channel] = list(self.channels.values())
                 else:
+                    # remove all channels that:
                     to_remove = [
-                        channel for channel in self.channels.values()
-                        if not (channel.online or channel.pending_online)
+                        channel
+                        for channel in self.channels.values()
+                        if channel.offline  # are offline
+                        or not channel.priority  # aren't prioritized
+                        # aren't streaming the game we want anymore
                         or channel.game is None or channel.game != self.game
                     ]
                 self.websocket.remove_topics(
                     WebsocketTopic.as_str("Channel", "VideoPlayback", channel.id)
                     for channel in to_remove
                 )
+                watching_channel = self.watching_channel.get_with_default(None)
+                if watching_channel is not None and watching_channel in to_remove:
+                    # we're removing a channel we're watching
+                    self.stop_watching()
                 for channel in to_remove:
-                    if self.is_watching(channel):
-                        # we're removing a channel we're watching
-                        self.stop_watching()
                     del self.channels[channel.id]
                     channel.remove()
                 self.gui.channels.shrink()

@@ -58,9 +58,10 @@ class Channel:
         self.points: Optional[int] = None
         self._stream: Optional[Stream] = None
         self._pending_stream_up: Optional[asyncio.Task[Any]] = None
-        # Priority channels are considered first when switching channels,
-        # and if we're watching a non-priority channel,
-        # a priority channel going up triggers a switch
+        # Priority channels are:
+        # • considered first when switching channels
+        # • if we're watching a non-priority channel, a priority channel going up triggers a switch
+        # • not cleaned up unless they're streaming a game we haven't selected
         self.priority: bool = priority
 
     @classmethod
@@ -119,6 +120,13 @@ class Channel:
         Returns True if the streamer is online and is currently streaming, False otherwise.
         """
         return self._stream is not None
+
+    @property
+    def offline(self) -> bool:
+        """
+        Returns True if the streamer is offline and isn't about to come online, False otherwise.
+        """
+        return self._stream is None and self._pending_stream_up is None
 
     @property
     def pending_online(self) -> bool:
@@ -210,35 +218,34 @@ class Channel:
         The 'stream-up' event is sent before the stream actually goes online,
         so just wait a bit and check if it's actually online by then.
         """
-        self.display()
         await asyncio.sleep(ONLINE_DELAY.total_seconds())
         online = await self.check_online()
-        self._pending_stream_up = None
+        self._pending_stream_up = None  # for 'display' to work properly
         self.display()
         if online:
             self._twitch.on_online(self)
 
     def set_online(self):
         """
-        Sets the channel status to OFFLINE.
+        Sets the channel status to PENDING_ONLINE, where after ONLINE_DELAY,
+        it's going to be set to ONLINE.
 
         This is called externally, if we receive an event about this happening.
         """
-        if self.online or self.pending_online:
-            # we're already online, or about to be
-            return
-        self._pending_stream_up = asyncio.create_task(self._online_delay())
-        # display is called from within the task
+        if self.offline:
+            self._pending_stream_up = asyncio.create_task(self._online_delay())
+            self.display()
 
     def set_offline(self):
         """
-        Sets the channel status to OFFLINE.
+        Sets the channel status to OFFLINE. Cancels PENDING_ONLINE if applicable.
 
         This is called externally, if we receive an event about this happening.
         """
         if self._pending_stream_up is not None:
             self._pending_stream_up.cancel()
             self._pending_stream_up = None
+            self.display()
         if self.online:
             self._stream = None
             self.display()
