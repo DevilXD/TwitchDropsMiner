@@ -7,6 +7,7 @@ import logging
 from functools import wraps
 from contextlib import suppress
 from collections import OrderedDict
+from datetime import datetime, timezone
 from typing import Union, List, MutableSet, Iterable, Iterator, Generic, TypeVar
 
 from constants import JsonType
@@ -16,6 +17,10 @@ _V = TypeVar("_V")
 _D = TypeVar("_D")
 logger = logging.getLogger("TwitchDrops")
 NONCE_CHARS = string.ascii_letters + string.digits
+
+
+def timestamp(string: str) -> datetime:
+    return datetime.strptime(string, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
 
 
 def create_nonce(length: int = 30) -> str:

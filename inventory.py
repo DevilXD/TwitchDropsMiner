@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from datetime import datetime
 from functools import cached_property
+from datetime import datetime, timezone
 from typing import Optional, List, Dict, Set, Iterable, TYPE_CHECKING
 
 from channel import Channel
-from utils import invalidate_cache, Game
 from constants import JsonType, GQL_OPERATIONS
+from utils import Game, timestamp, invalidate_cache
 
 if TYPE_CHECKING:
     from twitch import Twitch
@@ -19,8 +19,8 @@ class BaseDrop:
         self.name: str = data["name"]
         self.campaign: DropsCampaign = campaign
         self.rewards: List[str] = [b["benefit"]["name"] for b in data["benefitEdges"]]
-        self.starts_at: datetime = datetime.strptime(data["startAt"], "%Y-%m-%dT%H:%M:%SZ")
-        self.ends_at: datetime = datetime.strptime(data["endAt"], "%Y-%m-%dT%H:%M:%SZ")
+        self.starts_at: datetime = timestamp(data["startAt"])
+        self.ends_at: datetime = timestamp(data["endAt"])
         self.claim_id: Optional[str] = None
         self.is_claimed: bool = False
         if "self" in data:
@@ -53,7 +53,8 @@ class BaseDrop:
             self.preconditions  # preconditions are met
             and not self.is_claimed  # drop isn't already claimed
             and self.campaign.active  # campaign is active
-            and self.starts_at <= datetime.utcnow() < self.ends_at  # it's within the timeframe
+            # it's within the active timeframe
+            and self.starts_at <= datetime.now(timezone.utc) < self.ends_at
         )
 
     @property
@@ -166,8 +167,8 @@ class DropsCampaign:
         self.id: str = data["id"]
         self.name: str = data["name"]
         self.game: Game = Game(data["game"])
-        self.starts_at: datetime = datetime.strptime(data["startAt"], "%Y-%m-%dT%H:%M:%SZ")
-        self.ends_at: datetime = datetime.strptime(data["endAt"], "%Y-%m-%dT%H:%M:%SZ")
+        self.starts_at: datetime = timestamp(data["startAt"])
+        self.ends_at: datetime = timestamp(data["endAt"])
         allowed = data["allow"]
         self.allowed_channels: List[Channel] = (
             [
@@ -190,15 +191,15 @@ class DropsCampaign:
 
     @property
     def active(self):
-        return self.starts_at <= datetime.utcnow() < self.ends_at
+        return self.starts_at <= datetime.now(timezone.utc) < self.ends_at
 
     @property
     def upcoming(self) -> bool:
-        return datetime.utcnow() < self.starts_at
+        return datetime.now(timezone.utc) < self.starts_at
 
     @property
     def expired(self) -> bool:
-        return self.ends_at <= datetime.utcnow()
+        return self.ends_at <= datetime.now(timezone.utc)
 
     @property
     def total_drops(self) -> int:
