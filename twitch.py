@@ -801,7 +801,7 @@ class Twitch:
     async def get_live_streams(self) -> List[Channel]:
         if self.game is None:
             return []
-        limit = 45
+        limit = 30
         response = await self.gql_request(
             GQL_OPERATIONS["GameDirectory"].with_variables({
                 "limit": limit,
