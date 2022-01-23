@@ -12,11 +12,6 @@ if TYPE_CHECKING:
     from twitch import Twitch
 
 
-class Benefit:
-    def __init__(self) -> None:
-        pass
-
-
 class BaseDrop:
     def __init__(self, campaign: DropsCampaign, data: JsonType, claimed_benefits: Set[str]):
         self._twitch: Twitch = campaign._twitch
@@ -41,7 +36,7 @@ class BaseDrop:
     def __repr__(self) -> str:
         if self.is_claimed:
             additional = ", claimed=True"
-        elif self.can_earn:
+        elif self.can_earn():
             additional = ", can_earn=True"
         else:
             additional = ''
@@ -52,14 +47,16 @@ class BaseDrop:
         campaign = self.campaign
         return all(campaign.timed_drops[pid].is_claimed for pid in self._precondition_drops)
 
-    @property
-    def can_earn(self) -> bool:
+    def can_earn(self, channel: Optional[Channel] = None) -> bool:
+        allowed_channels = self.campaign.allowed_channels
         return (
             self.preconditions  # preconditions are met
             and not self.is_claimed  # drop isn't already claimed
             and self.campaign.active  # campaign is active
-            # it's within the active timeframe
+            # drop is within the active timeframe
             and self.starts_at <= datetime.now(timezone.utc) < self.ends_at
+            # channel isn't specified, or there's no ACL, or the channel is in the ACL
+            and (channel is None or not allowed_channels or channel in allowed_channels)
         )
 
     @property
@@ -125,7 +122,7 @@ class TimedDrop(BaseDrop):
     def __repr__(self) -> str:
         if self.is_claimed:
             additional = ", claimed=True"
-        elif self.can_earn:
+        elif self.can_earn():
             additional = ", can_earn=True"
         else:
             additional = ''

@@ -186,7 +186,7 @@ class Twitch:
                                 if drop.can_claim:
                                     await drop.claim()
                                 # add game only for active campaigns
-                                if active and not add_game and drop.can_earn:
+                                if active and not add_game and drop.can_earn():
                                     add_game = True
                     if add_game:
                         games.append(game)
@@ -353,7 +353,7 @@ class Twitch:
                     if drop is None:
                         use_active = True
                         logger.error(f"Missing drop: {drop_id}")
-                    elif not drop.can_earn:
+                    elif not drop.can_earn(channel):
                         use_active = True
                     else:
                         drop.update_minutes(drop_data["currentMinutesWatched"])
@@ -386,9 +386,8 @@ class Twitch:
             and channel.game == self.game  # it's a game we've selected
             # we can progress any campaign for the selected game
             and any(
-                drop.can_earn
+                drop.can_earn(channel)
                 for campaign in self.inventory[self.game]
-                if not campaign.allowed_channels or channel in campaign.allowed_channels
                 for drop in campaign.drops
             )
         )
@@ -495,11 +494,12 @@ class Twitch:
                 await asyncio.sleep(2)
             return
         assert msg_type == "drop-progress"
+        watching_channel = self.watching_channel.get_with_default(None)
         if self._drop_update is None:
             # we aren't actually waiting for a progress update right now, so we can just
             # ignore the event this time
             return
-        elif drop is not None and drop.can_earn:
+        elif drop is not None and drop.can_earn(watching_channel):
             drop.update_minutes(message["data"]["current_progress_min"])
             drop.display()
             # Let the watch loop know we've handled it here
@@ -768,7 +768,7 @@ class Twitch:
         # add campaigns that remained, that can be earned but are not in-progress yet
         for campaign_id in available_campaigns:
             campaign = await self.fetch_campaign(campaign_id, claimed_benefits)
-            if any(drop.can_earn for drop in campaign.drops):
+            if any(drop.can_earn() for drop in campaign.drops):
                 campaigns.append(campaign)
         campaigns.sort(key=lambda c: c.ends_at)
         self.inventory.clear()
@@ -805,12 +805,7 @@ class Twitch:
                 for campaign in self.inventory[self.game]
                 if campaign.active
                 for drop in campaign.drops
-                if drop.can_earn and (
-                    not campaign.allowed_channels  # campaign has no ACL
-                    or watching_channel is None  # we aren't watching anything yet
-                    # we are watching a channel that applies to this campaign
-                    or watching_channel in campaign.allowed_channels
-                )
+                if drop.can_earn(watching_channel)
             ),
             key=lambda d: d.remaining_minutes,
         )
