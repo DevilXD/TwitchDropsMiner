@@ -329,7 +329,7 @@ class Twitch:
             succeeded = await channel.send_watch()
             if not succeeded:
                 # this usually means there are connection problems
-                self.gui.print()
+                self.gui.print("Connection problems, retrying in 60 seconds...")
                 await self._watch_sleep(60)
                 continue
             last_watch = time()
