@@ -94,7 +94,7 @@ logging.getLogger("TwitchDrops.websocket").setLevel(options.debug_ws)
 
 # client run
 loop = asyncio.get_event_loop()
-client = Twitch(loop, options)
+client = Twitch(options)
 signal.signal(signal.SIGINT, lambda *_: client.close())
 signal.signal(signal.SIGTERM, lambda *_: client.close())
 try:

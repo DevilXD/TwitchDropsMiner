@@ -20,9 +20,9 @@ except ModuleNotFoundError as exc:
 from channel import Channel
 from websocket import WebsocketPool
 from gui import GUIManager, LoginData
-from inventory import DropsCampaign, Game, TimedDrop
+from inventory import DropsCampaign, TimedDrop
 from exceptions import LoginException, CaptchaRequired
-from utils import AwaitableValue, OrderedSet, task_wrapper
+from utils import Game, AwaitableValue, OrderedSet, task_wrapper
 from constants import (
     State,
     JsonType,
@@ -47,29 +47,20 @@ gql_logger = logging.getLogger("TwitchDrops.gql")
 
 
 class Twitch:
-    def __init__(self, loop: asyncio.AbstractEventLoop, options: ParsedArgs):
-        self._loop = loop
+    def __init__(self, options: ParsedArgs):
         self.options = options
-        # GUI
-        self.gui = GUIManager(self)
-        # Cookies, session and auth
-        cookie_jar = aiohttp.CookieJar()
-        if os.path.isfile(COOKIES_PATH):
-            cookie_jar.load(COOKIES_PATH)
-        self._session = aiohttp.ClientSession(
-            loop=loop,
-            cookie_jar=cookie_jar,
-            headers={"User-Agent": USER_AGENT},
-            timeout=aiohttp.ClientTimeout(connect=5, total=10),
-        )
-        self._access_token: Optional[str] = None
-        self._user_id: Optional[int] = None
-        self._is_logged_in = asyncio.Event()
         # State management
         self._state: State = State.INVENTORY_FETCH
         self._state_change = asyncio.Event()
-        self.inventory: Dict[Game, List[DropsCampaign]] = {}
         self.game: Optional[Game] = None
+        self.inventory: Dict[Game, List[DropsCampaign]] = {}
+        # GUI
+        self.gui = GUIManager(self)
+        # Cookies, session and auth
+        self._session: Optional[aiohttp.ClientSession] = None
+        self._access_token: Optional[str] = None
+        self._user_id: Optional[int] = None
+        self._is_logged_in = asyncio.Event()
         # Storing and watching channels
         self.channels: OrderedDict[int, Channel] = OrderedDict()
         self.watching_channel: AwaitableValue[Channel] = AwaitableValue()
@@ -78,6 +69,33 @@ class Twitch:
         self._drop_update: Optional[asyncio.Future[bool]] = None
         # Websocket
         self.websocket = WebsocketPool(self)
+
+    async def initialize(self) -> None:
+        cookie_jar = aiohttp.CookieJar()
+        if os.path.isfile(COOKIES_PATH):
+            cookie_jar.load(COOKIES_PATH)
+        self._session = aiohttp.ClientSession(
+            cookie_jar=cookie_jar,
+            headers={"User-Agent": USER_AGENT},
+            timeout=aiohttp.ClientTimeout(connect=5, total=10),
+        )
+
+    async def shutdown(self) -> None:
+        start_time = time()
+        self.gui.print("Exiting...")
+        self.stop_watching()
+        if self._watching_task is not None:
+            self._watching_task.cancel()
+            self._watching_task = None
+        # close session and stop websocket
+        if self._session is not None:
+            self._session.cookie_jar.save(COOKIES_PATH)  # type: ignore
+            await self._session.close()
+            self._session = None
+        await self.websocket.stop()
+        # wait at least one full second + whatever it takes to complete the closing
+        # this allows aiohttp to safely close the session
+        await asyncio.sleep(start_time + 1 - time())
 
     def wait_until_login(self):
         return self._is_logged_in.wait()
@@ -120,25 +138,6 @@ class Twitch:
         """
         self.gui.print(*args, **kwargs)
 
-    def stop(self):
-        self.stop_watching()
-        if self._watching_task is not None:
-            self._watching_task.cancel()
-            self._watching_task = None
-
-    async def shutdown(self):
-        start_time = time()
-        self.gui.print("Exiting...")
-        self.stop()
-        # save our cookies
-        self._session.cookie_jar.save(COOKIES_PATH)  # type: ignore
-        # stop websocket and close session
-        await self.websocket.stop()
-        await self._session.close()
-        # wait at least one full second + whatever it takes to complete the closing
-        # this allows aiohttp to safely close the session
-        await asyncio.sleep(start_time + 1 - time())
-
     def is_watching(self, channel: Channel) -> bool:
         watching_channel = self.watching_channel.get_with_default(None)
         return watching_channel is not None and watching_channel == channel
@@ -152,7 +151,11 @@ class Twitch:
         • Selecting a stream to watch, and watching it
         • Changing the stream that's being watched if necessary
         """
+        if self._session is None:
+            await self.initialize()
         self.gui.start()
+        if self._watching_task is not None:
+            self._watching_task.cancel()
         self._watching_task = asyncio.create_task(self._watch_loop())
         await self.check_login()
         # Add default topics
@@ -575,6 +578,7 @@ class Twitch:
         """
         if not 8 <= len(password) <= 71:
             return False
+        assert self._session is not None
         payload = {"password": password}
         async with self._session.post(
             f"{AUTH_URL}/api/v1/password_strength", json=payload
@@ -590,6 +594,7 @@ class Twitch:
 
     async def _login(self) -> str:
         logger.debug("Login flow started")
+        assert self._session is not None
 
         payload: JsonType = {
             "client_id": CLIENT_ID,
@@ -670,6 +675,7 @@ class Twitch:
         if self._access_token is not None and self._user_id is not None:
             # we're all good
             return
+        assert self._session is not None
         # looks like we're missing something
         logger.debug("Checking login")
         self.gui.login.update("Logging in...", None)
@@ -712,6 +718,7 @@ class Twitch:
 
     async def gql_request(self, op: GQLOperation) -> JsonType:
         await self.check_login()
+        assert self._session is not None
         headers = {
             "Authorization": f"OAuth {self._access_token}",
             "Client-Id": CLIENT_ID,

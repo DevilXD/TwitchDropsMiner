@@ -180,6 +180,7 @@ class Channel:
         To get this monstrous thing, you have to walk a chain of requests.
         Streamer page (HTML) --parse-> Streamer Settings (JavaScript) --parse-> Spade URL
         """
+        assert self._twitch._session is not None
         async with self._twitch._session.get(self.url) as response:
             streamer_html = await response.text(encoding="utf8")
         match = re.search(
@@ -303,14 +304,15 @@ class Channel:
         """
         if not self.online:
             return False
+        session = self._twitch._session
+        if session is None:
+            return False
         if self._spade_url is None:
             self._spade_url = await self.get_spade_url()
         logger.debug(f"Sending minute-watched to {self.name}")
         for attempt in range(5):
             try:
-                async with self._twitch._session.post(
-                    self._spade_url, data=self._payload
-                ) as response:
+                async with session.post(self._spade_url, data=self._payload) as response:
                     return response.status == 204
             except (aiohttp.ClientConnectionError, aiohttp.ServerTimeoutError):
                 continue

@@ -13,8 +13,8 @@ from typing import Union, List, MutableSet, Iterable, Iterator, Generic, TypeVar
 from constants import JsonType
 
 
-_V = TypeVar("_V")
-_D = TypeVar("_D")
+_V = TypeVar("_V")  # value
+_D = TypeVar("_D")  # default
 logger = logging.getLogger("TwitchDrops")
 NONCE_CHARS = string.ascii_letters + string.digits
 

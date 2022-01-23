@@ -712,7 +712,7 @@ class TrayIcon:
 
     def start(self):
         if self.icon is None:
-            loop = self._manager._twitch._loop
+            loop = asyncio.get_running_loop()
             drop = self._manager.progress._drop
 
             # we need this because tray icon lives in a separate thread
