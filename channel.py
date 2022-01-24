@@ -109,7 +109,11 @@ class Channel:
         return self
 
     def __repr__(self) -> str:
-        return f"Channel({self.name}, {self.id})"
+        if self._display_name is not None:
+            name = f"{self._display_name}({self._login})"
+        else:
+            name = self._login
+        return f"Channel({name}, {self.id})"
 
     def __eq__(self, other: object):
         if isinstance(other, self.__class__):
