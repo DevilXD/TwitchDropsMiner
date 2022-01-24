@@ -7,7 +7,7 @@ import logging
 from base64 import b64encode
 from functools import cached_property
 from datetime import datetime, timezone
-from typing import Any, Optional, SupportsInt, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING
 
 import aiohttp
 
@@ -50,13 +50,11 @@ class Stream:
 
 
 class Channel:
-    def __init__(
-        self, twitch: Twitch, channel_id: SupportsInt, channel_name: str, *, priority: bool = False
-    ):
+    def __init__(self, twitch: Twitch, data: JsonType, *, priority: bool = False):
         self._twitch: Twitch = twitch
-        self.id: int = int(channel_id)
-        self.name: str = channel_name
-        self.url: str = f"{BASE_URL}/{channel_name}"
+        self.id: int = int(data["id"])
+        self._login: str = data["name"]
+        self._display_name: Optional[str] = data.get("displayName")
         self._spade_url: Optional[str] = None
         self.points: Optional[int] = None
         self._stream: Optional[Stream] = None
@@ -67,14 +65,24 @@ class Channel:
         # • not cleaned up unless they're streaming a game we haven't selected
         self.priority: bool = priority
 
+    @property
+    def name(self) -> str:
+        if self._display_name is not None:
+            return self._display_name
+        return self._login
+
+    @property
+    def url(self) -> str:
+        return f"{BASE_URL}/{self._login}"
+
     @classmethod
     def from_directory(cls, twitch: Twitch, data: JsonType, *, priority: bool = False) -> Channel:
         self = super().__new__(cls)
         self._twitch = twitch
         channel = data["broadcaster"]
         self.id = int(channel["id"])
-        self.name = channel["displayName"]
-        self.url = f"{BASE_URL}/{self.name}"
+        self._login = channel["name"]
+        self._display_name = channel["displayName"]
         self._spade_url = None
         self.points = None
         self._stream = Stream.from_directory(self, data)
@@ -84,13 +92,12 @@ class Channel:
 
     @classmethod
     async def from_name(
-        cls, twitch: Twitch, channel_name: str, *, priority: bool = False
+        cls, twitch: Twitch, channel_login: str, *, priority: bool = False
     ) -> Channel:
         self = super().__new__(cls)
         self._twitch = twitch
-        # self.id to be filled by get_stream
-        self.name = channel_name
-        self.url = f"{BASE_URL}/{channel_name}"
+        # id and display name to be filled by get_stream
+        self._login = channel_login
         self._spade_url = None
         self.points = None
         self._stream = None
@@ -202,13 +209,13 @@ class Channel:
 
     async def get_stream(self) -> Optional[Stream]:
         response = await self._twitch.gql_request(
-            GQL_OPERATIONS["GetStreamInfo"].with_variables({"channel": self.name})
+            GQL_OPERATIONS["GetStreamInfo"].with_variables({"channel": self._login})
         )
         if response:
             stream_data = response["data"]["user"]
-            # fill channel_id and name
+            # fill channel_id and display name
             self.id = int(stream_data["id"])
-            self.name = stream_data["displayName"]
+            self._display_name = stream_data["displayName"]
             if stream_data["stream"]:
                 return Stream(self, stream_data)
         return None
@@ -265,7 +272,7 @@ class Channel:
         This claims bonus points if they're available, and fills out the 'points' attribute.
         """
         response = await self._twitch.gql_request(
-            GQL_OPERATIONS["ChannelPointsContext"].with_variables({"channelLogin": self.name})
+            GQL_OPERATIONS["ChannelPointsContext"].with_variables({"channelLogin": self._login})
         )
         channel_data: JsonType = response["data"]["community"]["channel"]
         self.points = channel_data["self"]["communityPoints"]["balance"]

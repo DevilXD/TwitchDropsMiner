@@ -190,8 +190,8 @@ class DropsCampaign:
         allowed = data["allow"]
         self.allowed_channels: List[Channel] = (
             [
-                Channel(twitch, ch["id"], ch.get("displayName", ch["name"]), priority=True)
-                for ch in allowed["channels"]
+                Channel(twitch, channel_data, priority=True)
+                for channel_data in allowed["channels"]
             ]
             if allowed["channels"] and allowed.get("isEnabled", True) else []
         )
