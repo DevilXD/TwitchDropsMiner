@@ -6,6 +6,7 @@ import logging
 from yarl import URL
 from time import time
 from itertools import chain
+from datetime import datetime
 from functools import partial
 from contextlib import suppress
 from typing import (
@@ -22,7 +23,7 @@ from websocket import WebsocketPool
 from gui import GUIManager, LoginData
 from inventory import DropsCampaign, TimedDrop
 from exceptions import LoginException, CaptchaRequired
-from utils import Game, AwaitableValue, OrderedSet, task_wrapper
+from utils import Game, AwaitableValue, OrderedSet, task_wrapper, timestamp
 from constants import (
     State,
     JsonType,
@@ -734,7 +735,9 @@ class Twitch:
                 continue
         raise RuntimeError(f"Ran out of attempts while handling a GQL request: {op}")
 
-    async def fetch_campaign(self, campaign_id: str, claimed_benefits: Set[str]) -> DropsCampaign:
+    async def fetch_campaign(
+        self, campaign_id: str, claimed_benefits: Dict[str, datetime]
+    ) -> DropsCampaign:
         response = await self.gql_request(
             GQL_OPERATIONS["CampaignDetails"].with_variables(
                 {"channelLogin": str(self._user_id), "dropID": campaign_id}
@@ -756,7 +759,9 @@ class Twitch:
         inventory = response["data"]["currentUser"]["inventory"]
         ongoing_campaigns = inventory["dropCampaignsInProgress"] or []
         # this contains claimed benefit edge IDs, not drop IDs
-        claimed_benefits: Set[str] = set(d["id"] for d in inventory["gameEventDrops"])
+        claimed_benefits: Dict[str, datetime] = {
+            b["id"]: timestamp(b["lastAwardedAt"]) for b in inventory["gameEventDrops"]
+        }
         campaigns: List[DropsCampaign] = [
             DropsCampaign(self, campaign_data, claimed_benefits)
             for campaign_data in ongoing_campaigns

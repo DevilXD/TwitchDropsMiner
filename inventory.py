@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import cached_property
 from datetime import datetime, timezone
-from typing import Optional, List, Dict, Set, Iterable, TYPE_CHECKING
+from typing import Optional, List, Dict, Iterable, TYPE_CHECKING
 
 from channel import Channel
 from constants import JsonType, GQL_OPERATIONS
@@ -13,7 +13,9 @@ if TYPE_CHECKING:
 
 
 class BaseDrop:
-    def __init__(self, campaign: DropsCampaign, data: JsonType, claimed_benefits: Set[str]):
+    def __init__(
+        self, campaign: DropsCampaign, data: JsonType, claimed_benefits: Dict[str, datetime]
+    ):
         self._twitch: Twitch = campaign._twitch
         self.id: str = data["id"]
         self.name: str = data["name"]
@@ -26,10 +28,22 @@ class BaseDrop:
         if "self" in data:
             self.claim_id = data["self"]["dropInstanceID"]
             self.is_claimed = data["self"]["isClaimed"]
-        elif all(b["benefit"]["id"] in claimed_benefits for b in data["benefitEdges"]):
-            # NOTE: this may erroneously mark drops from an unprogressed campaign as claimed
-            # if the benefits repeat, but shouldn't cause a problem
-            # once the campaign is in-progress
+        elif (
+            # If there's no self edge available, we can use claimed_benefits to determine
+            # (with pretty good certainty) if this drop has been claimed or not.
+            # To do this, we check if the benefitEdges appear in claimed_benefits, and then
+            # deref their "lastAwardedAt" timestamps into a list to check against.
+            # If the benefits were claimed while the drop was active,
+            # the drop has been claimed too.
+            (
+                dts := [
+                    claimed_benefits[bid]
+                    for b in data["benefitEdges"]
+                    if (bid := b["benefit"]["id"]) in claimed_benefits
+                ]
+            )
+            and all(self.starts_at <= dt < self.ends_at for dt in dts)
+        ):
             self.is_claimed = True
         self._precondition_drops: List[str] = [d["id"] for d in (data["preconditionDrops"] or [])]
 
@@ -109,7 +123,9 @@ class BaseDrop:
 
 
 class TimedDrop(BaseDrop):
-    def __init__(self, campaign: DropsCampaign, data: JsonType, claimed_benefits: Set[str]):
+    def __init__(
+        self, campaign: DropsCampaign, data: JsonType, claimed_benefits: Dict[str, datetime]
+    ):
         super().__init__(campaign, data, claimed_benefits)
         self.current_minutes: int = 0
         if "self" in data:
@@ -164,7 +180,7 @@ class TimedDrop(BaseDrop):
 
 
 class DropsCampaign:
-    def __init__(self, twitch: Twitch, data: JsonType, claimed_benefits: Set[str]):
+    def __init__(self, twitch: Twitch, data: JsonType, claimed_benefits: Dict[str, datetime]):
         self._twitch: Twitch = twitch
         self.id: str = data["id"]
         self.name: str = data["name"]
