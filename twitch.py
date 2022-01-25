@@ -838,7 +838,8 @@ class Twitch:
         ]
 
     async def claim_points(self, channel_id: Union[str, int], claim_id: str) -> None:
-        variables = {"input": {"channelID": str(channel_id), "claimID": claim_id}}
         await self.gql_request(
-            GQL_OPERATIONS["ClaimCommunityPoints"].with_variables(variables)
+            GQL_OPERATIONS["ClaimCommunityPoints"].with_variables(
+                {"input": {"channelID": str(channel_id), "claimID": claim_id}}
+            )
         )
