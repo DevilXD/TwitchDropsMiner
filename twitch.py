@@ -20,23 +20,23 @@ except ModuleNotFoundError as exc:
 
 from channel import Channel
 from websocket import WebsocketPool
-from gui import GUIManager, LoginData
+from gui import LoginData, GUIManager
 from inventory import DropsCampaign, TimedDrop
 from exceptions import LoginException, CaptchaRequired
-from utils import Game, AwaitableValue, OrderedSet, task_wrapper, timestamp
+from utils import task_wrapper, timestamp, Game, AwaitableValue, OrderedSet
 from constants import (
-    State,
-    JsonType,
-    WebsocketTopic,
+    GQL_URL,
+    AUTH_URL,
     CLIENT_ID,
     USER_AGENT,
     COOKIES_PATH,
-    AUTH_URL,
-    GQL_URL,
-    WATCH_INTERVAL,
     GQL_OPERATIONS,
+    WATCH_INTERVAL,
     DROPS_ENABLED_TAG,
+    JsonType,
+    State,
     GQLOperation,
+    WebsocketTopic,
 )
 
 if TYPE_CHECKING:

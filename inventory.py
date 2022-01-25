@@ -5,8 +5,8 @@ from datetime import datetime, timezone
 from typing import Optional, List, Dict, Iterable, TYPE_CHECKING
 
 from channel import Channel
-from constants import JsonType, GQL_OPERATIONS
-from utils import Game, timestamp, invalidate_cache
+from constants import GQL_OPERATIONS, JsonType
+from utils import timestamp, invalidate_cache, Game
 
 if TYPE_CHECKING:
     from twitch import Twitch
