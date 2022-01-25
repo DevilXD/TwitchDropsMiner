@@ -537,7 +537,7 @@ class ChannelList:
         scroll = ttk.Scrollbar(frame, orient="vertical")
         self._table = table = ttk.Treeview(
             frame,
-            columns=("channel", "status", "game", "viewers", "points"),
+            # columns definition is updated by _add_column
             yscrollcommand=scroll.set,
         )
         scroll.config(command=table.yview)
@@ -548,15 +548,16 @@ class ChannelList:
         table.tag_configure("watching", background="gray70")
         table.bind("<Button-1>", self._disable_column_resize)
         table.bind("<<TreeviewSelect>>", self._selected)
-        self._column("#0", '', width=0)
-        self._column("channel", "Channel", width=100, anchor='w')
-        self._column("status", "Status", width_template="OFFLINE ❌")
-        self._column("game", "Game", width=50)
-        self._column("viewers", "Viewers", width_template="1234567")
-        self._column("points", "Points", width_template="1234567")
+        self._add_column("#0", '', width=0)
+        self._add_column("channel", "Channel", width=100, anchor='w')
+        self._add_column("status", "Status", width_template="OFFLINE ❌")
+        self._add_column("game", "Game", width=50)
+        self._add_column("viewers", "Viewers", width_template="1234567")
+        self._add_column("points", "Points", width_template="1234567")
+        self._add_column("priority", "❗", width_template="✔")
         self._channel_map: Dict[str, Channel] = {}
 
-    def _column(
+    def _add_column(
         self,
         cid: str,
         name: str,
@@ -565,12 +566,32 @@ class ChannelList:
         width: Optional[int] = None,
         width_template: Optional[str] = None,
     ):
+        table = self._table
+        # we need to save the column settings and headings before modifying the columns...
+        columns: Tuple[str, ...] = table.cget("columns") or ()
+        column_settings: Dict[str, Tuple[str, tk._Anchor, int, int]] = {}
+        for s_cid in columns:
+            s_column = table.column(s_cid)
+            assert s_column is not None
+            s_heading = table.heading(s_cid)
+            assert s_heading is not None
+            column_settings[s_cid] = (
+                s_heading["text"], s_heading["anchor"], s_column["width"], s_column["minwidth"]
+            )
+        # ..., then add the column, but ensure we're not adding the icons column...
+        if cid != "#0":
+            table.config(columns=columns + (cid,))
+        # ..., and then restore column settings and headings afterwards
+        for s_cid, (s_name, s_anchor, s_width, s_minwidth) in column_settings.items():
+            table.heading(s_cid, text=s_name, anchor=s_anchor)
+            table.column(s_cid, minwidth=s_minwidth, width=s_width, stretch=False)
+        # set heading and column settings for the new column
         if width_template is not None:
             width = self._measure(width_template)
             self._const_width.add(cid)
         assert width is not None
-        self._table.column(cid, minwidth=width, width=width, stretch=False)
-        self._table.heading(cid, text=name, anchor=anchor)
+        table.heading(cid, text=name, anchor=anchor)
+        table.column(cid, minwidth=width, width=width, stretch=False)
 
     def _disable_column_resize(self, event):
         if self._table.identify_region(event.x, event.y) == "separator":
@@ -627,10 +648,13 @@ class ChannelList:
         self._table.set(iid, column, value)
         self._adjust_width(column, value)
 
-    def _insert(self, iid: str, *args: str):
-        self._table.insert(parent='', index="end", iid=iid, values=args)
-        for column, value in zip(self._table.cget("columns"), args):
-            self._adjust_width(column, value)
+    def _insert(self, iid: str, values: Dict[str, str]):
+        to_insert: List[str] = []
+        for cid in self._table.cget("columns"):
+            value = values[cid]
+            to_insert.append(value)
+            self._adjust_width(cid, value)
+        self._table.insert(parent='', index="end", iid=iid, values=to_insert)
 
     def clear_watching(self):
         for iid in self._table.tag_has("watching"):
@@ -652,33 +676,46 @@ class ChannelList:
         self._table.selection_set('')
 
     def display(self, channel: Channel):
+        # priority
+        priority = "✔" if channel.priority else "❌"
         # status
         if channel.online:
-            status_str = "ONLINE  ✔"
+            status = "ONLINE  ✔"
         elif channel.pending_online:
-            status_str = "OFFLINE ⏳"
+            status = "OFFLINE ⏳"
         else:
-            status_str = "OFFLINE ❌"
+            status = "OFFLINE ❌"
         # game
-        game_str = str(channel.game or '')
+        game = str(channel.game or '')
         # viewers
-        viewers_str = ''
+        viewers = ''
         if channel.viewers is not None:
-            viewers_str = str(channel.viewers)
+            viewers = str(channel.viewers)
         # points
-        points_str = ''
+        points = ''
         if channel.points is not None:
-            points_str = str(channel.points)
+            points = str(channel.points)
         iid = channel.iid
-        if self._table.exists(iid):
-            self._set(iid, "status", status_str)
-            self._set(iid, "game", game_str)
-            self._set(iid, "viewers", viewers_str)
-            if points_str:
-                self._set(iid, "points", points_str)
+        if iid in self._channel_map:
+            self._set(iid, "game", game)
+            self._set(iid, "status", status)
+            self._set(iid, "viewers", viewers)
+            self._set(iid, "priority", priority)
+            if points != '':  # we still want to display 0
+                self._set(iid, "points", points)
         else:
             self._channel_map[iid] = channel
-            self._insert(iid, channel.name, status_str, game_str, viewers_str, points_str)
+            self._insert(
+                iid,
+                {
+                    "channel": channel.name,
+                    "priority": priority,
+                    "status": status,
+                    "game": game,
+                    "viewers": viewers,
+                    "points": points,
+                },
+            )
 
     def remove(self, channel: Channel):
         iid = channel.iid
@@ -897,6 +934,7 @@ class GUIManager:
 
 if __name__ == "__main__":
     # Everything below is for debug purposes only
+    from functools import partial
     from types import SimpleNamespace
 
     class StrNamespace(SimpleNamespace):
@@ -905,27 +943,14 @@ if __name__ == "__main__":
                 return self._str__(self)
             return super().__str__()
 
-    def state_change(state: State):
-        def changer(state: State = state):
-            gui.print(f"State change: {state.value}")
-        return changer
-
-    loop = asyncio.get_event_loop()
-    gui: GUIManager
-    mock = SimpleNamespace(
-        _loop=loop,
-        _options=SimpleNamespace(game=None, tray=True),
-        state_change=state_change,
-    )
-    gui = GUIManager(mock)  # type: ignore
-    mock.request_close = gui._root.destroy
-
     def create_game(id: int, name: str):
         return StrNamespace(name=name, id=id, _str__=lambda s: s.name)
 
     iid = 0
 
-    def create_channel(name: str, online: int, game: Optional[str], viewers: int, points: int):
+    def create_channel(
+        name: str, online: int, game: Optional[str], viewers: int, points: int, priority: bool
+    ):
         if online == 1:
             online = False
             pending = True
@@ -944,6 +969,7 @@ if __name__ == "__main__":
             pending_online=pending,
             game=game_obj,
             viewers=viewers,
+            priority=priority,
         )
 
     def create_drop(
@@ -978,20 +1004,31 @@ if __name__ == "__main__":
         mock.campaign.timed_drops["0"] = mock
         return mock
 
-    async def main():
+    async def main(exit_event: asyncio.Event):
+        # Initialize GUI debug
+        mock = SimpleNamespace(options=SimpleNamespace(game=None, tray=False), channels={})
+        mock.change_state = lambda state: mock.gui.print(f"State change: {state.value}")
+        mock.state_change = lambda state: partial(mock.change_state, state)
+        gui = GUIManager(mock)  # type: ignore
+        mock.gui = gui
+        mock.request_close = gui.stop
+        gui.start()
+        assert gui._poll_task is not None
+        gui._poll_task.add_done_callback(lambda t: exit_event.set())
         # Login form
         gui.login.update("Login required", None)
         # Game selector
         gui.games.set_games([
-            create_game(491115, "Paladins"),
-            # create_game(460630, "Tom Clancy's Rainbow Six Siege"),
+            create_game(123456, "Best Game"),
+            # create_game(654321, "My Game Very Long Name"),
         ])
         # Channel list
-        gui.channels.display(create_channel("PaladinsGame", 0, None, 0, 0))
-        channel = create_channel("Traitus", 1, None, 0, 0)
+        gui.channels.display(create_channel("Thomus", 0, None, 0, 0, True))
+        channel = create_channel("Traitus", 1, None, 0, 0, True)
         gui.channels.display(channel)
-        gui.channels.display(create_channel("Testus", 2, "Paladins", 42, 1234567))
         gui.channels.set_watching(channel)
+        gui.channels.display(create_channel("Testus", 2, "Best Game", 42, 1234567, False))
+        gui.channels.display(create_channel("Livus", 2, "Best Game", 69, 1234567, False))
         gui._root.update()
         gui.channels.get_selection()
         # Tray
@@ -1017,5 +1054,7 @@ if __name__ == "__main__":
         drop.progress = 0.0
         gui.progress.display(drop)
 
-    loop.create_task(main())
-    loop.run_until_complete(gui._poll())
+    loop = asyncio.get_event_loop()
+    exit_event = asyncio.Event()
+    loop.create_task(main(exit_event))
+    loop.run_until_complete(exit_event.wait())
