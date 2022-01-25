@@ -81,7 +81,7 @@ class Channel:
         self._twitch = twitch
         channel = data["broadcaster"]
         self.id = int(channel["id"])
-        self._login = channel["name"]
+        self._login = channel["login"]
         self._display_name = channel["displayName"]
         self._spade_url = None
         self.points = None
