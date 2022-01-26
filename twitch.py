@@ -437,6 +437,7 @@ class Twitch:
         if channel.priority:
             wch = self.watching_channel.get_with_default(None)
             if wch is not None and not wch.priority and self.can_watch(channel):
+                self.gui.print(f"{channel.name} goes ONLINE, switching...")
                 self.watch(channel)
 
     def on_offline(self, channel: Channel):
