@@ -5,6 +5,9 @@ __pycache__
 /build
 /*.spec
 /Twitch Drops Miner
+# Dist files
+/7z.exe
+/Twitch Drops Miner.zip
 # Dev files
 /cookies.jar
 /settings.json

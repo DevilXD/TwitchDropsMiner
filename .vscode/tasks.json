@@ -15,6 +15,15 @@
             "presentation": {
                 "showReuseMessage": false
             }
+        },
+        {
+            "label": "Pack App",
+            "type": "shell",
+            "command": "pack.bat",
+            "problemMatcher": [],
+            "presentation": {
+                "showReuseMessage": false
+            }
         }
     ]
 }
