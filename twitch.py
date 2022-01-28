@@ -166,6 +166,7 @@ class Twitch:
             WebsocketTopic("User", "CommunityPoints", self._user_id, self.process_points),
         ])
         games: List[Game] = []
+        full_cleanup: bool = False
         self.change_state(State.INVENTORY_FETCH)
         while True:
             if self._state is State.IDLE:
@@ -206,22 +207,30 @@ class Twitch:
                 active_drop = self.get_active_drop()
                 if active_drop is not None:
                     active_drop.display(countdown=False)
+                # restart the watch loop if needed
                 self.restart_watching()
+                # signal channel cleanup that we're removing everything
+                full_cleanup = True
                 self.change_state(State.CHANNELS_CLEANUP)
             elif self._state is State.CHANNELS_CLEANUP:
-                if self.game is None:
-                    # remove everything
+                if self.game is None or full_cleanup:
+                    # no game selected or we're doing full cleanup: remove everything
                     to_remove: List[Channel] = list(self.channels.values())
                 else:
                     # remove all channels that:
                     to_remove = [
                         channel
                         for channel in self.channels.values()
-                        if channel.offline  # are offline
-                        or not channel.priority  # aren't prioritized
-                        # aren't streaming the game we want anymore
-                        or channel.game is None or channel.game != self.game
+                        if (
+                            not channel.priority  # aren't prioritized
+                            and (
+                                channel.offline  # and are offline
+                                # or online but aren't streaming the game we want anymore
+                                or (channel.game is None or channel.game != self.game)
+                            )
+                        )
                     ]
+                full_cleanup = False
                 self.websocket.remove_topics(
                     WebsocketTopic.as_str("Channel", "VideoPlayback", channel.id)
                     for channel in to_remove
