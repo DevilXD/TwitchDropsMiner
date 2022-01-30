@@ -489,9 +489,6 @@ class Twitch:
                 self.gui.tray.notify(claim_text, "Mined Drop")
             else:
                 logger.error(f"Drop claim failed! Drop ID: {drop_id}")
-            if not mined or campaign.remaining_drops == 0:
-                self.change_state(State.GAMES_UPDATE)
-                return
             # About 4-20s after claiming the drop, next drop can be started
             # by re-sending the watch payload. We can test for it by fetching the current drop
             # via GQL, and then comparing drop IDs.
@@ -500,9 +497,13 @@ class Twitch:
                 context = await self.gql_request(GQL_OPERATIONS["CurrentDrop"])
                 drop_data: JsonType = context["data"]["currentUser"]["dropCurrentSession"]
                 if drop_data["dropID"] != drop.id:
-                    self.restart_watching()
+                    # When two drops are ready to be claimed, we receive an update only for one.
+                    # This means we have to refresh the games list and claim any additional drops
+                    # after each earned drop, claimed or not.
                     break
                 await asyncio.sleep(2)
+            # This also restarts the watch loop as needed here.
+            self.change_state(State.GAMES_UPDATE)
             return
         assert msg_type == "drop-progress"
         watching_channel = self.watching_channel.get_with_default(None)

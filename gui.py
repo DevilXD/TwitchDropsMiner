@@ -455,9 +455,9 @@ class CampaignProgress:
         # tray
         tray = self._manager.tray
         tray.display_progress(drop)
+        self.stop_timer()
         if countdown:
-            # reschedule our seconds update timer
-            self.stop_timer()
+            # restart our seconds update timer
             self.start_timer()
         elif subone:
             # display the current remaining time at 0 seconds (after substracting the minute)
