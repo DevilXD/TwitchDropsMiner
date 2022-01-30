@@ -552,6 +552,7 @@ class ChannelList:
         self._add_column("channel", "Channel", width=100, anchor='w')
         self._add_column("status", "Status", width_template="OFFLINE ❌")
         self._add_column("game", "Game", width=50)
+        self._add_column("drops", "🎁", width_template="✔")
         self._add_column("viewers", "Viewers", width_template="1234567")
         self._add_column("points", "Points", width_template="1234567")
         self._add_column("priority", "❗", width_template="✔")
@@ -687,6 +688,8 @@ class ChannelList:
             status = "OFFLINE ❌"
         # game
         game = str(channel.game or '')
+        # drops
+        drops = "✔" if channel.drops_enabled else "❌"
         # viewers
         viewers = ''
         if channel.viewers is not None:
@@ -698,6 +701,7 @@ class ChannelList:
         iid = channel.iid
         if iid in self._channel_map:
             self._set(iid, "game", game)
+            self._set(iid, "drops", drops)
             self._set(iid, "status", status)
             self._set(iid, "viewers", viewers)
             self._set(iid, "priority", priority)
@@ -708,12 +712,13 @@ class ChannelList:
             self._insert(
                 iid,
                 {
-                    "channel": channel.name,
-                    "priority": priority,
-                    "status": status,
                     "game": game,
-                    "viewers": viewers,
+                    "drops": drops,
                     "points": points,
+                    "status": status,
+                    "viewers": viewers,
+                    "priority": priority,
+                    "channel": channel.name,
                 },
             )
 
@@ -949,10 +954,17 @@ if __name__ == "__main__":
     iid = 0
 
     def create_channel(
-        name: str, online: int, game: Optional[str], viewers: int, points: int, priority: bool
+        name: str,
+        status: int,
+        game: Optional[str],
+        drops: bool,
+        viewers: int,
+        points: int,
+        priority: bool,
     ):
-        if online == 1:
-            online = False
+        # status: 0 -> OFFLINE, 1 -> PENDING_ONLINE, 2 -> ONLINE
+        if status == 1:
+            status = False
             pending = True
         else:
             pending = False
@@ -965,9 +977,10 @@ if __name__ == "__main__":
             name=name,
             iid=(iid := iid + 1),
             points=points,
-            online=bool(online),
+            online=bool(status),
             pending_online=pending,
             game=game_obj,
+            drops_enabled=drops,
             viewers=viewers,
             priority=priority,
         )
@@ -1023,12 +1036,38 @@ if __name__ == "__main__":
             # create_game(654321, "My Game Very Long Name"),
         ])
         # Channel list
-        gui.channels.display(create_channel("Thomus", 0, None, 0, 0, True))
-        channel = create_channel("Traitus", 1, None, 0, 0, True)
+        gui.channels.display(
+            create_channel(
+                name="Thomus", status=0, game=None, drops=False, viewers=0, points=0, priority=True
+            )
+        )
+        channel = create_channel(
+            name="Traitus", status=1, game=None, drops=False, viewers=0, points=0, priority=True
+        )
         gui.channels.display(channel)
         gui.channels.set_watching(channel)
-        gui.channels.display(create_channel("Testus", 2, "Best Game", 42, 1234567, False))
-        gui.channels.display(create_channel("Livus", 2, "Best Game", 69, 1234567, False))
+        gui.channels.display(
+            create_channel(
+                name="Testus",
+                status=2,
+                game="Best Game",
+                drops=True,
+                viewers=42,
+                points=1234567,
+                priority=False,
+            )
+        )
+        gui.channels.display(
+            create_channel(
+                name="Livus",
+                status=2,
+                game="Best Game",
+                drops=True,
+                viewers=69,
+                points=1234567,
+                priority=False,
+            )
+        )
         gui._root.update()
         gui.channels.get_selection()
         # Tray
