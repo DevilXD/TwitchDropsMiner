@@ -64,7 +64,7 @@ class Websocket:
 
     def set_status(self, status: Optional[str] = None, refresh_topics: bool = False):
         self._twitch.gui.websockets.update(
-            self._idx, status=status, topics=refresh_topics and len(self.topics) or None
+            self._idx, status=status, topics=(len(self.topics) if refresh_topics else None)
         )
 
     def request_reconnect(self):
