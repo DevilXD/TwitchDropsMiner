@@ -51,7 +51,7 @@ class Twitch:
     def __init__(self, options: ParsedArgs):
         self.options = options
         # State management
-        self._state: State = State.INVENTORY_FETCH
+        self._state: State = State.IDLE
         self._state_change = asyncio.Event()
         self.game: Optional[Game] = None
         self.inventory: Dict[Game, List[DropsCampaign]] = {}
@@ -192,8 +192,6 @@ class Twitch:
                                     add_game = True
                     if add_game:
                         games.append(game)
-                self.change_state(State.GAME_SELECT)
-            elif self._state is State.GAME_SELECT:
                 # 'games' has all games we can mine drops for
                 # if it's empty, there's no point in continuing
                 if not games:
@@ -202,6 +200,12 @@ class Twitch:
                 # only start the websocket after we confirm there are drops to mine
                 await self.websocket.start()
                 self.gui.games.set_games(games)
+                if self.options.idle:
+                    self.options.idle = False
+                    self.change_state(State.IDLE)
+                else:
+                    self.change_state(State.GAME_SELECT)
+            elif self._state is State.GAME_SELECT:
                 self.game = self.gui.games.get_selection()
                 # pre-display the active drop without a countdown
                 active_drop = self.get_active_drop()
