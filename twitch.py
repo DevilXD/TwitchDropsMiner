@@ -274,12 +274,14 @@ class Twitch:
                         live_streams: List[Channel] = await self.get_live_streams()
                         for channel in live_streams:
                             new_channels.add(channel)
-                    if any(self.can_watch(channel) for channel in new_channels):
-                        # there are streams we can watch, so let's pre-display the active drop
-                        # again, but this time with a substracted minute
-                        active_drop = self.get_active_drop()
-                        if active_drop is not None:
-                            active_drop.display(countdown=False, subone=True)
+                    for channel in new_channels:
+                        if self.can_watch(channel):
+                            # there are streams we can watch, so let's pre-display the active drop
+                            # again, but this time with a substracted minute
+                            active_drop = self.get_active_drop(channel)
+                            if active_drop is not None:
+                                active_drop.display(countdown=False, subone=True)
+                            break
                     # add them, filtering out ones we already have
                     for channel in new_channels:
                         channel_id = channel.id
@@ -397,7 +399,9 @@ class Twitch:
         return (
             channel.online  # steam online
             and channel.drops_enabled  # drops are enabled
-            and channel.game == self.game  # it's a game we've selected
+            # it's a game we've selected
+            and channel.game is not None
+            and channel.game == self.game
             # we can progress any campaign for the selected game
             and any(
                 drop.can_earn(channel)
@@ -447,11 +451,17 @@ class Twitch:
         Called by a Channel when it goes online (after pending).
         """
         logger.debug(f"{channel.name} goes ONLINE")
-        if channel.priority:
-            wch = self.watching_channel.get_with_default(None)
-            if wch is not None and not wch.priority and self.can_watch(channel):
-                self.gui.print(f"{channel.name} goes ONLINE, switching...")
-                self.watch(channel)
+        watching_channel = self.watching_channel.get_with_default(None)
+        if (
+            (
+                self._state is State.IDLE  # we're currently idle
+                or channel.priority  # or this channel has priority
+                and watching_channel is not None  # and we're watching...
+                and not watching_channel.priority   # ... a non-priority channel
+            ) and self.can_watch(channel)
+        ):
+            self.gui.print(f"{channel.name} goes ONLINE, switching...")
+            self.watch(channel)
 
     def on_offline(self, channel: Channel):
         """
@@ -815,10 +825,10 @@ class Twitch:
                 return drop
         return None
 
-    def get_active_drop(self) -> Optional[TimedDrop]:
+    def get_active_drop(self, channel: Optional[Channel] = None) -> Optional[TimedDrop]:
         if self.game is None:
             return None
-        watching_channel = self.watching_channel.get_with_default(None)
+        watching_channel = self.watching_channel.get_with_default(channel)
         drops = sorted(
             (
                 drop
