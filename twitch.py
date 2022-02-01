@@ -370,8 +370,10 @@ class Twitch:
                 if not use_active:
                     # we need to use GQL to get the current progress
                     context = await self.gql_request(GQL_OPERATIONS["CurrentDrop"])
-                    drop_data: JsonType = context["data"]["currentUser"]["dropCurrentSession"]
-                    if drop_data:
+                    drop_data: Optional[JsonType] = (
+                        context["data"]["currentUser"]["dropCurrentSession"]
+                    )
+                    if drop_data is not None:
                         drop_id = drop_data["dropID"]
                         drop = self.get_drop(drop_id)
                         if drop is None:
@@ -515,8 +517,10 @@ class Twitch:
                 await asyncio.sleep(4)
                 for attempt in range(8):
                     context = await self.gql_request(GQL_OPERATIONS["CurrentDrop"])
-                    drop_data: JsonType = context["data"]["currentUser"]["dropCurrentSession"]
-                    if not drop_data or drop_data["dropID"] != drop.id:
+                    drop_data: Optional[JsonType] = (
+                        context["data"]["currentUser"]["dropCurrentSession"]
+                    )
+                    if drop_data is None or drop_data["dropID"] != drop.id:
                         break
                     await asyncio.sleep(2)
                 self.restart_watching()
