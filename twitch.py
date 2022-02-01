@@ -371,16 +371,17 @@ class Twitch:
                     # we need to use GQL to get the current progress
                     context = await self.gql_request(GQL_OPERATIONS["CurrentDrop"])
                     drop_data: JsonType = context["data"]["currentUser"]["dropCurrentSession"]
-                    drop_id = drop_data["dropID"]
-                    drop = self.get_drop(drop_id)
-                    if drop is None:
-                        use_active = True
-                        logger.error(f"Missing drop: {drop_id}")
-                    elif not drop.can_earn(channel):
-                        use_active = True
-                    else:
-                        drop.update_minutes(drop_data["currentMinutesWatched"])
-                        drop.display()
+                    if drop_data:
+                        drop_id = drop_data["dropID"]
+                        drop = self.get_drop(drop_id)
+                        if drop is None:
+                            use_active = True
+                            logger.error(f"Missing drop: {drop_id}")
+                        elif not drop.can_earn(channel):
+                            use_active = True
+                        else:
+                            drop.update_minutes(drop_data["currentMinutesWatched"])
+                            drop.display()
                 if use_active:
                     # Sometimes, even GQL fails to give us the correct drop.
                     # In that case, we can use the locally cached inventory to try
@@ -515,7 +516,7 @@ class Twitch:
                 for attempt in range(8):
                     context = await self.gql_request(GQL_OPERATIONS["CurrentDrop"])
                     drop_data: JsonType = context["data"]["currentUser"]["dropCurrentSession"]
-                    if drop_data["dropID"] != drop.id:
+                    if not drop_data or drop_data["dropID"] != drop.id:
                         break
                     await asyncio.sleep(2)
                 self.restart_watching()
