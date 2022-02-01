@@ -57,11 +57,13 @@ class ParsedArgs(argparse.Namespace):
 
 
 # handle input parameters
+# NOTE: due to using pythonw to run the main script, CLI help via '-h' and generally any
+# console output is not available. The input arguments still work though.
 parser = argparse.ArgumentParser(
     "Twitch Drops Miner (by DevilXD).exe",
     description="A program that allows you to mine timed drops on Twitch.",
 )
-parser.add_argument("-V", "--version", action="version", version=f"v{__version__}")
+parser.add_argument("--version", action="version", version=f"v{__version__}")
 parser.add_argument("-v", dest="_verbose", action="count", default=0)
 parser.add_argument("--debug", dest="debug", action="store_true")
 parser.add_argument("--debug-ws", dest="_debug_ws", action="store_true")
