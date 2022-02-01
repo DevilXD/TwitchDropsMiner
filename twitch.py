@@ -240,10 +240,6 @@ class Twitch:
                     WebsocketTopic.as_str("Channel", "VideoPlayback", channel.id)
                     for channel in to_remove
                 )
-                watching_channel = self.watching_channel.get_with_default(None)
-                if watching_channel is not None and watching_channel in to_remove:
-                    # we're removing a channel we're watching
-                    self.stop_watching()
                 for channel in to_remove:
                     del self.channels[channel.id]
                     channel.remove()
@@ -297,6 +293,16 @@ class Twitch:
                         for channel_id in self.channels
                     ]
                     self.websocket.add_topics(topics)
+                    # relink watching channel after cleanup,
+                    # or stop watching it if it no longer qualifies
+                    watching_channel = self.watching_channel.get_with_default(None)
+                    if watching_channel is not None:
+                        new_watching = self.channels.get(watching_channel.id)
+                        if new_watching is not None and self.can_watch(new_watching):
+                            self.watch(new_watching)
+                        else:
+                            # we're removing a channel we're watching
+                            self.stop_watching()
                     self.change_state(State.CHANNEL_SWITCH)
             elif self._state is State.CHANNEL_SWITCH:
                 if self.game is None:
@@ -412,9 +418,6 @@ class Twitch:
         )
 
     def watch(self, channel: Channel):
-        if self.is_watching(channel):
-            # we're already watching the same channel, so there's no point switching
-            return
         self.gui.channels.set_watching(channel)
         self.watching_channel.set(channel)
 
