@@ -450,6 +450,7 @@ class Twitch:
             else:
                 viewers = message["viewers"]
                 channel.viewers = viewers
+                channel.display()
                 # logger.debug(f"{channel.name} viewers: {viewers}")
 
     def on_online(self, channel: Channel):

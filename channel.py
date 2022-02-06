@@ -17,6 +17,7 @@ from constants import JsonType, BASE_URL, GQL_OPERATIONS, ONLINE_DELAY, DROPS_EN
 
 if TYPE_CHECKING:
     from twitch import Twitch
+    from gui import ChannelList
 
 
 logger = logging.getLogger("TwitchDrops")
@@ -52,6 +53,7 @@ class Stream:
 class Channel:
     def __init__(self, twitch: Twitch, data: JsonType, *, priority: bool = False):
         self._twitch: Twitch = twitch
+        self._gui_channels: ChannelList = twitch.gui.channels
         self.id: int = int(data["id"])
         self._login: str = data["name"]
         self._display_name: Optional[str] = data.get("displayName")
@@ -169,7 +171,6 @@ class Channel:
     def viewers(self, value: int):
         if self._stream is not None:
             self._stream.viewers = value
-        self.display()
 
     @property
     def drops_enabled(self) -> bool:
@@ -178,13 +179,13 @@ class Channel:
         return False
 
     def display(self):
-        self._twitch.gui.channels.display(self)
+        self._gui_channels.display(self)
 
     def remove(self):
         if self._pending_stream_up is not None:
             self._pending_stream_up.cancel()
             self._pending_stream_up = None
-        self._twitch.gui.channels.remove(self)
+        self._gui_channels.remove(self)
 
     async def get_spade_url(self) -> str:
         """

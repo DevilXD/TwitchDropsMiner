@@ -10,6 +10,7 @@ from utils import timestamp, invalidate_cache, Game
 
 if TYPE_CHECKING:
     from twitch import Twitch
+    from gui import CampaignProgress
 
 
 class BaseDrop:
@@ -62,7 +63,6 @@ class BaseDrop:
         return all(campaign.timed_drops[pid].is_claimed for pid in self._precondition_drops)
 
     def can_earn(self, channel: Optional[Channel] = None) -> bool:
-        allowed_channels = self.campaign.allowed_channels
         return (
             self.preconditions  # preconditions are met
             and not self.is_claimed  # drop isn't already claimed
@@ -70,7 +70,11 @@ class BaseDrop:
             # drop is within the active timeframe
             and self.starts_at <= datetime.now(timezone.utc) < self.ends_at
             # channel isn't specified, or there's no ACL, or the channel is in the ACL
-            and (channel is None or not allowed_channels or channel in allowed_channels)
+            and (
+                channel is None
+                or not (allowed_channels := self.campaign.allowed_channels)
+                or channel in allowed_channels
+            )
         )
 
     @property
@@ -127,6 +131,7 @@ class TimedDrop(BaseDrop):
         self, campaign: DropsCampaign, data: JsonType, claimed_benefits: Dict[str, datetime]
     ):
         super().__init__(campaign, data, claimed_benefits)
+        self._gui_progress: CampaignProgress = self._twitch.gui.progress
         self.current_minutes: int = 0
         if "self" in data:
             self.current_minutes = data["self"]["currentMinutesWatched"]
@@ -171,7 +176,7 @@ class TimedDrop(BaseDrop):
         self._on_minutes_changed()
 
     def display(self, *, countdown: bool = True, subone: bool = False):
-        self.campaign._twitch.gui.progress.display(self, countdown=countdown, subone=subone)
+        self._gui_progress.display(self, countdown=countdown, subone=subone)
 
     def bump_minutes(self):
         if self.current_minutes < self.required_minutes:
