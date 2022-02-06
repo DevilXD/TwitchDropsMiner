@@ -212,17 +212,20 @@ class Channel:
         return match.group(1)
 
     async def get_stream(self) -> Optional[Stream]:
-        response = await self._twitch.gql_request(
+        response: Optional[JsonType] = await self._twitch.gql_request(
             GQL_OPERATIONS["GetStreamInfo"].with_variables({"channel": self._login})
         )
-        if response:
-            stream_data = response["data"]["user"]
-            # fill channel_id and display name
-            self.id = int(stream_data["id"])
-            self._display_name = stream_data["displayName"]
-            if stream_data["stream"]:
-                return Stream(self, stream_data)
-        return None
+        if not response:
+            return None
+        stream_data: Optional[JsonType] = response["data"]["user"]
+        if not stream_data:
+            return None
+        # fill in channel_id and display name
+        self.id = int(stream_data["id"])
+        self._display_name = stream_data["displayName"]
+        if not stream_data["stream"]:
+            return None
+        return Stream(self, stream_data)
 
     async def check_online(self) -> bool:
         stream = await self.get_stream()
