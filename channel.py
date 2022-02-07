@@ -52,8 +52,7 @@ class Stream:
 
 class Channel:
     def __init__(self, twitch: Twitch, data: JsonType, *, priority: bool = False):
-        self._twitch: Twitch = twitch
-        self._gui_channels: ChannelList = twitch.gui.channels
+        self._init_base(twitch)
         self.id: int = int(data["id"])
         self._login: str = data["name"]
         self._display_name: Optional[str] = data.get("displayName")
@@ -66,6 +65,10 @@ class Channel:
         # • if we're watching a non-priority channel, a priority channel going up triggers a switch
         # • not cleaned up unless they're streaming a game we haven't selected
         self.priority: bool = priority
+
+    def _init_base(self, twitch: Twitch):
+        self._twitch: Twitch = twitch
+        self._gui_channels: ChannelList = twitch.gui.channels
 
     @property
     def name(self) -> str:
@@ -80,7 +83,7 @@ class Channel:
     @classmethod
     def from_directory(cls, twitch: Twitch, data: JsonType, *, priority: bool = False) -> Channel:
         self = super().__new__(cls)
-        self._twitch = twitch
+        self._init_base(twitch)
         channel = data["broadcaster"]
         self.id = int(channel["id"])
         self._login = channel["login"]
@@ -97,7 +100,7 @@ class Channel:
         cls, twitch: Twitch, channel_login: str, *, priority: bool = False
     ) -> Channel:
         self = super().__new__(cls)
-        self._twitch = twitch
+        self._init_base(twitch)
         # id and display name to be filled by get_stream
         self._login = channel_login
         self._spade_url = None
