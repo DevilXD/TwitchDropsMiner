@@ -18,9 +18,9 @@ try:
 except ModuleNotFoundError as exc:
     raise ImportError("You have to run 'pip install aiohttp' first") from exc
 
+from gui import GUIManager
 from channel import Channel
 from websocket import WebsocketPool
-from gui import LoginData, GUIManager
 from inventory import DropsCampaign, TimedDrop
 from exceptions import LoginException, CaptchaRequired
 from utils import task_wrapper, timestamp, Game, AwaitableValue, OrderedSet
@@ -40,6 +40,7 @@ from constants import (
 )
 
 if TYPE_CHECKING:
+    from gui import LoginForm
     from main import ParsedArgs
 
 
@@ -604,31 +605,10 @@ class Twitch:
             await self.claim_points(claim_data["channel_id"], claim_data["id"])
             self.gui.print(f"Claimed bonus points: {points}")
 
-    async def _validate_password(self, password: str) -> bool:
-        """
-        Use Twitch's password validator to validate the password length, characters required, etc.
-        Helps avoid running into the CAPTCHA if you mistype your password by mistake.
-        Valid length: 8-71
-        """
-        if not 8 <= len(password) <= 71:
-            return False
-        assert self._session is not None
-        payload = {"password": password}
-        async with self._session.post(
-            f"{AUTH_URL}/api/v1/password_strength", json=payload
-        ) as response:
-            strength_response = await response.json()
-        return strength_response["isValid"]
-
-    async def ask_login(self) -> LoginData:
-        while True:
-            data = await self.gui.login.ask_login()
-            if await self._validate_password(data.password):
-                return data
-
     async def _login(self) -> str:
-        logger.debug("Login flow started")
         assert self._session is not None
+        logger.debug("Login flow started")
+        login_form: LoginForm = self.gui.login
 
         payload: JsonType = {
             "client_id": CLIENT_ID,
@@ -637,7 +617,7 @@ class Twitch:
         }
 
         while True:
-            username, password, token = await self.ask_login()
+            username, password, token = await login_form.ask_login()
             payload["username"] = username
             payload["password"] = password
             # remove stale 2FA tokens, if present
@@ -663,7 +643,7 @@ class Twitch:
                         # wrong password you dummy
                         logger.debug("Login failed due to incorrect username or password")
                         self.gui.print("Incorrect username or password.")
-                        self.gui.login.clear(password=True)
+                        login_form.clear(password=True)
                         break
                     elif error_code in (
                         3012,  # Invalid authy token
@@ -674,7 +654,7 @@ class Twitch:
                             self.gui.print("Incorrect email code.")
                         else:
                             self.gui.print("Incorrect 2FA code.")
-                        self.gui.login.clear(token=True)
+                        login_form.clear(token=True)
                         break
                     elif error_code in (
                         3011,  # Authy token needed
@@ -702,17 +682,18 @@ class Twitch:
                     # we're in bois
                     self._access_token = cast(str, login_response["access_token"])
                     logger.debug("Access token granted")
-                    self.gui.login.clear()
+                    login_form.clear()
                     return self._access_token
 
     async def check_login(self) -> None:
         if self._access_token is not None and self._user_id is not None:
             # we're all good
             return
-        assert self._session is not None
         # looks like we're missing something
+        assert self._session is not None
+        login_form: LoginForm = self.gui.login
         logger.debug("Checking login")
-        self.gui.login.update("Logging in...", None)
+        login_form.update("Logging in...", None)
         jar = cast(aiohttp.CookieJar, self._session.cookie_jar)
         for attempt in range(2):
             cookie = jar.filter_cookies("https://twitch.tv")  # type: ignore
@@ -745,7 +726,7 @@ class Twitch:
         cookie["persistent"] = str(self._user_id)
         self._is_logged_in.set()
         logger.debug(f"Login successful, user ID: {self._user_id}")
-        self.gui.login.update("Logged in", self._user_id)
+        login_form.update("Logged in", self._user_id)
         # update our cookie and save it
         jar.update_cookies(cookie, URL("https://twitch.tv"))
         jar.save(COOKIES_PATH)
