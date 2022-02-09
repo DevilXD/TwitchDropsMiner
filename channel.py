@@ -9,10 +9,8 @@ from functools import cached_property
 from datetime import datetime, timezone
 from typing import Any, Optional, TYPE_CHECKING
 
-import aiohttp
-
-from exceptions import MinerException
 from utils import Game, invalidate_cache
+from exceptions import MinerException, RequestException
 from constants import JsonType, BASE_URL, GQL_OPERATIONS, ONLINE_DELAY, DROPS_ENABLED_TAG
 
 if TYPE_CHECKING:
@@ -195,9 +193,8 @@ class Channel:
         To get this monstrous thing, you have to walk a chain of requests.
         Streamer page (HTML) --parse-> Streamer Settings (JavaScript) --parse-> Spade URL
         """
-        assert self._twitch._session is not None
-        async with self._twitch._session.get(self.url) as response:
-            streamer_html = await response.text(encoding="utf8")
+        async with self._twitch.request("GET", self.url) as response:
+            streamer_html: str = await response.text(encoding="utf8")
         match = re.search(
             r'src="(https://static\.twitchcdn\.net/config/settings\.[0-9a-f]{32}\.js)"',
             streamer_html,
@@ -206,8 +203,8 @@ class Channel:
         if not match:
             raise MinerException("Error while spade_url extraction: step #1")
         streamer_settings = match.group(1)
-        async with self._twitch._session.get(streamer_settings) as response:
-            settings_js = await response.text(encoding="utf8")
+        async with self._twitch.request("GET", streamer_settings) as response:
+            settings_js: str = await response.text(encoding="utf8")
         match = re.search(
             r'"spade_url": ?"(https://video-edge-[.\w\-/]+\.ts)"', settings_js, re.I
         )
@@ -322,16 +319,13 @@ class Channel:
         """
         if not self.online:
             return False
-        session = self._twitch._session
-        if session is None:
-            return False
         if self._spade_url is None:
             self._spade_url = await self.get_spade_url()
         logger.debug(f"Sending minute-watched to {self.name}")
-        for attempt in range(5):
-            try:
-                async with session.post(self._spade_url, data=self._payload) as response:
-                    return response.status == 204
-            except (aiohttp.ClientConnectionError, aiohttp.ServerTimeoutError):
-                continue
-        return False
+        try:
+            async with self._twitch.request(
+                "POST", self._spade_url, data=self._payload
+            ) as response:
+                return response.status == 204
+        except RequestException:
+            return False

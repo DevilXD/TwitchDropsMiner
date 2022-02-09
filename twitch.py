@@ -8,9 +8,19 @@ from time import time
 from itertools import chain
 from datetime import datetime
 from functools import partial
-from contextlib import suppress
+from contextlib import suppress, asynccontextmanager
 from typing import (
-    Optional, Union, List, Dict, Set, OrderedDict, Callable, Iterable, cast, TYPE_CHECKING
+    Optional,
+    Union,
+    List,
+    Dict,
+    Set,
+    OrderedDict,
+    Callable,
+    Iterable,
+    AsyncIterator,
+    cast,
+    TYPE_CHECKING,
 )
 
 try:
@@ -22,7 +32,7 @@ from gui import GUIManager
 from channel import Channel
 from websocket import WebsocketPool
 from inventory import DropsCampaign, TimedDrop
-from exceptions import LoginException, CaptchaRequired
+from exceptions import RequestException, LoginException, CaptchaRequired
 from utils import task_wrapper, timestamp, Game, AwaitableValue, OrderedSet
 from constants import (
     GQL_URL,
@@ -153,13 +163,11 @@ class Twitch:
         • Selecting a stream to watch, and watching it
         • Changing the stream that's being watched if necessary
         """
-        if self._session is None:
-            await self.initialize()
         self.gui.start()
+        await self.check_login()
         if self._watching_task is not None:
             self._watching_task.cancel()
         self._watching_task = asyncio.create_task(self._watch_loop())
-        await self.check_login()
         # Add default topics
         assert self._user_id is not None
         self.websocket.add_topics([
@@ -606,7 +614,6 @@ class Twitch:
             self.gui.print(f"Claimed bonus points: {points}")
 
     async def _login(self) -> str:
-        assert self._session is not None
         logger.debug("Login flow started")
         login_form: LoginForm = self.gui.login
 
@@ -624,7 +631,7 @@ class Twitch:
             payload.pop("authy_token", None)
             payload.pop("twitchguard_code", None)
             for attempt in range(2):
-                async with self._session.post(f"{AUTH_URL}/login", json=payload) as response:
+                async with self.request("POST", f"{AUTH_URL}/login", json=payload) as response:
                     login_response: JsonType = await response.json()
 
                 # Feed this back in to avoid running into CAPTCHA if possible
@@ -690,10 +697,12 @@ class Twitch:
             # we're all good
             return
         # looks like we're missing something
-        assert self._session is not None
         login_form: LoginForm = self.gui.login
         logger.debug("Checking login")
         login_form.update("Logging in...", None)
+        if self._session is None:
+            await self.initialize()
+        assert self._session is not None
         jar = cast(aiohttp.CookieJar, self._session.cookie_jar)
         for attempt in range(2):
             cookie = jar.filter_cookies("https://twitch.tv")  # type: ignore
@@ -707,7 +716,8 @@ class Twitch:
                 self._access_token = cookie["auth-token"].value
                 logger.debug("Restoring session from cookie")
             # validate our access token, by obtaining user_id
-            async with self._session.get(
+            async with self.request(
+                "GET",
                 "https://id.twitch.tv/oauth2/validate",
                 headers={"Authorization": f"OAuth {self._access_token}"}
             ) as response:
@@ -731,23 +741,37 @@ class Twitch:
         jar.update_cookies(cookie, URL("https://twitch.tv"))
         jar.save(COOKIES_PATH)
 
+    @asynccontextmanager
+    async def request(
+        self, method: str, url: str, **kwargs
+    ) -> AsyncIterator[aiohttp.ClientResponse]:
+        if self._session is None:
+            await self.initialize()
+        session = self._session
+        assert session is not None
+        for attempt in range(5):
+            try:
+                async with session.request(method, url, **kwargs) as response:
+                    yield response
+                break
+            except (aiohttp.ClientConnectionError, aiohttp.ServerTimeoutError):
+                await asyncio.sleep(0.1 * attempt)
+        else:
+            raise RequestException(
+                "Ran out of attempts while handling a request: "
+                f"(method={method.upper()}, {url=}, {kwargs=})"
+            )
+
     async def gql_request(self, op: GQLOperation) -> JsonType:
-        await self.check_login()
-        assert self._session is not None
         headers = {
             "Authorization": f"OAuth {self._access_token}",
             "Client-Id": CLIENT_ID,
         }
         gql_logger.debug(f"GQL Request: {op}")
-        for attempt in range(5):
-            try:
-                async with self._session.post(GQL_URL, json=op, headers=headers) as response:
-                    response_json = await response.json()
-                    gql_logger.debug(f"GQL Response: {response_json}")
-                    return response_json
-            except (aiohttp.ClientConnectionError, aiohttp.ServerTimeoutError):
-                continue
-        raise RuntimeError(f"Ran out of attempts while handling a GQL request: {op}")
+        async with self.request("POST", GQL_URL, json=op, headers=headers) as response:
+            response_json: JsonType = await response.json()
+        gql_logger.debug(f"GQL Response: {response_json}")
+        return response_json
 
     async def fetch_campaign(
         self, campaign_id: str, claimed_benefits: Dict[str, datetime]
