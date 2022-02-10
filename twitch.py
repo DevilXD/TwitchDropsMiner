@@ -150,10 +150,6 @@ class Twitch:
         """
         self.gui.print(*args, **kwargs)
 
-    def is_watching(self, channel: Channel) -> bool:
-        watching_channel = self.watching_channel.get_with_default(None)
-        return watching_channel is not None and watching_channel == channel
-
     async def run(self):
         """
         Main method that runs the whole client.
@@ -480,7 +476,8 @@ class Twitch:
         Called by a Channel when it goes offline.
         """
         # change the channel if we're currently watching it
-        if self.is_watching(channel):
+        watching_channel = self.watching_channel.get_with_default(None)
+        if watching_channel is not None and watching_channel == channel:
             self.gui.print(f"{channel.name} goes OFFLINE, switching...")
             self.change_state(State.CHANNEL_SWITCH)
         else:
