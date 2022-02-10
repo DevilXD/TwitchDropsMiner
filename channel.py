@@ -179,8 +179,8 @@ class Channel:
             return self._stream.drops_enabled
         return False
 
-    def display(self):
-        self._gui_channels.display(self)
+    def display(self, *, add: bool = False):
+        self._gui_channels.display(self, add=add)
 
     def remove(self):
         if self._pending_stream_up is not None:

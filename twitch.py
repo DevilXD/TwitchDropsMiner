@@ -292,7 +292,7 @@ class Twitch:
                         channel_id = channel.id
                         if channel_id not in self.channels:
                             self.channels[channel_id] = channel
-                            channel.display()
+                            channel.display(add=True)
                     # Subscribe to these channel's state updates
                     topics: List[WebsocketTopic] = [
                         WebsocketTopic(
@@ -599,13 +599,13 @@ class Twitch:
         # }
         msg_type = message["type"]
         if msg_type == "points-earned":
-            data = message["data"]
-            channel = self.channels.get(int(data["channel_id"]))
-            points = data["point_gain"]["total_points"]
-            balance = data["balance"]["balance"]
+            data: JsonType = message["data"]
+            channel: Optional[Channel] = self.channels.get(int(data["channel_id"]))
+            points: int = data["point_gain"]["total_points"]
+            balance: int = data["balance"]["balance"]
             if channel is not None:
                 channel.points = balance
-                self.gui.channels.display(channel)
+                channel.display()
             self.gui.print(f"Earned points for watching: {points:3}, total: {balance}")
         elif msg_type == "claim-available":
             claim_data = message["data"]["claim"]

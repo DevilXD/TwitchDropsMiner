@@ -676,7 +676,7 @@ class ChannelList:
     def clear_selection(self):
         self._table.selection_set('')
 
-    def display(self, channel: Channel):
+    def display(self, channel: Channel, *, add: bool = False):
         # priority
         priority = "✔" if channel.priority else "❌"
         # status
@@ -707,7 +707,7 @@ class ChannelList:
             self._set(iid, "priority", priority)
             if points != '':  # we still want to display 0
                 self._set(iid, "points", points)
-        else:
+        elif add:
             self._channel_map[iid] = channel
             self._insert(
                 iid,
