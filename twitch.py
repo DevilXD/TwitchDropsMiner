@@ -258,8 +258,7 @@ class Twitch:
                     self.change_state(State.GAME_SELECT)
                 else:
                     # pre-display the active drop without substracting a minute
-                    active_drop = self.get_active_drop()
-                    if active_drop is not None:
+                    if (active_drop := self.get_active_drop()) is not None:
                         active_drop.display(countdown=False)
                     # gather ACLs from campaigns
                     no_acl = False
@@ -283,14 +282,12 @@ class Twitch:
                         if self.can_watch(channel):
                             # there are streams we can watch, so let's pre-display the active drop
                             # again, but this time with a substracted minute
-                            active_drop = self.get_active_drop(channel)
-                            if active_drop is not None:
+                            if (active_drop := self.get_active_drop(channel)) is not None:
                                 active_drop.display(countdown=False, subone=True)
                             break
                     # add them, filtering out ones we already have
                     for channel in new_channels:
-                        channel_id = channel.id
-                        if channel_id not in self.channels:
+                        if (channel_id := channel.id) not in self.channels:
                             self.channels[channel_id] = channel
                             channel.display(add=True)
                     # Subscribe to these channel's state updates
@@ -396,8 +393,7 @@ class Twitch:
                     # Sometimes, even GQL fails to give us the correct drop.
                     # In that case, we can use the locally cached inventory to try
                     # and put together the drop that we're actually mining right now
-                    drop = self.get_active_drop()
-                    if drop is not None:
+                    if (drop := self.get_active_drop()) is not None:
                         drop.bump_minutes()
                         drop.display()
                     else:
@@ -537,12 +533,12 @@ class Twitch:
                 self.change_state(State.INVENTORY_FETCH)
             return
         assert msg_type == "drop-progress"
-        watching_channel = self.watching_channel.get_with_default(None)
         if self._drop_update is None:
             # we aren't actually waiting for a progress update right now, so we can just
             # ignore the event this time
             return
-        elif drop is not None and drop.can_earn(watching_channel):
+        elif drop is not None and drop.can_earn(self.watching_channel.get_with_default(None)):
+            # the received payload is for the drop we expected
             drop.update_minutes(message["data"]["current_progress_min"])
             drop.display()
             # Let the watch loop know we've handled it here
