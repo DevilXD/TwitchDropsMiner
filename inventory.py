@@ -251,3 +251,6 @@ class DropsCampaign:
 
     def _on_minutes_changed(self) -> None:
         invalidate_cache(self, "progress", "remaining_minutes")
+
+    def get_drop(self, drop_id: str) -> Optional[TimedDrop]:
+        return self.timed_drops.get(drop_id)

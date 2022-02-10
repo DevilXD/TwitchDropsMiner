@@ -828,13 +828,11 @@ class Twitch:
         # try it with the currently selected game first
         if self.game is not None:
             for campaign in self.inventory[self.game]:
-                drop = campaign.timed_drops.get(drop_id)
-                if drop is not None:
+                if (drop := campaign.get_drop(drop_id)) is not None:
                     return drop
         # fallback to checking all campaigns
         for campaign in chain(*self.inventory.values()):
-            drop = campaign.timed_drops.get(drop_id)
-            if drop is not None:
+            if (drop := campaign.get_drop(drop_id)) is not None:
                 return drop
         return None
 
