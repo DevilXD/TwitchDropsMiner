@@ -29,7 +29,7 @@ class Stream:
         game: Optional[JsonType],
         viewers: int,
         title: str,
-        tags: List[Any],
+        tags: List[JsonType],
     ):
         self.channel: Channel = channel
         self.broadcast_id = int(id)
