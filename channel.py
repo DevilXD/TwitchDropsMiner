@@ -246,11 +246,10 @@ class Channel:
         return Stream.from_get_stream(self, stream_data)
 
     async def check_online(self) -> bool:
-        stream = await self.get_stream()
+        self._stream = stream = await self.get_stream()
         if stream is None:
             invalidate_cache(self, "_payload")
             return False
-        self._stream = stream
         return True
 
     async def _online_delay(self):
