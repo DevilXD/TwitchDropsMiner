@@ -6,8 +6,7 @@ import asyncio
 import logging
 from base64 import b64encode
 from functools import cached_property
-from datetime import datetime, timezone
-from typing import Any, Optional, SupportsInt, TYPE_CHECKING
+from typing import Any, Optional, List, SupportsInt, TYPE_CHECKING
 
 from utils import Game, invalidate_cache
 from exceptions import MinerException, RequestException
@@ -22,30 +21,46 @@ logger = logging.getLogger("TwitchDrops")
 
 
 class Stream:
-    def __init__(self, channel: Channel, data: JsonType):
-        self._twitch: Twitch = channel._twitch
+    def __init__(
+        self,
+        channel: Channel,
+        *,
+        id: SupportsInt,
+        game: Optional[JsonType],
+        viewers: int,
+        title: str,
+        tags: List[Any],
+    ):
         self.channel: Channel = channel
-        stream = data["stream"]
-        self.broadcast_id = int(stream["id"])
-        self.viewers: int = stream["viewersCount"]
-        self.drops_enabled: bool = any(tag["id"] == DROPS_ENABLED_TAG for tag in stream["tags"])
-        settings = data["broadcastSettings"]
-        self.game: Optional[Game] = Game(settings["game"]) if settings["game"] else None
-        self.title: str = settings["title"]
-        self._timestamp = datetime.now(timezone.utc)
+        self.broadcast_id = int(id)
+        self.viewers: int = viewers
+        self.drops_enabled: bool = any(t["id"] == DROPS_ENABLED_TAG for t in tags)
+        self.game: Optional[Game] = Game(game) if game else None
+        self.title: str = title
 
     @classmethod
-    def from_directory(cls, channel: Channel, data: JsonType):
-        self = super().__new__(cls)
-        self._twitch = channel._twitch
-        self.channel = channel
-        self.broadcast_id = int(data["id"])
-        self.viewers = data["viewersCount"]
-        self.drops_enabled = any(tag["id"] == DROPS_ENABLED_TAG for tag in data["tags"])
-        self.game = Game(data["game"])  # has to be there since we searched with it
-        self.title = data["title"]
-        self._timestamp = datetime.now(timezone.utc)
-        return self
+    def from_get_stream(cls, channel: Channel, data: JsonType) -> Stream:
+        stream = data["stream"]
+        settings = data["broadcastSettings"]
+        return cls(
+            channel,
+            id=stream["id"],
+            game=settings["game"],
+            viewers=stream["viewersCount"],
+            title=settings["title"],
+            tags=stream["tags"],
+        )
+
+    @classmethod
+    def from_directory(cls, channel: Channel, data: JsonType) -> Stream:
+        return cls(
+            channel,
+            id=data["id"],
+            game=data["game"],  # has to be there since we searched with it
+            viewers=data["viewersCount"],
+            title=data["title"],
+            tags=data["tags"],
+        )
 
 
 class Channel:
@@ -228,7 +243,7 @@ class Channel:
         self._display_name = stream_data["displayName"]
         if not stream_data["stream"]:
             return None
-        return Stream(self, stream_data)
+        return Stream.from_get_stream(self, stream_data)
 
     async def check_online(self) -> bool:
         stream = await self.get_stream()
