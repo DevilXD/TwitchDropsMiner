@@ -736,24 +736,29 @@ class Twitch:
 
     @asynccontextmanager
     async def request(
-        self, method: str, url: str, **kwargs
+        self, method: str, url: str, *, attempts: int = 5, **kwargs
     ) -> AsyncIterator[aiohttp.ClientResponse]:
         if self._session is None:
             await self.initialize()
         session = self._session
         assert session is not None
-        for attempt in range(5):
+        method = method.upper()
+        cause: Optional[Exception] = None
+        for attempt in range(attempts):
+            logger.debug(f"Request: ({method=}, {url=}, {attempts=}, {kwargs=})")
             try:
                 async with session.request(method, url, **kwargs) as response:
+                    logger.debug(f"Response: {response.status}: {response}")
                     yield response
-                break
-            except (aiohttp.ClientConnectionError, aiohttp.ServerTimeoutError):
-                await asyncio.sleep(0.1 * attempt)
-        else:
-            raise RequestException(
-                "Ran out of attempts while handling a request: "
-                f"(method={method.upper()}, {url=}, {kwargs=})"
-            )
+                return
+            except aiohttp.ClientConnectionError as exc:
+                cause = exc
+                if attempt < attempts - 1:
+                    await asyncio.sleep(0.1 * attempt)
+        raise RequestException(
+            "Ran out of attempts while handling a request: "
+            f"({method=}, {url=}, {attempts=}, {kwargs=})"
+        ) from cause
 
     async def gql_request(self, op: GQLOperation) -> JsonType:
         headers = {
