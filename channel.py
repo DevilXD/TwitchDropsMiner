@@ -7,7 +7,7 @@ import logging
 from base64 import b64encode
 from functools import cached_property
 from datetime import datetime, timezone
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, Optional, SupportsInt, TYPE_CHECKING
 
 from utils import Game, invalidate_cache
 from exceptions import MinerException, RequestException
@@ -49,11 +49,20 @@ class Stream:
 
 
 class Channel:
-    def __init__(self, twitch: Twitch, data: JsonType, *, priority: bool = False):
-        self._init_base(twitch)
-        self.id: int = int(data["id"])
-        self._login: str = data["name"]
-        self._display_name: Optional[str] = data.get("displayName")
+    def __init__(
+        self,
+        twitch: Twitch,
+        *,
+        id: SupportsInt,
+        login: str,
+        display_name: Optional[str] = None,
+        priority: bool = False,
+    ):
+        self._twitch: Twitch = twitch
+        self._gui_channels: ChannelList = twitch.gui.channels
+        self.id: int = int(id)
+        self._login: str = login
+        self._display_name: Optional[str] = display_name
         self._spade_url: Optional[str] = None
         self.points: Optional[int] = None
         self._stream: Optional[Stream] = None
@@ -64,48 +73,31 @@ class Channel:
         # • not cleaned up unless they're streaming a game we haven't selected
         self.priority: bool = priority
 
-    def _init_base(self, twitch: Twitch):
-        self._twitch: Twitch = twitch
-        self._gui_channels: ChannelList = twitch.gui.channels
-
-    @property
-    def name(self) -> str:
-        if self._display_name is not None:
-            return self._display_name
-        return self._login
-
-    @property
-    def url(self) -> str:
-        return f"{BASE_URL}/{self._login}"
+    @classmethod
+    def from_acl(cls, twitch: Twitch, data: JsonType) -> Channel:
+        return cls(
+            twitch,
+            id=data["id"],
+            login=data["name"],
+            display_name=data.get("displayName"),
+            priority=True,
+        )
 
     @classmethod
-    def from_directory(cls, twitch: Twitch, data: JsonType, *, priority: bool = False) -> Channel:
-        self = super().__new__(cls)
-        self._init_base(twitch)
+    def from_directory(cls, twitch: Twitch, data: JsonType) -> Channel:
         channel = data["broadcaster"]
-        self.id = int(channel["id"])
-        self._login = channel["login"]
-        self._display_name = channel["displayName"]
-        self._spade_url = None
-        self.points = None
+        self = cls(
+            twitch, id=channel["id"], login=channel["login"], display_name=channel["displayName"]
+        )
         self._stream = Stream.from_directory(self, data)
-        self._pending_stream_up = None
-        self.priority = priority
         return self
 
     @classmethod
     async def from_name(
         cls, twitch: Twitch, channel_login: str, *, priority: bool = False
     ) -> Channel:
-        self = super().__new__(cls)
-        self._init_base(twitch)
-        # id and display name to be filled by get_stream
-        self._login = channel_login
-        self._spade_url = None
-        self.points = None
-        self._stream = None
-        self._pending_stream_up = None
-        self.priority = priority
+        self = cls(twitch, id=0, login=channel_login, priority=priority)
+        # id and display name to be filled/overwritten by get_stream
         stream = await self.get_stream()
         if stream is not None:
             self._stream = stream
@@ -125,6 +117,16 @@ class Channel:
 
     def __hash__(self) -> int:
         return hash((self.__class__.__name__, self.id))
+
+    @property
+    def name(self) -> str:
+        if self._display_name is not None:
+            return self._display_name
+        return self._login
+
+    @property
+    def url(self) -> str:
+        return f"{BASE_URL}/{self._login}"
 
     @property
     def iid(self) -> str:

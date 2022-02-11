@@ -194,10 +194,7 @@ class DropsCampaign:
         self.ends_at: datetime = timestamp(data["endAt"])
         allowed = data["allow"]
         self.allowed_channels: List[Channel] = (
-            [
-                Channel(twitch, channel_data, priority=True)
-                for channel_data in allowed["channels"]
-            ]
+            [Channel.from_acl(twitch, channel_data) for channel_data in allowed["channels"]]
             if allowed["channels"] and allowed.get("isEnabled", True) else []
         )
         self.timed_drops: Dict[str, TimedDrop] = {
