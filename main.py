@@ -22,7 +22,7 @@ class ParsedArgs(argparse.Namespace):
     log: bool
     idle: bool
     tray: bool
-    debug: bool
+    no_run_check: bool
     game: Optional[str]
 
     @property
@@ -32,7 +32,7 @@ class ParsedArgs(argparse.Namespace):
             1: logging.WARNING,
             2: logging.INFO,
             3: logging.DEBUG,
-        }.get(self._verbose, logging.DEBUG)
+        }[min(self._verbose, 3)]
 
     @property
     def debug_ws(self) -> int:
@@ -65,13 +65,13 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("--version", action="version", version=f"v{__version__}")
 parser.add_argument("-v", dest="_verbose", action="count", default=0)
-parser.add_argument("--debug", dest="debug", action="store_true")
+parser.add_argument("--no-run-check", dest="no_run_check", action="store_true")
 parser.add_argument("--debug-ws", dest="_debug_ws", action="store_true")
 parser.add_argument("--debug-gql", dest="_debug_gql", action="store_true")
 parser.add_argument("-g", "--game", default=None)
 parser.add_argument("--idle", action="store_true")
 parser.add_argument("--tray", action="store_true")
-parser.add_argument("-l", "--log", action="store_true")
+parser.add_argument("--log", action="store_true")
 options: ParsedArgs = parser.parse_args(namespace=ParsedArgs())
 # check if we're not already running
 try:
@@ -79,7 +79,7 @@ try:
 except AttributeError:
     # we're not on Windows - continue
     exists = False
-if exists and not options.debug:
+if exists and not options.no_run_check:
     # already running - exit
     sys.exit()
 # handle logging stuff
@@ -104,13 +104,15 @@ signal.signal(signal.SIGTERM, lambda *_: client.close())
 try:
     loop.run_until_complete(client.run())
 except CaptchaRequired:
+    msg = "Your login attempt was denied by CAPTCHA.\nPlease try again in +12 hours."
+    logger.exception(msg)
     client.prevent_close()
-    client.print(
-        "Your login attempt was denied by CAPTCHA.\nPlease try again in +12 hours."
-    )
+    client.print(msg)
 except Exception:
+    msg = "Fatal error encountered:\n"
+    logger.exception(msg)
     client.prevent_close()
-    client.print("Fatal error encountered:\n")
+    client.print(msg)
     client.print(traceback.format_exc())
 finally:
     signal.signal(signal.SIGINT, signal.SIG_DFL)
