@@ -49,6 +49,8 @@ from constants import (
     WebsocketTopic,
 )
 
+from exceptions import MinerException
+
 if TYPE_CHECKING:
     from gui import LoginForm
     from main import ParsedArgs
@@ -293,7 +295,15 @@ class Twitch:
                         )
                         for channel_id in self.channels
                     ]
-                    self.websocket.add_topics(topics)
+
+                    try:
+                        self.websocket.add_topics(topics)
+                    except MinerException as err:
+                        # don't panic if we have more topics than available sockets
+                        # but still log an error
+                        logger.error(err)
+                        pass
+
                     # relink watching channel after cleanup,
                     # or stop watching it if it no longer qualifies
                     watching_channel = self.watching_channel.get_with_default(None)
