@@ -4,12 +4,11 @@ __pycache__
 # Build files
 /build
 /*.spec
-/Twitch Drops Miner
 # Dist files
+/dist
 /7z.exe
 /*.zip
-/*.zip.tmp
+/*.tmp
+/Twitch Drops Miner
 # Dev files
-/cookies.jar
-/settings.json
-/log*.txt
+cookies*

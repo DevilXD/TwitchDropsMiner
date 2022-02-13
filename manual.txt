@@ -1,0 +1,18 @@
+###################################
+# Twitch Drops Miner (by DevilXD) #
+###################################
+
+Available command line arguments:
+
+• -g <name>; --game <name>
+	On application start, begin mining immedately for the `<name>` game. Case sensitive.
+• --tray
+	Start application as minimised into tray.
+• -v
+	Increase verbosity level. Can be stacked up to 3 times (-vv and -vvv) to show
+	increasingly more information during application runtime.
+• --log
+	Enables logging of runtime information into a 'log.txt' file. Verbosity level of this logging
+	matches the level set by `-v`.
+• --version
+	Show application version information

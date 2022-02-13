@@ -64,12 +64,13 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("--version", action="version", version=f"v{__version__}")
 parser.add_argument("-v", dest="_verbose", action="count", default=0)
-parser.add_argument("--no-run-check", dest="no_run_check", action="store_true")
-parser.add_argument("--debug-ws", dest="_debug_ws", action="store_true")
-parser.add_argument("--debug-gql", dest="_debug_gql", action="store_true")
 parser.add_argument("-g", "--game", default=None)
 parser.add_argument("--tray", action="store_true")
 parser.add_argument("--log", action="store_true")
+# undocumented debug args
+parser.add_argument("--no-run-check", dest="no_run_check", action="store_true")
+parser.add_argument("--debug-ws", dest="_debug_ws", action="store_true")
+parser.add_argument("--debug-gql", dest="_debug_gql", action="store_true")
 options: ParsedArgs = parser.parse_args(namespace=ParsedArgs())
 # check if we're not already running
 try:
