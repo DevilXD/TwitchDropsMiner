@@ -179,6 +179,7 @@ class Twitch:
             WebsocketTopic("User", "Drops", self._user_id, self.process_drops),
             WebsocketTopic("User", "CommunityPoints", self._user_id, self.process_points),
         ])
+        first_select: bool = True
         games: List[Game] = []
         full_cleanup: bool = False
         channels: Final[OrderedDict[int, Channel]] = self.channels
@@ -215,18 +216,24 @@ class Twitch:
                 # only start the websocket after we confirm there are drops to mine
                 await self.websocket.start()
                 self.gui.games.set_games(games)
-                if self.options.idle:
-                    self.options.idle = False
-                    self.change_state(State.IDLE)
-                else:
-                    self.change_state(State.GAME_SELECT)
+                self.change_state(State.GAME_SELECT)
             elif self._state is State.GAME_SELECT:
                 self.game = self.gui.games.get_selection()
-                # restart the watch loop if needed
-                self.restart_watching()
-                # signal channel cleanup that we're removing everything
-                full_cleanup = True
-                self.change_state(State.CHANNELS_CLEANUP)
+                if self.game is None:
+                    if first_select:
+                        # on first select, let the user make the choice
+                        first_select = False
+                    else:
+                        self.game = self.gui.games.set_first()
+                if self.game is not None:
+                    # restart the watch loop if needed
+                    self.restart_watching()
+                    # signal channel cleanup that we're removing everything
+                    full_cleanup = True
+                    self.change_state(State.CHANNELS_CLEANUP)
+                else:
+                    # with no game selected, we switch to IDLE
+                    self.change_state(State.IDLE)
             elif self._state is State.CHANNELS_CLEANUP:
                 if self.game is None or full_cleanup:
                     # no game selected or we're doing full cleanup: remove everything

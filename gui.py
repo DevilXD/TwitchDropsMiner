@@ -289,6 +289,7 @@ class GameSelector:
 
     def _on_select(self, event):
         current = self._list.curselection()
+        print(current)
         if not current:
             # can happen when the user clicks on an empty list
             new_selection = None
@@ -298,17 +299,20 @@ class GameSelector:
             self._selection = new_selection
             self._manager._twitch.change_state(State.GAME_SELECT)
 
-    def get_selection(self) -> Game:
+    def get_selection(self) -> Optional[Game]:
         if self._selection is None:
-            if not self._games:
-                raise RuntimeError("No games to select from")
-            # select and return the first game from the list
-            self._list.selection_clear(0, "end")
-            self._list.selection_set(0)
-            first_game = next(iter(self._games.values()))
-            self._selection = str(first_game)
-            return first_game
+            return None
         return self._games[self._selection]
+
+    def set_first(self) -> Game:
+        # select and return the first game from the list
+        self._list.selection_clear(0, "end")
+        self._list.selection_set(0)
+        for game_name, first_game in self._games.items():
+            # just one iteration to get, set and return the first game
+            self._selection = game_name
+            return first_game
+        raise RuntimeError("No games to select from")
 
 
 class _BaseVars(TypedDict):
