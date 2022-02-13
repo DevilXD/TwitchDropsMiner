@@ -312,7 +312,7 @@ class Channel:
             self.display()
 
     @cached_property
-    def _payload(self):
+    def _payload(self) -> JsonType:
         assert self._stream is not None
         payload = [
             {

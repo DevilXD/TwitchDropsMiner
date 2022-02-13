@@ -16,7 +16,7 @@
             "type": "python",
             "request": "launch",
             "program": "main.py",
-            "args": ["--no-run-check", "-vv"],
+            "args": ["--no-run-check", "--idle", "-vv"],
             "console": "integratedTerminal",
             "justMyCode": false
         },
@@ -25,7 +25,7 @@
             "type": "python",
             "request": "launch",
             "program": "main.py",
-            "args": ["--no-run-check", "-vvv"],
+            "args": ["--no-run-check", "--idle", "-vvv"],
             "console": "integratedTerminal",
             "justMyCode": false
         },
@@ -34,7 +34,7 @@
             "type": "python",
             "request": "launch",
             "program": "main.py",
-            "args": ["--no-run-check", "-vvv", "--debug-ws"],
+            "args": ["--no-run-check", "--idle", "-vvv", "--debug-ws"],
             "console": "integratedTerminal",
             "justMyCode": false
         },

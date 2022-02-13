@@ -663,7 +663,9 @@ class ChannelList:
 
     def set_watching(self, channel: Channel):
         self.clear_watching()
-        self._table.item(channel.iid, tags="watching")
+        iid = channel.iid
+        self._table.item(iid, tags="watching")
+        self._table.see(iid)
 
     def get_selection(self) -> Optional[Channel]:
         if not self._channel_map:
@@ -675,6 +677,10 @@ class ChannelList:
 
     def clear_selection(self):
         self._table.selection_set('')
+
+    def clear(self):
+        iids = self._table.get_children()
+        self._table.delete(*iids)
 
     def display(self, channel: Channel, *, add: bool = False):
         # priority

@@ -7,8 +7,11 @@ from time import time
 from contextlib import suppress
 from typing import Optional, List, Dict, Set, Iterable, TYPE_CHECKING
 
-from websockets.exceptions import ConnectionClosed, ConnectionClosedOK
-from websockets.client import WebSocketClientProtocol, connect as websocket_connect
+try:
+    from websockets.exceptions import ConnectionClosed, ConnectionClosedOK
+    from websockets.client import WebSocketClientProtocol, connect as websocket_connect
+except ModuleNotFoundError as exc:
+    raise ImportError("You have to run 'pip install websockets' first") from exc
 
 from exceptions import MinerException
 from utils import task_wrapper, create_nonce
