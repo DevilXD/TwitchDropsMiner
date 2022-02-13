@@ -289,7 +289,6 @@ class GameSelector:
 
     def _on_select(self, event):
         current = self._list.curselection()
-        print(current)
         if not current:
             # can happen when the user clicks on an empty list
             new_selection = None
