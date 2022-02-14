@@ -27,12 +27,10 @@ from constants import (
 
 if TYPE_CHECKING:
     from twitch import Twitch
-    from typing_extensions import TypeAlias
 
 
 logger = logging.getLogger("TwitchDrops")
 ws_logger = logging.getLogger("TwitchDrops.websocket")
-SendResult: TypeAlias = "asyncio.Future[bool]"
 
 
 class Websocket:
