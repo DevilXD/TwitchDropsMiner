@@ -365,7 +365,10 @@ class Twitch:
                             break
                     else:
                         self.stop_watching()
-                        self.gui.print(f"No suitable channel to watch for game: {self.game}")
+                        self.gui.print(
+                            f"No suitable channel to watch for game: {self.game}\n"
+                            "Waiting for an ONLINE channel..."
+                        )
                         self.change_state(State.IDLE)
             elif self._state is State.EXIT:
                 # we've been requested to exit the application
