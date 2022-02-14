@@ -14,7 +14,7 @@ except ModuleNotFoundError as exc:
     raise ImportError("You have to run 'pip install websockets' first") from exc
 
 from exceptions import MinerException
-from utils import task_wrapper, create_nonce
+from utils import task_wrapper, create_nonce, AwaitableValue
 from constants import (
     JsonType,
     WebsocketTopic,
@@ -27,10 +27,12 @@ from constants import (
 
 if TYPE_CHECKING:
     from twitch import Twitch
+    from typing_extensions import TypeAlias
 
 
 logger = logging.getLogger("TwitchDrops")
 ws_logger = logging.getLogger("TwitchDrops.websocket")
+SendResult: TypeAlias = "asyncio.Future[bool]"
 
 
 class Websocket:
@@ -40,9 +42,7 @@ class Websocket:
         # websocket index
         self._idx: int = index
         # current websocket connection
-        self._ws: Optional[WebSocketClientProtocol] = None
-        # set when there's an active websocket connection
-        self._connected_flag = asyncio.Event()
+        self._ws: AwaitableValue[WebSocketClientProtocol] = AwaitableValue()
         # set when the websocket needs to reconnect
         self._reconnect_requested = asyncio.Event()
         # set when the topics changed
@@ -60,10 +60,10 @@ class Websocket:
 
     @property
     def connected(self) -> bool:
-        return self._connected_flag.is_set()
+        return self._ws.has_value()
 
     def wait_until_connected(self):
-        return self._connected_flag.wait()
+        return self._ws.wait()
 
     def set_status(self, status: Optional[str] = None, refresh_topics: bool = False):
         self._twitch.gui.websockets.update(
@@ -77,9 +77,10 @@ class Websocket:
         self._reconnect_requested.set()
 
     async def close(self):
-        self.set_status("Disconnecting...")
-        if self._ws is not None:
-            await self._ws.close()
+        ws = self._ws.get_with_default(None)
+        if ws is not None:
+            self.set_status("Disconnecting...")
+            await ws.close()
 
     async def start(self):
         if self.connected:
@@ -121,20 +122,21 @@ class Websocket:
         ws_logger.info(f"Websocket[{self._idx}] connecting...")
         # Connect/Reconnect loop
         async for websocket in websocket_connect(WEBSOCKET_URL, ssl=True, ping_interval=None):
-            websocket.BACKOFF_MAX = 3 * 60  # type: ignore  # 3 minutes
-            self._ws = websocket
+            # 3 minutes of max backoff
+            websocket.BACKOFF_MAX = 3 * 60  # type: ignore
+            self._ws.set(websocket)
+            self._reconnect_requested.clear()
             self.set_status("Connected")
             try:
                 try:
-                    self._reconnect_requested.clear()
-                    self._connected_flag.set()
                     while not self._reconnect_requested.is_set():
                         await self._handle_ping()
                         await self._handle_topics()
                         await self._handle_recv()
                 finally:
+                    self._ws.clear()
                     self._submitted.clear()
-                    self._connected_flag.clear()
+                    self._topics_changed.set()  # lets the next ws connection resub to the topics
                 # A reconnect was requested
             except ConnectionClosed as exc:
                 if isinstance(exc, ConnectionClosedOK):
@@ -143,7 +145,6 @@ class Websocket:
                         ws_logger.warning(f"Websocket[{self._idx}] got disconnected.")
                     else:
                         # we closed it - exit
-                        self._ws = None
                         ws_logger.info(f"Websocket[{self._idx}] stopped.")
                         self.set_status("Disconnected")
                         return
@@ -212,9 +213,10 @@ class Websocket:
         Gather incoming messages over the timeout specified.
         Note that there's no return value - this modifies `messages` in-place.
         """
-        assert self._ws is not None
+        ws = self._ws.get_with_default(None)
+        assert ws is not None
         while True:
-            raw_message = await self._ws.recv()
+            raw_message = await ws.recv()
             message = json.loads(raw_message)
             ws_logger.debug(f"Websocket[{self._idx}] received: {message}")
             messages.append(message)
@@ -252,11 +254,14 @@ class Websocket:
                 ws_logger.warning(f"Websocket[{self._idx}] received unknown payload: {message}")
 
     def add_topics(self, topics_set: Set[WebsocketTopic]):
+        changed: bool = False
         while topics_set and len(self.topics) < WS_TOPICS_LIMIT:
             topic = topics_set.pop()
             self.topics[str(topic)] = topic
+            changed = True
+        if changed:
             self._topics_changed.set()
-        self.set_status(refresh_topics=True)
+            self.set_status(refresh_topics=True)
 
     def remove_topics(self, topics_set: Set[str]):
         existing = topics_set.intersection(self.topics.keys())
@@ -270,11 +275,11 @@ class Websocket:
         self.set_status(refresh_topics=True)
 
     async def send(self, message: JsonType):
-        if self._ws is None:
-            return
+        ws = self._ws.get_with_default(None)
+        assert ws is not None
         if message["type"] != "PING":
             message["nonce"] = create_nonce()
-        await self._ws.send(json.dumps(message, separators=(',', ':')))
+        await ws.send(json.dumps(message, separators=(',', ':')))
         ws_logger.debug(f"Websocket[{self._idx}] sent: {message}")
 
 

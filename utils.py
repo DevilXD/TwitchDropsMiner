@@ -8,7 +8,9 @@ from functools import wraps
 from contextlib import suppress
 from collections import OrderedDict
 from datetime import datetime, timezone
-from typing import Union, List, MutableSet, Iterable, Iterator, Generic, TypeVar
+from typing import (
+    Any, Literal, Union, List, MutableSet, Iterable, Iterator, Coroutine, Generic, TypeVar, cast
+)
 
 from constants import JsonType
 
@@ -98,6 +100,9 @@ class AwaitableValue(Generic[_V]):
 
     def has_value(self) -> bool:
         return self._event.is_set()
+
+    def wait(self) -> Coroutine[Any, Any, Literal[True]]:
+        return cast(Coroutine[Any, Any, Literal[True]], self._event.wait())
 
     def get_with_default(self, default: _D) -> Union[_D, _V]:
         if self._event.is_set():
