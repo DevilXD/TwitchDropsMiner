@@ -488,6 +488,8 @@ class Twitch:
                 channel.viewers = viewers
                 channel.display()
                 # logger.debug(f"{channel.name} viewers: {viewers}")
+        else:
+            logger.warning(f"Unknown stream state: {msg_type}")
 
     def on_online(self, channel: Channel):
         """

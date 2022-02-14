@@ -214,16 +214,15 @@ class WebsocketTopic:
 WEBSOCKET_TOPICS: Dict[str, Dict[str, str]] = {
     "User": {  # Using user_id
         "Drops": "user-drop-events",
-        "StreamState": "stream-change-v1",
         "CommunityPoints": "community-points-user-v1",
-        "Presence": "presence",
-        "Notifications": "onsite-notifications",
+        "Presence": "presence",  # unused
+        "Notifications": "onsite-notifications",  # unused
     },
     "Channel": {  # Using channel_id
-        "Drops": "channel-drop-events",
-        "StreamState": "stream-change-by-channel",
-        "CommunityPoints": "community-points-channel-v1",
-        "VideoPlayback": "video-playback-by-id",
+        "Drops": "channel-drop-events",  # unused
+        "CommunityPoints": "community-points-channel-v1",  # unused
+        "StreamState": "video-playback-by-id",
+        # currently unused, can be used to receive updates regarding stream's title and tag changes
         "StreamUpdate": "broadcast-settings-update",
     },
 }
