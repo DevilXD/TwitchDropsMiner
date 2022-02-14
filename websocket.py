@@ -81,17 +81,16 @@ class Websocket:
             await ws.close()
 
     async def start(self):
-        if self.connected:
-            return
-        if self._handle_task is None:
-            self._handle_task = asyncio.create_task(self._handle())
-        await self.wait_until_connected()
+        if not self.connected:
+            self.start_nowait()
+            await self.wait_until_connected()
 
     def start_nowait(self):
-        if self.connected:
-            return
-        if self._handle_task is None:
-            self._handle_task = asyncio.create_task(self._handle())
+        if not self.connected:
+            if self._handle_task is None:
+                self._handle_task = asyncio.create_task(self._handle())
+            elif self._handle_task.done():
+                ws_logger.error(f"Detected zombified handle task: {self._handle_task!r}")
 
     async def stop(self):
         await self.close()
@@ -101,12 +100,13 @@ class Websocket:
             self._handle_task = None
 
     def stop_nowait(self):
-        asyncio.create_task(self.close())
-        # note: this detaches the handle task, so we have to assume it closes properly
-        self._handle_task = None
+        # weird syntax but that's what we get for using a decorator for this
+        # return type of 'task_wrapper' is a coro, so we need to instance it for the task
+        asyncio.create_task(task_wrapper(self.close)())
 
     def remove(self):
         # this stops the websocket, and then removes it from the gui list
+        @task_wrapper
         async def remover():
             await self.stop()
             self._twitch.gui.websockets.remove(self._idx)
@@ -134,7 +134,7 @@ class Websocket:
                 finally:
                     self._ws.clear()
                     self._submitted.clear()
-                    self._topics_changed.set()  # lets the next ws connection resub to the topics
+                    self._topics_changed.set()  # lets the next WS connection resub to the topics
                 # A reconnect was requested
             except ConnectionClosed as exc:
                 if isinstance(exc, ConnectionClosedOK):
