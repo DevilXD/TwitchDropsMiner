@@ -173,6 +173,7 @@ class Websocket:
         if not self._topics_changed.is_set():
             # nothing to do
             return
+        self._topics_changed.clear()
         current: Set[WebsocketTopic] = set(self.topics.values())
         # handle removed topics
         removed = self._submitted.difference(current)
@@ -204,7 +205,6 @@ class Websocket:
                 }
             )
             self._submitted.update(added)
-        self._topics_changed.clear()
 
     async def _gather_recv(self, messages: List[JsonType]):
         """
