@@ -9,14 +9,35 @@ from contextlib import suppress
 from collections import OrderedDict
 from datetime import datetime, timezone
 from typing import (
-    Any, Literal, Union, List, MutableSet, Iterable, Iterator, Coroutine, Generic, TypeVar, cast
+    Any,
+    Literal,
+    Union,
+    List,
+    MutableSet,
+    Callable,
+    Iterable,
+    Iterator,
+    Coroutine,
+    Generic,
+    TypeVar,
+    TYPE_CHECKING,
+    cast,
 )
 
 from constants import JsonType
 
+if TYPE_CHECKING:
+    from typing_extensions import ParamSpec
+else:
+    # stub it
+    class ParamSpec:
+        def __init__(*args, **kwargs):
+            pass
+
 
 _V = TypeVar("_V")  # value
 _D = TypeVar("_D")  # default
+_P = ParamSpec("_P")  # params
 logger = logging.getLogger("TwitchDrops")
 NONCE_CHARS = string.ascii_letters + string.digits
 
@@ -33,11 +54,13 @@ def deduplicate(iterable: Iterable[_V]) -> List[_V]:
     return list(OrderedDict.fromkeys(iterable).keys())
 
 
-def task_wrapper(afunc):
+def task_wrapper(
+    afunc: Callable[_P, Coroutine[Any, Any, _V]]
+) -> Callable[_P, Coroutine[Any, Any, _V]]:
     @wraps(afunc)
-    async def wrapper(self, *args, **kwargs):
+    async def wrapper(*args: _P.args, **kwargs: _P.kwargs):
         try:
-            await afunc(self, *args, **kwargs)
+            await afunc(*args, **kwargs)
         except Exception:
             logger.exception("Exception in task")
             raise  # raise up to the wrapping task
