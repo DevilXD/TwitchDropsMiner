@@ -56,13 +56,13 @@ class OrderedSet(MutableSet[_V]):
     Implementation of a set that preserves insertion order,
     based on OrderedDict with values set to None.
     """
-    def __init__(self, /, iterable: Iterable[_V] = []):
+    def __init__(self, iterable: Iterable[_V] = [], /):
         self._items: OrderedDict[_V, None] = OrderedDict((item, None) for item in iterable)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}([{', '.join(map(repr, self._items))}])"
 
-    def __contains__(self, /, item: object) -> bool:
+    def __contains__(self, item: object, /) -> bool:
         return item in self._items
 
     def __iter__(self) -> Iterator[_V]:
@@ -71,14 +71,14 @@ class OrderedSet(MutableSet[_V]):
     def __len__(self) -> int:
         return len(self._items)
 
-    def add(self, /, item: _V) -> None:
+    def add(self, item: _V, /) -> None:
         self._items[item] = None
 
-    def discard(self, /, item: _V) -> None:
+    def discard(self, item: _V, /) -> None:
         with suppress(KeyError):
             del self._items[item]
 
-    def update(self, /, *others: Iterable[_V]) -> None:
+    def update(self, *others: Iterable[_V]) -> None:
         for it in others:
             for item in it:
                 if item not in self._items:
