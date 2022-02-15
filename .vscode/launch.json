@@ -46,5 +46,14 @@
             "console": "integratedTerminal",
             "justMyCode": false
         },
+        {
+            "name": "Test ArgParser",
+            "type": "python",
+            "request": "launch",
+            "program": "main.py",
+            "args": ["--wrong"],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
     ]
 }

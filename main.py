@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import io
 import sys
 import ctypes
 import signal
@@ -7,12 +8,37 @@ import asyncio
 import logging
 import argparse
 import traceback
-from typing import Optional
+import tkinter as tk
+from pathlib import Path
+from tkinter import messagebox
+from typing import Optional, NoReturn
 
 from twitch import Twitch
 from version import __version__
 from exceptions import CaptchaRequired
 from constants import FORMATTER, LOG_PATH, WINDOW_TITLE
+
+
+# we need an dummy invisible window for the parser
+root = tk.Tk()
+root.overrideredirect(True)
+root.withdraw()
+
+
+class Parser(argparse.ArgumentParser):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._message: io.StringIO = io.StringIO()
+
+    def _print_message(self, message: str, *args, **kwargs) -> None:
+        self._message.write(message)
+        # print(message, file=self._message)
+
+    def exit(self, *args, **kwargs) -> NoReturn:
+        try:
+            super().exit(*args, **kwargs)
+        finally:
+            messagebox.showerror("Argument Parser Error", self._message.getvalue())
 
 
 class ParsedArgs(argparse.Namespace):
@@ -58,8 +84,8 @@ class ParsedArgs(argparse.Namespace):
 # handle input parameters
 # NOTE: due to using pythonw to run the main script, CLI help via '-h' and generally any
 # console output is not available. The input arguments still work though.
-parser = argparse.ArgumentParser(
-    "Twitch Drops Miner (by DevilXD).exe",
+parser = Parser(
+    Path(sys.argv[0]).name,
     description="A program that allows you to mine timed drops on Twitch.",
 )
 parser.add_argument("--version", action="version", version=f"v{__version__}")
@@ -68,10 +94,14 @@ parser.add_argument("-g", "--game", default=None)
 parser.add_argument("--tray", action="store_true")
 parser.add_argument("--log", action="store_true")
 # undocumented debug args
-parser.add_argument("--no-run-check", dest="no_run_check", action="store_true")
-parser.add_argument("--debug-ws", dest="_debug_ws", action="store_true")
-parser.add_argument("--debug-gql", dest="_debug_gql", action="store_true")
+parser.add_argument(
+    "--no-run-check", dest="no_run_check", action="store_true", help=argparse.SUPPRESS
+)
+parser.add_argument("--debug-ws", dest="_debug_ws", action="store_true", help=argparse.SUPPRESS)
+parser.add_argument("--debug-gql", dest="_debug_gql", action="store_true", help=argparse.SUPPRESS)
 options: ParsedArgs = parser.parse_args(namespace=ParsedArgs())
+# dummy window isn't needed anymore
+root.destroy()
 # check if we're not already running
 try:
     exists = ctypes.windll.user32.FindWindowW(None, WINDOW_TITLE)
