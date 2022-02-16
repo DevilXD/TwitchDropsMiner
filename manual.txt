@@ -6,6 +6,8 @@ Available command line arguments:
 
 • -g <name>; --game <name>
 	On application start, begin mining immedately for the `<name>` game. Case sensitive.
+• --exclude <name> [<name> ...]
+	Exclude the `<name>` game(s) from being mined. Case sensitive.
 • --tray
 	Start application as minimised into tray.
 • -v
@@ -16,3 +18,6 @@ Available command line arguments:
 	matches the level set by `-v`.
 • --version
 	Show application version information
+
+Note: Arguments containing spaces (such as game names) need to be encased in double quotes.
+For example: "Game Name".
