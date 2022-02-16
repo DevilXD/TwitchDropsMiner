@@ -180,7 +180,6 @@ class Twitch:
             WebsocketTopic("User", "CommunityPoints", self._user_id, self.process_points),
         ])
         first_select: bool = True
-        games: List[Game] = []
         full_cleanup: bool = False
         channels: Final[OrderedDict[int, Channel]] = self.channels
         self.change_state(State.INVENTORY_FETCH)
@@ -193,7 +192,7 @@ class Twitch:
                 self.change_state(State.GAMES_UPDATE)
             elif self._state is State.GAMES_UPDATE:
                 # Figure out which games to watch, and claim the drops we can
-                games.clear()
+                games: List[Game] = []
                 for game, campaigns in self.inventory.items():
                     add_game = False
                     for campaign in campaigns:

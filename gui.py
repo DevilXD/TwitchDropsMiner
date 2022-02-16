@@ -262,6 +262,7 @@ class GameSelector:
         self._list.pack(fill="both", expand=True)
         self._selection: Optional[str] = self._manager._twitch.options.game
         self._games: OrderedDict[str, Game] = OrderedDict()
+        self._excluded: Set[int] = set()
         self._list.bind("<<ListboxSelect>>", self._on_select)
 
     def set_games(self, games: Iterable[Game]):
@@ -270,30 +271,42 @@ class GameSelector:
         self._list.delete(0, "end")
         self._list.insert("end", *self._games.keys())
         self._list.config(width=0)  # autoadjust listbox width
-        if self._selection is not None:
-            selected_index: Optional[int] = next(
-                (
-                    i
-                    for i, str_game in enumerate(self._games.keys())
-                    if str_game == self._selection
-                ),
-                None,
-            )
-            if selected_index is not None:
-                # reselect the currently selected item
-                self._list.selection_clear(0, "end")
-                self._list.selection_set(selected_index)
-            else:
-                # the game we've had selected isn't there anymore - clear selection
-                self._selection = None
+        # process excluded games and relink the selection
+        self._excluded.clear()
+        selected_index: Optional[int] = None
+        exclude = self._manager._twitch.options.exclude
+        for i, game_name in enumerate(self._list.get(0, "end")):
+            if game_name in exclude:
+                self._excluded.add(i)
+                self._list.itemconfig(i, foreground="gray60")
+            elif game_name == self._selection:
+                selected_index = i
+        self._list.selection_clear(0, "end")
+        if selected_index is not None:
+            # reselect the currently selected item
+            self._list.selection_set(selected_index)
+        elif self._selection is not None:
+            # the game we've had selected isn't there anymore - clear selection
+            self._selection = None
 
     def _on_select(self, event):
-        current = self._list.curselection()
+        current: Tuple[int, ...] = self._list.curselection()
         if not current:
             # can happen when the user clicks on an empty list
-            new_selection = None
-        else:
-            new_selection = self._list.get(current[0])
+            return
+        idx: int = current[0]
+        if idx in self._excluded:
+            # user clicked on an excluded game - reselect the previous one if possible
+            self._list.selection_clear(0, "end")
+            if self._selection is not None:
+                for i, game_name in enumerate(self._list.get(0, "end")):
+                    if game_name == self._selection:
+                        self._list.selection_set(i)
+                        break
+                else:
+                    self._selection = None
+            return
+        new_selection: str = self._list.get(idx)
         if new_selection != self._selection:
             self._selection = new_selection
             self._manager._twitch.change_state(State.GAME_SELECT)
@@ -303,15 +316,15 @@ class GameSelector:
             return None
         return self._games[self._selection]
 
-    def set_first(self) -> Game:
-        # select and return the first game from the list
+    def set_first(self) -> Optional[Game]:
+        # select and return the first non-excluded game from the list
         self._list.selection_clear(0, "end")
-        self._list.selection_set(0)
-        for game_name, first_game in self._games.items():
-            # just one iteration to get, set and return the first game
-            self._selection = game_name
-            return first_game
-        raise RuntimeError("No games to select from")
+        for i, game_name in enumerate(self._list.get(0, "end")):
+            if i not in self._excluded:
+                self._selection = game_name
+                self._list.selection_set(i)
+                return self._games[game_name]
+        return None
 
 
 class _BaseVars(TypedDict):
@@ -1028,7 +1041,9 @@ if __name__ == "__main__":
 
     async def main(exit_event: asyncio.Event):
         # Initialize GUI debug
-        mock = SimpleNamespace(options=SimpleNamespace(game=None, tray=False), channels={})
+        mock = SimpleNamespace(
+            options=SimpleNamespace(game=None, tray=False, exclude={"Lit Game"}), channels={}
+        )
         mock.change_state = lambda state: mock.gui.print(f"State change: {state.value}")
         mock.state_change = lambda state: partial(mock.change_state, state)
         gui = GUIManager(mock)  # type: ignore
@@ -1041,19 +1056,21 @@ if __name__ == "__main__":
         gui.login.update("Login required", None)
         # Game selector
         gui.games.set_games([
+            create_game(420690, "Lit Game"),
             create_game(123456, "Best Game"),
-            # create_game(654321, "My Game Very Long Name"),
+            create_game(654321, "My Game Very Long Name"),
         ])
         # Channel list
         gui.channels.display(
             create_channel(
                 name="Thomus", status=0, game=None, drops=False, viewers=0, points=0, priority=True
-            )
+            ),
+            add=True,
         )
         channel = create_channel(
             name="Traitus", status=1, game=None, drops=False, viewers=0, points=0, priority=True
         )
-        gui.channels.display(channel)
+        gui.channels.display(channel, add=True,)
         gui.channels.set_watching(channel)
         gui.channels.display(
             create_channel(
@@ -1064,7 +1081,8 @@ if __name__ == "__main__":
                 viewers=42,
                 points=1234567,
                 priority=False,
-            )
+            ),
+            add=True,
         )
         gui.channels.display(
             create_channel(
@@ -1075,7 +1093,8 @@ if __name__ == "__main__":
                 viewers=69,
                 points=1234567,
                 priority=False,
-            )
+            ),
+            add=True,
         )
         gui._root.update()
         gui.channels.get_selection()

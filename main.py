@@ -9,10 +9,12 @@ import logging
 import argparse
 import traceback
 import tkinter as tk
+from copy import copy
 from pathlib import Path
 from tkinter import messagebox
-from typing import Optional, NoReturn
+from typing import Optional, Union, Set, NoReturn, Generic
 
+from utils import _T
 from twitch import Twitch
 from version import __version__
 from exceptions import CaptchaRequired
@@ -41,12 +43,40 @@ class Parser(argparse.ArgumentParser):
             messagebox.showerror("Argument Parser Error", self._message.getvalue())
 
 
+class SetCollectAction(argparse.Action, Generic[_T]):
+    def __init__(
+        self,
+        option_strings,
+        dest,
+        *,
+        nargs: Optional[Union[int, str]] = None,
+        const: Optional[_T] = None,
+        default: Optional[Set[_T]] = None,
+        **kwargs,
+    ) -> None:
+        if nargs is not None and nargs in ('?', '*') or isinstance(nargs, int) and nargs <= 0:
+            raise ValueError("'nargs' has to be '+' or an integer greater than zero")
+        if default is None:
+            default = set()
+        elif not isinstance(default, set):
+            raise TypeError("'default' has to be of 'set' type")
+        super().__init__(option_strings, dest, nargs, const, default, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        items: Set[_T] = getattr(namespace, self.dest, self.default)
+        items = copy(items)
+        for value in values:
+            items.add(value)
+        setattr(namespace, self.dest, items)
+
+
 class ParsedArgs(argparse.Namespace):
     _verbose: int
     _debug_ws: bool
     _debug_gql: bool
     log: bool
     tray: bool
+    exclude: Set[str]
     no_run_check: bool
     game: Optional[str]
 
@@ -90,9 +120,10 @@ parser = Parser(
 )
 parser.add_argument("--version", action="version", version=f"v{__version__}")
 parser.add_argument("-v", dest="_verbose", action="count", default=0)
-parser.add_argument("-g", "--game", default=None)
 parser.add_argument("--tray", action="store_true")
 parser.add_argument("--log", action="store_true")
+parser.add_argument("-g", "--game", default=None)
+parser.add_argument("--exclude", action=SetCollectAction, nargs='+', metavar="GAME")
 # undocumented debug args
 parser.add_argument(
     "--no-run-check", dest="no_run_check", action="store_true", help=argparse.SUPPRESS
