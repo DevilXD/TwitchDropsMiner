@@ -478,11 +478,7 @@ class Twitch:
         if channel is None:
             logger.error(f"Stream state change for a non-existing channel: {channel_id}")
             return
-        if msg_type == "stream-down":
-            channel.set_offline()
-        elif msg_type == "stream-up":
-            channel.set_online()
-        elif msg_type == "viewcount":
+        if msg_type == "viewcount":
             if not channel.online:
                 # if it's not online for some reason, set it so
                 channel.set_online()
@@ -491,6 +487,13 @@ class Twitch:
                 channel.viewers = viewers
                 channel.display()
                 # logger.debug(f"{channel.name} viewers: {viewers}")
+        elif msg_type == "stream-down":
+            channel.set_offline()
+        elif msg_type == "stream-up":
+            channel.set_online()
+        elif msg_type == "commercial":
+            # skip these
+            pass
         else:
             logger.warning(f"Unknown stream state: {msg_type}")
 
