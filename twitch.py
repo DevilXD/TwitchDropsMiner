@@ -225,14 +225,11 @@ class Twitch:
                     else:
                         self.game = self.gui.games.set_first()
                 if self.game is not None:
-                    # restart the watch loop if needed
+                    # restart the watch loop immediately on new game selected
                     self.restart_watching()
-                    # signal channel cleanup that we're removing everything
-                    full_cleanup = True
-                    self.change_state(State.CHANNELS_CLEANUP)
-                else:
-                    # with no game selected, we switch to IDLE
-                    self.change_state(State.IDLE)
+                # signal channel cleanup that we're removing everything
+                full_cleanup = True
+                self.change_state(State.CHANNELS_CLEANUP)
             elif self._state is State.CHANNELS_CLEANUP:
                 if self.game is None or full_cleanup:
                     # no game selected or we're doing full cleanup: remove everything
@@ -260,7 +257,11 @@ class Twitch:
                     for channel in to_remove:
                         del channels[channel.id]
                         channel.remove()
-                self.change_state(State.CHANNELS_FETCH)
+                if self.game is not None:
+                    self.change_state(State.CHANNELS_FETCH)
+                else:
+                    # with no game selected, we switch to IDLE after cleanup
+                    self.change_state(State.IDLE)
             elif self._state is State.CHANNELS_FETCH:
                 if self.game is None:
                     self.change_state(State.GAME_SELECT)
