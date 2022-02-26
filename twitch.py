@@ -116,7 +116,7 @@ class Twitch:
         await self.websocket.stop()
         # wait at least one full second + whatever it takes to complete the closing
         # this allows aiohttp to safely close the session
-        await asyncio.sleep(start_time + 1 - time())
+        await asyncio.sleep(start_time + 0.5 - time())
 
     def wait_until_login(self):
         return self._is_logged_in.wait()
