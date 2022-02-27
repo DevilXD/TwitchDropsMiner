@@ -6,22 +6,10 @@ import logging
 from yarl import URL
 from time import time
 from itertools import chain
-from datetime import datetime
 from functools import partial
+from typing import TYPE_CHECKING
+from collections import OrderedDict
 from contextlib import suppress, asynccontextmanager
-from typing import (
-    Optional,
-    Union,
-    List,
-    Dict,
-    Set,
-    OrderedDict,
-    Callable,
-    AsyncIterator,
-    Final,
-    cast,
-    TYPE_CHECKING,
-)
 
 try:
     import aiohttp
@@ -31,9 +19,9 @@ except ModuleNotFoundError as exc:
 from gui import GUIManager
 from channel import Channel
 from websocket import WebsocketPool
-from inventory import DropsCampaign, TimedDrop
+from inventory import DropsCampaign
+from utils import task_wrapper, timestamp, AwaitableValue, OrderedSet
 from exceptions import RequestException, LoginException, CaptchaRequired
-from utils import task_wrapper, timestamp, Game, AwaitableValue, OrderedSet
 from constants import (
     GQL_URL,
     AUTH_URL,
@@ -45,15 +33,20 @@ from constants import (
     WATCH_INTERVAL,
     WS_TOPICS_LIMIT,
     DROPS_ENABLED_TAG,
-    JsonType,
     State,
-    GQLOperation,
     WebsocketTopic,
 )
 
 if TYPE_CHECKING:
+    from collections import abc
+    from datetime import datetime
+    from typing import Final, cast
+
+    from utils import Game
     from gui import LoginForm
     from main import ParsedArgs
+    from inventory import TimedDrop
+    from constants import JsonType, GQLOperation
 
 
 logger = logging.getLogger("TwitchDrops")
@@ -73,21 +66,21 @@ class Twitch:
         # State management
         self._state: State = State.IDLE
         self._state_change = asyncio.Event()
-        self.game: Optional[Game] = None
-        self.inventory: Dict[Game, List[DropsCampaign]] = {}
+        self.game: Game | None = None
+        self.inventory: dict[Game, list[DropsCampaign]] = {}
         # GUI
         self.gui = GUIManager(self)
         # Cookies, session and auth
-        self._session: Optional[aiohttp.ClientSession] = None
-        self._access_token: Optional[str] = None
-        self._user_id: Optional[int] = None
+        self._session: aiohttp.ClientSession | None = None
+        self._access_token: str | None = None
+        self._user_id: int | None = None
         self._is_logged_in = asyncio.Event()
         # Storing and watching channels
         self.channels: OrderedDict[int, Channel] = OrderedDict()
         self.watching_channel: AwaitableValue[Channel] = AwaitableValue()
-        self._watching_task: Optional[asyncio.Task[None]] = None
+        self._watching_task: asyncio.Task[None] | None = None
         self._watching_restart = asyncio.Event()
-        self._drop_update: Optional[asyncio.Future[bool]] = None
+        self._drop_update: asyncio.Future[bool] | None = None
         # Websocket
         self.websocket = WebsocketPool(self)
 
@@ -127,7 +120,7 @@ class Twitch:
             self._state = state
         self._state_change.set()
 
-    def state_change(self, state: State) -> Callable[[], None]:
+    def state_change(self, state: State) -> abc.Callable[[], None]:
         # this is identical to change_state, but defers the call
         # perfect for GUI usage
         return partial(self.change_state, state)
@@ -192,7 +185,7 @@ class Twitch:
                 self.change_state(State.GAMES_UPDATE)
             elif self._state is State.GAMES_UPDATE:
                 # Figure out which games to watch, and claim the drops we can
-                games: List[Game] = []
+                games: list[Game] = []
                 for game, campaigns in self.inventory.items():
                     add_game = False
                     for campaign in campaigns:
@@ -233,7 +226,7 @@ class Twitch:
             elif self._state is State.CHANNELS_CLEANUP:
                 if self.game is None or full_cleanup:
                     # no game selected or we're doing full cleanup: remove everything
-                    to_remove: List[Channel] = list(channels.values())
+                    to_remove: list[Channel] = list(channels.values())
                 else:
                     # remove all channels that:
                     to_remove = [
@@ -291,7 +284,7 @@ class Twitch:
                     # sort them descending by viewers,
                     # then by priority so that prioritized ones are first
                     # NOTE: We can drop OrderedSet now because there's no more channels being added
-                    ordered_channels: List[Channel] = sorted(
+                    ordered_channels: list[Channel] = sorted(
                         new_channels, key=viewers_key, reverse=True
                     )
                     ordered_channels.sort(key=lambda ch: ch.priority, reverse=True)
@@ -348,7 +341,7 @@ class Twitch:
                 else:
                     # Change into the selected channel, stay in the watching channel,
                     # or select a new channel that meets the required conditions
-                    priority_channels: List[Channel] = []
+                    priority_channels: list[Channel] = []
                     selected_channel = self.gui.channels.get_selection()
                     if selected_channel is not None:
                         self.gui.channels.clear_selection()
@@ -409,7 +402,7 @@ class Twitch:
                 if not use_active:
                     # we need to use GQL to get the current progress
                     context = await self.gql_request(GQL_OPERATIONS["CurrentDrop"])
-                    drop_data: Optional[JsonType] = (
+                    drop_data: JsonType | None = (
                         context["data"]["currentUser"]["dropCurrentSession"]
                     )
                     if drop_data is not None:
@@ -535,7 +528,7 @@ class Twitch:
         if msg_type not in ("drop-progress", "drop-claim"):
             return
         drop_id: str = message["data"]["drop_id"]
-        drop: Optional[TimedDrop] = self.get_drop(drop_id)
+        drop: TimedDrop | None = self.get_drop(drop_id)
         if msg_type == "drop-claim":
             if drop is None:
                 logger.error(
@@ -561,7 +554,7 @@ class Twitch:
             await asyncio.sleep(4)
             for attempt in range(8):
                 context = await self.gql_request(GQL_OPERATIONS["CurrentDrop"])
-                drop_data: Optional[JsonType] = (
+                drop_data: JsonType | None = (
                     context["data"]["currentUser"]["dropCurrentSession"]
                 )
                 if drop_data is None or drop_data["dropID"] != drop.id:
@@ -636,7 +629,7 @@ class Twitch:
         msg_type = message["type"]
         if msg_type == "points-earned":
             data: JsonType = message["data"]
-            channel: Optional[Channel] = self.channels.get(int(data["channel_id"]))
+            channel: Channel | None = self.channels.get(int(data["channel_id"]))
             points: int = data["point_gain"]["total_points"]
             balance: int = data["balance"]["balance"]
             if channel is not None:
@@ -780,13 +773,13 @@ class Twitch:
     @asynccontextmanager
     async def request(
         self, method: str, url: str, *, attempts: int = 5, **kwargs
-    ) -> AsyncIterator[aiohttp.ClientResponse]:
+    ) -> abc.AsyncIterator[aiohttp.ClientResponse]:
         if self._session is None:
             await self.initialize()
         session = self._session
         assert session is not None
         method = method.upper()
-        cause: Optional[Exception] = None
+        cause: Exception | None = None
         for attempt in range(attempts):
             logger.debug(f"Request: ({method=}, {url=}, {attempts=}, {kwargs=})")
             try:
@@ -815,7 +808,7 @@ class Twitch:
         return response_json
 
     async def fetch_campaign(
-        self, campaign_id: str, claimed_benefits: Dict[str, datetime]
+        self, campaign_id: str, claimed_benefits: dict[str, datetime]
     ) -> DropsCampaign:
         response = await self.gql_request(
             GQL_OPERATIONS["CampaignDetails"].with_variables(
@@ -829,7 +822,7 @@ class Twitch:
         response = await self.gql_request(GQL_OPERATIONS["Campaigns"])
         data = response["data"]["currentUser"]["dropCampaigns"] or []
         applicable_statuses = ("ACTIVE", "UPCOMING")
-        available_campaigns: Set[str] = set(
+        available_campaigns: set[str] = set(
             c["id"] for c in data
             if c["status"] in applicable_statuses and c["self"]["isAccountConnected"]
         )
@@ -838,10 +831,10 @@ class Twitch:
         inventory = response["data"]["currentUser"]["inventory"]
         ongoing_campaigns = inventory["dropCampaignsInProgress"] or []
         # this contains claimed benefit edge IDs, not drop IDs
-        claimed_benefits: Dict[str, datetime] = {
+        claimed_benefits: dict[str, datetime] = {
             b["id"]: timestamp(b["lastAwardedAt"]) for b in inventory["gameEventDrops"]
         }
-        campaigns: List[DropsCampaign] = [
+        campaigns: list[DropsCampaign] = [
             DropsCampaign(self, campaign_data, claimed_benefits)
             for campaign_data in ongoing_campaigns
         ]
@@ -862,7 +855,7 @@ class Twitch:
                 self.inventory[game] = []
             self.inventory[game].append(campaign)
 
-    def get_drop(self, drop_id: str) -> Optional[TimedDrop]:
+    def get_drop(self, drop_id: str) -> TimedDrop | None:
         """
         Returns a drop from the inventory, based on it's ID.
         """
@@ -877,7 +870,7 @@ class Twitch:
                 return drop
         return None
 
-    def get_active_drop(self, channel: Optional[Channel] = None) -> Optional[TimedDrop]:
+    def get_active_drop(self, channel: Channel | None = None) -> TimedDrop | None:
         if self.game is None:
             return None
         watching_channel = self.watching_channel.get_with_default(channel)
@@ -895,7 +888,7 @@ class Twitch:
             return drops[0]
         return None
 
-    async def get_live_streams(self) -> List[Channel]:
+    async def get_live_streams(self) -> list[Channel]:
         if self.game is None:
             return []
         limit = 30
@@ -914,7 +907,7 @@ class Twitch:
             for stream_channel_data in response["data"]["game"]["streams"]["edges"]
         ]
 
-    async def claim_points(self, channel_id: Union[str, int], claim_id: str) -> None:
+    async def claim_points(self, channel_id: str | int, claim_id: str) -> None:
         await self.gql_request(
             GQL_OPERATIONS["ClaimCommunityPoints"].with_variables(
                 {"input": {"channelID": str(channel_id), "claimID": claim_id}}

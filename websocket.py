@@ -5,7 +5,7 @@ import asyncio
 import logging
 from time import time
 from contextlib import suppress
-from typing import Optional, List, Dict, Set, Iterable, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 try:
     from websockets.exceptions import ConnectionClosed, ConnectionClosedOK
@@ -15,18 +15,12 @@ except ModuleNotFoundError as exc:
 
 from exceptions import MinerException
 from utils import task_wrapper, create_nonce, AwaitableValue
-from constants import (
-    JsonType,
-    WebsocketTopic,
-    WEBSOCKET_URL,
-    PING_INTERVAL,
-    PING_TIMEOUT,
-    MAX_WEBSOCKETS,
-    WS_TOPICS_LIMIT,
-)
+from constants import WEBSOCKET_URL, PING_INTERVAL, PING_TIMEOUT, MAX_WEBSOCKETS, WS_TOPICS_LIMIT
 
 if TYPE_CHECKING:
     from twitch import Twitch
+    from collections import abc
+    from constants import JsonType, WebsocketTopic
 
 
 logger = logging.getLogger("TwitchDrops")
@@ -49,10 +43,10 @@ class Websocket:
         self._next_ping: float = time()
         self._max_pong: float = self._next_ping + PING_TIMEOUT.total_seconds()
         # main task, responsible for receiving messages, sending them, and websocket ping
-        self._handle_task: Optional[asyncio.Task[None]] = None
+        self._handle_task: asyncio.Task[None] | None = None
         # topics stuff
-        self.topics: Dict[str, WebsocketTopic] = {}
-        self._submitted: Set[WebsocketTopic] = set()
+        self.topics: dict[str, WebsocketTopic] = {}
+        self._submitted: set[WebsocketTopic] = set()
         # notify GUI
         self.set_status("Disconnected")
 
@@ -63,7 +57,7 @@ class Websocket:
     def wait_until_connected(self):
         return self._ws.wait()
 
-    def set_status(self, status: Optional[str] = None, refresh_topics: bool = False):
+    def set_status(self, status: str | None = None, refresh_topics: bool = False):
         self._twitch.gui.websockets.update(
             self._idx, status=status, topics=(len(self.topics) if refresh_topics else None)
         )
@@ -174,7 +168,7 @@ class Websocket:
             # nothing to do
             return
         self._topics_changed.clear()
-        current: Set[WebsocketTopic] = set(self.topics.values())
+        current: set[WebsocketTopic] = set(self.topics.values())
         # handle removed topics
         removed = self._submitted.difference(current)
         if removed:
@@ -206,7 +200,7 @@ class Websocket:
             )
             self._submitted.update(added)
 
-    async def _gather_recv(self, messages: List[JsonType]):
+    async def _gather_recv(self, messages: list[JsonType]):
         """
         Gather incoming messages over the timeout specified.
         Note that there's no return value - this modifies `messages` in-place.
@@ -231,7 +225,7 @@ class Websocket:
         Handle receiving messages from the websocket.
         """
         # listen over 0.5s for incoming messages
-        messages: List[JsonType] = []
+        messages: list[JsonType] = []
         with suppress(asyncio.TimeoutError):
             await asyncio.wait_for(self._gather_recv(messages), timeout=0.5)
         # process them
@@ -251,7 +245,7 @@ class Websocket:
             else:
                 ws_logger.warning(f"Websocket[{self._idx}] received unknown payload: {message}")
 
-    def add_topics(self, topics_set: Set[WebsocketTopic]):
+    def add_topics(self, topics_set: set[WebsocketTopic]):
         changed: bool = False
         while topics_set and len(self.topics) < WS_TOPICS_LIMIT:
             topic = topics_set.pop()
@@ -261,7 +255,7 @@ class Websocket:
             self._topics_changed.set()
             self.set_status(refresh_topics=True)
 
-    def remove_topics(self, topics_set: Set[str]):
+    def remove_topics(self, topics_set: set[str]):
         existing = topics_set.intersection(self.topics.keys())
         if not existing:
             # nothing to remove from here
@@ -285,7 +279,7 @@ class WebsocketPool:
     def __init__(self, twitch: Twitch):
         self._twitch: Twitch = twitch
         self._running = asyncio.Event()
-        self.websockets: List[Websocket] = []
+        self.websockets: list[Websocket] = []
 
     @property
     def running(self) -> bool:
@@ -307,7 +301,7 @@ class WebsocketPool:
         self._running.clear()
         await asyncio.gather(*(ws.stop() for ws in self.websockets))
 
-    def add_topics(self, topics: Iterable[WebsocketTopic]):
+    def add_topics(self, topics: abc.Iterable[WebsocketTopic]):
         # ensure no topics end up duplicated
         topics_set = set(topics)
         if not topics_set:
@@ -335,7 +329,7 @@ class WebsocketPool:
         # if we're here, there were leftover topics after filling up all websockets
         raise MinerException("Maximum topics limit has been reached")
 
-    def remove_topics(self, topics: Iterable[str]):
+    def remove_topics(self, topics: abc.Iterable[str]):
         topics_set = set(topics)
         if not topics_set:
             # nothing to remove
@@ -344,7 +338,7 @@ class WebsocketPool:
             ws.remove_topics(topics_set)
         # count up all the topics - if we happen to have more websockets connected than needed,
         # stop the last one and recycle topics from it - repeat until we have enough
-        recycled_topics: List[WebsocketTopic] = []
+        recycled_topics: list[WebsocketTopic] = []
         while True:
             count = sum(len(ws.topics) for ws in self.websockets)
             if count <= (len(self.websockets) - 1) * WS_TOPICS_LIMIT:

@@ -9,9 +9,7 @@ from math import log10, ceil
 from tkinter.font import Font
 from collections import namedtuple, OrderedDict
 from tkinter import Tk, ttk, StringVar, DoubleVar
-from typing import (
-    Any, Optional, List, Dict, Set, Tuple, TypedDict, Iterable, NoReturn, TYPE_CHECKING
-)
+from typing import Any, TypedDict, NoReturn, TYPE_CHECKING
 
 try:
     import pystray
@@ -23,6 +21,7 @@ from constants import FORMATTER, WS_TOPICS_LIMIT, MAX_WEBSOCKETS, WINDOW_TITLE, 
 if TYPE_CHECKING:
     from twitch import Twitch
     from channel import Channel
+    from collections import abc
     from inventory import Game, TimedDrop
 
 
@@ -93,7 +92,7 @@ class PlaceholderEntry(ttk.Entry):
             self.config(foreground=self._ph_color, show='')
             self.insert(0, self._ph_text)
 
-    def _store_option(self, options: Dict[str, Any], attr: str, name: str):
+    def _store_option(self, options: dict[str, Any], attr: str, name: str):
         value = options.get(name)
         if value is not None:
             setattr(self, attr, value)
@@ -157,10 +156,10 @@ class WebsocketStatus:
             justify="right",
             font=WS_FONT,
         ).grid(column=2, row=0)
-        self._items: Dict[int, Optional[_WSEntry]] = {i: None for i in range(MAX_WEBSOCKETS)}
+        self._items: dict[int, _WSEntry | None] = {i: None for i in range(MAX_WEBSOCKETS)}
         self._update()
 
-    def update(self, idx: int, status: Optional[str] = None, topics: Optional[int] = None):
+    def update(self, idx: int, status: str | None = None, topics: int | None = None):
         if status is None and topics is None:
             raise TypeError("You need to provide at least one of: status, topics")
         entry = self._items.get(idx)
@@ -178,8 +177,8 @@ class WebsocketStatus:
             self._update()
 
     def _update(self):
-        status_lines: List[str] = []
-        topic_lines: List[str] = []
+        status_lines: list[str] = []
+        topic_lines: list[str] = []
         for idx in range(MAX_WEBSOCKETS):
             item = self._items.get(idx)
             if item is None:
@@ -236,7 +235,7 @@ class LoginForm:
         data = LoginData(self._login_entry.get(), self._pass_entry.get(), self._token_entry.get())
         return data
 
-    def update(self, status: str, user_id: Optional[int]):
+    def update(self, status: str, user_id: int | None):
         if user_id is not None:
             user_str = str(user_id)
         else:
@@ -260,12 +259,12 @@ class GameSelector:
             highlightthickness=0,
         )
         self._list.pack(fill="both", expand=True)
-        self._selection: Optional[str] = self._manager._twitch.options.game
+        self._selection: str | None = self._manager._twitch.options.game
         self._games: OrderedDict[str, Game] = OrderedDict()
-        self._excluded: Set[int] = set()
+        self._excluded: set[int] = set()
         self._list.bind("<<ListboxSelect>>", self._on_select)
 
-    def set_games(self, games: Iterable[Game]):
+    def set_games(self, games: abc.Iterable[Game]):
         self._games.clear()
         self._games.update((str(g), g) for g in games)
         self._list.delete(0, "end")
@@ -273,7 +272,7 @@ class GameSelector:
         self._list.config(width=0)  # autoadjust listbox width
         # process excluded games and relink the selection
         self._excluded.clear()
-        selected_index: Optional[int] = None
+        selected_index: int | None = None
         exclude = self._manager._twitch.options.exclude
         for i, game_name in enumerate(self._list.get(0, "end")):
             if game_name in exclude:
@@ -290,7 +289,7 @@ class GameSelector:
             self._selection = None
 
     def _on_select(self, event):
-        current: Tuple[int, ...] = self._list.curselection()
+        current: tuple[int, ...] = self._list.curselection()
         if not current:
             # can happen when the user clicks on an empty list
             return
@@ -311,12 +310,12 @@ class GameSelector:
             self._selection = new_selection
             self._manager._twitch.change_state(State.GAME_SELECT)
 
-    def get_selection(self) -> Optional[Game]:
+    def get_selection(self) -> Game | None:
         if self._selection is None:
             return None
         return self._games[self._selection]
 
-    def set_first(self) -> Optional[Game]:
+    def set_first(self) -> Game | None:
         # select and return the first non-excluded game from the list
         self._list.selection_clear(0, "end")
         for i, game_name in enumerate(self._list.get(0, "end")):
@@ -402,12 +401,12 @@ class CampaignProgress:
             maximum=1,
             variable=self._vars["drop"]["progress"],
         ).grid(column=0, row=10, columnspan=2)
-        self._drop: Optional[TimedDrop] = None
-        self._timer_task: Optional[asyncio.Task[None]] = None
+        self._drop: TimedDrop | None = None
+        self._timer_task: asyncio.Task[None] | None = None
         self._update_time(0)
 
     @staticmethod
-    def _divmod(minutes: int, seconds: int) -> Tuple[int, int]:
+    def _divmod(minutes: int, seconds: int) -> tuple[int, int]:
         if seconds < 60 and minutes > 0:
             minutes -= 1
         hours, minutes = divmod(minutes, 60)
@@ -560,7 +559,7 @@ class ChannelList:
         table.grid(column=0, row=1, sticky="nsew")
         scroll.grid(column=1, row=1, sticky="ns")
         self._font = Font(frame, manager._style.lookup("Treeview", "font"))
-        self._const_width: Set[str] = set()
+        self._const_width: set[str] = set()
         table.tag_configure("watching", background="gray70")
         table.bind("<Button-1>", self._disable_column_resize)
         table.bind("<<TreeviewSelect>>", self._selected)
@@ -572,7 +571,7 @@ class ChannelList:
         self._add_column("viewers", "Viewers", width_template="1234567")
         self._add_column("points", "Points", width_template="1234567")
         self._add_column("priority", "❗", width_template="✔")
-        self._channel_map: Dict[str, Channel] = {}
+        self._channel_map: dict[str, Channel] = {}
 
     def _add_column(
         self,
@@ -580,13 +579,13 @@ class ChannelList:
         name: str,
         *,
         anchor: tk._Anchor = "center",
-        width: Optional[int] = None,
-        width_template: Optional[str] = None,
+        width: int | None = None,
+        width_template: str | None = None,
     ):
         table = self._table
         # we need to save the column settings and headings before modifying the columns...
-        columns: Tuple[str, ...] = table.cget("columns") or ()
-        column_settings: Dict[str, Tuple[str, tk._Anchor, int, int]] = {}
+        columns: tuple[str, ...] = table.cget("columns") or ()
+        column_settings: dict[str, tuple[str, tk._Anchor, int, int]] = {}
         for s_cid in columns:
             s_column = table.column(s_cid)
             assert s_column is not None
@@ -665,8 +664,8 @@ class ChannelList:
         self._table.set(iid, column, value)
         self._adjust_width(column, value)
 
-    def _insert(self, iid: str, values: Dict[str, str]):
-        to_insert: List[str] = []
+    def _insert(self, iid: str, values: dict[str, str]):
+        to_insert: list[str] = []
         for cid in self._table.cget("columns"):
             value = values[cid]
             to_insert.append(value)
@@ -683,7 +682,7 @@ class ChannelList:
         self._table.item(iid, tags="watching")
         self._table.see(iid)
 
-    def get_selection(self) -> Optional[Channel]:
+    def get_selection(self) -> Channel | None:
         if not self._channel_map:
             return None
         selection = self._table.selection()
@@ -755,7 +754,7 @@ class TrayIcon:
 
     def __init__(self, manager: GUIManager, master: ttk.Widget):
         self._manager = manager
-        self.icon: Optional[pystray.Icon] = None
+        self.icon: pystray.Icon | None = None
         self._button = ttk.Button(master, command=self.minimize, text="Minimize to Tray")
         self._button.grid(column=0, row=0, sticky="e")
         if manager._twitch.options.tray:
@@ -765,7 +764,7 @@ class TrayIcon:
     def is_tray(self) -> bool:
         return self.icon is not None
 
-    def get_title(self, drop: Optional[TimedDrop]) -> str:
+    def get_title(self, drop: TimedDrop | None) -> str:
         if drop is None:
             return self.TITLE
         return (
@@ -815,7 +814,7 @@ class TrayIcon:
             self.stop()
             self._manager._root.deiconify()
 
-    def notify(self, message: str, title: Optional[str] = None, duration: float = 10):
+    def notify(self, message: str, title: str | None = None, duration: float = 10):
         if self.icon is not None:
             icon = self.icon
 
@@ -834,7 +833,7 @@ class TrayIcon:
 class GUIManager:
     def __init__(self, twitch: Twitch):
         self._twitch: Twitch = twitch
-        self._poll_task: Optional[asyncio.Task[NoReturn]] = None
+        self._poll_task: asyncio.Task[NoReturn] | None = None
         self._closed = asyncio.Event()
         self._root = root = Tk()
         # withdraw immediately to prevent the window from flashing
@@ -978,7 +977,7 @@ if __name__ == "__main__":
     def create_channel(
         name: str,
         status: int,
-        game: Optional[str],
+        game: str | None,
         drops: bool,
         viewers: int,
         points: int,
@@ -991,7 +990,7 @@ if __name__ == "__main__":
         else:
             pending = False
         if game is not None:
-            game_obj: Optional[StrNamespace] = create_game(0, game)
+            game_obj: StrNamespace | None = create_game(0, game)
         else:
             game_obj = None
         global iid

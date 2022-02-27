@@ -2,16 +2,19 @@ from __future__ import annotations
 
 import logging
 from copy import copy
+from collections import abc
 from enum import Enum, auto
 from datetime import timedelta
-from typing import Any, Optional, Dict, Literal, Callable
+from typing import Any, Literal
+
+from typing_extensions import TypeAlias
 
 from version import __version__
 
 
 # Typing
-JsonType = Dict[str, Any]
-TopicProcess = Callable[[int, JsonType], Any]
+JsonType: TypeAlias = "dict[str, Any]"
+TopicProcess = abc.Callable[[int, JsonType], Any]
 # Values
 MAX_WEBSOCKETS = 8
 WS_TOPICS_LIMIT = 50
@@ -58,7 +61,7 @@ class State(Enum):
 
 
 class GQLOperation(JsonType):
-    def __init__(self, name: str, sha256: str, *, variables: Optional[JsonType] = None):
+    def __init__(self, name: str, sha256: str, *, variables: JsonType | None = None):
         super().__init__(
             operationName=name,
             extensions={
@@ -81,7 +84,7 @@ class GQLOperation(JsonType):
         return modified
 
 
-GQL_OPERATIONS: Dict[str, GQLOperation] = {
+GQL_OPERATIONS: dict[str, GQLOperation] = {
     # returns stream information for a particular channel
     "GetStreamInfo": GQLOperation(
         "VideoPlayerStreamInfoOverlayChannel",
@@ -188,7 +191,9 @@ class WebsocketTopic:
         self._process: TopicProcess = process
 
     @classmethod
-    def as_str(cls, category: Literal["User", "Channel"], topic_name: str, target_id: int) -> str:
+    def as_str(
+        cls, category: Literal["User", "Channel"], topic_name: str, target_id: int
+    ) -> str:
         return f"{WEBSOCKET_TOPICS[category][topic_name]}.{target_id}"
 
     def __call__(self, message: JsonType):
@@ -211,7 +216,7 @@ class WebsocketTopic:
         return hash((self.__class__.__name__, self._id))
 
 
-WEBSOCKET_TOPICS: Dict[str, Dict[str, str]] = {
+WEBSOCKET_TOPICS: dict[str, dict[str, str]] = {
     "User": {  # Using user_id
         "Drops": "user-drop-events",
         "CommunityPoints": "community-points-user-v1",

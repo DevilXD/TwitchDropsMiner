@@ -6,23 +6,9 @@ import asyncio
 import logging
 from functools import wraps
 from contextlib import suppress
-from collections import OrderedDict
 from datetime import datetime, timezone
-from typing import (
-    Any,
-    Literal,
-    Union,
-    List,
-    MutableSet,
-    Callable,
-    Iterable,
-    Iterator,
-    Coroutine,
-    Generic,
-    TypeVar,
-    TYPE_CHECKING,
-    cast,
-)
+from collections import abc, OrderedDict
+from typing import Any, Literal, Generic, TypeVar, cast, TYPE_CHECKING
 
 from constants import JsonType
 
@@ -50,13 +36,13 @@ def create_nonce(length: int = 30) -> str:
     return ''.join(random.choices(NONCE_CHARS, k=length))
 
 
-def deduplicate(iterable: Iterable[_T]) -> List[_T]:
+def deduplicate(iterable: abc.Iterable[_T]) -> list[_T]:
     return list(OrderedDict.fromkeys(iterable).keys())
 
 
 def task_wrapper(
-    afunc: Callable[_P, Coroutine[Any, Any, _T]]
-) -> Callable[_P, Coroutine[Any, Any, _T]]:
+    afunc: abc.Callable[_P, abc.Coroutine[Any, Any, _T]]
+) -> abc.Callable[_P, abc.Coroutine[Any, Any, _T]]:
     @wraps(afunc)
     async def wrapper(*args: _P.args, **kwargs: _P.kwargs):
         try:
@@ -76,12 +62,12 @@ def invalidate_cache(instance, *attrnames):
             delattr(instance, name)
 
 
-class OrderedSet(MutableSet[_T]):
+class OrderedSet(abc.MutableSet[_T]):
     """
     Implementation of a set that preserves insertion order,
     based on OrderedDict with values set to None.
     """
-    def __init__(self, iterable: Iterable[_T] = [], /):
+    def __init__(self, iterable: abc.Iterable[_T] = [], /):
         self._items: OrderedDict[_T, None] = OrderedDict((item, None) for item in iterable)
 
     def __repr__(self) -> str:
@@ -90,7 +76,7 @@ class OrderedSet(MutableSet[_T]):
     def __contains__(self, item: object, /) -> bool:
         return item in self._items
 
-    def __iter__(self) -> Iterator[_T]:
+    def __iter__(self) -> abc.Iterator[_T]:
         return iter(self._items)
 
     def __len__(self) -> int:
@@ -103,13 +89,13 @@ class OrderedSet(MutableSet[_T]):
         with suppress(KeyError):
             del self._items[item]
 
-    def update(self, *others: Iterable[_T]) -> None:
+    def update(self, *others: abc.Iterable[_T]) -> None:
         for it in others:
             for item in it:
                 if item not in self._items:
                     self._items[item] = None
 
-    def difference_update(self, *others: Iterable[_T]) -> None:
+    def difference_update(self, *others: abc.Iterable[_T]) -> None:
         for it in others:
             for item in it:
                 if item in self._items:
@@ -124,10 +110,10 @@ class AwaitableValue(Generic[_T]):
     def has_value(self) -> bool:
         return self._event.is_set()
 
-    def wait(self) -> Coroutine[Any, Any, Literal[True]]:
-        return cast(Coroutine[Any, Any, Literal[True]], self._event.wait())
+    def wait(self) -> abc.Coroutine[Any, Any, Literal[True]]:
+        return cast(abc.Coroutine[Any, Any, Literal[True]], self._event.wait())
 
-    def get_with_default(self, default: _D) -> Union[_T, _D]:
+    def get_with_default(self, default: _D) -> _T | _D:
         if self._event.is_set():
             return self._value
         return default

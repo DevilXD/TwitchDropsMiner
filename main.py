@@ -12,7 +12,7 @@ import tkinter as tk
 from copy import copy
 from pathlib import Path
 from tkinter import messagebox
-from typing import Optional, Union, Set, NoReturn, Generic
+from typing import Generic, NoReturn
 
 from utils import _T
 from twitch import Twitch
@@ -21,7 +21,7 @@ from exceptions import CaptchaRequired
 from constants import FORMATTER, LOG_PATH, WINDOW_TITLE
 
 
-# we need an dummy invisible window for the parser
+# we need a dummy invisible window for the parser
 root = tk.Tk()
 root.overrideredirect(True)
 root.withdraw()
@@ -49,9 +49,9 @@ class SetCollectAction(argparse.Action, Generic[_T]):
         option_strings,
         dest,
         *,
-        nargs: Optional[Union[int, str]] = None,
-        const: Optional[_T] = None,
-        default: Optional[Set[_T]] = None,
+        const: _T | None = None,
+        nargs: int | str | None = None,
+        default: set[_T] | None = None,
         **kwargs,
     ) -> None:
         if nargs is not None and nargs in ('?', '*') or isinstance(nargs, int) and nargs <= 0:
@@ -63,7 +63,7 @@ class SetCollectAction(argparse.Action, Generic[_T]):
         super().__init__(option_strings, dest, nargs, const, default, **kwargs)
 
     def __call__(self, parser, namespace, values, option_string=None):
-        items: Set[_T] = getattr(namespace, self.dest, self.default)
+        items: set[_T] = getattr(namespace, self.dest, self.default)
         items = copy(items)
         for value in values:
             items.add(value)
@@ -76,9 +76,9 @@ class ParsedArgs(argparse.Namespace):
     _debug_gql: bool
     log: bool
     tray: bool
-    exclude: Set[str]
+    game: str | None
+    exclude: set[str]
     no_run_check: bool
-    game: Optional[str]
 
     @property
     def logging_level(self) -> int:

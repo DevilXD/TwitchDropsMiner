@@ -1,30 +1,32 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 from functools import cached_property
 from datetime import datetime, timezone
-from typing import Optional, List, Dict, Iterable, TYPE_CHECKING
 
-from channel import Channel
-from constants import GQL_OPERATIONS, JsonType
+from constants import GQL_OPERATIONS
 from utils import timestamp, invalidate_cache, Game
 
 if TYPE_CHECKING:
     from twitch import Twitch
+    from channel import Channel
+    from collections import abc
+    from constants import JsonType
     from gui import CampaignProgress
 
 
 class BaseDrop:
     def __init__(
-        self, campaign: DropsCampaign, data: JsonType, claimed_benefits: Dict[str, datetime]
+        self, campaign: DropsCampaign, data: JsonType, claimed_benefits: dict[str, datetime]
     ):
         self._twitch: Twitch = campaign._twitch
         self.id: str = data["id"]
         self.name: str = data["name"]
         self.campaign: DropsCampaign = campaign
-        self.rewards: List[str] = [b["benefit"]["name"] for b in data["benefitEdges"]]
+        self.rewards: list[str] = [b["benefit"]["name"] for b in data["benefitEdges"]]
         self.starts_at: datetime = timestamp(data["startAt"])
         self.ends_at: datetime = timestamp(data["endAt"])
-        self.claim_id: Optional[str] = None
+        self.claim_id: str | None = None
         self.is_claimed: bool = False
         if "self" in data:
             self.claim_id = data["self"]["dropInstanceID"]
@@ -46,7 +48,7 @@ class BaseDrop:
             and all(self.starts_at <= dt < self.ends_at for dt in dts)
         ):
             self.is_claimed = True
-        self._precondition_drops: List[str] = [d["id"] for d in (data["preconditionDrops"] or [])]
+        self._precondition_drops: list[str] = [d["id"] for d in (data["preconditionDrops"] or [])]
 
     def __repr__(self) -> str:
         if self.is_claimed:
@@ -62,7 +64,7 @@ class BaseDrop:
         campaign = self.campaign
         return all(campaign.timed_drops[pid].is_claimed for pid in self._precondition_drops)
 
-    def can_earn(self, channel: Optional[Channel] = None) -> bool:
+    def can_earn(self, channel: Channel | None = None) -> bool:
         return (
             self.preconditions  # preconditions are met
             and not self.is_claimed  # drop isn't already claimed
@@ -128,7 +130,7 @@ class BaseDrop:
 
 class TimedDrop(BaseDrop):
     def __init__(
-        self, campaign: DropsCampaign, data: JsonType, claimed_benefits: Dict[str, datetime]
+        self, campaign: DropsCampaign, data: JsonType, claimed_benefits: dict[str, datetime]
     ):
         super().__init__(campaign, data, claimed_benefits)
         self._gui_progress: CampaignProgress = self._twitch.gui.progress
@@ -185,19 +187,19 @@ class TimedDrop(BaseDrop):
 
 
 class DropsCampaign:
-    def __init__(self, twitch: Twitch, data: JsonType, claimed_benefits: Dict[str, datetime]):
+    def __init__(self, twitch: Twitch, data: JsonType, claimed_benefits: dict[str, datetime]):
         self._twitch: Twitch = twitch
         self.id: str = data["id"]
         self.name: str = data["name"]
         self.game: Game = Game(data["game"])
         self.starts_at: datetime = timestamp(data["startAt"])
         self.ends_at: datetime = timestamp(data["endAt"])
-        allowed = data["allow"]
-        self.allowed_channels: List[Channel] = (
+        allowed: JsonType = data["allow"]
+        self.allowed_channels: list[Channel] = (
             [Channel.from_acl(twitch, channel_data) for channel_data in allowed["channels"]]
             if allowed["channels"] and allowed.get("isEnabled", True) else []
         )
-        self.timed_drops: Dict[str, TimedDrop] = {
+        self.timed_drops: dict[str, TimedDrop] = {
             drop_data["id"]: TimedDrop(self, drop_data, claimed_benefits)
             for drop_data in data["timeBasedDrops"]
         }
@@ -206,7 +208,7 @@ class DropsCampaign:
         return f"Campaign({self.name}({self.game!s}), {self.claimed_drops}/{self.total_drops})"
 
     @property
-    def drops(self) -> Iterable[TimedDrop]:
+    def drops(self) -> abc.Iterable[TimedDrop]:
         return self.timed_drops.values()
 
     @property
@@ -249,5 +251,5 @@ class DropsCampaign:
     def _on_minutes_changed(self) -> None:
         invalidate_cache(self, "progress", "remaining_minutes")
 
-    def get_drop(self, drop_id: str) -> Optional[TimedDrop]:
+    def get_drop(self, drop_id: str) -> TimedDrop | None:
         return self.timed_drops.get(drop_id)

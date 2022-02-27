@@ -6,15 +6,16 @@ import asyncio
 import logging
 from base64 import b64encode
 from functools import cached_property
-from typing import Any, Optional, List, SupportsInt, TYPE_CHECKING
+from typing import Any, SupportsInt, TYPE_CHECKING
 
 from utils import Game, invalidate_cache
 from exceptions import MinerException, RequestException
-from constants import JsonType, BASE_URL, GQL_OPERATIONS, ONLINE_DELAY, DROPS_ENABLED_TAG
+from constants import BASE_URL, GQL_OPERATIONS, ONLINE_DELAY, DROPS_ENABLED_TAG
 
 if TYPE_CHECKING:
     from twitch import Twitch
     from gui import ChannelList
+    from constants import JsonType
 
 
 logger = logging.getLogger("TwitchDrops")
@@ -26,16 +27,16 @@ class Stream:
         channel: Channel,
         *,
         id: SupportsInt,
-        game: Optional[JsonType],
+        game: JsonType | None,
         viewers: int,
         title: str,
-        tags: List[JsonType],
+        tags: list[JsonType],
     ):
         self.channel: Channel = channel
         self.broadcast_id = int(id)
         self.viewers: int = viewers
         self.drops_enabled: bool = any(t["id"] == DROPS_ENABLED_TAG for t in tags)
-        self.game: Optional[Game] = Game(game) if game else None
+        self.game: Game | None = Game(game) if game else None
         self.title: str = title
 
     @classmethod
@@ -70,18 +71,18 @@ class Channel:
         *,
         id: SupportsInt,
         login: str,
-        display_name: Optional[str] = None,
+        display_name: str | None = None,
         priority: bool = False,
     ):
         self._twitch: Twitch = twitch
         self._gui_channels: ChannelList = twitch.gui.channels
         self.id: int = int(id)
         self._login: str = login
-        self._display_name: Optional[str] = display_name
-        self._spade_url: Optional[str] = None
-        self.points: Optional[int] = None
-        self._stream: Optional[Stream] = None
-        self._pending_stream_up: Optional[asyncio.Task[Any]] = None
+        self._display_name: str | None = display_name
+        self._spade_url: str | None = None
+        self.points: int | None = None
+        self._stream: Stream | None = None
+        self._pending_stream_up: asyncio.Task[Any] | None = None
         # Priority channels are:
         # • considered first when switching channels
         # • if we're watching a non-priority channel, a priority channel going up triggers a switch
@@ -174,13 +175,13 @@ class Channel:
         return self._pending_stream_up is not None
 
     @property
-    def game(self) -> Optional[Game]:
+    def game(self) -> Game | None:
         if self._stream is not None and self._stream.game is not None:
             return self._stream.game
         return None
 
     @property
-    def viewers(self) -> Optional[int]:
+    def viewers(self) -> int | None:
         if self._stream is not None:
             return self._stream.viewers
         return None
@@ -229,13 +230,13 @@ class Channel:
             raise MinerException("Error while spade_url extraction: step #2")
         return match.group(1)
 
-    async def get_stream(self) -> Optional[Stream]:
-        response: Optional[JsonType] = await self._twitch.gql_request(
+    async def get_stream(self) -> Stream | None:
+        response: JsonType | None = await self._twitch.gql_request(
             GQL_OPERATIONS["GetStreamInfo"].with_variables({"channel": self._login})
         )
         if not response:
             return None
-        stream_data: Optional[JsonType] = response["data"]["user"]
+        stream_data: JsonType | None = response["data"]["user"]
         if not stream_data:
             return None
         # fill in channel_id and display name
