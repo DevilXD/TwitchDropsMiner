@@ -78,8 +78,8 @@ class PlaceholderEntry(ttk.Entry):
         """
         if self._ph:
             self._ph = False
-            self.config(foreground=self._text_color, show=self._show)
             self.delete(0, "end")
+            self.config(foreground=self._text_color, show=self._show)
 
     def _focus_out(self, event):
         """
@@ -92,20 +92,19 @@ class PlaceholderEntry(ttk.Entry):
             self.config(foreground=self._ph_color, show='')
             self.insert(0, self._ph_text)
 
-    def _store_option(self, options: dict[str, Any], attr: str, name: str):
-        value = options.get(name)
-        if value is not None:
-            setattr(self, attr, value)
+    def _store_option(self, options: dict[str, Any], name: str, attr: str):
+        if name in options:
+            setattr(self, attr, options[name])
 
     def configure(self, *args, **kwargs):
         if args:
             options = args[0]
         if kwargs:
             options = kwargs
-        self._store_option(options, "_show", "show")
-        self._store_option(options, "_ph_text", "placeholder")
-        self._store_option(options, "_text_color", "foreground")
-        self._store_option(options, "_ph_color", "placeholdercolor")
+        self._store_option(options, "show", "_show")
+        self._store_option(options, "placeholder", "_ph_text")
+        self._store_option(options, "foreground", "_text_color")
+        self._store_option(options, "placeholdercolor", "_ph_color")
         super().configure(*args, *kwargs)
 
     def get(self):
