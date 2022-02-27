@@ -2,19 +2,21 @@ from __future__ import annotations
 
 import logging
 from copy import copy
-from collections import abc
 from enum import Enum, auto
 from datetime import timedelta
-from typing import Any, Literal
+from typing import Any, Dict, Literal, TYPE_CHECKING
 
 from typing_extensions import TypeAlias
 
 from version import __version__
 
+if TYPE_CHECKING:
+    from collections import abc  # noqa
+
 
 # Typing
-JsonType: TypeAlias = "dict[str, Any]"
-TopicProcess = abc.Callable[[int, JsonType], Any]
+JsonType = Dict[str, Any]
+TopicProcess: TypeAlias = "abc.Callable[[int, JsonType], Any]"
 # Values
 MAX_WEBSOCKETS = 8
 WS_TOPICS_LIMIT = 50

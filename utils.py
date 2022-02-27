@@ -8,7 +8,7 @@ from functools import wraps
 from contextlib import suppress
 from datetime import datetime, timezone
 from collections import abc, OrderedDict
-from typing import Any, Literal, Generic, TypeVar, cast, TYPE_CHECKING
+from typing import Any, Literal, MutableSet, Generic, TypeVar, cast, TYPE_CHECKING
 
 from constants import JsonType
 
@@ -62,7 +62,7 @@ def invalidate_cache(instance, *attrnames):
             delattr(instance, name)
 
 
-class OrderedSet(abc.MutableSet[_T]):
+class OrderedSet(MutableSet[_T]):
     """
     Implementation of a set that preserves insertion order,
     based on OrderedDict with values set to None.
@@ -111,7 +111,7 @@ class AwaitableValue(Generic[_T]):
         return self._event.is_set()
 
     def wait(self) -> abc.Coroutine[Any, Any, Literal[True]]:
-        return cast(abc.Coroutine[Any, Any, Literal[True]], self._event.wait())
+        return cast("abc.Coroutine[Any, Any, Literal[True]]", self._event.wait())
 
     def get_with_default(self, default: _D) -> _T | _D:
         if self._event.is_set():

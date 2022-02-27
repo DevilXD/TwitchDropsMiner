@@ -7,8 +7,8 @@ from yarl import URL
 from time import time
 from itertools import chain
 from functools import partial
-from typing import TYPE_CHECKING
 from collections import OrderedDict
+from typing import cast, TYPE_CHECKING
 from contextlib import suppress, asynccontextmanager
 
 try:
@@ -38,9 +38,9 @@ from constants import (
 )
 
 if TYPE_CHECKING:
+    from typing import Final
     from collections import abc
     from datetime import datetime
-    from typing import Final, cast
 
     from utils import Game
     from gui import LoginForm

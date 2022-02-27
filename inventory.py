@@ -4,12 +4,12 @@ from typing import TYPE_CHECKING
 from functools import cached_property
 from datetime import datetime, timezone
 
+from channel import Channel
 from constants import GQL_OPERATIONS
 from utils import timestamp, invalidate_cache, Game
 
 if TYPE_CHECKING:
     from twitch import Twitch
-    from channel import Channel
     from collections import abc
     from constants import JsonType
     from gui import CampaignProgress
