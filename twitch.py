@@ -54,8 +54,7 @@ gql_logger = logging.getLogger("TwitchDrops.gql")
 
 
 def viewers_key(channel: Channel) -> int:
-    viewers = channel.viewers
-    if viewers is not None:
+    if (viewers := channel.viewers) is not None:
         return viewers
     return -1
 
@@ -210,18 +209,20 @@ class Twitch:
                 self.gui.games.set_games(games)
                 self.change_state(State.GAME_SELECT)
             elif self._state is State.GAME_SELECT:
-                self.game = self.gui.games.get_selection()
-                if self.game is None:
+                new_game: Game | None = self.gui.games.get_selection()
+                if new_game is None:
                     if first_select:
                         # on first select, let the user make the choice
                         first_select = False
                     else:
-                        self.game = self.gui.games.set_first()
-                if self.game is not None:
+                        new_game = self.gui.games.set_first()
+                if new_game is not None:
                     # restart the watch loop immediately on new game selected
                     self.restart_watching()
                 # signal channel cleanup that we're removing everything
-                full_cleanup = True
+                if new_game != self.game:
+                    self.game = new_game
+                    full_cleanup = True
                 self.change_state(State.CHANNELS_CLEANUP)
             elif self._state is State.CHANNELS_CLEANUP:
                 if self.game is None or full_cleanup:
@@ -250,6 +251,7 @@ class Twitch:
                     for channel in to_remove:
                         del channels[channel.id]
                         channel.remove()
+                    del to_remove
                 if self.game is not None:
                     self.change_state(State.CHANNELS_FETCH)
                 else:
@@ -262,25 +264,28 @@ class Twitch:
                     # pre-display the active drop without substracting a minute
                     if (active_drop := self.get_active_drop()) is not None:
                         active_drop.display(countdown=False)
-                    # gather ACLs from campaigns
+                    # start with all current channels
+                    new_channels: OrderedSet[Channel] = OrderedSet(self.channels.values())
+                    # gather and add ACL channels from campaigns
                     # NOTE: we consider only campaigns that can be progressed
+                    # NOTE: we use a separate set so that we can set them online separately
                     no_acl = False
-                    new_channels: OrderedSet[Channel] = OrderedSet()
+                    acl_channels: OrderedSet[Channel] = OrderedSet()
                     for campaign in self.inventory[self.game]:
                         if any(drop.can_earn() for drop in campaign.drops):
-                            acl = campaign.allowed_channels
-                            if acl:
-                                new_channels.update(acl)
+                            if campaign.allowed_channels:
+                                acl_channels.update(campaign.allowed_channels)
                             else:
                                 no_acl = True
-                    # set them online if possible
-                    await asyncio.gather(*(channel.check_online() for channel in new_channels))
+                    # remove all ACL channels from the separate set that already exist
+                    acl_channels.difference_update(new_channels)
+                    # use the separate set to set them online if possible
+                    if acl_channels:
+                        await asyncio.gather(*(channel.check_online() for channel in acl_channels))
                     if no_acl:
                         # if there's at least one campaign without an ACL,
                         # add a list of live channels with drops enabled
                         new_channels.update(await self.get_live_streams())
-                    # merge current channels into new ones
-                    new_channels.update(self.channels.values())
                     # sort them descending by viewers,
                     # then by priority so that prioritized ones are first
                     # NOTE: We can drop OrderedSet now because there's no more channels being added
@@ -303,6 +308,7 @@ class Twitch:
                             WebsocketTopic.as_str("Channel", "StreamState", channel.id)
                             for channel in to_remove
                         )
+                        del to_remove
                     # set our new channel list
                     channels.clear()
                     self.gui.channels.clear()
