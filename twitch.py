@@ -177,6 +177,7 @@ class Twitch:
         self.change_state(State.INVENTORY_FETCH)
         while True:
             if self._state is State.IDLE:
+                self.stop_watching()
                 # clear the flag and wait until it's set again
                 self._state_change.clear()
             elif self._state is State.INVENTORY_FETCH:
@@ -363,7 +364,6 @@ class Twitch:
                             self._state_change.clear()
                             break
                     else:
-                        self.stop_watching()
                         self.gui.print(
                             f"No suitable channel to watch for game: {self.game}\n"
                             "Waiting for an ONLINE channel..."
