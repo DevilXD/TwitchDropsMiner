@@ -25,6 +25,7 @@ from constants import FORMATTER, LOG_PATH, WINDOW_TITLE
 root = tk.Tk()
 root.overrideredirect(True)
 root.withdraw()
+root.update()
 
 
 class Parser(argparse.ArgumentParser):
