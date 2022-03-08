@@ -830,6 +830,36 @@ class TrayIcon:
             self.icon.title = self.get_title(drop)
 
 
+class Notebook:
+    def __init__(self, manager: GUIManager, master: ttk.Widget):
+        self._style = manager._style
+        # removes "Notebook.focus" from the Tab layout tree to avoid ugly dotted line on selection
+        # NOTE: we target "Notebook.padding" since "focus" follows it
+        original = self._style.layout("TNotebook.Tab")
+        layout_list = original
+        while True:
+            element, layout = layout_list[0]
+            layout_list = layout["children"]
+            if element == "Notebook.padding":
+                layout["children"] = layout_list[0][1]["children"]
+                break
+        self._style.layout("TNotebook.Tab", original)
+        # Add padding to the tab names
+        self._style.theme_settings(
+            self._style.theme_use(), {"TNotebook.Tab": {"configure": {"padding": [8, 4]}}}
+        )
+        self._nb = ttk.Notebook(master)
+        self._nb.grid(sticky="nsew")
+        master.rowconfigure(0, weight=1)
+        master.columnconfigure(0, weight=1)
+
+    def add(self, widget: ttk.Widget, *, name: str, **kwargs):
+        kwargs.pop("text", None)
+        if "sticky" not in kwargs:
+            kwargs["sticky"] = "nsew"
+        self._nb.add(widget, text=name, **kwargs)
+
+
 class GUIManager:
     def __init__(self, twitch: Twitch):
         self._twitch: Twitch = twitch
@@ -849,20 +879,36 @@ class GUIManager:
             foreground=self._fixed_map("foreground"),
             background=self._fixed_map("background"),
         )
-        main_frame = ttk.Frame(root, padding=8)
-        main_frame.grid(sticky="nsew")
+        root_frame = ttk.Frame(root, padding=8)
+        root_frame.grid(sticky="nsew")
         root.rowconfigure(0, weight=1)
         root.columnconfigure(0, weight=1)
+        # Notebook
+        self.tabs = Notebook(self, root_frame)
+        # Main tab
+        main_frame = ttk.Frame(root_frame, padding=8)
+        self.tabs.add(main_frame, name="Main")
         self.websockets = WebsocketStatus(self, main_frame)
         self.login = LoginForm(self, main_frame)
         self.progress = CampaignProgress(self, main_frame)
         self.games = GameSelector(self, main_frame)
         self.output = ConsoleOutput(self, main_frame)
-        second_frame = ttk.Frame(main_frame)
-        second_frame.grid(column=2, row=0, rowspan=3, sticky="nsew")
+        channels_frame = ttk.Frame(main_frame)
+        channels_frame.grid(column=2, row=0, rowspan=3, sticky="nsew")
         main_frame.columnconfigure(2, weight=1)
-        self.tray = TrayIcon(self, second_frame)
-        self.channels = ChannelList(self, second_frame)
+        self.tray = TrayIcon(self, channels_frame)
+        self.channels = ChannelList(self, channels_frame)
+        # Settings tab
+        settings_frame = ttk.Frame(root_frame, padding=8)
+        settings_frame.rowconfigure(0, weight=1)
+        settings_frame.columnconfigure(0, weight=1)
+        self.tabs.add(settings_frame, name="Settings")
+        ttk.Label(
+            settings_frame,
+            font=(..., 20),
+            anchor="center",
+            text="Work In Progress",
+        ).grid(column=0, row=0, sticky="nsew")
         # clamp minimum window height (update first, so that geometry calculates the size)
         root.update_idletasks()
         root.minsize(width=0, height=root.winfo_reqheight())
