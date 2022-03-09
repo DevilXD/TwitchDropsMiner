@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import os
-import sys
 import asyncio
 import logging
 import tkinter as tk
@@ -16,6 +14,7 @@ try:
 except ModuleNotFoundError as exc:
     raise ImportError("You have to run 'pip install pystray' first") from exc
 
+from utils import resource_path
 from constants import FORMATTER, WS_TOPICS_LIMIT, MAX_WEBSOCKETS, WINDOW_TITLE, State
 
 if TYPE_CHECKING:
@@ -29,13 +28,7 @@ digits = ceil(log10(WS_TOPICS_LIMIT))
 WS_FONT = ("Courier New", 10)
 
 
-def resource_path(relative_path):
-    """Get absolute path to resource, works for dev and for PyInstaller"""
-    base_path = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(base_path, relative_path)
-
-
-class ICOImage:
+class _ICOImage:
     def __init__(self, path: str):
         with open(path, 'rb') as file:
             self._data = file.read()
@@ -44,7 +37,7 @@ class ICOImage:
         file.write(self._data)
 
 
-class TKOutputHandler(logging.Handler):
+class _TKOutputHandler(logging.Handler):
     def __init__(self, output: GUIManager):
         super().__init__()
         self._output = output
@@ -516,7 +509,7 @@ class ConsoleOutput:
         self._text.config(state="disabled")
 
 
-class Buttons(TypedDict):
+class _Buttons(TypedDict):
     frame: ttk.Frame
     switch: ttk.Button
     load_points: ttk.Button
@@ -532,7 +525,7 @@ class ChannelList:
         # tell master frame that the containing column can expand
         master.columnconfigure(2, weight=1)
         buttons_frame = ttk.Frame(frame)
-        self._buttons: Buttons = {
+        self._buttons: _Buttons = {
             "frame": buttons_frame,
             "switch": ttk.Button(
                 buttons_frame,
@@ -788,7 +781,7 @@ class TrayIcon:
             )
             self.icon = pystray.Icon(
                 "twitch_miner",
-                ICOImage(resource_path("pickaxe.ico")),
+                _ICOImage(resource_path("pickaxe.ico")),
                 self.get_title(drop),
                 menu,
             )
@@ -910,7 +903,7 @@ class GUIManager:
         root.update_idletasks()
         root.minsize(width=0, height=root.winfo_reqheight())
         # register logging handler
-        self._handler = TKOutputHandler(self)
+        self._handler = _TKOutputHandler(self)
         self._handler.setFormatter(FORMATTER)
         logging.getLogger("TwitchDrops").addHandler(self._handler)
         # show the window when ready

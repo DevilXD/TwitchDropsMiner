@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import sys
 import random
 import string
 import asyncio
@@ -26,6 +28,12 @@ _D = TypeVar("_D")  # default
 _P = ParamSpec("_P")  # params
 logger = logging.getLogger("TwitchDrops")
 NONCE_CHARS = string.ascii_letters + string.digits
+
+
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    base_path = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
 
 
 def timestamp(string: str) -> datetime:
