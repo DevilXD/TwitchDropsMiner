@@ -8,7 +8,7 @@ from time import time
 from itertools import chain
 from functools import partial
 from collections import OrderedDict
-from typing import cast, TYPE_CHECKING
+from typing import NoReturn, cast, TYPE_CHECKING
 from contextlib import suppress, asynccontextmanager
 
 try:
@@ -82,6 +82,8 @@ class Twitch:
         self._drop_update: asyncio.Future[bool] | None = None
         # Websocket
         self.websocket = WebsocketPool(self)
+        # Maintenance task
+        self._mnt_task: asyncio.Task[None] | None = None
 
     async def initialize(self) -> None:
         cookie_jar = aiohttp.CookieJar()
@@ -162,9 +164,14 @@ class Twitch:
         """
         self.gui.start()
         await self.check_login()
+        # NOTE: watch task is explicitly restarted on each new run
         if self._watching_task is not None:
             self._watching_task.cancel()
         self._watching_task = asyncio.create_task(self._watch_loop())
+        # NOTE: maintenance task is restarted only if it finished unexpectedly early
+        if self._mnt_task is not None and self._mnt_task.done() and not self._mnt_task.cancelled():
+            self._mnt_task.cancel()
+        self._mnt_task = asyncio.create_task(self._maintenance_loop())
         # Add default topics
         assert self._user_id is not None
         self.websocket.add_topics([
@@ -382,9 +389,8 @@ class Twitch:
             await asyncio.wait_for(self._watching_restart.wait(), timeout=delay)
 
     @task_wrapper
-    async def _watch_loop(self) -> None:
+    async def _watch_loop(self) -> NoReturn:
         interval = WATCH_INTERVAL.total_seconds()
-        i = 1
         while True:
             channel = await self.watching_channel.get()
             succeeded = await channel.send_watch()
@@ -431,14 +437,22 @@ class Twitch:
                         drop.display()
                     else:
                         logger.error("Active drop search failed")
+            await self._watch_sleep(last_watch + interval - time())
+
+    @task_wrapper
+    async def _maintenance_loop(self) -> NoReturn:
+        i = 1
+        while True:
             if i % 30 == 1:
+                channel = self.watching_channel.get_with_default(None)
                 # ensure every 30 minutes that we don't have unclaimed points bonus
-                await channel.claim_bonus()
+                if channel is not None:
+                    await channel.claim_bonus()
             if i % 60 == 0:
                 # refresh inventory and cleanup channels every hour
                 self.change_state(State.INVENTORY_FETCH)
             i = (i + 1) % 3600
-            await self._watch_sleep(last_watch + interval - time())
+            await asyncio.sleep(60)
 
     def can_watch(self, channel: Channel) -> bool:
         if self.game is None:
