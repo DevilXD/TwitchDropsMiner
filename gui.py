@@ -526,12 +526,11 @@ class ChannelList:
     def __init__(self, manager: GUIManager, master: ttk.Widget):
         self._manager = manager
         frame = ttk.LabelFrame(master, text="Channels", padding=(4, 0, 4, 4))
-        frame.grid(column=0, row=1, sticky="nsew", padx=2)
+        frame.grid(column=2, row=0, rowspan=3, sticky="nsew", padx=2)
         frame.rowconfigure(1, weight=1)
         frame.columnconfigure(0, weight=1)
-        # tell master frame that the containing column and row can expand
-        master.columnconfigure(0, weight=1)
-        master.rowconfigure(1, weight=1)
+        # tell master frame that the containing column can expand
+        master.columnconfigure(2, weight=1)
         buttons_frame = ttk.Frame(frame)
         self._buttons: Buttons = {
             "frame": buttons_frame,
@@ -756,7 +755,7 @@ class TrayIcon:
         self._manager = manager
         self.icon: pystray.Icon | None = None
         self._button = ttk.Button(master, command=self.minimize, text="Minimize to Tray")
-        self._button.grid(column=0, row=0, sticky="e")
+        self._button.grid(column=0, row=0, sticky="ne")
         if manager._twitch.options.tray:
             # start hidden in tray
             self._manager._root.after_idle(self.minimize)
@@ -834,7 +833,7 @@ class Notebook:
     def __init__(self, manager: GUIManager, master: ttk.Widget):
         self._style = manager._style
         # removes "Notebook.focus" from the Tab layout tree to avoid ugly dotted line on selection
-        # NOTE: we target "Notebook.padding" since "focus" follows it
+        # we target "Notebook.padding" since "focus" follows it, then fold the layout children
         original = self._style.layout("TNotebook.Tab")
         layout_list = original
         while True:
@@ -849,7 +848,7 @@ class Notebook:
             self._style.theme_use(), {"TNotebook.Tab": {"configure": {"padding": [8, 4]}}}
         )
         self._nb = ttk.Notebook(master)
-        self._nb.grid(sticky="nsew")
+        self._nb.grid(column=0, row=0, sticky="nsew")
         master.rowconfigure(0, weight=1)
         master.columnconfigure(0, weight=1)
 
@@ -880,11 +879,13 @@ class GUIManager:
             background=self._fixed_map("background"),
         )
         root_frame = ttk.Frame(root, padding=8)
-        root_frame.grid(sticky="nsew")
+        root_frame.grid(column=0, row=0, sticky="nsew")
         root.rowconfigure(0, weight=1)
         root.columnconfigure(0, weight=1)
         # Notebook
         self.tabs = Notebook(self, root_frame)
+        # Tray icon - place after notebook so it draws on top of the tabs space
+        self.tray = TrayIcon(self, root_frame)
         # Main tab
         main_frame = ttk.Frame(root_frame, padding=8)
         self.tabs.add_tab(main_frame, name="Main")
@@ -893,11 +894,7 @@ class GUIManager:
         self.progress = CampaignProgress(self, main_frame)
         self.games = GameSelector(self, main_frame)
         self.output = ConsoleOutput(self, main_frame)
-        channels_frame = ttk.Frame(main_frame)
-        channels_frame.grid(column=2, row=0, rowspan=3, sticky="nsew")
-        main_frame.columnconfigure(2, weight=1)
-        self.tray = TrayIcon(self, channels_frame)
-        self.channels = ChannelList(self, channels_frame)
+        self.channels = ChannelList(self, main_frame)
         # Settings tab
         settings_frame = ttk.Frame(root_frame, padding=8)
         settings_frame.rowconfigure(0, weight=1)
