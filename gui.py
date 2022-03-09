@@ -650,7 +650,7 @@ class ChannelList:
             if column in self._const_width:
                 continue
             if iids:
-                # table haa at least one item
+                # table has at least one item
                 width = max(self._measure(self._table.set(i, column)) for i in iids)
                 self._table.column(column, width=width)
             else:
@@ -853,7 +853,7 @@ class Notebook:
         master.rowconfigure(0, weight=1)
         master.columnconfigure(0, weight=1)
 
-    def add(self, widget: ttk.Widget, *, name: str, **kwargs):
+    def add_tab(self, widget: ttk.Widget, *, name: str, **kwargs):
         kwargs.pop("text", None)
         if "sticky" not in kwargs:
             kwargs["sticky"] = "nsew"
@@ -887,7 +887,7 @@ class GUIManager:
         self.tabs = Notebook(self, root_frame)
         # Main tab
         main_frame = ttk.Frame(root_frame, padding=8)
-        self.tabs.add(main_frame, name="Main")
+        self.tabs.add_tab(main_frame, name="Main")
         self.websockets = WebsocketStatus(self, main_frame)
         self.login = LoginForm(self, main_frame)
         self.progress = CampaignProgress(self, main_frame)
@@ -902,7 +902,7 @@ class GUIManager:
         settings_frame = ttk.Frame(root_frame, padding=8)
         settings_frame.rowconfigure(0, weight=1)
         settings_frame.columnconfigure(0, weight=1)
-        self.tabs.add(settings_frame, name="Settings")
+        self.tabs.add_tab(settings_frame, name="Settings")
         ttk.Label(
             settings_frame,
             font=(..., 20),
