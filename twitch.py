@@ -276,7 +276,7 @@ class Twitch:
                 new_channels: OrderedSet[Channel] = OrderedSet(self.channels.values())
                 # gather and add ACL channels from campaigns
                 # NOTE: we consider only campaigns that can be progressed
-                # NOTE: we use a separate set so that we can set them online separately
+                # NOTE: we use an other set so that we can set them online separately
                 no_acl = False
                 acl_channels: OrderedSet[Channel] = OrderedSet()
                 for campaign in self.inventory[self.game]:
@@ -285,11 +285,13 @@ class Twitch:
                             acl_channels.update(campaign.allowed_channels)
                         else:
                             no_acl = True
-                # remove all ACL channels from the separate set that already exist
+                # remove all ACL channels that already exist from the other set
                 acl_channels.difference_update(new_channels)
-                # use the separate set to set them online if possible
+                # use the other set to set them online if possible
                 if acl_channels:
                     await asyncio.gather(*(channel.check_online() for channel in acl_channels))
+                # finally, add them as new channels
+                new_channels.update(acl_channels)
                 if no_acl:
                     # if there's at least one campaign without an ACL,
                     # add a list of live channels with drops enabled
