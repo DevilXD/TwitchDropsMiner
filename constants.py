@@ -29,7 +29,7 @@ GQL_URL = "https://gql.twitch.tv/gql"
 CLIENT_ID = "kimne78kx3ncx6brgo4mv6wki5h1ko"
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/97.0.4692.71 Safari/537.36"
+    "Chrome/99.0.4844.51 Safari/537.36"
 )
 # Paths
 LOG_PATH = "log.txt"
