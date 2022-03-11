@@ -23,7 +23,6 @@ from inventory import DropsCampaign
 from utils import task_wrapper, timestamp, AwaitableValue, OrderedSet
 from exceptions import RequestException, LoginException, CaptchaRequired
 from constants import (
-    GQL_URL,
     BASE_URL,
     CLIENT_ID,
     USER_AGENT,
@@ -824,12 +823,16 @@ class Twitch:
         ) from cause
 
     async def gql_request(self, op: GQLOperation) -> JsonType:
-        headers = {
-            "Authorization": f"OAuth {self._access_token}",
-            "Client-Id": CLIENT_ID,
-        }
         gql_logger.debug(f"GQL Request: {op}")
-        async with self.request("POST", GQL_URL, json=op, headers=headers) as response:
+        async with self.request(
+            "POST",
+            "https://gql.twitch.tv/gql",
+            json=op,
+            headers={
+                "Authorization": f"OAuth {self._access_token}",
+                "Client-Id": CLIENT_ID,
+            }
+        ) as response:
             response_json: JsonType = await response.json()
         gql_logger.debug(f"GQL Response: {response_json}")
         return response_json

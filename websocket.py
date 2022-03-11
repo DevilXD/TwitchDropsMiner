@@ -15,7 +15,7 @@ except ModuleNotFoundError as exc:
 
 from exceptions import MinerException
 from utils import task_wrapper, create_nonce, AwaitableValue
-from constants import WEBSOCKET_URL, PING_INTERVAL, PING_TIMEOUT, MAX_WEBSOCKETS, WS_TOPICS_LIMIT
+from constants import PING_INTERVAL, PING_TIMEOUT, MAX_WEBSOCKETS, WS_TOPICS_LIMIT
 
 if TYPE_CHECKING:
     from twitch import Twitch
@@ -110,10 +110,12 @@ class Websocket:
     async def _handle(self):
         # ensure we're logged in before connecting
         await self._twitch.wait_until_login()
-        self.set_status("Connecting...")
         ws_logger.info(f"Websocket[{self._idx}] connecting...")
+        self.set_status("Connecting...")
         # Connect/Reconnect loop
-        async for websocket in websocket_connect(WEBSOCKET_URL, ssl=True, ping_interval=None):
+        async for websocket in websocket_connect(
+            "wss://pubsub-edge.twitch.tv/v1", ssl=True, ping_interval=None
+        ):
             # 3 minutes of max backoff
             websocket.BACKOFF_MAX = 3 * 60  # type: ignore
             self._ws.set(websocket)
