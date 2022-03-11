@@ -24,7 +24,7 @@ from utils import task_wrapper, timestamp, AwaitableValue, OrderedSet
 from exceptions import RequestException, LoginException, CaptchaRequired
 from constants import (
     GQL_URL,
-    AUTH_URL,
+    BASE_URL,
     CLIENT_ID,
     USER_AGENT,
     COOKIES_PATH,
@@ -85,7 +85,7 @@ class Twitch:
         # Maintenance task
         self._mnt_task: asyncio.Task[None] | None = None
 
-    async def initialize(self) -> None:
+    def initialize(self) -> None:
         cookie_jar = aiohttp.CookieJar()
         if os.path.isfile(COOKIES_PATH):
             cookie_jar.load(COOKIES_PATH)
@@ -682,7 +682,9 @@ class Twitch:
             payload.pop("authy_token", None)
             payload.pop("twitchguard_code", None)
             for attempt in range(2):
-                async with self.request("POST", f"{AUTH_URL}/login", json=payload) as response:
+                async with self.request(
+                    "POST", "https://passport.twitch.tv/login", json=payload
+                ) as response:
                     login_response: JsonType = await response.json()
 
                 # Feed this back in to avoid running into CAPTCHA if possible
@@ -751,12 +753,15 @@ class Twitch:
         login_form: LoginForm = self.gui.login
         logger.debug("Checking login")
         login_form.update("Logging in...", None)
+        # NOTE: We need this here because of the jar being accessed
         if self._session is None:
-            await self.initialize()
+            self.initialize()
         assert self._session is not None
+        url = URL(BASE_URL)
+        assert url.host is not None
         jar = cast(aiohttp.CookieJar, self._session.cookie_jar)
         for attempt in range(2):
-            cookie = jar.filter_cookies("https://twitch.tv")  # type: ignore
+            cookie = jar.filter_cookies(url)
             if not cookie:
                 # no cookie - login
                 await self._login()
@@ -776,7 +781,7 @@ class Twitch:
                 if status == 401:
                     # the access token we have is invalid - clear the cookie and reauth
                     logger.debug("Restored session is invalid")
-                    jar.clear_domain("twitch.tv")
+                    jar.clear_domain(url.host)
                     continue
                 elif status == 200:
                     validate_response = await response.json()
@@ -789,16 +794,16 @@ class Twitch:
         logger.debug(f"Login successful, user ID: {self._user_id}")
         login_form.update("Logged in", self._user_id)
         # update our cookie and save it
-        jar.update_cookies(cookie, URL("https://twitch.tv"))
+        jar.update_cookies(cookie, url)
         jar.save(COOKIES_PATH)
 
     @asynccontextmanager
     async def request(
         self, method: str, url: str, *, attempts: int = 5, **kwargs
     ) -> abc.AsyncIterator[aiohttp.ClientResponse]:
-        if self._session is None:
-            await self.initialize()
         session = self._session
+        if session is None:
+            self.initialize()
         assert session is not None
         method = method.upper()
         cause: Exception | None = None
