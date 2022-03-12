@@ -9,8 +9,9 @@ from constants import GQL_OPERATIONS
 from utils import timestamp, invalidate_cache, Game
 
 if TYPE_CHECKING:
-    from twitch import Twitch
     from collections import abc
+
+    from twitch import Twitch
     from constants import JsonType
     from gui import CampaignProgress
 

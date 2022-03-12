@@ -5,8 +5,8 @@ import logging
 import tkinter as tk
 from math import log10, ceil
 from tkinter.font import Font
-from collections import namedtuple, OrderedDict
 from tkinter import Tk, ttk, StringVar, DoubleVar
+from collections import abc, namedtuple, OrderedDict
 from typing import Any, TypedDict, NoReturn, TYPE_CHECKING
 
 try:
@@ -20,7 +20,6 @@ from constants import FORMATTER, WS_TOPICS_LIMIT, MAX_WEBSOCKETS, WINDOW_TITLE, 
 if TYPE_CHECKING:
     from twitch import Twitch
     from channel import Channel
-    from collections import abc
     from inventory import Game, TimedDrop
 
 

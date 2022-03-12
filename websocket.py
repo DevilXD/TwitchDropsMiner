@@ -18,8 +18,9 @@ from utils import task_wrapper, create_nonce, AwaitableValue
 from constants import PING_INTERVAL, PING_TIMEOUT, MAX_WEBSOCKETS, WS_TOPICS_LIMIT
 
 if TYPE_CHECKING:
-    from twitch import Twitch
     from collections import abc
+
+    from twitch import Twitch
     from constants import JsonType, WebsocketTopic
 
 

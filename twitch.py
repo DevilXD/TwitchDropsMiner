@@ -7,9 +7,9 @@ from yarl import URL
 from time import time
 from itertools import chain
 from functools import partial
-from collections import OrderedDict
-from typing import NoReturn, cast, TYPE_CHECKING
+from collections import abc, OrderedDict
 from contextlib import suppress, asynccontextmanager
+from typing import Final, NoReturn, cast, TYPE_CHECKING
 
 try:
     import aiohttp
@@ -37,8 +37,6 @@ from constants import (
 )
 
 if TYPE_CHECKING:
-    from typing import Final
-    from collections import abc
     from datetime import datetime
 
     from utils import Game
