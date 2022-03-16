@@ -9,23 +9,15 @@ import logging
 import argparse
 import traceback
 import tkinter as tk
-from copy import copy
 from pathlib import Path
 from tkinter import messagebox
-from typing import Generic, NoReturn
+from typing import IO, NoReturn
 
-from utils import _T
 from twitch import Twitch
+from settings import Settings
 from version import __version__
 from exceptions import CaptchaRequired
 from constants import FORMATTER, LOG_PATH, WINDOW_TITLE
-
-
-# we need a dummy invisible window for the parser
-root = tk.Tk()
-root.overrideredirect(True)
-root.withdraw()
-root.update()
 
 
 class Parser(argparse.ArgumentParser):
@@ -33,42 +25,15 @@ class Parser(argparse.ArgumentParser):
         super().__init__(*args, **kwargs)
         self._message: io.StringIO = io.StringIO()
 
-    def _print_message(self, message: str, *args, **kwargs) -> None:
+    def _print_message(self, message: str, file: IO[str] | None = None) -> None:
         self._message.write(message)
         # print(message, file=self._message)
 
-    def exit(self, *args, **kwargs) -> NoReturn:
+    def exit(self, status: int = 0, message: str | None = None) -> NoReturn:
         try:
-            super().exit(*args, **kwargs)
+            super().exit(status, message)
         finally:
             messagebox.showerror("Argument Parser Error", self._message.getvalue())
-
-
-class SetCollectAction(argparse.Action, Generic[_T]):
-    def __init__(
-        self,
-        option_strings,
-        dest,
-        *,
-        const: _T | None = None,
-        nargs: int | str | None = None,
-        default: set[_T] | None = None,
-        **kwargs,
-    ) -> None:
-        if nargs is not None and nargs in ('?', '*') or isinstance(nargs, int) and nargs <= 0:
-            raise ValueError("'nargs' has to be '+' or an integer greater than zero")
-        if default is None:
-            default = set()
-        elif not isinstance(default, set):
-            raise TypeError("'default' has to be of 'set' type")
-        super().__init__(option_strings, dest, nargs, const, default, **kwargs)
-
-    def __call__(self, parser, namespace, values, option_string=None):
-        items: set[_T] = getattr(namespace, self.dest, self.default)
-        items = copy(items)
-        for value in values:
-            items.add(value)
-        setattr(namespace, self.dest, items)
 
 
 class ParsedArgs(argparse.Namespace):
@@ -77,10 +42,9 @@ class ParsedArgs(argparse.Namespace):
     _debug_gql: bool
     log: bool
     tray: bool
-    game: str | None
-    exclude: set[str]
     no_run_check: bool
 
+    # TODO: replace int with union of literal values once typeshed updates
     @property
     def logging_level(self) -> int:
         return {
@@ -113,8 +77,12 @@ class ParsedArgs(argparse.Namespace):
 
 
 # handle input parameters
-# NOTE: due to using pythonw to run the main script, CLI help via '-h' and generally any
-# console output is not available. The input arguments still work though.
+# NOTE: parser output is shown via message box
+# we also need a dummy invisible window for the parser
+root = tk.Tk()
+root.overrideredirect(True)
+root.withdraw()
+root.update()
 parser = Parser(
     Path(sys.argv[0]).name,
     description="A program that allows you to mine timed drops on Twitch.",
@@ -123,43 +91,45 @@ parser.add_argument("--version", action="version", version=f"v{__version__}")
 parser.add_argument("-v", dest="_verbose", action="count", default=0)
 parser.add_argument("--tray", action="store_true")
 parser.add_argument("--log", action="store_true")
-parser.add_argument("-g", "--game", default=None)
-parser.add_argument("--exclude", action=SetCollectAction, nargs='+', metavar="GAME")
 # undocumented debug args
 parser.add_argument(
     "--no-run-check", dest="no_run_check", action="store_true", help=argparse.SUPPRESS
 )
 parser.add_argument("--debug-ws", dest="_debug_ws", action="store_true", help=argparse.SUPPRESS)
 parser.add_argument("--debug-gql", dest="_debug_gql", action="store_true", help=argparse.SUPPRESS)
-options: ParsedArgs = parser.parse_args(namespace=ParsedArgs())
+args = parser.parse_args(namespace=ParsedArgs())
 # dummy window isn't needed anymore
 root.destroy()
+
+# load settings
+settings = Settings(args)
 # check if we're not already running
 try:
     exists = ctypes.windll.user32.FindWindowW(None, WINDOW_TITLE)
 except AttributeError:
     # we're not on Windows - continue
     exists = False
-if exists and not options.no_run_check:
+if exists and not settings.no_run_check:
     # already running - exit
     sys.exit()
+
 # handle logging stuff
-if options.logging_level > logging.DEBUG:
+if settings.logging_level > logging.DEBUG:
     # redirect the root logger into a NullHandler, effectively ignoring all logging calls
     # that aren't ours. This always runs, unless the main logging level is DEBUG or lower.
     logging.getLogger().addHandler(logging.NullHandler())
 logger = logging.getLogger("TwitchDrops")
-logger.setLevel(options.logging_level)
-if options.log:
+logger.setLevel(settings.logging_level)
+if settings.log:
     handler = logging.FileHandler(LOG_PATH)
     handler.setFormatter(FORMATTER)
     logger.addHandler(handler)
-logging.getLogger("TwitchDrops.gql").setLevel(options.debug_gql)
-logging.getLogger("TwitchDrops.websocket").setLevel(options.debug_ws)
+logging.getLogger("TwitchDrops.gql").setLevel(settings.debug_gql)
+logging.getLogger("TwitchDrops.websocket").setLevel(settings.debug_ws)
 
 # client run
 loop = asyncio.get_event_loop()
-client = Twitch(options)
+client = Twitch(settings)
 signal.signal(signal.SIGINT, lambda *_: client.close())
 signal.signal(signal.SIGTERM, lambda *_: client.close())
 try:

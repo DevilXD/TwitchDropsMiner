@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 
     from utils import Game
     from gui import LoginForm
-    from main import ParsedArgs
+    from settings import Settings
     from inventory import TimedDrop
     from constants import JsonType, GQLOperation
 
@@ -57,8 +57,8 @@ def viewers_key(channel: Channel) -> int:
 
 
 class Twitch:
-    def __init__(self, options: ParsedArgs):
-        self.options = options
+    def __init__(self, settings: Settings):
+        self.settings: Settings = settings
         # State management
         self._state: State = State.IDLE
         self._state_change = asyncio.Event()
@@ -99,12 +99,14 @@ class Twitch:
         if self._watching_task is not None:
             self._watching_task.cancel()
             self._watching_task = None
-        # close session and stop websocket
+        # close session, save cookies and stop websocket
         if self._session is not None:
             self._session.cookie_jar.save(COOKIES_PATH)  # type: ignore
             await self._session.close()
             self._session = None
         await self.websocket.stop()
+        # save settings
+        self.settings.save()
         # wait at least one full second + whatever it takes to complete the closing
         # this allows aiohttp to safely close the session
         await asyncio.sleep(start_time + 0.5 - time())
@@ -175,7 +177,6 @@ class Twitch:
             WebsocketTopic("User", "Drops", self._user_id, self.process_drops),
             WebsocketTopic("User", "CommunityPoints", self._user_id, self.process_points),
         ])
-        first_select: bool = True
         full_cleanup: bool = False
         channels: Final[OrderedDict[int, Channel]] = self.channels
         self.change_state(State.INVENTORY_FETCH)
@@ -211,21 +212,14 @@ class Twitch:
                     return
                 # only start the websocket after we confirm there are drops to mine
                 await self.websocket.start()
-                self.gui.games.set_games(games)
+                self.gui.set_games(games)
                 self.change_state(State.GAME_SELECT)
             elif self._state is State.GAME_SELECT:
-                new_game: Game | None = self.gui.games.get_selection()
-                if new_game is None:
-                    if first_select:
-                        # on first select, let the user make the choice
-                        first_select = False
-                    else:
-                        new_game = self.gui.games.set_first()
-                if new_game is not None:
-                    # restart the watch loop immediately on new game selected
-                    self.restart_watching()
-                # signal channel cleanup that we're removing everything
+                new_game: Game | None = self.gui.games.get_next()
                 if new_game != self.game:
+                    if new_game is not None:
+                        # restart the watch loop immediately on new game selected
+                        self.restart_watching()
                     self.game = new_game
                     full_cleanup = True
                 self.change_state(State.CHANNELS_CLEANUP)
