@@ -1101,7 +1101,8 @@ class SettingsPanel:
         self._settings.autostart = enabled
         self._settings.autostart_tray = tray
         if enabled:
-            self_path = str(Path(sys.argv[0]).resolve())
+            # NOTE: we need double quotes in case the path contains spaces
+            self_path = f'"{Path(sys.argv[0]).resolve()!s}"'
             if tray:
                 self_path += " --tray"
             with RegistryKey("HKCU/Software/Microsoft/Windows/CurrentVersion/Run") as key:
