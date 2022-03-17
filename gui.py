@@ -1107,7 +1107,7 @@ class SettingsPanel:
                 key.delete(self.AUTOSTART_NAME, silent=True)
 
     def set_games(self, games: abc.Iterable[Game]) -> None:
-        games_list = list(map(str, games))
+        games_list = sorted(map(str, games))
         self._exclude_entry.config(values=games_list)
         self._priority_entry.config(values=games_list)
 
