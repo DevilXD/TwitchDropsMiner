@@ -31,7 +31,7 @@ class Parser(argparse.ArgumentParser):
 
     def exit(self, status: int = 0, message: str | None = None) -> NoReturn:
         try:
-            super().exit(status, message)
+            super().exit(status, message)  # sys.exit(2)
         finally:
             messagebox.showerror("Argument Parser Error", self._message.getvalue())
 
@@ -98,11 +98,18 @@ parser.add_argument(
 parser.add_argument("--debug-ws", dest="_debug_ws", action="store_true", help=argparse.SUPPRESS)
 parser.add_argument("--debug-gql", dest="_debug_gql", action="store_true", help=argparse.SUPPRESS)
 args = parser.parse_args(namespace=ParsedArgs())
+# load settings
+try:
+    settings = Settings(args)
+except Exception:
+    messagebox.showerror(
+        "Settings error",
+        f"There was an error while loading the settings file:\n\n{traceback.format_exc()}"
+    )
+    sys.exit(4)
 # dummy window isn't needed anymore
 root.destroy()
 
-# load settings
-settings = Settings(args)
 # check if we're not already running
 try:
     exists = ctypes.windll.user32.FindWindowW(None, WINDOW_TITLE)
@@ -111,7 +118,7 @@ except AttributeError:
     exists = False
 if exists and not settings.no_run_check:
     # already running - exit
-    sys.exit()
+    sys.exit(3)
 
 # handle logging stuff
 if settings.logging_level > logging.DEBUG:
@@ -128,6 +135,7 @@ logging.getLogger("TwitchDrops.gql").setLevel(settings.debug_gql)
 logging.getLogger("TwitchDrops.websocket").setLevel(settings.debug_ws)
 
 # client run
+exit_status = 0
 loop = asyncio.get_event_loop()
 client = Twitch(settings)
 signal.signal(signal.SIGINT, lambda *_: client.close())
@@ -135,11 +143,13 @@ signal.signal(signal.SIGTERM, lambda *_: client.close())
 try:
     loop.run_until_complete(client.run())
 except CaptchaRequired:
+    exit_status = 1
     msg = "Your login attempt was denied by CAPTCHA.\nPlease try again in +12 hours."
     logger.exception(msg)
     client.prevent_close()
     client.print(msg)
 except Exception:
+    exit_status = 1
     msg = "Fatal error encountered:\n"
     logger.exception(msg)
     client.prevent_close()
@@ -158,3 +168,4 @@ client.gui.stop()
 client.gui.close_window()
 loop.run_until_complete(loop.shutdown_asyncgens())
 loop.close()
+sys.exit(exit_status)

@@ -16,3 +16,11 @@ Available command line arguments:
 	Show application version information
 
 Note: Additional settings are available within the application GUI.
+
+Exit codes:
+
+• 0: Application exited successfully
+• 1: Exit caused by the CAPTCHA or a Fatal Exception
+• 2: Incorrect command line arguments
+• 3: Application already running
+• 4: Loading of the settings file failed
