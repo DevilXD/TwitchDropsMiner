@@ -9,7 +9,6 @@ import logging
 import argparse
 import traceback
 import tkinter as tk
-from pathlib import Path
 from tkinter import messagebox
 from typing import IO, NoReturn
 
@@ -17,7 +16,7 @@ from twitch import Twitch
 from settings import Settings
 from version import __version__
 from exceptions import CaptchaRequired
-from constants import FORMATTER, LOG_PATH, WINDOW_TITLE
+from constants import SELF_PATH, FORMATTER, LOG_PATH, WINDOW_TITLE
 
 
 class Parser(argparse.ArgumentParser):
@@ -84,7 +83,7 @@ root.overrideredirect(True)
 root.withdraw()
 root.update()
 parser = Parser(
-    Path(sys.argv[0]).name,
+    SELF_PATH.name,
     description="A program that allows you to mine timed drops on Twitch.",
 )
 parser.add_argument("--version", action="version", version=f"v{__version__}")

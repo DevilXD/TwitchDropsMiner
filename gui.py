@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import sys
 import asyncio
 import logging
 import tkinter as tk
-from pathlib import Path
 from math import log10, ceil
 from functools import partial
 from tkinter.font import Font
@@ -19,7 +17,7 @@ except ModuleNotFoundError as exc:
 
 from utils import resource_path
 from registry import RegistryKey, ValueType
-from constants import FORMATTER, WS_TOPICS_LIMIT, MAX_WEBSOCKETS, WINDOW_TITLE, State
+from constants import SELF_PATH, FORMATTER, WS_TOPICS_LIMIT, MAX_WEBSOCKETS, WINDOW_TITLE, State
 
 if TYPE_CHECKING:
     from twitch import Twitch
@@ -1099,7 +1097,7 @@ class SettingsPanel:
         self._settings.autostart_tray = tray
         if enabled:
             # NOTE: we need double quotes in case the path contains spaces
-            self_path = f'"{Path(sys.argv[0]).resolve()!s}"'
+            self_path = f'"{SELF_PATH.absolute().resolve()!s}"'
             if tray:
                 self_path += " --tray"
             with RegistryKey("HKCU/Software/Microsoft/Windows/CurrentVersion/Run") as key:

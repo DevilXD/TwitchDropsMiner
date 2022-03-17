@@ -2,16 +2,12 @@ from __future__ import annotations
 
 import json
 from enum import Enum
-from pathlib import Path
 from typing import Any, TypedDict, TYPE_CHECKING
 
 from constants import JsonType, SETTINGS_PATH
 
 if TYPE_CHECKING:
     from main import ParsedArgs
-
-
-PATH = Path(SETTINGS_PATH)
 
 
 class SettingsFile(TypedDict):
@@ -72,8 +68,8 @@ class Settings:
 
     def __init__(self, args: ParsedArgs):
         self._settings: SettingsFile = default_settings.copy()
-        if PATH.exists():
-            with open(PATH, 'r') as file:
+        if SETTINGS_PATH.exists():
+            with open(SETTINGS_PATH, 'r') as file:
                 self._settings.update(json.load(file, object_hook=deserialize))
         self._args: ParsedArgs = args
 
@@ -98,5 +94,5 @@ class Settings:
         raise RuntimeError("settings can't be deleted")
 
     def save(self) -> None:
-        with open(PATH, 'w') as file:
+        with open(SETTINGS_PATH, 'w') as file:
             json.dump(self._settings, file, default=serialize, sort_keys=True, indent=4)

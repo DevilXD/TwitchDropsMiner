@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import sys
 import logging
 from copy import copy
+from pathlib import Path
 from enum import Enum, auto
 from datetime import timedelta
 from typing import Any, Dict, Literal, TYPE_CHECKING
@@ -14,6 +16,13 @@ if TYPE_CHECKING:
     from collections import abc  # noqa
 
 
+# Base Paths
+SELF_PATH = Path(sys.argv[0])
+WORKING_DIR = SELF_PATH.absolute().parent
+# Other Paths
+LOG_PATH = Path(WORKING_DIR, "log.txt")
+COOKIES_PATH = Path(WORKING_DIR, "cookies.jar")
+SETTINGS_PATH = Path(WORKING_DIR, "settings.json")
 # Typing
 JsonType = Dict[str, Any]
 TopicProcess: TypeAlias = "abc.Callable[[int, JsonType], Any]"
@@ -27,10 +36,6 @@ USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
     "Chrome/99.0.4844.51 Safari/537.36"
 )
-# Paths
-LOG_PATH = "log.txt"
-COOKIES_PATH = "cookies.jar"
-SETTINGS_PATH = "settings.json"
 # Intervals and Delays
 PING_INTERVAL = timedelta(minutes=3)
 PING_TIMEOUT = timedelta(seconds=10)

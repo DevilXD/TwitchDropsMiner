@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import asyncio
 import logging
 from yarl import URL
@@ -84,7 +83,7 @@ class Twitch:
 
     def initialize(self) -> None:
         cookie_jar = aiohttp.CookieJar()
-        if os.path.isfile(COOKIES_PATH):
+        if COOKIES_PATH.exists():
             cookie_jar.load(COOKIES_PATH)
         self._session = aiohttp.ClientSession(
             cookie_jar=cookie_jar,
@@ -101,7 +100,8 @@ class Twitch:
             self._watching_task = None
         # close session, save cookies and stop websocket
         if self._session is not None:
-            self._session.cookie_jar.save(COOKIES_PATH)  # type: ignore
+            cookie_jar = cast(aiohttp.CookieJar, self._session.cookie_jar)
+            cookie_jar.save(COOKIES_PATH)
             await self._session.close()
             self._session = None
         await self.websocket.stop()

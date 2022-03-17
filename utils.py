@@ -1,18 +1,18 @@
 from __future__ import annotations
 
-import os
 import sys
 import random
 import string
 import asyncio
 import logging
+from pathlib import Path
 from functools import wraps
 from contextlib import suppress
 from datetime import datetime, timezone
 from collections import abc, OrderedDict
 from typing import Any, Literal, MutableSet, Generic, TypeVar, cast, TYPE_CHECKING
 
-from constants import JsonType
+from constants import WORKING_DIR, JsonType
 
 if TYPE_CHECKING:
     from typing_extensions import ParamSpec
@@ -30,10 +30,19 @@ logger = logging.getLogger("TwitchDrops")
 NONCE_CHARS = string.ascii_letters + string.digits
 
 
-def resource_path(relative_path):
-    """Get absolute path to resource, works for dev and for PyInstaller"""
-    base_path = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(base_path, relative_path)
+def resource_path(relative_path: Path | str) -> Path:
+    """
+    Get an absolute path to a bundled resource.
+
+    Works for dev and for PyInstaller.
+    """
+    if hasattr(sys, "_MEIPASS"):
+        # PyInstaller's folder where the one-file app is unpacked
+        meipass: str = getattr(sys, "_MEIPASS")
+        base_path = Path(meipass)
+    else:
+        base_path = WORKING_DIR
+    return base_path.joinpath(relative_path)
 
 
 def timestamp(string: str) -> datetime:
