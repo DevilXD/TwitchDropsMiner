@@ -20,6 +20,8 @@ from registry import RegistryKey, ValueType
 from constants import SELF_PATH, FORMATTER, WS_TOPICS_LIMIT, MAX_WEBSOCKETS, WINDOW_TITLE, State
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from twitch import Twitch
     from channel import Channel
     from inventory import Game, TimedDrop
@@ -31,7 +33,7 @@ LARGE_FONT = (..., 12)
 
 
 class _ICOImage:
-    def __init__(self, path: str):
+    def __init__(self, path: Path | str):
         with open(path, 'rb') as file:
             self._data = file.read()
 
