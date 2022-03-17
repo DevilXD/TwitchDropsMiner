@@ -21,6 +21,15 @@
             "justMyCode": false
         },
         {
+            "name": "Run App (INFO+Tray)",
+            "type": "python",
+            "request": "launch",
+            "program": "main.py",
+            "args": ["--no-run-check", "-vv", "--tray"],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
             "name": "Run App (DEBUG)",
             "type": "python",
             "request": "launch",
@@ -43,15 +52,6 @@
             "type": "python",
             "request": "launch",
             "program": "gui.py",
-            "console": "integratedTerminal",
-            "justMyCode": false
-        },
-        {
-            "name": "Test ArgParser",
-            "type": "python",
-            "request": "launch",
-            "program": "main.py",
-            "args": ["--excludes", "1", "2", "3"],
             "console": "integratedTerminal",
             "justMyCode": false
         },

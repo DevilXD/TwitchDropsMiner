@@ -891,9 +891,6 @@ class TrayIcon:
         self.icon: pystray.Icon | None = None
         self._button = ttk.Button(master, command=self.minimize, text="Minimize to Tray")
         self._button.grid(column=0, row=0, sticky="ne")
-        if manager._twitch.settings.tray:
-            # start hidden in tray
-            self._manager._root.after_idle(self.minimize)
 
     def is_tray(self) -> bool:
         return self.icon is not None
@@ -1284,8 +1281,11 @@ class GUIManager:
         self._handler = _TKOutputHandler(self)
         self._handler.setFormatter(FORMATTER)
         logging.getLogger("TwitchDrops").addHandler(self._handler)
-        # show the window when ready
-        if not self._twitch.settings.tray:
+        # stay hidden in tray if needed, otherwise show the window when everything's ready
+        if self._twitch.settings.tray:
+            # NOTE: this starts the tray icon thread
+            self._root.after_idle(self.tray.minimize)
+        else:
             self._root.deiconify()
 
     # https://stackoverflow.com/questions/56329342/tkinter-treeview-background-tag-not-working
