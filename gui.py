@@ -1227,30 +1227,36 @@ class GUIManager:
         root.bind_all("<KeyPress-Escape>", self.unfocus)  # pressing ESC unfocuses selection
 
         # style adjustements
-        self._style = ttk.Style(root)
+        self._style = style = ttk.Style(root)
+        # theme
+        theme = ''
+        # theme = style.theme_names()[6]
+        # style.theme_use(theme)
         # fix treeview's background color from tags not working (also see '_fixed_map')
-        self._style.map(
+        style.map(
             "Treeview",
             foreground=self._fixed_map("foreground"),
             background=self._fixed_map("background"),
         )
         # remove Notebook.focus from the Notebook.Tab layout tree to avoid an ugly dotted line
         # on tab selection. We fold the Notebook.focus children into Notebook.padding children.
-        original = self._style.layout("TNotebook.Tab")
-        sublayout = original[0][1]["children"][0][1]
-        sublayout["children"] = sublayout["children"][0][1]["children"]
-        self._style.layout("TNotebook.Tab", original)
+        if theme != "classic":
+            original = style.layout("TNotebook.Tab")
+            sublayout = original[0][1]["children"][0][1]
+            sublayout["children"] = sublayout["children"][0][1]["children"]
+            style.layout("TNotebook.Tab", original)
         # add padding to the tab names
-        self._style.configure("TNotebook.Tab", padding=[8, 4])
+        style.configure("TNotebook.Tab", padding=[8, 4])
         # remove Checkbutton.focus dotted line from checkbuttons
-        self._style.configure("TCheckbutton", padding=0)
-        original = self._style.layout("TCheckbutton")
-        sublayout = original[0][1]["children"]
-        sublayout[1] = sublayout[1][1]["children"][0]
-        del original[0][1]["children"][1]
-        self._style.layout("TCheckbutton", original)
+        if theme != "classic":
+            style.configure("TCheckbutton", padding=0)
+            original = style.layout("TCheckbutton")
+            sublayout = original[0][1]["children"]
+            sublayout[1] = sublayout[1][1]["children"][0]
+            del original[0][1]["children"][1]
+            style.layout("TCheckbutton", original)
         # adds a style with a larger font for buttons
-        self._style.configure("Large.TButton", font=LARGE_FONT)
+        style.configure("Large.TButton", font=LARGE_FONT)
         # end of style changes
 
         root_frame = ttk.Frame(root, padding=8)
