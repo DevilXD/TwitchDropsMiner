@@ -16,6 +16,7 @@ except ModuleNotFoundError as exc:
     raise ImportError("You have to run 'pip install pystray' first") from exc
 
 from utils import resource_path
+from exceptions import ExitRequest
 from registry import RegistryKey, ValueType
 from constants import SELF_PATH, FORMATTER, WS_TOPICS_LIMIT, MAX_WEBSOCKETS, WINDOW_TITLE, State
 
@@ -333,7 +334,13 @@ class LoginForm:
         self._manager.print("Please log in to continue.")
         self._confirm.clear()
         self._button.config(state="normal")
-        await self._confirm.wait()
+        # NOTE: we need this to allow for the closing window event to break the waiting here
+        await asyncio.wait(
+            [self._confirm.wait(), self._manager.wait_until_closed()],
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+        if self._manager.close_requested:
+            raise ExitRequest()
         self._button.config(state="disabled")
         data = LoginData(self._login_entry.get(), self._pass_entry.get(), self._token_entry.get())
         return data

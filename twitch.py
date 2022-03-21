@@ -20,7 +20,7 @@ from channel import Channel
 from websocket import WebsocketPool
 from inventory import DropsCampaign
 from utils import task_wrapper, timestamp, AwaitableValue, OrderedSet
-from exceptions import RequestException, LoginException, CaptchaRequired
+from exceptions import ExitRequest, RequestException, LoginException, CaptchaRequired
 from constants import (
     BASE_URL,
     CLIENT_ID,
@@ -162,7 +162,11 @@ class Twitch:
         • Changing the stream that's being watched if necessary
         """
         self.gui.start()
-        await self.check_login()
+        try:
+            await self.check_login()
+        except ExitRequest:
+            # we've been requested to exit during login, most likely
+            return
         # NOTE: watch task is explicitly restarted on each new run
         if self._watching_task is not None:
             self._watching_task.cancel()
