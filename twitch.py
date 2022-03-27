@@ -171,9 +171,11 @@ class Twitch:
             self._watching_task.cancel()
         self._watching_task = asyncio.create_task(self._watch_loop())
         # NOTE: maintenance task is restarted only if it finished unexpectedly early
-        if self._mnt_task is not None and self._mnt_task.done() and not self._mnt_task.cancelled():
+        if self._mnt_task is not None and self._mnt_task.done():
             self._mnt_task.cancel()
-        self._mnt_task = asyncio.create_task(self._maintenance_loop())
+            self._mnt_task = None
+        if self._mnt_task is None or self._mnt_task.done():
+            self._mnt_task = asyncio.create_task(self._maintenance_loop())
         # Add default topics
         assert self._user_id is not None
         self.websocket.add_topics([
