@@ -1,19 +1,27 @@
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING
 from functools import cached_property
 from datetime import datetime, timezone
 
 from channel import Channel
-from constants import GQL_OPERATIONS
+from constants import GQL_OPERATIONS, URLType
 from utils import timestamp, invalidate_cache, Game
 
 if TYPE_CHECKING:
     from collections import abc
 
     from twitch import Twitch
+    from gui import GUIManager
     from constants import JsonType
-    from gui import CampaignProgress
+
+
+DIMS_PATTERN = re.compile(r'-\d+x\d+(?=\.(?:jpg|png|gif)$)', re.I)
+
+
+def remove_dimensions(url: URLType) -> URLType:
+    return URLType(DIMS_PATTERN.sub('', url))
 
 
 class BaseDrop:
@@ -25,6 +33,8 @@ class BaseDrop:
         self.name: str = data["name"]
         self.campaign: DropsCampaign = campaign
         self.rewards: list[str] = [b["benefit"]["name"] for b in data["benefitEdges"]]
+        # we use the first benefit's image specifically here
+        self.image_url: URLType = data["benefitEdges"][0]["benefit"]["imageAssetURL"]
         self.starts_at: datetime = timestamp(data["startAt"])
         self.ends_at: datetime = timestamp(data["endAt"])
         self.claim_id: str | None = None
@@ -134,7 +144,7 @@ class TimedDrop(BaseDrop):
         self, campaign: DropsCampaign, data: JsonType, claimed_benefits: dict[str, datetime]
     ):
         super().__init__(campaign, data, claimed_benefits)
-        self._gui_progress: CampaignProgress = self._twitch.gui.progress
+        self._manager: GUIManager = self._twitch.gui
         self.current_minutes: int = 0
         if "self" in data:
             self.current_minutes = data["self"]["currentMinutesWatched"]
@@ -179,7 +189,7 @@ class TimedDrop(BaseDrop):
         self._on_minutes_changed()
 
     def display(self, *, countdown: bool = True, subone: bool = False):
-        self._gui_progress.display(self, countdown=countdown, subone=subone)
+        self._manager.display_drop(self, countdown=countdown, subone=subone)
 
     def bump_minutes(self):
         if self.current_minutes < self.required_minutes:
@@ -193,6 +203,9 @@ class DropsCampaign:
         self.id: str = data["id"]
         self.name: str = data["name"]
         self.game: Game = Game(data["game"])
+        # campaign's image actually comes from the game object
+        # we use regex to get rid of the dimensions part (ex. ".../game_id-285x380.jpg")
+        self.image_url: URLType = remove_dimensions(data["game"]["boxArtURL"])
         self.starts_at: datetime = timestamp(data["startAt"])
         self.ends_at: datetime = timestamp(data["endAt"])
         allowed: JsonType = data["allow"]

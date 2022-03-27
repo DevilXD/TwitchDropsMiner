@@ -10,7 +10,7 @@ from typing import Any, SupportsInt, TYPE_CHECKING
 
 from utils import Game, invalidate_cache
 from exceptions import MinerException, RequestException
-from constants import BASE_URL, GQL_OPERATIONS, ONLINE_DELAY, DROPS_ENABLED_TAG
+from constants import BASE_URL, GQL_OPERATIONS, ONLINE_DELAY, DROPS_ENABLED_TAG, URLType
 
 if TYPE_CHECKING:
     from twitch import Twitch
@@ -79,7 +79,7 @@ class Channel:
         self.id: int = int(id)
         self._login: str = login
         self._display_name: str | None = display_name
-        self._spade_url: str | None = None
+        self._spade_url: URLType | None = None
         self.points: int | None = None
         self._stream: Stream | None = None
         self._pending_stream_up: asyncio.Task[Any] | None = None
@@ -141,8 +141,8 @@ class Channel:
         return self._login
 
     @property
-    def url(self) -> str:
-        return f"{BASE_URL}/{self._login}"
+    def url(self) -> URLType:
+        return URLType(f"{BASE_URL}/{self._login}")
 
     @property
     def iid(self) -> str:
@@ -206,7 +206,7 @@ class Channel:
             self._pending_stream_up = None
         self._gui_channels.remove(self)
 
-    async def get_spade_url(self) -> str:
+    async def get_spade_url(self) -> URLType:
         """
         To get this monstrous thing, you have to walk a chain of requests.
         Streamer page (HTML) --parse-> Streamer Settings (JavaScript) --parse-> Spade URL
@@ -228,7 +228,7 @@ class Channel:
         )
         if not match:
             raise MinerException("Error while spade_url extraction: step #2")
-        return match.group(1)
+        return URLType(match.group(1))
 
     async def get_stream(self) -> Stream | None:
         response: JsonType | None = await self._twitch.gql_request(

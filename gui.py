@@ -10,36 +10,24 @@ from collections import abc, namedtuple, OrderedDict
 from tkinter import Tk, ttk, StringVar, DoubleVar, IntVar
 from typing import Any, TypedDict, NoReturn, TYPE_CHECKING
 
-try:
-    import pystray
-except ModuleNotFoundError as exc:
-    raise ImportError("You have to run 'pip install pystray' first") from exc
+import pystray
+from PIL import Image as Image_module
 
-from utils import resource_path
+from cache import ImageCache
 from exceptions import ExitRequest
+from utils import resource_path, Game
 from registry import RegistryKey, ValueType
 from constants import SELF_PATH, FORMATTER, WS_TOPICS_LIMIT, MAX_WEBSOCKETS, WINDOW_TITLE, State
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from twitch import Twitch
     from channel import Channel
-    from inventory import Game, TimedDrop
+    from inventory import DropsCampaign, TimedDrop
 
 
 digits = ceil(log10(WS_TOPICS_LIMIT))
 WS_FONT = ("Courier New", 10)
 LARGE_FONT = (..., 12)
-
-
-class _ICOImage:
-    def __init__(self, path: Path | str):
-        with open(path, 'rb') as file:
-            self._data = file.read()
-
-    def save(self, file, format):
-        file.write(self._data)
 
 
 class _TKOutputHandler(logging.Handler):
@@ -609,8 +597,6 @@ class CampaignProgress:
         vars_campaign["percentage"].set(
             f"{campaign.progress:6.1%} ({campaign.claimed_drops}/{campaign.total_drops})"
         )
-        # tray
-        self._manager.tray.display_progress(drop)
         self.stop_timer()
         if countdown:
             # restart our seconds update timer
@@ -927,7 +913,7 @@ class TrayIcon:
             )
             self.icon = pystray.Icon(
                 "twitch_miner",
-                _ICOImage(resource_path("pickaxe.ico")),
+                Image_module.open(resource_path("pickaxe.ico")),
                 self.get_title(drop),
                 menu,
             )
@@ -963,7 +949,7 @@ class TrayIcon:
 
             asyncio.create_task(notifier())
 
-    def display_progress(self, drop: TimedDrop):
+    def update_title(self, drop: TimedDrop):
         if self.icon is not None:
             self.icon.title = self.get_title(drop)
 
@@ -982,6 +968,126 @@ class Notebook:
         if "sticky" not in kwargs:
             kwargs["sticky"] = "nsew"
         self._nb.add(widget, text=name, **kwargs)
+
+
+class InventoryOverview:
+    def __init__(self, manager: GUIManager, master: ttk.Widget):
+        self._cache = manager._cache
+        master.rowconfigure(0, weight=1)
+        master.columnconfigure(0, weight=1)
+        self._canvas = tk.Canvas(master, scrollregion=(0, 0, 0, 0))
+        self._canvas.grid(column=0, row=0, sticky="nsew")
+        xscroll = ttk.Scrollbar(master, orient="horizontal", command=self._canvas.xview)
+        xscroll.grid(column=0, row=1, sticky="ew")
+        yscroll = ttk.Scrollbar(master, orient="vertical", command=self._canvas.yview)
+        yscroll.grid(column=1, row=0, sticky="ns")
+        self._canvas.configure(xscrollcommand=xscroll.set, yscrollcommand=yscroll.set)
+        self._canvas.bind("<Configure>", self._canvas_update)
+        self._main_frame = ttk.Frame(self._canvas)
+        self._canvas.bind(
+            "<Enter>", lambda e: self._canvas.bind_all("<MouseWheel>", self._on_mousewheel)
+        )
+        self._canvas.bind("<Leave>", lambda e: self._canvas.unbind_all("<MouseWheel>"))
+        self._canvas.create_window(0, 0, anchor="nw", window=self._main_frame)
+        self._campaigns: list[DropsCampaign] = []
+        self._drops: dict[str, ttk.Label] = {}
+
+    def _canvas_update(self, event: tk.Event[tk.Canvas]):
+        self._canvas.configure(scrollregion=self._canvas.bbox("all"))
+
+    def _on_mousewheel(self, event: tk.Event[tk.Misc]):
+        delta = -1 if event.delta > 0 else 1
+        state: int = event.state if isinstance(event.state, int) else 0
+        if state & 1:
+            scroll = self._canvas.xview_scroll
+        else:
+            scroll = self._canvas.yview_scroll
+        scroll(delta, "units")
+
+    async def add_campaign(self, campaign: DropsCampaign) -> None:
+        campaign_frame = ttk.Frame(self._main_frame, relief="ridge", borderwidth=1, padding=4)
+        campaign_frame.grid(column=0, row=len(self._campaigns), sticky="nsew", pady=3)
+        self._campaigns.append(campaign)
+        campaign_frame.rowconfigure(3, weight=1)
+        campaign_frame.columnconfigure(1, weight=1)
+        campaign_frame.columnconfigure(3, weight=10000)
+        ttk.Label(
+            campaign_frame, text=campaign.name, takefocus=False, width=45
+        ).grid(column=0, row=0, columnspan=2, sticky="w")
+        if campaign.active:
+            status_text: str = "Active ✔"
+            status_color: tk._Color = "green"
+        elif campaign.upcoming:
+            status_text = "Upcoming ⏳"
+            status_color = "goldenrod"
+        else:
+            status_text = "Expired ❌"
+            status_color = "red"
+        ttk.Label(
+            campaign_frame, text=status_text, takefocus=False, foreground=status_color
+        ).grid(column=1, row=1, sticky="w", padx=4)
+        ttk.Label(
+            campaign_frame,
+            text=f"Ends: {campaign.ends_at.astimezone().replace(microsecond=0, tzinfo=None)}",
+            takefocus=False
+        ).grid(column=1, row=2, sticky="w", padx=4)
+        acl = campaign.allowed_channels
+        if acl:
+            if len(acl) <= 5:
+                allowed_text: str = '\n'.join(ch.name for ch in acl)
+            else:
+                allowed_text = '\n'.join(ch.name for ch in acl[:4])
+                allowed_text += f"\nand {len(acl) - 4} more..."
+        else:
+            allowed_text = "All"
+        ttk.Label(
+            campaign_frame, text=f"Allowed channels:\n{allowed_text}", takefocus=False
+        ).grid(column=1, row=3, sticky="nw", padx=4)
+        campaign_image = await self._cache.get(campaign.image_url, size=(96, 128))
+        ttk.Label(campaign_frame, image=campaign_image).grid(column=0, row=1, rowspan=3)
+        ttk.Separator(
+            campaign_frame, orient="vertical", takefocus=False
+        ).grid(column=2, row=0, rowspan=4, sticky="ns")
+        drops_row = ttk.Frame(campaign_frame)
+        drops_row.grid(column=3, row=0, rowspan=4, sticky="nsew", padx=4)
+        drops_row.rowconfigure(0, weight=1)
+        for i, drop in enumerate(campaign.drops):
+            drop_frame = ttk.Frame(drops_row, relief="ridge", borderwidth=1, padding=5)
+            drop_frame.grid(column=i, row=0, padx=4)
+            drop_image = await self._cache.get(drop.image_url, (80, 80))
+            ttk.Label(
+                drop_frame, text=drop.rewards_text(), image=drop_image, compound="bottom"
+            ).grid(column=0, row=0)
+            progress_text, progress_color = self.get_progress(drop)
+            self._drops[drop.id] = label = ttk.Label(
+                drop_frame, text=progress_text, foreground=progress_color
+            )
+            label.grid(column=0, row=1)
+
+    def clear(self) -> None:
+        for child in self._main_frame.winfo_children():
+            child.destroy()
+        self._campaigns.clear()
+
+    def get_progress(self, drop: TimedDrop) -> tuple[str, tk._Color]:
+        progress_text: str = ''
+        progress_color: tk._Color = ''
+        if drop.is_claimed:
+            progress_text = "Claimed ✔"
+            progress_color = "green"
+        elif drop.can_claim:
+            progress_text = "Ready to claim ⏳"
+            progress_color = "goldenrod"
+        elif drop.preconditions:
+            progress_text = f"{drop.progress:3.1%} of {drop.required_minutes} minutes"
+        return (progress_text, progress_color)
+
+    def update_drop(self, drop: TimedDrop) -> None:
+        label = self._drops.get(drop.id)
+        if label is None:
+            return
+        progress_text, progress_color = self.get_progress(drop)
+        label.config(text=progress_text, foreground=progress_color)
 
 
 class _SettingsVars(TypedDict):
@@ -1106,7 +1212,7 @@ class SettingsPanel:
         self._settings.autostart_tray = tray
         if enabled:
             # NOTE: we need double quotes in case the path contains spaces
-            self_path = f'"{SELF_PATH.absolute().resolve()!s}"'
+            self_path = f'"{SELF_PATH.resolve()!s}"'
             if tray:
                 self_path += " --tray"
             with RegistryKey("HKCU/Software/Microsoft/Windows/CurrentVersion/Run") as key:
@@ -1227,11 +1333,13 @@ class GUIManager:
         self._root = root = Tk()
         # withdraw immediately to prevent the window from flashing
         self._root.withdraw()
-        root.resizable(False, True)
+        # root.resizable(False, True)
         root.iconbitmap(resource_path("pickaxe.ico"))  # window icon
         root.title(WINDOW_TITLE)  # window title
         root.protocol("WM_DELETE_WINDOW", self.close)  # hook the X window closing button
         root.bind_all("<KeyPress-Escape>", self.unfocus)  # pressing ESC unfocuses selection
+        # Image cache for displaying images
+        self._cache = ImageCache(self)
 
         # style adjustements
         self._style = style = ttk.Style(root)
@@ -1283,13 +1391,17 @@ class GUIManager:
         self.games = GameSelector(self, main_frame)
         self.output = ConsoleOutput(self, main_frame)
         self.channels = ChannelList(self, main_frame)
+        # Inventory tab
+        inv_frame = ttk.Frame(root_frame, padding=8)
+        self.inv = InventoryOverview(self, inv_frame)
+        self.tabs.add_tab(inv_frame, name="Inventory")
         # Settings tab
         settings_frame = ttk.Frame(root_frame, padding=8)
         self.settings = SettingsPanel(self, settings_frame)
         self.tabs.add_tab(settings_frame, name="Settings")
-        # clamp minimum window height (update first, so that geometry calculates the size)
+        # clamp minimum window size (update geometry first)
         root.update_idletasks()
-        root.minsize(width=0, height=root.winfo_reqheight())
+        root.minsize(width=root.winfo_reqwidth(), height=root.winfo_reqheight())
         # register logging handler
         self._handler = _TKOutputHandler(self)
         self._handler.setFormatter(FORMATTER)
@@ -1323,6 +1435,13 @@ class GUIManager:
     @property
     def close_requested(self) -> bool:
         return self._closed.is_set()
+
+    async def wait_until_closed(self):
+        # wait until the user closes the window
+        await self._closed.wait()
+
+    def prevent_close(self):
+        self._closed.clear()
 
     def start(self):
         if self._poll_task is None:
@@ -1374,16 +1493,20 @@ class GUIManager:
         self.channels.clear_selection()
         self.settings.clear_selection()
 
+    # these are here to interface with underlaying GUI components
+    def save(self) -> None:
+        self._cache.save()
+
     def set_games(self, games: abc.Iterable[Game]) -> None:
         self.games.set_games(games)
         self.settings.set_games(games)
 
-    def prevent_close(self):
-        self._closed.clear()
-
-    async def wait_until_closed(self):
-        # wait until the user closes the window
-        await self._closed.wait()
+    def display_drop(
+        self, drop: TimedDrop, *, countdown: bool = True, subone: bool = False
+    ) -> None:
+        self.progress.display(drop, countdown=countdown, subone=subone)  # main tab
+        self.inv.update_drop(drop)  # inventory
+        self.tray.update_title(drop)  # tray
 
     def print(self, *args, **kwargs):
         # print to our custom output
@@ -1393,6 +1516,7 @@ class GUIManager:
 if __name__ == "__main__":
     # Everything below is for debug purposes only
     from types import SimpleNamespace
+    from datetime import datetime, timedelta, timezone
 
     class StrNamespace(SimpleNamespace):
         def __str__(self):
@@ -1453,6 +1577,12 @@ if __name__ == "__main__":
             id="0",
             campaign=SimpleNamespace(
                 name=campaign_name,
+                id="campaign",
+                active=False,
+                upcoming=True,
+                image_url="https://static-cdn.jtvnw.net/ttv-boxart/460630-285x380.jpg",
+                allowed_channels=[],
+                ends_at=datetime.now(timezone.utc) + timedelta(days=5, hours=6, minutes=23),
                 timed_drops={},
                 claimed_drops=cd,
                 total_drops=td,
@@ -1460,6 +1590,12 @@ if __name__ == "__main__":
                 progress=(cd * tm + cm) / (td * tm),
                 remaining_minutes=(td - cd) * tm - cm,
             ),
+            image_url=(
+                "https://static-cdn.jtvnw.net/twitch-drops-assets-prod/"
+                "BENEFIT-81ab5665-b2f4-4179-96e6-74da5a82da28.jpeg"
+            ),
+            is_claimed=False,
+            preconditions=True,
             rewards_text=lambda: rewards,
             progress=cm/tm,
             current_minutes=cm,
@@ -1467,6 +1603,7 @@ if __name__ == "__main__":
             remaining_minutes=tm-cm,
         )
         mock.campaign.timed_drops["0"] = mock
+        mock.campaign.drops = mock.campaign.timed_drops.values()
         return mock
 
     async def main(exit_event: asyncio.Event):
@@ -1539,9 +1676,11 @@ if __name__ == "__main__":
         # gui.tray.minimize()
         await asyncio.sleep(1)
         gui.tray.notify("Bounty Coins (3/7)", "Mined Drop")
-        # Drop progress
+        # Inventory overview
         drop = create_drop("Wardrobe Cleaning", "Fancy Pants", 2, 7, 239, 240)
-        gui.progress.display(drop)
+        await gui.inv.add_campaign(drop.campaign)
+        # Drop progress
+        gui.display_drop(drop)
         await asyncio.sleep(63)
         drop.current_minutes = 240
         drop.remaining_minutes = 0
@@ -1551,14 +1690,21 @@ if __name__ == "__main__":
         campaign.progress = 3/7
         campaign.claimed_drops = 3
         campaign.remaining_drops = 4
-        gui.progress.display(drop)
+        gui.display_drop(drop)
         await asyncio.sleep(10)
         drop.current_minutes = 0
         drop.remaining_minutes = 240
         drop.progress = 0.0
-        gui.progress.display(drop)
+        gui.display_drop(drop)
+
+    def main_exit(task: asyncio.Task[None]) -> None:
+        if task.exception() is not None:
+            exit_event.set()
 
     loop = asyncio.get_event_loop()
     exit_event = asyncio.Event()
-    loop.create_task(main(exit_event))
+    main_task = loop.create_task(main(exit_event))
+    main_task.add_done_callback(main_exit)
     loop.run_until_complete(exit_event.wait())
+    if main_task.done():
+        loop.run_until_complete(main_task)

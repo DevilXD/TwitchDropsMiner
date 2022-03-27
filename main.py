@@ -12,6 +12,24 @@ import tkinter as tk
 from tkinter import messagebox
 from typing import IO, NoReturn
 
+# pre-import 3rd party libraries, handling missing ones with an exception
+try:
+    import aiohttp  # noqa
+except ModuleNotFoundError as exc:
+    raise ImportError("You have to run 'pip install aiohttp' first") from exc
+try:
+    import websockets  # noqa
+except ModuleNotFoundError as exc:
+    raise ImportError("You have to run 'pip install websockets' first") from exc
+try:
+    import pystray  # noqa
+except ModuleNotFoundError as exc:
+    raise ImportError("You have to run 'pip install pystray' first") from exc
+try:
+    import PIL  # noqa
+except ModuleNotFoundError as exc:
+    raise ImportError("You have to run 'pip install pillow' first") from exc
+
 from twitch import Twitch
 from settings import Settings
 from version import __version__

@@ -1,0 +1,105 @@
+from __future__ import annotations
+import asyncio
+from datetime import datetime, timedelta, timezone
+
+import io
+from typing import Dict, TypedDict, NewType, TYPE_CHECKING
+
+from utils import json_load, json_save
+from constants import URLType, CACHE_PATH, CACHE_DB
+
+import aiohttp
+from PIL import Image as Image_module
+from PIL.ImageTk import PhotoImage
+
+
+if TYPE_CHECKING:
+    from gui import GUIManager
+    from PIL.Image import Image
+    from typing_extensions import TypeAlias
+
+
+ImageHash = NewType("ImageHash", str)
+ImageSize: TypeAlias = "tuple[int, int]"
+
+
+class ExpiringHash(TypedDict):
+    hash: ImageHash
+    expires: datetime
+
+
+Hashes = Dict[URLType, ExpiringHash]
+default_database: Hashes = {}
+
+
+class ImageCache:
+    LIFETIME = timedelta(days=7)
+
+    def __init__(self, manager: GUIManager) -> None:
+        self._root = manager._root
+        CACHE_PATH.mkdir(parents=True, exist_ok=True)
+        self._hashes: Hashes = json_load(CACHE_DB, default_database)
+        self._images: dict[ImageHash, Image] = {}
+        self._photos: dict[tuple[ImageHash, ImageSize], PhotoImage] = {}
+        self._lock = asyncio.Lock()
+        # cleanup the URLs
+        hash_counts: dict[ImageHash, int] = {}
+        now = datetime.now(timezone.utc)
+        for url, hash_dict in list(self._hashes.items()):
+            img_hash = hash_dict["hash"]
+            if img_hash not in hash_counts:
+                hash_counts[img_hash] = 0
+            if now >= hash_dict["expires"]:
+                del self._hashes[url]
+            else:
+                hash_counts[img_hash] += 1
+        for img_hash, count in hash_counts.items():
+            if count == 0:
+                # hashes come with an extension already
+                for file in CACHE_PATH.glob(img_hash):
+                    file.unlink()
+
+    def save(self) -> None:
+        json_save(CACHE_DB, self._hashes)
+
+    def _new_expires(self) -> datetime:
+        return datetime.now(timezone.utc) + self.LIFETIME
+
+    def _hash(self, image: Image) -> ImageHash:
+        pixel_data = list(image.resize((10, 10), Image_module.ANTIALIAS).convert('L').getdata())
+        avg_pixel = sum(pixel_data) / len(pixel_data)
+        bits = ''.join('1' if px >= avg_pixel else '0' for px in pixel_data)
+        return ImageHash(f"{int(bits, 2):x}.png")
+
+    async def get(self, url: URLType, size: ImageSize | None = None) -> PhotoImage:
+        async with self._lock:
+            image: Image | None = None
+            if url in self._hashes:
+                img_hash = self._hashes[url]["hash"]
+                self._hashes[url]["expires"] = self._new_expires()
+                if img_hash in self._images:
+                    image = self._images[img_hash]
+                else:
+                    try:
+                        self._images[img_hash] = image = Image_module.open(CACHE_PATH / img_hash)
+                    except FileNotFoundError:
+                        pass
+            if image is None:
+                async with aiohttp.request("GET", url) as response:
+                    image = Image_module.open(io.BytesIO(await response.read()))
+                img_hash = self._hash(image)
+                self._images[img_hash] = image
+                image.save(CACHE_PATH / img_hash)
+                self._hashes[url] = {
+                    "hash": img_hash,
+                    "expires": self._new_expires()
+                }
+        if size is None:
+            size = image.size
+        photo_key = (img_hash, size)
+        if photo_key in self._photos:
+            return self._photos[photo_key]
+        if image.size != size:
+            image = image.resize(size, Image_module.ADAPTIVE)
+        self._photos[photo_key] = photo = PhotoImage(master=self._root, image=image)
+        return photo

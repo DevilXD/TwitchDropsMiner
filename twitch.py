@@ -10,10 +10,7 @@ from collections import abc, OrderedDict
 from contextlib import suppress, asynccontextmanager
 from typing import Final, NoReturn, cast, TYPE_CHECKING
 
-try:
-    import aiohttp
-except ModuleNotFoundError as exc:
-    raise ImportError("You have to run 'pip install aiohttp' first") from exc
+import aiohttp
 
 from gui import GUIManager
 from channel import Channel
@@ -102,11 +99,13 @@ class Twitch:
         if self._session is not None:
             cookie_jar = cast(aiohttp.CookieJar, self._session.cookie_jar)
             cookie_jar.save(COOKIES_PATH)
-            await self._session.close()
+            session = self._session
             self._session = None
+            await session.close()
         await self.websocket.stop()
-        # save settings
+        # save important files
         self.settings.save()
+        self.gui.save()
         # wait at least one full second + whatever it takes to complete the closing
         # this allows aiohttp to safely close the session
         await asyncio.sleep(start_time + 0.5 - time())
@@ -834,28 +833,27 @@ class Twitch:
         return response_json
 
     async def fetch_campaign(
-        self, campaign_id: str, claimed_benefits: dict[str, datetime]
+        self,
+        campaign_id: str,
+        available_data: JsonType,
+        claimed_benefits: dict[str, datetime],
     ) -> DropsCampaign:
         response = await self.gql_request(
             GQL_OPERATIONS["CampaignDetails"].with_variables(
                 {"channelLogin": str(self._user_id), "dropID": campaign_id}
             )
         )
-        return DropsCampaign(self, response["data"]["user"]["dropCampaign"], claimed_benefits)
+        campaign_data: JsonType = response["data"]["user"]["dropCampaign"]
+        # NOTE: we use available_data to add a couple of fields missing from the existing details,
+        # most notably: game boxart
+        campaign_data["game"]["boxArtURL"] = available_data["game"]["boxArtURL"]
+        return DropsCampaign(self, campaign_data, claimed_benefits)
 
     async def fetch_inventory(self) -> None:
-        # fetch all available campaign IDs, that are currently ACTIVE and account is connected
-        response = await self.gql_request(GQL_OPERATIONS["Campaigns"])
-        data = response["data"]["currentUser"]["dropCampaigns"] or []
-        applicable_statuses = ("ACTIVE", "UPCOMING")
-        available_campaigns: set[str] = set(
-            c["id"] for c in data
-            if c["status"] in applicable_statuses and c["self"]["isAccountConnected"]
-        )
         # fetch in-progress campaigns (inventory)
         response = await self.gql_request(GQL_OPERATIONS["Inventory"])
-        inventory = response["data"]["currentUser"]["inventory"]
-        ongoing_campaigns = inventory["dropCampaignsInProgress"] or []
+        inventory: JsonType = response["data"]["currentUser"]["inventory"]
+        ongoing_campaigns: list[JsonType] = inventory["dropCampaignsInProgress"] or []
         # this contains claimed benefit edge IDs, not drop IDs
         claimed_benefits: dict[str, datetime] = {
             b["id"]: timestamp(b["lastAwardedAt"]) for b in inventory["gameEventDrops"]
@@ -864,22 +862,35 @@ class Twitch:
             DropsCampaign(self, campaign_data, claimed_benefits)
             for campaign_data in ongoing_campaigns
         ]
-        # filter out in-progress campaigns from all available campaigns,
-        # since we already have all information needed for them
-        for campaign in campaigns:
-            available_campaigns.discard(campaign.id)
+        # fetch all available campaigns data
+        response = await self.gql_request(GQL_OPERATIONS["Campaigns"])
+        available_list: list[JsonType] = response["data"]["currentUser"]["dropCampaigns"] or []
+        applicable_statuses = ("ACTIVE", "UPCOMING")
+        existing_campaigns: set[str] = set(c.id for c in campaigns)
+        available_campaigns: dict[str, JsonType] = {
+            c["id"]: c
+            for c in available_list
+            if (
+                c["status"] in applicable_statuses  # that are currently ACTIVE
+                and c["self"]["isAccountConnected"]  # and account is connected
+                and c["id"] not in existing_campaigns  # and they aren't in the inventory already
+            )
+        }
         # add campaigns that remained, that can be earned but are not in-progress yet
-        for campaign_id in available_campaigns:
-            campaign = await self.fetch_campaign(campaign_id, claimed_benefits)
+        for campaign_id, available_data in available_campaigns.items():
+            campaign = await self.fetch_campaign(campaign_id, available_data, claimed_benefits)
             if any(drop.can_earn() for drop in campaign.drops):
                 campaigns.append(campaign)
         campaigns.sort(key=lambda c: c.ends_at)
         self.inventory.clear()
+        self.gui.inv.clear()
         for campaign in campaigns:
             game = campaign.game
             if game not in self.inventory:
                 self.inventory[game] = []
+            await self.gui.inv.add_campaign(campaign)
             self.inventory[game].append(campaign)
+        self.gui.save()
 
     def get_drop(self, drop_id: str) -> TimedDrop | None:
         """

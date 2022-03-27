@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import json
-from enum import Enum
 from typing import Any, TypedDict, TYPE_CHECKING
 
-from constants import JsonType, SETTINGS_PATH
+from constants import SETTINGS_PATH
+from utils import json_load, json_save
 
 if TYPE_CHECKING:
     from main import ParsedArgs
@@ -18,9 +17,6 @@ class SettingsFile(TypedDict):
     autostart_tray: bool
 
 
-serialize_env: dict[str, type] = {
-    "set": set,
-}
 default_settings: SettingsFile = {
     "priority": [],
     "exclude": set(),
@@ -28,26 +24,6 @@ default_settings: SettingsFile = {
     "priority_only": True,
     "autostart_tray": False,
 }
-
-
-def serialize(obj: Any) -> Any:
-    if isinstance(obj, (set, Enum)):
-        if isinstance(obj, set):
-            d = list(obj)
-        elif isinstance(obj, Enum):
-            d = obj.value
-        return {
-            "__type": type(obj).__name__,
-            "data": d,
-        }
-    raise TypeError(obj)
-
-
-def deserialize(obj: JsonType) -> Any:
-    if "__type" in obj:
-        t = eval(obj["__type"], None, serialize_env)
-        return t(obj["data"])
-    return obj
 
 
 class Settings:
@@ -67,10 +43,7 @@ class Settings:
     autostart_tray: bool
 
     def __init__(self, args: ParsedArgs):
-        self._settings: SettingsFile = default_settings.copy()
-        if SETTINGS_PATH.exists():
-            with open(SETTINGS_PATH, 'r') as file:
-                self._settings.update(json.load(file, object_hook=deserialize))
+        self._settings: SettingsFile = json_load(SETTINGS_PATH, default_settings)
         self._args: ParsedArgs = args
 
     # default logic of reading settings is to check args first, then the settings file
@@ -78,7 +51,7 @@ class Settings:
         if hasattr(self._args, name):
             return getattr(self._args, name)
         elif name in self._settings:
-            return self._settings[name]  # type: ignore[misc]
+            return self._settings[name]  # type: ignore[literal-required]
         return getattr(super(), name)
 
     def __setattr__(self, name: str, value: Any, /) -> None:
@@ -86,7 +59,7 @@ class Settings:
             # passthrough
             return super().__setattr__(name, value)
         elif name in self._settings:
-            self._settings[name] = value  # type: ignore[misc]
+            self._settings[name] = value  # type: ignore[literal-required]
             return
         raise TypeError(f"{name} is missing a custom setter")
 
@@ -94,5 +67,4 @@ class Settings:
         raise RuntimeError("settings can't be deleted")
 
     def save(self) -> None:
-        with open(SETTINGS_PATH, 'w') as file:
-            json.dump(self._settings, file, default=serialize, sort_keys=True, indent=4)
+        json_save(SETTINGS_PATH, self._settings)

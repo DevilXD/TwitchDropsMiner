@@ -1,16 +1,20 @@
 from __future__ import annotations
 
 import sys
+import json
 import random
 import string
 import asyncio
 import logging
+from enum import Enum
 from pathlib import Path
 from functools import wraps
 from contextlib import suppress
 from datetime import datetime, timezone
 from collections import abc, OrderedDict
-from typing import Any, Literal, MutableSet, Generic, TypeVar, cast, TYPE_CHECKING
+from typing import (
+    Any, Literal, MutableSet, Callable, Generic, Mapping, TypeVar, cast, TYPE_CHECKING
+)
 
 from constants import WORKING_DIR, JsonType
 
@@ -26,8 +30,13 @@ else:
 _T = TypeVar("_T")  # type
 _D = TypeVar("_D")  # default
 _P = ParamSpec("_P")  # params
+_JSON_T = TypeVar("_JSON_T", bound=Mapping[Any, Any])
 logger = logging.getLogger("TwitchDrops")
 NONCE_CHARS = string.ascii_letters + string.digits
+serialize_env: dict[str, Callable[[Any], object]] = {
+    "set": set,
+    "datetime": lambda d: datetime.fromtimestamp(d, timezone.utc),
+}
 
 
 def resource_path(relative_path: Path | str) -> Path:
@@ -77,6 +86,46 @@ def invalidate_cache(instance, *attrnames):
     for name in attrnames:
         with suppress(AttributeError):
             delattr(instance, name)
+
+
+def _serialize(obj: Any) -> Any:
+    # convert data
+    d: int | str | float | list[Any] | JsonType
+    if isinstance(obj, set):
+        d = list(obj)
+    elif isinstance(obj, Enum):
+        d = obj.value
+    elif isinstance(obj, datetime):
+        if obj.tzinfo is None:
+            # assume naive objects are UTC
+            obj = obj.replace(tzinfo=timezone.utc)
+        d = obj.timestamp()
+    else:
+        raise TypeError(obj)
+    # store with type
+    return {
+        "__type": type(obj).__name__,
+        "data": d,
+    }
+
+
+def _deserialize(obj: JsonType) -> Any:
+    if "__type" in obj:
+        return serialize_env[obj["__type"]](obj["data"])
+    return obj
+
+
+def json_load(path: Path, defaults: _JSON_T) -> _JSON_T:
+    loaded: JsonType = dict(defaults)
+    if path.exists():
+        with open(path, 'r') as file:
+            loaded.update(json.load(file, object_hook=_deserialize))
+    return cast(_JSON_T, loaded)
+
+
+def json_save(path: Path, contents: Mapping[Any, Any]) -> None:
+    with open(path, 'w') as file:
+        json.dump(contents, file, default=_serialize, sort_keys=True, indent=4)
 
 
 class OrderedSet(MutableSet[_T]):

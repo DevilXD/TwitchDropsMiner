@@ -6,7 +6,7 @@ from copy import copy
 from pathlib import Path
 from enum import Enum, auto
 from datetime import timedelta
-from typing import Any, Dict, Literal, TYPE_CHECKING
+from typing import Any, Dict, Literal, NewType, TYPE_CHECKING
 
 from typing_extensions import TypeAlias
 
@@ -21,10 +21,13 @@ SELF_PATH = Path(sys.argv[0])
 WORKING_DIR = SELF_PATH.absolute().parent
 # Other Paths
 LOG_PATH = Path(WORKING_DIR, "log.txt")
+CACHE_PATH = Path(WORKING_DIR, "cache")
+CACHE_DB = Path(CACHE_PATH, "mapping.json")
 COOKIES_PATH = Path(WORKING_DIR, "cookies.jar")
 SETTINGS_PATH = Path(WORKING_DIR, "settings.json")
 # Typing
 JsonType = Dict[str, Any]
+URLType = NewType("URLType", str)
 TopicProcess: TypeAlias = "abc.Callable[[int, JsonType], Any]"
 # Values
 MAX_WEBSOCKETS = 8
