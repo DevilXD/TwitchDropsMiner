@@ -132,7 +132,7 @@ class Channel:
         return NotImplemented
 
     def __hash__(self) -> int:
-        return hash((self.__class__.__name__, self.id))
+        return self.id
 
     @property
     def name(self) -> str:
@@ -247,8 +247,8 @@ class Channel:
         return Stream.from_get_stream(self, stream_data)
 
     async def check_online(self) -> bool:
-        self._stream = stream = await self.get_stream()
-        if stream is None:
+        self._stream = await self.get_stream()
+        if self._stream is None:
             invalidate_cache(self, "_payload")
             return False
         return True

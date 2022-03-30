@@ -75,13 +75,19 @@ class BaseDrop:
         campaign = self.campaign
         return all(campaign.timed_drops[pid].is_claimed for pid in self._precondition_drops)
 
-    def can_earn(self, channel: Channel | None = None) -> bool:
+    def _base_can_earn(self) -> bool:
         return (
             self.preconditions  # preconditions are met
-            and not self.is_claimed  # drop isn't already claimed
-            and self.campaign.active  # campaign is active
-            # drop is within the active timeframe
+            and not self.is_claimed  # isn't already claimed
+            # is within the timeframe
             and self.starts_at <= datetime.now(timezone.utc) < self.ends_at
+        )
+
+    def can_earn(self, channel: Channel | None = None) -> bool:
+        return (
+            self._base_can_earn()
+            # NOTE: this extends drop-only checks with campaign ones
+            and self.campaign.active  # campaign is active
             # channel isn't specified, or there's no ACL, or the channel is in the ACL
             and (
                 channel is None
@@ -267,3 +273,11 @@ class DropsCampaign:
 
     def get_drop(self, drop_id: str) -> TimedDrop | None:
         return self.timed_drops.get(drop_id)
+
+    def can_earn(self, channel: Channel | None = None) -> bool:
+        # True if any of the containing drops can be earned
+        return (
+            self.active
+            and (channel is None or not self.allowed_channels or channel in self.allowed_channels)
+            and any(drop._base_can_earn() for drop in self.drops)
+        )

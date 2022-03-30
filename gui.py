@@ -6,7 +6,7 @@ import tkinter as tk
 from math import log10, ceil
 from functools import partial
 from tkinter.font import Font
-from collections import abc, namedtuple, OrderedDict
+from collections import abc, namedtuple
 from tkinter import Tk, ttk, StringVar, DoubleVar, IntVar
 from typing import Any, TypedDict, NoReturn, TYPE_CHECKING
 
@@ -341,121 +341,6 @@ class LoginForm:
         self._var.set(f"{status}\n{user_str}")
 
 
-class GameSelector:
-    def __init__(self, manager: GUIManager, master: ttk.Widget):
-        self._manager = manager
-        self._settings = manager._twitch.settings
-        self._var = StringVar(master)
-        frame = ttk.LabelFrame(master, text="Game Selector", padding=(4, 0, 4, 4))
-        frame.grid(column=1, row=1, sticky="nsew", padx=2)
-        frame.rowconfigure(0, weight=1)
-        frame.columnconfigure(0, weight=1)
-        self._list = PaddedListbox(
-            frame,
-            height=5,
-            padding=(1, 0),
-            activestyle="none",
-            selectmode="single",
-            highlightthickness=0,
-            exportselection=False,
-        )
-        self._list.grid(column=0, row=0, sticky="nsew")
-        self._selection: str | None = None
-        self._games: OrderedDict[str, tuple[int, Game]] = OrderedDict()
-        self._excluded_indices: set[int] = set()
-        self._list.bind("<<ListboxSelect>>", self._on_select)
-
-    def set_games(self, games: abc.Iterable[Game]):
-        self._games.clear()
-        self._games.update((str(game), (i, game)) for i, game in enumerate(games))
-        self._list.delete(0, "end")
-        self._list.insert("end", *self._games.keys())
-        self._list.config(width=0)  # autoadjust listbox width
-        # gray-out excluded games and relink the selection
-        self._excluded_indices.clear()
-        self._exclude_sync()
-        selected_index: int | None = None
-        if self._selection is not None and self._selection in self._games:
-            selected_index = self._games[self._selection][0]
-        self._list.selection_clear(0, "end")
-        if selected_index is not None:
-            # reselect the currently selected item
-            self._list.selection_set(selected_index)
-        elif self._selection is not None:
-            # the game we've had selected isn't there anymore - clear selection
-            self._selection = None
-
-    def _exclude_update(self, game_name: str, *, index: int | None = None) -> None:
-        # called from the settings tab or _update below
-        if index is None:
-            try:
-                index = self._games[game_name][0]
-            except KeyError:
-                # user added an excluded game that isn't on the list - just return
-                return
-        if (
-            game_name in self._settings.exclude
-            or self._settings.priority_only
-            and game_name not in self._settings.priority
-        ):
-            if index not in self._excluded_indices:
-                self._excluded_indices.add(index)
-                self._list.itemconfig(index, foreground="gray60")
-        elif index in self._excluded_indices:
-            self._excluded_indices.discard(index)
-            self._list.itemconfig(index, foreground='')
-
-    def _exclude_sync(self) -> None:
-        # called when priority_only state changes
-        for game_name, (i, _) in self._games.items():
-            self._exclude_update(game_name, index=i)
-
-    def _on_select(self, event: tk.Event[PaddedListbox]) -> None:
-        current: tuple[int, ...] = self._list.curselection()
-        if not current:
-            # can happen when the user clicks on an empty list
-            return
-        idx: int = current[0]
-        if idx in self._excluded_indices:
-            # user clicked on an excluded game - reselect the previous one if possible
-            self._list.selection_clear(0, "end")
-            if self._selection is not None:
-                for i, game_name in enumerate(self._list.get(0, "end")):
-                    if game_name == self._selection:
-                        self._list.selection_set(i)
-                        break
-                else:
-                    self._selection = None
-            return
-        new_selection: str = self._list.get(idx)
-        if new_selection != self._selection:
-            self._selection = new_selection
-            self._manager._twitch.change_state(State.GAME_SELECT)
-
-    def get_next(self) -> Game | None:
-        if self._selection is not None:
-            return self._games[self._selection][1]
-        # select and return the first prioritized game from the list
-        self._list.selection_clear(0, "end")
-        for game_name in self._settings.priority:
-            if game_name in self._games:
-                # it's a prioritized game - easy choice
-                idx, game = self._games[game_name]
-                self._selection = game_name
-                self._list.selection_set(idx)
-                return game
-        # if priority_only is enabled, we end here
-        if self._settings.priority_only:
-            return None
-        # with priorities out of the way, select and return the first non-excluded game instead
-        for i, game_name in enumerate(self._list.get(0, "end")):
-            if i not in self._excluded_indices:
-                self._selection = game_name
-                self._list.selection_set(i)
-                return self._games[game_name][1]
-        return None
-
-
 class _BaseVars(TypedDict):
     progress: DoubleVar
     percentage: StringVar
@@ -476,28 +361,28 @@ class _ProgressVars(TypedDict):
 
 
 class CampaignProgress:
-    BAR_LENGTH = 240
+    BAR_LENGTH = 420
 
     def __init__(self, manager: GUIManager, master: ttk.Widget):
         self._manager = manager
         self._vars: _ProgressVars = {
             "campaign": {
-                "name": StringVar(master),  # campaign name
+                "name": StringVar(master, "..."),  # campaign name
                 "progress": DoubleVar(master),  # controls the progress bar
-                "percentage": StringVar(master),  # percentage display string
-                "remaining": StringVar(master),  # time remaining string
+                "percentage": StringVar(master, "-%"),  # percentage display string
+                "remaining": StringVar(master),  # time remaining string, filled via _update_time
             },
             "drop": {
-                "rewards": StringVar(master),  # drop rewards
+                "rewards": StringVar(master, "..."),  # drop rewards
                 "progress": DoubleVar(master),  # as above
-                "percentage": StringVar(master),  # as above
+                "percentage": StringVar(master, "-%"),  # as above
                 "remaining": StringVar(master),  # as above
             },
         }
         self._frame = frame = ttk.LabelFrame(
             master, text="Campaign Progress", padding=(4, 0, 4, 4)
         )
-        frame.grid(column=0, row=1, sticky="nsew", padx=2)
+        frame.grid(column=0, row=1, columnspan=2, sticky="nsew", padx=2)
         frame.columnconfigure(0, weight=2)
         frame.columnconfigure(1, weight=1)
         ttk.Label(frame, text="Campaign:").grid(column=0, row=0, columnspan=2)
@@ -1100,8 +985,8 @@ class SettingsPanel:
     AUTOSTART_NAME: str = "TwitchDropsMiner"
 
     def __init__(self, manager: GUIManager, master: ttk.Widget):
+        self._twitch = manager._twitch
         self._settings = manager._twitch.settings
-        self._game_selector = manager.games
         self._vars: _SettingsVars = {
             "tray": IntVar(master, self._settings.autostart_tray),
             "autostart": IntVar(master, self._settings.autostart),
@@ -1199,7 +1084,16 @@ class SettingsPanel:
         ttk.Button(
             exclude_frame, text="❌", command=self.exclude_delete, width=2, style="Large.TButton"
         ).grid(column=0, row=2, columnspan=2, sticky="ew")
-        self.priority_only()  # update exclude section state
+        # Reload button
+        reload_frame = ttk.Frame(center_frame)
+        reload_frame.grid(column=0, row=1, columnspan=3, pady=4)
+        ttk.Label(
+            reload_frame,
+            text="Most changes require a reload to take an immediate effect: "
+        ).grid(column=0, row=0)
+        ttk.Button(
+            reload_frame, text="Reload", command=self._twitch.state_change(State.INVENTORY_FETCH)
+        ).grid(column=1, row=0)
 
     def clear_selection(self) -> None:
         self._priority_list.selection_clear(0, "end")
@@ -1226,6 +1120,13 @@ class SettingsPanel:
         self._exclude_entry.config(values=games_list)
         self._priority_entry.config(values=games_list)
 
+    def priorities(self) -> dict[str, int]:
+        # NOTE: we shift the indexes so that 0 can be used as the default one
+        size = self._priority_list.size()
+        return {
+            game_name: i - size for i, game_name in enumerate(self._priority_list.get(0, "end"))
+        }
+
     def priority_add(self) -> None:
         game_name: str = self._priority_entry.get()
         if not game_name:
@@ -1240,7 +1141,6 @@ class SettingsPanel:
             self._priority_list.insert("end", game_name)
             self._priority_list.see("end")
             self._settings.priority.append(game_name)
-            self._game_selector._exclude_update(game_name)
         else:
             # already there, set the selection on it
             self._priority_list.selection_set(existing_idx)
@@ -1272,15 +1172,11 @@ class SettingsPanel:
         idx: int | None = self._priority_idx()
         if idx is None:
             return
-        # NOTE: get the item before it's removed from the list
-        item: str = self._priority_list.get(idx)
         self._priority_list.delete(idx)
         del self._settings.priority[idx]
-        self._game_selector._exclude_update(item)
 
     def priority_only(self) -> None:
         self._settings.priority_only = bool(self._vars["priority_only"].get())
-        self._game_selector._exclude_sync()
 
     def exclude_add(self) -> None:
         game_name: str = self._exclude_entry.get()
@@ -1288,9 +1184,9 @@ class SettingsPanel:
             # prevent adding empty strings
             return
         self._exclude_entry.clear()
-        e = self._settings.exclude
-        if game_name not in e:
-            e.add(game_name)
+        exclude = self._settings.exclude
+        if game_name not in exclude:
+            exclude.add(game_name)
             # insert it alphabetically
             for i, item in enumerate(self._exclude_list.get(0, "end")):
                 if game_name < item:
@@ -1300,7 +1196,6 @@ class SettingsPanel:
             else:
                 self._exclude_list.insert("end", game_name)
                 self._exclude_list.see("end")
-            self._game_selector._exclude_update(game_name)
         else:
             # it was already there, select it
             for i, item in enumerate(self._exclude_list.get(0, "end")):
@@ -1322,7 +1217,6 @@ class SettingsPanel:
         if item in self._settings.exclude:
             self._settings.exclude.discard(item)
             self._exclude_list.delete(idx)
-            self._game_selector._exclude_update(item)
 
 
 class GUIManager:
@@ -1388,7 +1282,6 @@ class GUIManager:
         self.websockets = WebsocketStatus(self, main_frame)
         self.login = LoginForm(self, main_frame)
         self.progress = CampaignProgress(self, main_frame)
-        self.games = GameSelector(self, main_frame)
         self.output = ConsoleOutput(self, main_frame)
         self.channels = ChannelList(self, main_frame)
         # Inventory tab
@@ -1498,7 +1391,6 @@ class GUIManager:
         self._cache.save()
 
     def set_games(self, games: abc.Iterable[Game]) -> None:
-        self.games.set_games(games)
         self.settings.set_games(games)
 
     def display_drop(

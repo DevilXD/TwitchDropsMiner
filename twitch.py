@@ -4,7 +4,6 @@ import asyncio
 import logging
 from yarl import URL
 from time import time
-from itertools import chain
 from functools import partial
 from collections import abc, OrderedDict
 from contextlib import suppress, asynccontextmanager
@@ -46,20 +45,15 @@ logger = logging.getLogger("TwitchDrops")
 gql_logger = logging.getLogger("TwitchDrops.gql")
 
 
-def viewers_key(channel: Channel) -> int:
-    if (viewers := channel.viewers) is not None:
-        return viewers
-    return -1
-
-
 class Twitch:
     def __init__(self, settings: Settings):
         self.settings: Settings = settings
         # State management
         self._state: State = State.IDLE
         self._state_change = asyncio.Event()
-        self.game: Game | None = None
-        self.inventory: dict[Game, list[DropsCampaign]] = {}
+        self.games: dict[Game, int] = {}
+        self.inventory: list[DropsCampaign] = []
+        self._drops: dict[str, TimedDrop] = {}
         # GUI
         self.gui = GUIManager(self)
         # Cookies, session and auth
@@ -151,6 +145,22 @@ class Twitch:
         """
         self.gui.print(*args, **kwargs)
 
+    @staticmethod
+    def _viewers_key(channel: Channel) -> int:
+        if (viewers := channel.viewers) is not None:
+            return viewers
+        return -1
+
+    def _game_key(self, channel: Channel) -> int:
+        game = channel.game
+        if game is None:
+            return 1
+        elif game not in self.games:
+            # in case a channel is gathered from an ACL and doesn't play the expected game,
+            # we use the same priority as for non-prioritized games
+            return 0
+        return self.games[game]
+
     async def run(self):
         """
         Main method that runs the whole client.
@@ -166,6 +176,7 @@ class Twitch:
         except ExitRequest:
             # we've been requested to exit during login, most likely
             return
+        await self.websocket.start()
         # NOTE: watch task is explicitly restarted on each new run
         if self._watching_task is not None:
             self._watching_task.cancel()
@@ -195,42 +206,35 @@ class Twitch:
                 self.change_state(State.GAMES_UPDATE)
             elif self._state is State.GAMES_UPDATE:
                 # Figure out which games to watch, and claim the drops we can
-                games: list[Game] = []
-                for game, campaigns in self.inventory.items():
-                    add_game = False
-                    for campaign in campaigns:
-                        if not campaign.upcoming:
-                            # claim drops from expired and active campaigns
-                            active = campaign.active
-                            for drop in campaign.drops:
-                                if drop.can_claim:
-                                    await drop.claim()
-                                # add game only for active campaigns
-                                if active and not add_game and drop.can_earn():
-                                    add_game = True
-                    if add_game:
-                        games.append(game)
-                # 'games' has all games we can mine drops for
-                # if it's empty, there's no point in continuing
-                if not games:
-                    self.gui.print("No active campaigns to mine drops for.")
-                    return
-                # only start the websocket after we confirm there are drops to mine
-                await self.websocket.start()
-                self.gui.set_games(games)
-                self.change_state(State.GAME_SELECT)
-            elif self._state is State.GAME_SELECT:
-                new_game: Game | None = self.gui.games.get_next()
-                if new_game != self.game:
-                    if new_game is not None:
-                        # restart the watch loop immediately on new game selected
-                        self.restart_watching()
-                    self.game = new_game
-                    full_cleanup = True
+                self.games.clear()
+                priorities = self.gui.settings.priorities()
+                # claim drops from expired and active campaigns
+                for campaign in self.inventory:
+                    if not campaign.upcoming:
+                        for drop in campaign.drops:
+                            if drop.can_claim:
+                                await drop.claim()
+                # collect games from active campaigns
+                exclude = self.settings.exclude
+                priority = self.settings.priority
+                priority_only = self.settings.priority_only
+                for campaign in self.inventory:
+                    game = campaign.game
+                    if (
+                        game not in self.games  # isn't already there
+                        and (  # isn't excluded
+                            priority_only and game.name in priority
+                            and game.name not in exclude
+                        )
+                        and campaign.can_earn()  # campaign can be progressed
+                    ):
+                        self.games[game] = priorities.get(game.name, 0)
+                self.gui.set_games(self.games.keys())
+                full_cleanup = True
                 self.change_state(State.CHANNELS_CLEANUP)
             elif self._state is State.CHANNELS_CLEANUP:
-                if self.game is None or full_cleanup:
-                    # no game selected or we're doing full cleanup: remove everything
+                if not self.games or full_cleanup:
+                    # no games selected or we're doing full cleanup: remove everything
                     to_remove: list[Channel] = list(channels.values())
                 else:
                     # remove all channels that:
@@ -242,7 +246,7 @@ class Twitch:
                             and (
                                 channel.offline  # and are offline
                                 # or online but aren't streaming the game we want anymore
-                                or (channel.game is None or channel.game != self.game)
+                                or (channel.game is None or channel.game not in self.games)
                             )
                         )
                     ]
@@ -256,15 +260,15 @@ class Twitch:
                         del channels[channel.id]
                         channel.remove()
                     del to_remove
-                if self.game is not None:
+                if self.games:
                     self.change_state(State.CHANNELS_FETCH)
                 else:
-                    # with no game selected, we switch to IDLE after cleanup
+                    # with no games available, we switch to IDLE after cleanup
+                    self.gui.print(
+                        "No active campaigns to mine drops for. Waiting for an active campaign..."
+                    )
                     self.change_state(State.IDLE)
             elif self._state is State.CHANNELS_FETCH:
-                if self.game is None:
-                    self.change_state(State.GAME_SELECT)
-                    continue
                 # pre-display the active drop without substracting a minute
                 if (active_drop := self.get_active_drop()) is not None:
                     active_drop.display(countdown=False)
@@ -272,15 +276,15 @@ class Twitch:
                 new_channels: OrderedSet[Channel] = OrderedSet(self.channels.values())
                 # gather and add ACL channels from campaigns
                 # NOTE: we consider only campaigns that can be progressed
-                # NOTE: we use an other set so that we can set them online separately
-                no_acl = False
+                # NOTE: we use another set so that we can set them online separately
+                no_acl: set[Game] = set()
                 acl_channels: OrderedSet[Channel] = OrderedSet()
-                for campaign in self.inventory[self.game]:
-                    if any(drop.can_earn() for drop in campaign.drops):
+                for campaign in self.inventory:
+                    if campaign.game in self.games and campaign.can_earn():
                         if campaign.allowed_channels:
                             acl_channels.update(campaign.allowed_channels)
                         else:
-                            no_acl = True
+                            no_acl.add(campaign.game)
                 # remove all ACL channels that already exist from the other set
                 acl_channels.difference_update(new_channels)
                 # use the other set to set them online if possible
@@ -288,17 +292,17 @@ class Twitch:
                     await asyncio.gather(*(channel.check_online() for channel in acl_channels))
                 # finally, add them as new channels
                 new_channels.update(acl_channels)
-                if no_acl:
-                    # if there's at least one campaign without an ACL,
+                for game in no_acl:
+                    # for every campaign without an ACL, for it's game,
                     # add a list of live channels with drops enabled
-                    new_channels.update(await self.get_live_streams())
-                # sort them descending by viewers,
-                # then by priority so that prioritized ones are first
+                    new_channels.update(await self.get_live_streams(game))
+                # sort them descending by viewers, by priority and by game priority
                 # NOTE: We can drop OrderedSet now because there's no more channels being added
                 ordered_channels: list[Channel] = sorted(
-                    new_channels, key=viewers_key, reverse=True
+                    new_channels, key=self._viewers_key, reverse=True
                 )
                 ordered_channels.sort(key=lambda ch: ch.priority, reverse=True)
+                ordered_channels.sort(key=self._game_key)
                 # ensure that we won't end up with more channels than we can handle
                 # NOTE: we substract 2 due to the two base topics always being added:
                 # channel points gain and drop update subscriptions
@@ -348,9 +352,6 @@ class Twitch:
                         break
                 self.change_state(State.CHANNEL_SWITCH)
             elif self._state is State.CHANNEL_SWITCH:
-                if self.game is None:
-                    self.change_state(State.GAME_SELECT)
-                    continue
                 # Change into the selected channel, stay in the watching channel,
                 # or select a new channel that meets the required conditions
                 priority_channels: list[Channel] = []
@@ -362,22 +363,32 @@ class Twitch:
                 if watching_channel is not None:
                     priority_channels.append(watching_channel)
                 # If there's no selected channel, change into a channel we can watch
-                for channel in chain(priority_channels, channels.values()):
+                new_watching = None
+                for channel in priority_channels:
                     if self.can_watch(channel):
-                        self.watch(channel)
-                        # break the state change chain by clearing the flag
-                        self._state_change.clear()
+                        new_watching = channel
                         break
+                if new_watching is None:
+                    # NOTE: we need to sort the channels every time because one channel
+                    # can end up streaming any game, since channels aren't game-tied
+                    for channel in sorted(channels.values(), key=self._game_key):
+                        if self.can_watch(channel):
+                            new_watching = channel
+                            break
+                if new_watching is not None:
+                    self.watch(channel)
+                    # break the state change chain by clearing the flag
+                    self._state_change.clear()
                 else:
                     self.gui.print(
-                        f"No suitable channel to watch for game: {self.game}\n"
-                        "Waiting for an ONLINE channel..."
+                        "No available channels to watch. Waiting for an ONLINE channel..."
                     )
                     self.change_state(State.IDLE)
             elif self._state is State.EXIT:
                 # we've been requested to exit the application
                 break
             await self._state_change.wait()
+        # post-main-loop code goes here
 
     async def _watch_sleep(self, delay: float) -> None:
         # we use wait_for here to allow an asyncio.sleep that can be ended prematurely,
@@ -417,7 +428,7 @@ class Twitch:
                     )
                     if drop_data is not None:
                         drop_id = drop_data["dropID"]
-                        drop = self.get_drop(drop_id)
+                        drop = self._drops.get(drop_id)
                         if drop is None:
                             use_active = True
                             logger.error(f"Missing drop: {drop_id}")
@@ -453,20 +464,15 @@ class Twitch:
             await asyncio.sleep(60)
 
     def can_watch(self, channel: Channel) -> bool:
-        if self.game is None:
+        if not self.games:
             return False
         return (
             channel.online  # steam online
             and channel.drops_enabled  # drops are enabled
-            # it's a game we've selected
-            and channel.game is not None
-            and channel.game == self.game
+            # it's one of the games we've selected
+            and channel.game is not None and channel.game in self.games
             # we can progress any campaign for the selected game
-            and any(
-                drop.can_earn(channel)
-                for campaign in self.inventory[self.game]
-                for drop in campaign.drops
-            )
+            and any(campaign.can_earn(channel) for campaign in self.inventory)
         )
 
     def watch(self, channel: Channel):
@@ -513,13 +519,22 @@ class Twitch:
         Called by a Channel when it goes online (after pending).
         """
         logger.debug(f"{channel.name} goes ONLINE")
+        channel_order = self._game_key(channel)
         watching_channel = self.watching_channel.get_with_default(None)
+        if watching_channel is not None:
+            watching_order = self._game_key(watching_channel)
+        else:
+            watching_order = 1
         if (
             (
                 self._state is State.IDLE  # we're currently idle
-                or channel.priority  # or this channel has priority
-                and watching_channel is not None  # and we're watching...
-                and not watching_channel.priority   # ... a non-priority channel
+                or watching_channel is None  # or aren't watching anything
+                # or this channel is higher order than the watching one
+                # NOTE: order is tied to the list position, so lower == higher
+                or channel_order < watching_order
+                or channel_order == watching_order  # or the order is the same
+                and channel.priority  # and this channel has priority
+                and not watching_channel.priority  # and we're watching a non-priority channel
             ) and self.can_watch(channel)
         ):
             self.gui.print(f"{channel.name} goes ONLINE, switching...")
@@ -546,7 +561,7 @@ class Twitch:
         if msg_type not in ("drop-progress", "drop-claim"):
             return
         drop_id: str = message["data"]["drop_id"]
-        drop: TimedDrop | None = self.get_drop(drop_id)
+        drop: TimedDrop | None = self._drops.get(drop_id)
         if msg_type == "drop-claim":
             if drop is None:
                 logger.error(
@@ -881,43 +896,27 @@ class Twitch:
         # add campaigns that remained, that can be earned but are not in-progress yet
         for campaign_id, available_data in available_campaigns.items():
             campaign = await self.fetch_campaign(campaign_id, available_data, claimed_benefits)
-            if any(drop.can_earn() for drop in campaign.drops):
+            if campaign.can_earn():
                 campaigns.append(campaign)
         campaigns.sort(key=lambda c: c.ends_at)
-        self.inventory.clear()
+        self._drops.clear()
         self.gui.inv.clear()
+        self.inventory.clear()
         for campaign in campaigns:
-            game = campaign.game
-            if game not in self.inventory:
-                self.inventory[game] = []
+            self._drops.update((drop.id, drop) for drop in campaign.drops)
             await self.gui.inv.add_campaign(campaign)
-            self.inventory[game].append(campaign)
+            self.inventory.append(campaign)
         self.gui.save()
 
-    def get_drop(self, drop_id: str) -> TimedDrop | None:
-        """
-        Returns a drop from the inventory, based on it's ID.
-        """
-        # try it with the currently selected game first
-        if self.game is not None:
-            for campaign in self.inventory[self.game]:
-                if (drop := campaign.get_drop(drop_id)) is not None:
-                    return drop
-        # fallback to checking all campaigns
-        for campaign in chain(*self.inventory.values()):
-            if (drop := campaign.get_drop(drop_id)) is not None:
-                return drop
-        return None
-
     def get_active_drop(self, channel: Channel | None = None) -> TimedDrop | None:
-        if self.game is None:
+        if not self.games:
             return None
         watching_channel = self.watching_channel.get_with_default(channel)
         drops = sorted(
             (
                 drop
-                for campaign in self.inventory[self.game]
-                if campaign.active
+                for campaign in self.inventory
+                if campaign.game in self.games and campaign.can_earn(watching_channel)
                 for drop in campaign.drops
                 if drop.can_earn(watching_channel)
             ),
@@ -927,14 +926,11 @@ class Twitch:
             return drops[0]
         return None
 
-    async def get_live_streams(self) -> list[Channel]:
-        if self.game is None:
-            return []
-        limit = 30
+    async def get_live_streams(self, game: Game, *, limit: int = 30) -> list[Channel]:
         response = await self.gql_request(
             GQL_OPERATIONS["GameDirectory"].with_variables({
                 "limit": limit,
-                "name": self.game.name,
+                "name": game.name,
                 "options": {
                     "includeRestricted": ["SUB_ONLY_LIVE"],
                     "tags": [DROPS_ENABLED_TAG],
