@@ -84,17 +84,7 @@ class BaseDrop:
         )
 
     def can_earn(self, channel: Channel | None = None) -> bool:
-        return (
-            self._base_can_earn()
-            # NOTE: this extends drop-only checks with campaign ones
-            and self.campaign.active  # campaign is active
-            # channel isn't specified, or there's no ACL, or the channel is in the ACL
-            and (
-                channel is None
-                or not (allowed_channels := self.campaign.allowed_channels)
-                or channel in allowed_channels
-            )
-        )
+        return self.campaign._base_can_earn(channel) and self._base_can_earn()
 
     @property
     def can_claim(self) -> bool:
@@ -274,10 +264,13 @@ class DropsCampaign:
     def get_drop(self, drop_id: str) -> TimedDrop | None:
         return self.timed_drops.get(drop_id)
 
+    def _base_can_earn(self, channel: Channel | None = None) -> bool:
+        return (
+            self.active  # campaign is active
+            # channel isn't specified, or there's no ACL, or the channel is in the ACL
+            and (channel is None or not self.allowed_channels or channel in self.allowed_channels)
+        )
+
     def can_earn(self, channel: Channel | None = None) -> bool:
         # True if any of the containing drops can be earned
-        return (
-            self.active
-            and (channel is None or not self.allowed_channels or channel in self.allowed_channels)
-            and any(drop._base_can_earn() for drop in self.drops)
-        )
+        return self._base_can_earn(channel) and any(drop._base_can_earn() for drop in self.drops)
