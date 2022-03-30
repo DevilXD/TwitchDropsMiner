@@ -437,7 +437,9 @@ class Twitch:
                     # Sometimes, even GQL fails to give us the correct drop.
                     # In that case, we can use the locally cached inventory to try
                     # and put together the drop that we're actually mining right now
-                    if (drop := self.get_active_drop(channel)) is not None:
+                    # NOTE: get_active_drop uses the watching channel by default,
+                    # so there's no point to pass it here
+                    if (drop := self.get_active_drop()) is not None:
                         drop.bump_minutes()
                         drop.display()
                     else:
