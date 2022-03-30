@@ -322,7 +322,6 @@ class Twitch:
                 # set our new channel list
                 channels.clear()
                 self.gui.channels.clear()
-                self.gui.channels.shrink()
                 for channel in ordered_channels:
                     channels[channel.id] = channel
                     channel.display(add=True)

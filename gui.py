@@ -708,6 +708,7 @@ class ChannelList:
         iids = self._table.get_children()
         self._table.delete(*iids)
         self._channel_map.clear()
+        self.shrink()
 
     def display(self, channel: Channel, *, add: bool = False):
         # priority
