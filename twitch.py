@@ -269,9 +269,6 @@ class Twitch:
                     )
                     self.change_state(State.IDLE)
             elif self._state is State.CHANNELS_FETCH:
-                # pre-display the active drop without substracting a minute
-                if (active_drop := self.get_active_drop()) is not None:
-                    active_drop.display(countdown=False)
                 # start with all current channels
                 new_channels: OrderedSet[Channel] = OrderedSet(self.channels.values())
                 # gather and add ACL channels from campaigns
@@ -342,7 +339,7 @@ class Twitch:
                     else:
                         # we're removing a channel we're watching
                         self.stop_watching()
-                # pre-display the active drop again with a substracted minute
+                # pre-display the active drop with a substracted minute
                 for channel in channels.values():
                     # check if there's any channels we can watch first
                     if self.can_watch(channel):
@@ -440,7 +437,7 @@ class Twitch:
                     # Sometimes, even GQL fails to give us the correct drop.
                     # In that case, we can use the locally cached inventory to try
                     # and put together the drop that we're actually mining right now
-                    if (drop := self.get_active_drop()) is not None:
+                    if (drop := self.get_active_drop(channel)) is not None:
                         drop.bump_minutes()
                         drop.display()
                     else:
@@ -911,17 +908,22 @@ class Twitch:
         if not self.games:
             return None
         watching_channel = self.watching_channel.get_with_default(channel)
-        drops = sorted(
-            (
-                drop
-                for campaign in self.inventory
-                if campaign.game in self.games and campaign.can_earn(watching_channel)
-                for drop in campaign.drops
-                if drop.can_earn(watching_channel)
-            ),
-            key=lambda d: d.remaining_minutes,
-        )
+        drops: list[TimedDrop] = []
+        strict_drops: list[TimedDrop] = []
+        game = watching_channel is not None and watching_channel.game or None
+        for campaign in self.inventory:
+            if campaign.game in self.games and campaign.can_earn(watching_channel):
+                new_drops = [drop for drop in campaign.drops if drop.can_earn(watching_channel)]
+                drops.extend(new_drops)
+                # 'strict_drops' has an additional condition - watching channel game must match
+                # the campaign's game. If this list would end up empty,
+                # we use 'drops' as a fallback without this extra condition.
+                if game is not None and campaign.game == game:
+                    strict_drops.extend(new_drops)
+        if strict_drops:
+            drops = strict_drops
         if drops:
+            drops.sort(key=lambda d: d.remaining_minutes)
             return drops[0]
         return None
 
