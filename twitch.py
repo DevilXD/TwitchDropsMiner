@@ -570,6 +570,7 @@ class Twitch:
             drop.update_claim(message["data"]["drop_instance_id"])
             campaign = drop.campaign
             mined = await drop.claim()
+            drop.display()
             if mined:
                 claim_text = (
                     f"{drop.rewards_text()} "
