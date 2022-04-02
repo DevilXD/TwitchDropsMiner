@@ -824,7 +824,9 @@ class TrayIcon:
             self.stop()
             self._manager._root.deiconify()
 
-    def notify(self, message: str, title: str | None = None, duration: float = 10):
+    def notify(
+        self, message: str, title: str | None = None, duration: float = 10
+    ) -> asyncio.Task[None] | None:
         if self.icon is not None:
             icon = self.icon
 
@@ -833,7 +835,8 @@ class TrayIcon:
                 await asyncio.sleep(duration)
                 icon.remove_notification()
 
-            asyncio.create_task(notifier())
+            return asyncio.create_task(notifier())
+        return None
 
     def update_title(self, drop: TimedDrop):
         if self.icon is not None:
