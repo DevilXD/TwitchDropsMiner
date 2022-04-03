@@ -109,18 +109,35 @@ def _serialize(obj: Any) -> Any:
     }
 
 
+_MISSING = object()
+
+
+def _remove_missing(obj: JsonType) -> JsonType:
+    # this modifies obj in place, but we return it just in case
+    for key, value in obj.copy().items():
+        if value is _MISSING:
+            del obj[key]
+        elif isinstance(value, dict):
+            _remove_missing(value)
+    return obj
+
+
 def _deserialize(obj: JsonType) -> Any:
     if "__type" in obj:
-        return serialize_env[obj["__type"]](obj["data"])
+        obj_type = obj["__type"]
+        if obj_type in serialize_env:
+            return serialize_env[obj_type](obj["data"])
+        else:
+            return _MISSING
     return obj
 
 
 def json_load(path: Path, defaults: _JSON_T) -> _JSON_T:
-    loaded: JsonType = dict(defaults)
+    combined: JsonType = dict(defaults)
     if path.exists():
         with open(path, 'r') as file:
-            loaded.update(json.load(file, object_hook=_deserialize))
-    return cast(_JSON_T, loaded)
+            combined.update(_remove_missing(json.load(file, object_hook=_deserialize)))
+    return cast(_JSON_T, combined)
 
 
 def json_save(path: Path, contents: Mapping[Any, Any]) -> None:
