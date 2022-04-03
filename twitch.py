@@ -222,10 +222,9 @@ class Twitch:
                     game = campaign.game
                     if (
                         game not in self.games  # isn't already there
-                        and (  # isn't excluded
-                            priority_only and game.name in priority
-                            and game.name not in exclude
-                        )
+                        and game.name not in exclude  # isn't excluded
+                        # isn't excluded by priority_only
+                        and (not priority_only or game.name in priority)
                         and campaign.can_earn()  # campaign can be progressed
                     ):
                         self.games[game] = priorities.get(game.name, 0)
