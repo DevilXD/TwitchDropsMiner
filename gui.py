@@ -11,6 +11,7 @@ from tkinter import Tk, ttk, StringVar, DoubleVar, IntVar
 from typing import Any, TypedDict, NoReturn, TYPE_CHECKING
 
 import pystray
+from yarl import URL
 from PIL import Image as Image_module
 
 from cache import ImageCache
@@ -22,6 +23,7 @@ from constants import SELF_PATH, FORMATTER, WS_TOPICS_LIMIT, MAX_WEBSOCKETS, WIN
 if TYPE_CHECKING:
     from twitch import Twitch
     from channel import Channel
+    from settings import Settings
     from inventory import DropsCampaign, TimedDrop
 
 
@@ -45,10 +47,12 @@ class PlaceholderEntry(ttk.Entry):
         master: ttk.Widget,
         *args: Any,
         placeholder: str,
+        prefill: str = '',
         placeholdercolor: str = "grey60",
         **kwargs: Any,
     ):
         super().__init__(master, *args, **kwargs)
+        self._prefill: str = prefill
         self._show: str = kwargs.get("show", '')
         self._text_color: str = kwargs.get("foreground", '')
         self._ph_color: str = placeholdercolor
@@ -58,33 +62,38 @@ class PlaceholderEntry(ttk.Entry):
         if isinstance(self, ttk.Combobox):
             # only bind this for comboboxes
             self.bind("<<ComboboxSelected>>", self._combobox_select)
-        # start with a placeholder
-        self._ph: bool = True
-        super().config(foreground=self._ph_color, show='')
-        super().insert(0, self._ph_text)
+        self._ph: bool = False
+        self._insert_placeholder()
 
-    def _focus_in(self, event: tk.Event[PlaceholderEntry]) -> None:
+    def _insert_placeholder(self) -> None:
         """
-        On focus in, if we've had a placeholder, clear the box and set normal text colour and show.
-        """
-        if self._ph:
-            self._ph = False
-            self.delete(0, "end")
-            super().config(foreground=self._text_color, show=self._show)
-
-    def _focus_out(self, event: tk.Event[PlaceholderEntry]) -> None:
-        """
-        On focus out, if we're empty, insert a placeholder,
-        set placeholder text color and make sure it's shown.
+        If we're empty, insert a placeholder, set placeholder text color and make sure it's shown.
         If we're not empty, leave the box as is.
         """
         if not super().get():
             self._ph = True
             super().config(foreground=self._ph_color, show='')
-            super().insert(0, self._ph_text)
+            super().insert("end", self._ph_text)
+
+    def _remove_placeholder(self) -> None:
+        """
+        If we've had a placeholder, clear the box and set normal text colour and show.
+        """
+        if self._ph:
+            self._ph = False
+            super().delete(0, "end")
+            super().config(foreground=self._text_color, show=self._show)
+            if self._prefill:
+                super().insert("end", self._prefill)
+
+    def _focus_in(self, event: tk.Event[PlaceholderEntry]) -> None:
+        self._remove_placeholder()
+
+    def _focus_out(self, event: tk.Event[PlaceholderEntry]) -> None:
+        self._insert_placeholder()
 
     def _combobox_select(self, event: tk.Event[PlaceholderEntry]):
-        # combobox clears and inserts the selected value internally, bypassing the insert method
+        # combobox clears and inserts the selected value internally, bypassing the insert method.
         # disable the placeholder flag and set the color here, so _focus_in doesn't clear the entry
         self._ph = False
         super().config(foreground=self._text_color, show=self._show)
@@ -100,16 +109,17 @@ class PlaceholderEntry(ttk.Entry):
             setattr(self, attr, value)
 
     def configure(self, *args: Any, **kwargs: Any) -> Any:
-        options = {}
+        options: dict[str, Any] = {}
         if args and args[0] is not None:
             options.update(args[0])
         if kwargs:
             options.update(kwargs)
         self._store_option(options, "show", "_show")
-        self._store_option(options, "placeholder", "_ph_text", remove=True)
         self._store_option(options, "foreground", "_text_color")
+        self._store_option(options, "placeholder", "_ph_text", remove=True)
+        self._store_option(options, "prefill", "_prefill", remove=True)
         self._store_option(options, "placeholdercolor", "_ph_color", remove=True)
-        return super().configure(*args, **kwargs)
+        return super().configure(**kwargs)
 
     def config(self, *args: Any, **kwargs: Any) -> Any:
         # because 'config = configure' makes mypy complain
@@ -122,17 +132,22 @@ class PlaceholderEntry(ttk.Entry):
 
     def insert(self, index: tk._EntryIndex, content: str) -> None:
         # when inserting into the entry externally, disable the placeholder flag
-        if self._ph:
-            self._ph = False
-            self.delete(0, "end")
-            super().config(foreground=self._text_color, show=self._show)
-        return super().insert(index, content)
+        if not content:
+            # if an empty string was passed in
+            return
+        self._remove_placeholder()
+        super().insert(index, content)
+
+    def delete(self, first: tk._EntryIndex, last: tk._EntryIndex | None = None) -> None:
+        super().delete(first, last)
+        self._insert_placeholder()
 
     def clear(self) -> None:
         self.delete(0, "end")
-        self._ph = True
-        super().config(foreground=self._ph_color, show='')
-        super().insert(0, self._ph_text)
+
+    def replace(self, content: str) -> None:
+        super().delete(0, "end")
+        self.insert("end", content)
 
 
 class PlaceholderCombobox(PlaceholderEntry, ttk.Combobox):
@@ -979,8 +994,21 @@ class InventoryOverview:
         label.config(text=progress_text, foreground=progress_color)
 
 
+def proxy_validate(entry: PlaceholderEntry, settings: Settings) -> bool:
+    raw_url = entry.get().strip()
+    entry.replace(raw_url)
+    url = URL(raw_url)
+    valid = url.host is not None and url.port is not None
+    if valid:
+        settings.proxy = url
+    else:
+        entry.delete(0, "end")
+    return valid
+
+
 class _SettingsVars(TypedDict):
     tray: IntVar
+    proxy: StringVar
     autostart: IntVar
     priority_only: IntVar
 
@@ -990,8 +1018,9 @@ class SettingsPanel:
 
     def __init__(self, manager: GUIManager, master: ttk.Widget):
         self._twitch = manager._twitch
-        self._settings = manager._twitch.settings
+        self._settings: Settings = manager._twitch.settings
         self._vars: _SettingsVars = {
+            "proxy": StringVar(master, str(self._settings.proxy)),
             "tray": IntVar(master, self._settings.autostart_tray),
             "autostart": IntVar(master, self._settings.autostart),
             "priority_only": IntVar(master, self._settings.priority_only),
@@ -1013,15 +1042,28 @@ class SettingsPanel:
         ttk.Label(center_frame2, text="Autostart: ").grid(column=0, row=0, sticky="e")
         ttk.Checkbutton(
             center_frame2, variable=self._vars["autostart"], command=self.update_autostart
-        ).grid(column=1, row=0)
+        ).grid(column=1, row=0, sticky="w")
         ttk.Label(center_frame2, text="Autostart into tray: ").grid(column=0, row=1, sticky="e")
         ttk.Checkbutton(
             center_frame2, variable=self._vars["tray"], command=self.update_autostart
-        ).grid(column=1, row=1)
+        ).grid(column=1, row=1, sticky="w")
         ttk.Label(center_frame2, text="Priority only: ").grid(column=0, row=2, sticky="e")
         ttk.Checkbutton(
             center_frame2, variable=self._vars["priority_only"], command=self.priority_only
-        ).grid(column=1, row=2)
+        ).grid(column=1, row=2, sticky="w")
+        ttk.Label(
+            center_frame2, text="Proxy (requires restart):"
+        ).grid(column=0, row=3, columnspan=2)
+        self._proxy = PlaceholderEntry(
+            center_frame2,
+            width=37,
+            validate="focusout",
+            prefill="http://",
+            textvariable=self._vars["proxy"],
+            placeholder="http://username:password@address:port",
+        )
+        self._proxy.config(validatecommand=partial(proxy_validate, self._proxy, self._settings))
+        self._proxy.grid(column=0, row=4, columnspan=2)
         # Priority section
         priority_frame = ttk.LabelFrame(center_frame, padding=(4, 0, 4, 4), text="Priority")
         priority_frame.grid(column=1, row=0, sticky="nsew")
@@ -1490,6 +1532,7 @@ if __name__ == "__main__":
                 "https://static-cdn.jtvnw.net/twitch-drops-assets-prod/"
                 "BENEFIT-81ab5665-b2f4-4179-96e6-74da5a82da28.jpeg"
             ),
+            can_claim=False,
             is_claimed=False,
             preconditions=True,
             rewards_text=lambda: rewards,
@@ -1508,6 +1551,7 @@ if __name__ == "__main__":
             settings=SimpleNamespace(
                 tray=False,
                 priority=[],
+                proxy=URL(),
                 autostart=False,
                 priority_only=False,
                 autostart_tray=False,

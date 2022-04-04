@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any, TypedDict, TYPE_CHECKING
 
+from yarl import URL
+
 from constants import SETTINGS_PATH
 from utils import json_load, json_save
 
@@ -10,6 +12,7 @@ if TYPE_CHECKING:
 
 
 class SettingsFile(TypedDict):
+    proxy: URL
     autostart: bool
     exclude: set[str]
     priority: list[str]
@@ -18,6 +21,7 @@ class SettingsFile(TypedDict):
 
 
 default_settings: SettingsFile = {
+    "proxy": URL(),
     "priority": [],
     "exclude": set(),
     "autostart": False,
@@ -36,6 +40,7 @@ class Settings:
     debug_gql: int
     logging_level: int
     # from settings file
+    proxy: URL
     autostart: bool
     exclude: set[str]
     priority: list[str]

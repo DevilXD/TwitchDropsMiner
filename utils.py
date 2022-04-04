@@ -16,6 +16,8 @@ from typing import (
     Any, Literal, MutableSet, Callable, Generic, Mapping, TypeVar, cast, TYPE_CHECKING
 )
 
+import yarl
+
 from constants import WORKING_DIR, JsonType
 
 if TYPE_CHECKING:
@@ -33,10 +35,6 @@ _P = ParamSpec("_P")  # params
 _JSON_T = TypeVar("_JSON_T", bound=Mapping[Any, Any])
 logger = logging.getLogger("TwitchDrops")
 NONCE_CHARS = string.ascii_letters + string.digits
-serialize_env: dict[str, Callable[[Any], object]] = {
-    "set": set,
-    "datetime": lambda d: datetime.fromtimestamp(d, timezone.utc),
-}
 
 
 def resource_path(relative_path: Path | str) -> Path:
@@ -100,6 +98,8 @@ def _serialize(obj: Any) -> Any:
             # assume naive objects are UTC
             obj = obj.replace(tzinfo=timezone.utc)
         d = obj.timestamp()
+    elif isinstance(obj, yarl.URL):
+        d = str(obj)
     else:
         raise TypeError(obj)
     # store with type
@@ -110,6 +110,11 @@ def _serialize(obj: Any) -> Any:
 
 
 _MISSING = object()
+serialize_env: dict[str, Callable[[Any], object]] = {
+    "set": set,
+    "datetime": lambda d: datetime.fromtimestamp(d, timezone.utc),
+    "URL": yarl.URL,
+}
 
 
 def _remove_missing(obj: JsonType) -> JsonType:

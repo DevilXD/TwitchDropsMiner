@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from yarl import URL
 from time import time
 from functools import partial
 from collections import abc, OrderedDict
@@ -10,6 +9,7 @@ from contextlib import suppress, asynccontextmanager
 from typing import Final, NoReturn, cast, TYPE_CHECKING
 
 import aiohttp
+from yarl import URL
 
 from gui import GUIManager
 from channel import Channel
@@ -815,6 +815,8 @@ class Twitch:
             self.initialize()
         assert session is not None
         method = method.upper()
+        if self.settings.proxy and "proxy" not in kwargs:
+            kwargs["proxy"] = self.settings.proxy
         cause: Exception | None = None
         for attempt in range(attempts):
             logger.debug(f"Request: ({method=}, {url=}, {attempts=}, {kwargs=})")
