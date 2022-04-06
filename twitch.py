@@ -330,13 +330,14 @@ class Twitch:
                 ])
                 # relink watching channel after cleanup,
                 # or stop watching it if it no longer qualifies
+                # NOTE: this replaces 'self.watching_channel's internal value with the new object
                 watching_channel = self.watching_channel.get_with_default(None)
                 if watching_channel is not None:
                     new_watching = channels.get(watching_channel.id)
                     if new_watching is not None and self.can_watch(new_watching):
                         self.watch(new_watching)
                     else:
-                        # we're removing a channel we're watching
+                        # we've removed a channel we were watching
                         self.stop_watching()
                 # pre-display the active drop with a substracted minute
                 for channel in channels.values():
@@ -349,25 +350,18 @@ class Twitch:
             elif self._state is State.CHANNEL_SWITCH:
                 # Change into the selected channel, stay in the watching channel,
                 # or select a new channel that meets the required conditions
-                priority_channels: list[Channel] = []
-                selected_channel = self.gui.channels.get_selection()
-                if selected_channel is not None:
-                    self.gui.channels.clear_selection()
-                    priority_channels.append(selected_channel)
-                watching_channel = self.watching_channel.get_with_default(None)
-                if watching_channel is not None:
-                    priority_channels.append(watching_channel)
-                # If there's no selected channel, change into a channel we can watch
                 new_watching = None
-                for channel in priority_channels:
-                    if self.can_watch(channel):
-                        new_watching = channel
-                        break
-                if new_watching is None:
+                selected_channel = self.gui.channels.get_selection()
+                if selected_channel is not None and self.can_watch(selected_channel):
+                    # selected channel is checked first, and set as long as we can watch it
+                    new_watching = selected_channel
+                else:
+                    # other channels additionally need to have a good reason
+                    # for a switch (including the watching one)
                     # NOTE: we need to sort the channels every time because one channel
-                    # can end up streaming any game, since channels aren't game-tied
+                    # can end up streaming any game - channels aren't game-tied
                     for channel in sorted(channels.values(), key=self._game_key):
-                        if self.can_watch(channel):
+                        if self.can_watch(channel) and self.should_switch(channel):
                             new_watching = channel
                             break
                 if new_watching is not None:
@@ -461,6 +455,9 @@ class Twitch:
             await asyncio.sleep(60)
 
     def can_watch(self, channel: Channel) -> bool:
+        """
+        Determines if the given channel qualifies as a watching candidate.
+        """
         if not self.games:
             return False
         return (
@@ -470,6 +467,28 @@ class Twitch:
             and channel.game is not None and channel.game in self.games
             # we can progress any campaign for the selected game
             and any(campaign.can_earn(channel) for campaign in self.inventory)
+        )
+
+    def should_switch(self, channel: Channel) -> bool:
+        """
+        Determines if the given channel qualifies as a switch candidate.
+        """
+        watching_channel = self.watching_channel.get_with_default(None)
+        channel_order = self._game_key(channel)
+        if watching_channel is not None:
+            watching_order = self._game_key(watching_channel)
+        else:
+            # stub it with some high value, it doesn't really matter
+            # since 'is None' check returns earlier anyway
+            watching_order = 1
+        return (
+            watching_channel is None  # there's no current watching channel
+            # or this channel's game is higher order than the watching one's
+            # NOTE: order is tied to the priority list position, so lower == higher
+            or channel_order < watching_order
+            or channel_order == watching_order  # or the order is the same
+            # and this channel has priority over the watching channel
+            and channel.priority > watching_channel.priority
         )
 
     def watch(self, channel: Channel):
@@ -516,23 +535,9 @@ class Twitch:
         Called by a Channel when it goes online (after pending).
         """
         logger.debug(f"{channel.name} goes ONLINE")
-        channel_order = self._game_key(channel)
-        watching_channel = self.watching_channel.get_with_default(None)
-        if watching_channel is not None:
-            watching_order = self._game_key(watching_channel)
-        else:
-            watching_order = 1
         if (
-            (
-                self._state is State.IDLE  # we're currently idle
-                or watching_channel is None  # or aren't watching anything
-                # or this channel is higher order than the watching one
-                # NOTE: order is tied to the list position, so lower == higher
-                or channel_order < watching_order
-                or channel_order == watching_order  # or the order is the same
-                and channel.priority  # and this channel has priority
-                and not watching_channel.priority  # and we're watching a non-priority channel
-            ) and self.can_watch(channel)
+            self.can_watch(channel)  # we can watch the channel that just got ONLINE
+            and self.should_switch(channel)  # and we should!
         ):
             self.gui.print(f"{channel.name} goes ONLINE, switching...")
             self.watch(channel)
