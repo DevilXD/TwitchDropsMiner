@@ -8,12 +8,11 @@ from enum import Enum, auto
 from datetime import timedelta
 from typing import Any, Dict, Literal, NewType, TYPE_CHECKING
 
-from typing_extensions import TypeAlias
-
 from version import __version__
 
 if TYPE_CHECKING:
     from collections import abc  # noqa
+    from typing_extensions import TypeAlias
 
 
 # Base Paths
