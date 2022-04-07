@@ -364,15 +364,20 @@ class Twitch:
                         if self.can_watch(channel) and self.should_switch(channel):
                             new_watching = channel
                             break
-                if new_watching is not None:
-                    self.watch(channel)
-                    # break the state change chain by clearing the flag
-                    self._state_change.clear()
-                else:
+                watching_channel = self.watching_channel.get_with_default(None)
+                if watching_channel is None and new_watching is None:
+                    # not watching anything and there isn't anything to watch either
                     self.gui.print(
                         "No available channels to watch. Waiting for an ONLINE channel..."
                     )
                     self.change_state(State.IDLE)
+                else:
+                    if new_watching is not None:
+                        # if we have a better switch target - do so
+                        # otherwise, continue watching what we had before
+                        self.watch(new_watching)
+                    # break the state change chain by clearing the flag
+                    self._state_change.clear()
             elif self._state is State.EXIT:
                 # we've been requested to exit the application
                 break
