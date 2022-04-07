@@ -231,6 +231,7 @@ class Twitch:
                         # non-excluded games with no priority, are placed last, below priority ones
                         self.games[game] = priorities.get(game.name, 0)
                 full_cleanup = True
+                self.restart_watching()
                 self.change_state(State.CHANNELS_CLEANUP)
             elif self._state is State.CHANNELS_CLEANUP:
                 if not self.games or full_cleanup:
@@ -386,8 +387,7 @@ class Twitch:
         # post-main-loop code goes here
 
     async def _watch_sleep(self, delay: float) -> None:
-        # we use wait_for here to allow an asyncio.sleep that can be ended prematurely,
-        # without cancelling the containing task
+        # we use wait_for here to allow an asyncio.sleep-like that can be ended prematurely
         self._watching_restart.clear()
         with suppress(asyncio.TimeoutError):
             await asyncio.wait_for(self._watching_restart.wait(), timeout=delay)
