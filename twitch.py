@@ -203,6 +203,7 @@ class Twitch:
                 self._state_change.clear()
             elif self._state is State.INVENTORY_FETCH:
                 await self.fetch_inventory()
+                self.gui.set_games(set(campaign.game for campaign in self.inventory))
                 self.change_state(State.GAMES_UPDATE)
             elif self._state is State.GAMES_UPDATE:
                 # Figure out which games to watch, and claim the drops we can
@@ -222,13 +223,13 @@ class Twitch:
                     game = campaign.game
                     if (
                         game not in self.games  # isn't already there
-                        and game.name not in exclude  # isn't excluded
-                        # isn't excluded by priority_only
+                        and game.name not in exclude  # and isn't excluded
+                        # and isn't excluded by priority_only
                         and (not priority_only or game.name in priority)
-                        and campaign.can_earn()  # campaign can be progressed
+                        and campaign.can_earn()  # and can be progressed (active required)
                     ):
+                        # non-excluded games with no priority, are placed last, below priority ones
                         self.games[game] = priorities.get(game.name, 0)
-                self.gui.set_games(self.games.keys())
                 full_cleanup = True
                 self.change_state(State.CHANNELS_CLEANUP)
             elif self._state is State.CHANNELS_CLEANUP:
