@@ -432,6 +432,8 @@ class Twitch:
                         else:
                             drop.update_minutes(drop_data["currentMinutesWatched"])
                             drop.display()
+                    else:
+                        use_active = True
                 if use_active:
                     # Sometimes, even GQL fails to give us the correct drop.
                     # In that case, we can use the locally cached inventory to try
