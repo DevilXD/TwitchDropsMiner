@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import re
-import json
 import asyncio
 import logging
 from base64 import b64encode
 from functools import cached_property
 from typing import Any, SupportsInt, TYPE_CHECKING
 
-from utils import Game, invalidate_cache
+from utils import invalidate_cache, json_minify, Game
 from exceptions import MinerException, RequestException
 from constants import BASE_URL, GQL_OPERATIONS, ONLINE_DELAY, DROPS_ENABLED_TAG, URLType
 
@@ -326,8 +325,7 @@ class Channel:
                 }
             }
         ]
-        json_event = json.dumps(payload, separators=(",", ":"))
-        return {"data": (b64encode(json_event.encode("utf8"))).decode("utf8")}
+        return {"data": (b64encode(json_minify(payload).encode("utf8"))).decode("utf8")}
 
     async def send_watch(self) -> bool:
         """

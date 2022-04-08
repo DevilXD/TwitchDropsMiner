@@ -33,6 +33,23 @@ class RequestException(MinerException):
             super().__init__("Unknown error during request")
 
 
+class WebsocketClosed(RequestException):
+    """
+    Raised when the websocket connection has been closed.
+
+    Attributes:
+    -----------
+    received: bool
+        `True` if the closing was caused by our side receiving a close frame, `False` otherwise.
+    """
+    def __init__(self, *args: object, received: bool = False):
+        if args:
+            super().__init__(*args)
+        else:
+            super().__init__("Websocket has been closed")
+        self.received: bool = received
+
+
 class LoginException(RequestException):
     """
     Raised when an exception occurs during login phase.

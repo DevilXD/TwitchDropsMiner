@@ -72,7 +72,9 @@ class Twitch:
         # Maintenance task
         self._mnt_task: asyncio.Task[None] | None = None
 
-    def initialize(self) -> None:
+    async def get_session(self) -> aiohttp.ClientSession:
+        if self._session is not None:
+            return self._session
         cookie_jar = aiohttp.CookieJar()
         if COOKIES_PATH.exists():
             cookie_jar.load(COOKIES_PATH)
@@ -81,6 +83,7 @@ class Twitch:
             headers={"User-Agent": USER_AGENT},
             timeout=aiohttp.ClientTimeout(connect=5, total=10),
         )
+        return self._session
 
     async def shutdown(self) -> None:
         start_time = time()
@@ -135,7 +138,7 @@ class Twitch:
     def prevent_close(self):
         """
         Called when the application window has to be prevented from closing, even after the user
-        closes it with X. Usually used solely to display tracebacks drom the closing sequence.
+        closes it with X. Usually used solely to display tracebacks from the closing sequence.
         """
         self.gui.prevent_close()
 
@@ -776,12 +779,10 @@ class Twitch:
         logger.debug("Checking login")
         login_form.update("Logging in...", None)
         # NOTE: We need this here because of the jar being accessed
-        if self._session is None:
-            self.initialize()
-        assert self._session is not None
+        session = await self.get_session()
         url = URL(BASE_URL)
         assert url.host is not None
-        jar = cast(aiohttp.CookieJar, self._session.cookie_jar)
+        jar = cast(aiohttp.CookieJar, session.cookie_jar)
         for attempt in range(2):
             cookie = jar.filter_cookies(url)
             if not cookie:
@@ -823,10 +824,7 @@ class Twitch:
     async def request(
         self, method: str, url: str, *, attempts: int = 5, **kwargs
     ) -> abc.AsyncIterator[aiohttp.ClientResponse]:
-        session = self._session
-        if session is None:
-            self.initialize()
-        assert session is not None
+        session = await self.get_session()
         method = method.upper()
         cause: Exception | None = None
         for attempt in range(attempts):

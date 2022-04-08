@@ -18,10 +18,6 @@ try:
 except ModuleNotFoundError as exc:
     raise ImportError("You have to run 'pip install aiohttp' first") from exc
 try:
-    import websockets  # noqa
-except ModuleNotFoundError as exc:
-    raise ImportError("You have to run 'pip install websockets' first") from exc
-try:
     import pystray  # noqa
 except ModuleNotFoundError as exc:
     raise ImportError("You have to run 'pip install pystray' first") from exc

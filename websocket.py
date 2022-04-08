@@ -7,32 +7,36 @@ from time import time
 from contextlib import suppress
 from typing import TYPE_CHECKING
 
-from websockets.exceptions import ConnectionClosed, ConnectionClosedOK
-from websockets.client import WebSocketClientProtocol, connect as websocket_connect
+import aiohttp
 
-from exceptions import MinerException
-from utils import task_wrapper, create_nonce, AwaitableValue
+from exceptions import MinerException, WebsocketClosed
 from constants import PING_INTERVAL, PING_TIMEOUT, MAX_WEBSOCKETS, WS_TOPICS_LIMIT
+from utils import (
+    task_wrapper, create_nonce, json_minify, format_traceback, AwaitableValue, ExponentialBackoff
+)
 
 if TYPE_CHECKING:
     from collections import abc
 
     from twitch import Twitch
+    from gui import WebsocketStatus
     from constants import JsonType, WebsocketTopic
 
 
+WSMsgType = aiohttp.WSMsgType
 logger = logging.getLogger("TwitchDrops")
 ws_logger = logging.getLogger("TwitchDrops.websocket")
 
 
 class Websocket:
     def __init__(self, pool: WebsocketPool, index: int):
-        self._pool = pool
-        self._twitch = pool._twitch
+        self._pool: WebsocketPool = pool
+        self._twitch: Twitch = pool._twitch
+        self._ws_gui: WebsocketStatus = self._twitch.gui.websockets
         # websocket index
         self._idx: int = index
         # current websocket connection
-        self._ws: AwaitableValue[WebSocketClientProtocol] = AwaitableValue()
+        self._ws: AwaitableValue[aiohttp.ClientWebSocketResponse] = AwaitableValue()
         # set when the websocket needs to reconnect
         self._reconnect_requested = asyncio.Event()
         # set when the topics changed
@@ -61,7 +65,6 @@ class Websocket:
         )
 
     def request_reconnect(self):
-        ws_logger.warning(f"Websocket[{self._idx}] requested reconnect.")
         # reset our ping interval, so we send a PING after reconnect right away
         self._next_ping = time()
         self._reconnect_requested.set()
@@ -104,20 +107,37 @@ class Websocket:
             self._twitch.gui.websockets.remove(self._idx)
         asyncio.create_task(remover())
 
+    async def _backoff_connect(
+        self, ws_url: str, **kwargs
+    ) -> abc.AsyncGenerator[aiohttp.ClientWebSocketResponse, None]:
+        session = await self._twitch.get_session()
+        backoff = ExponentialBackoff(**kwargs)
+        for delay in backoff:
+            try:
+                async with session.ws_connect(ws_url, ssl=True) as websocket:
+                    backoff.reset()
+                    yield websocket
+            except aiohttp.ClientConnectionError:
+                ws_logger.info(
+                    f"Websocket[{self._idx}] connection error (sleep: {delay:.3}s)", exc_info=True
+                )
+                await asyncio.sleep(delay)
+
     @task_wrapper
     async def _handle(self):
         # ensure we're logged in before connecting
+        self.set_status("Initializing...")
         await self._twitch.wait_until_login()
         ws_logger.info(f"Websocket[{self._idx}] connecting...")
         self.set_status("Connecting...")
         # Connect/Reconnect loop
-        async for websocket in websocket_connect(
-            "wss://pubsub-edge.twitch.tv/v1", ssl=True, ping_interval=None
+        async for websocket in self._backoff_connect(
+            "wss://pubsub-edge.twitch.tv/v1", maximum=3*60  # 3 minutes maximum backoff time
         ):
-            # 3 minutes of max backoff
-            websocket.BACKOFF_MAX = 3 * 60  # type: ignore
             self._ws.set(websocket)
             self._reconnect_requested.clear()
+            # NOTE: _topics_changed doesn't start set,
+            # because there's no initial topics we can sub to right away
             self.set_status("Connected")
             try:
                 try:
@@ -128,26 +148,20 @@ class Websocket:
                 finally:
                     self._ws.clear()
                     self._submitted.clear()
-                    self._topics_changed.set()  # lets the next WS connection resub to the topics
+                    # set _topics_changed to let the next WS connection resub to the topics
+                    self._topics_changed.set()
                 # A reconnect was requested
-            except ConnectionClosed as exc:
-                if isinstance(exc, ConnectionClosedOK):
-                    if exc.rcvd_then_sent:
-                        # server closed the connection, not us - reconnect
-                        ws_logger.warning(f"Websocket[{self._idx}] got disconnected.")
-                    else:
-                        # we closed it - exit
-                        ws_logger.info(f"Websocket[{self._idx}] stopped.")
-                        self.set_status("Disconnected")
-                        return
+            except WebsocketClosed as exc:
+                if exc.received:
+                    # server closed the connection, not us - reconnect
+                    ws_logger.warning(
+                        f"Websocket[{self._idx}] closed unexpectedly: {websocket.close_code}"
+                    )
                 else:
-                    if exc.rcvd is not None:
-                        code = exc.rcvd.code
-                    elif exc.sent is not None:
-                        code = exc.sent.code
-                    else:
-                        code = -1
-                    ws_logger.warning(f"Websocket[{self._idx}] closed unexpectedly: {code}")
+                    # we closed it - exit
+                    ws_logger.info(f"Websocket[{self._idx}] stopped.")
+                    self.set_status("Disconnected")
+                    return
             except Exception:
                 ws_logger.exception(f"Exception in Websocket[{self._idx}]")
             self.set_status("Reconnecting...")
@@ -161,6 +175,7 @@ class Websocket:
             await self.send({"type": "PING"})
         elif now >= self._max_pong:
             # it's been more than 10s and there was no PONG
+            ws_logger.warning(f"Websocket[{self._idx}] didn't receive a PONG, reconnecting...")
             self.request_reconnect()
 
     async def _handle_topics(self):
@@ -208,10 +223,23 @@ class Websocket:
         ws = self._ws.get_with_default(None)
         assert ws is not None
         while True:
-            raw_message = await ws.recv()
-            message = json.loads(raw_message)
-            ws_logger.debug(f"Websocket[{self._idx}] received: {message}")
-            messages.append(message)
+            raw_message: aiohttp.WSMessage = await ws.receive()
+            ws_logger.debug(f"Websocket[{self._idx}] received: {raw_message}")
+            if raw_message.type is WSMsgType.TEXT:
+                message: JsonType = json.loads(raw_message.data)
+                messages.append(message)
+                continue  # shortcut to avoid checking all other elifs if not necessary
+            elif raw_message.type is WSMsgType.CLOSE:
+                raise WebsocketClosed(received=True)
+            elif raw_message.type is WSMsgType.CLOSED:
+                raise WebsocketClosed(received=False)
+            elif raw_message.type is WSMsgType.CLOSING:
+                pass  # skip these
+            elif raw_message.type is WSMsgType.ERROR:
+                logger.error(f"Websocket[{self._idx}] error: {format_traceback(raw_message.data)}")
+                raise WebsocketClosed()
+            else:
+                logger.error(f"Websocket[{self._idx}] error: Unknown message: {raw_message}")
 
     def _handle_message(self, message):
         # request the assigned topic to process the response
@@ -241,6 +269,7 @@ class Websocket:
                 pass
             elif msg_type == "RECONNECT":
                 # We've received a reconnect request
+                ws_logger.warning(f"Websocket[{self._idx}] requested reconnect.")
                 self.request_reconnect()
             else:
                 ws_logger.warning(f"Websocket[{self._idx}] received unknown payload: {message}")
@@ -271,7 +300,7 @@ class Websocket:
         assert ws is not None
         if message["type"] != "PING":
             message["nonce"] = create_nonce()
-        await ws.send(json.dumps(message, separators=(',', ':')))
+        await ws.send_json(message, dumps=json_minify)
         ws_logger.debug(f"Websocket[{self._idx}] sent: {message}")
 
 
