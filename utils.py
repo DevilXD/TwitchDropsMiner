@@ -6,6 +6,7 @@ import random
 import string
 import asyncio
 import logging
+import traceback
 from enum import Enum
 from pathlib import Path
 from functools import wraps
@@ -34,7 +35,21 @@ _D = TypeVar("_D")  # default
 _P = ParamSpec("_P")  # params
 _JSON_T = TypeVar("_JSON_T", bound=Mapping[Any, Any])
 logger = logging.getLogger("TwitchDrops")
-NONCE_CHARS = string.ascii_letters + string.digits
+
+
+def format_traceback(exc: BaseException, **kwargs: Any) -> str:
+    """
+    Like `traceback.print_exc` but returns a string. Uses the passed-in exception.
+    Any additional `**kwargs` are passed to the underlaying `traceback.format_exception`.
+    """
+    return ''.join(traceback.format_exception(type(exc), exc, **kwargs))
+
+
+def json_minify(data: JsonType | list[JsonType]) -> str:
+    """
+    Returns minified JSON for payload usage.
+    """
+    return json.dumps(data, separators=(',', ':'))
 
 
 def resource_path(relative_path: Path | str) -> Path:
@@ -54,6 +69,9 @@ def resource_path(relative_path: Path | str) -> Path:
 
 def timestamp(string: str) -> datetime:
     return datetime.strptime(string, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+
+
+NONCE_CHARS = string.ascii_letters + string.digits
 
 
 def create_nonce(length: int = 30) -> str:
@@ -110,7 +128,7 @@ def _serialize(obj: Any) -> Any:
 
 
 _MISSING = object()
-serialize_env: dict[str, Callable[[Any], object]] = {
+SERIALIZE_ENV: dict[str, Callable[[Any], object]] = {
     "set": set,
     "datetime": lambda d: datetime.fromtimestamp(d, timezone.utc),
     "URL": yarl.URL,
@@ -130,8 +148,8 @@ def _remove_missing(obj: JsonType) -> JsonType:
 def _deserialize(obj: JsonType) -> Any:
     if "__type" in obj:
         obj_type = obj["__type"]
-        if obj_type in serialize_env:
-            return serialize_env[obj_type](obj["data"])
+        if obj_type in SERIALIZE_ENV:
+            return SERIALIZE_ENV[obj_type](obj["data"])
         else:
             return _MISSING
     return obj
@@ -148,6 +166,50 @@ def json_load(path: Path, defaults: _JSON_T) -> _JSON_T:
 def json_save(path: Path, contents: Mapping[Any, Any]) -> None:
     with open(path, 'w') as file:
         json.dump(contents, file, default=_serialize, sort_keys=True, indent=4)
+
+
+class ExponentialBackoff:
+    def __init__(
+        self,
+        *,
+        base: float = 2,
+        variance: float | tuple[float, float] = 0.1,
+        shift: float = -1,
+        maximum: float = 300,
+    ):
+        if base <= 1:
+            raise ValueError("base has to be greater than 1")
+        self.exp: int = 0
+        self.base: float = float(base)
+        self.shift: float = float(shift)
+        self.maximum: float = float(maximum)
+        self.variance_min: float
+        self.variance_max: float
+        if isinstance(variance, tuple):
+            self.variance_min, self.variance_max = variance
+        else:
+            self.variance_min = 1 - variance
+            self.variance_max = 1 + variance
+
+    def __iter__(self) -> abc.Iterator[float]:
+        return self
+
+    def __next__(self) -> float:
+        value: float = (
+            pow(self.base, self.exp)
+            * random.uniform(self.variance_min, self.variance_max)
+            + self.shift
+        )
+        if value > self.maximum:
+            return self.maximum
+        # NOTE: variance can cause the returned value to be lower than the previous one already,
+        # so this should be safe to move past the first return,
+        # to prevent the exponent from getting very big after reaching max and many iterations
+        self.exp += 1
+        return value
+
+    def reset(self) -> None:
+        self.exp = 0
 
 
 class OrderedSet(MutableSet[_T]):
