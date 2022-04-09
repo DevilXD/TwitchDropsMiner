@@ -92,18 +92,20 @@ class Twitch:
         if self._watching_task is not None:
             self._watching_task.cancel()
             self._watching_task = None
+        if self._mnt_task is not None:
+            self._mnt_task.cancel()
+            self._mnt_task = None
         # close session, save cookies and stop websocket
         if self._session is not None:
             cookie_jar = cast(aiohttp.CookieJar, self._session.cookie_jar)
             cookie_jar.save(COOKIES_PATH)
-            session = self._session
-            self._session = None
+            session, self._session = self._session, None
             await session.close()
         await self.websocket.stop()
-        # save important files
-        self.settings.save()
-        self.gui.save()
-        # wait at least one full second + whatever it takes to complete the closing
+        # save other important files
+        self.settings.save()  # settings
+        self.gui.save()  # image cache
+        # wait at least half a second + whatever it takes to complete the closing
         # this allows aiohttp to safely close the session
         await asyncio.sleep(start_time + 0.5 - time())
 
@@ -184,12 +186,6 @@ class Twitch:
         if self._watching_task is not None:
             self._watching_task.cancel()
         self._watching_task = asyncio.create_task(self._watch_loop())
-        # NOTE: maintenance task is restarted only if it finished unexpectedly early
-        if self._mnt_task is not None and self._mnt_task.done():
-            self._mnt_task.cancel()
-            self._mnt_task = None
-        if self._mnt_task is None or self._mnt_task.done():
-            self._mnt_task = asyncio.create_task(self._maintenance_loop())
         # Add default topics
         assert self._user_id is not None
         self.websocket.add_topics([
@@ -205,6 +201,10 @@ class Twitch:
                 # clear the flag and wait until it's set again
                 self._state_change.clear()
             elif self._state is State.INVENTORY_FETCH:
+                # NOTE: maintenance task is restarted on inventory fetch
+                if self._mnt_task is not None:
+                    self._mnt_task.cancel()
+                self._mnt_task = asyncio.create_task(self._maintenance_loop())
                 await self.fetch_inventory()
                 self.gui.set_games(set(campaign.game for campaign in self.inventory))
                 self.change_state(State.GAMES_UPDATE)
@@ -451,19 +451,18 @@ class Twitch:
             await self._watch_sleep(last_watch + interval - time())
 
     @task_wrapper
-    async def _maintenance_loop(self) -> NoReturn:
-        i = 1
-        while True:
-            if i % 30 == 1:
-                channel = self.watching_channel.get_with_default(None)
-                # ensure every 30 minutes that we don't have unclaimed points bonus
-                if channel is not None:
-                    await channel.claim_bonus()
-            if i % 60 == 0:
-                # refresh inventory and cleanup channels every hour
-                self.change_state(State.INVENTORY_FETCH)
-            i = (i + 1) % 3600
-            await asyncio.sleep(60)
+    async def _maintenance_loop(self) -> None:
+        # NOTE: this task is restarted on every inventory fetch
+        await asyncio.sleep(60)
+        for i in range(2):
+            channel = self.watching_channel.get_with_default(None)
+            # ensure every 30 minutes that we don't have unclaimed points bonus
+            if channel is not None:
+                await channel.claim_bonus()
+            await asyncio.sleep(30*60)
+        # this triggers this task restart every 60 minutes
+        self.change_state(State.INVENTORY_FETCH)
+        self._mnt_task = None
 
     def can_watch(self, channel: Channel) -> bool:
         """
