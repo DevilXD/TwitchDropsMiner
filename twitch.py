@@ -157,8 +157,7 @@ class Twitch:
         return -1
 
     def _game_key(self, channel: Channel) -> int:
-        game = channel.game
-        if game is None:
+        if (game := channel.game) is None:
             return 1
         elif game not in self.games:
             # in case a channel is gathered from an ACL and doesn't play the expected game,
