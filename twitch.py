@@ -102,9 +102,8 @@ class Twitch:
             session, self._session = self._session, None
             await session.close()
         await self.websocket.stop()
-        # save other important files
-        self.settings.save()  # settings
-        self.gui.save()  # image cache
+        # save image cache
+        self.gui.save()
         # wait at least half a second + whatever it takes to complete the closing
         # this allows aiohttp to safely close the session
         await asyncio.sleep(start_time + 0.5 - time())

@@ -177,6 +177,10 @@ if not client.gui.close_requested:
         "\nApplication Terminated.\nClose the window to exit the application."
     )
 loop.run_until_complete(client.gui.wait_until_closed())
+# save settings
+# NOTE: we have to do it after wait_until_closed,
+# because the user can alter settings between shutdown and closing the window
+client.settings.save()
 client.gui.stop()
 client.gui.close_window()
 loop.run_until_complete(loop.shutdown_asyncgens())
