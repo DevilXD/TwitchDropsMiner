@@ -9,19 +9,21 @@ Every ~60 seconds, the application sends a "minute watched" event to the channel
 **Features:**
 
 - Stream-less drop mining - save on bandwidth.
+- Game priority and exclusion lists, allowing you to focus on mining what you want, in the order you want, and ignore what you don't want.
 - Sharded websocket connection, allowing for tracking up to `8*50-2=398` channels at the same time.
 - Automatic drop campaigns discovery based on linked accounts (requires you to do [account linking](https://www.twitch.tv/drops/campaigns) yourself though)
-- Stream tags and drop campaign validation, so you don't end up watching a stream that can't earn you the drop.
-- Channel stream switching, when the one you were currently watching goes offline.
-- Cookie saving between sessions, so you don't need to login every time.
-- Mining is stopped automatically when the last available drop has been mined.
+- Stream tags and drop campaign validation, to ensure you won't end up mining a stream that can't earn you the drop.
+- Automatic channel stream switching, when the one you were currently watching goes offline, as well as when a channel streaming a higher priority game goes online.
+- Login session is saved in a cookies file, so you don't need to login every time.
+- Mining is automatically started as new campaigns appear, and stopped when the last available drops have been mined.
 
 **Usage:**
 
-- Download the [lastest release](https://github.com/DevilXD/TwitchDropsMiner/releases) - it's recommended to keep it in the folder it comes with.
-- Run it and login into your Twitch using your username and password, and a 2FA key if you have one setup.
-- After a successful login, the app should fetch a list of all available campaigns and games you can mine drops for - you can then select a game to have it fetch a list of all applicable streams it can watch, and start mining right away. You can also switch to a different channel as needed.
-- Persistent cookies will be stored in the `cookies.jar` file, from which the authorization information will be restored on each subsequent run.
+- Download and unzip [the lastest release](https://github.com/DevilXD/TwitchDropsMiner/releases) - it's recommended to keep it in the folder it comes in.
+- Run it and login into your Twitch account using your username and password, and a 2FA key if you have one setup. It's recommended to avoid having to double-take this step, as you can run into CAPTCHA that will prevent you from trying to log in again for the next 12+ hours. You can retry afterwards though.
+- After a successful login, the app should fetch a list of all available campaigns and games you can mine drops for - you can then select and add games of choice to the Priority List available on the Settings tab, and then press on the `Reload` button to start processing. It will fetch a list of all applicable streams it can watch, and start mining right away. You can also manually switch to a different channel as needed.
+- Make sure to link your Twitch account to game accounts on the [campaigns page](https://www.twitch.tv/drops/campaigns), to enable more games to be mined.
+- Persistent cookies will be stored in the `cookies.jar` file, from which the authorization (login) information will be restored on each subsequent run.
 
 **Notes:**
 
@@ -29,10 +31,10 @@ Every ~60 seconds, the application sends a "minute watched" event to the channel
 - Successfully logging into your Twitch account in the application, may cause Twitch to send you a "New Login" notification email. This is normal - you can verify that it comes from your own IP address. The application uses Chrome's user agent, so the detected browser during the login should signify that as well.
 - The time remaining timer always countdowns a single minute and then stops - it is then restarted only after the application redetermines the remaining time. This "redetermination" can happen as early as at 10 seconds in a minute remaining, and as late as 20 seconds after the timer reaches zero (especially when finishing mining a drop), but is generally only an approximation and does not represent nor affect actual mining speed. The time variations are due to Twitch sometimes not reporting drop progress at all, or reporting progress for the wrong drop - these cases have all been accounted for in the application though.
 
-**Troubleshooting:**
+**Advanced Usage / Build Instructions:**
 
-### "No active campaigns to mine drops for." or the game you're interested in is missing from the Game Selector
-
-- Check your [inventory page](https://www.twitch.tv/drops/inventory) for in-progress campaigns - make sure you're not looking at upcoming campaigns. You can check when a campaign starts by hovering over the very first drop in the campaign.
-- Make sure to link your account on the [campaigns page](https://www.twitch.tv/drops/campaigns), to the campaign's game of choice.
-- Once properly linked, the game should become available in the application's Game Selector.
+- Note: The application has been developed using Python 3.8.10 specifically. It *should* (but may not necessarily will) run properly on higher versions too though.
+- Download or `git clone https://github.com/DevilXD/TwitchDropsMiner` the source code to a folder of choice.
+- Run `setup_env.bat` to setup the virtual environment for the application. Activate it by running `env/Scripts/activate.bat`, or just use `python`, `pythonw` and `pip` executables from the `env/Scripts` directly going forward.
+- Run `pythonw main.py` to start the application without a console. `python main.py` can be used to start with a console, in case you'd expect errors to be printed out to the console - may help with debugging problems.
+- If you'd like to build the executable yourself, you'll need to `pip install pyinstaller` into the virtual environment, and then simply run `build.bat`. The end result can be found inside the `dist` folder. If you supply a `7z.exe` ([or `7za.exe` from 7z Extras](https://www.7-zip.org/download.html)) executable inside the project's folder, a packaged zip with the whole release should be created next to the `dist` folder as well.
