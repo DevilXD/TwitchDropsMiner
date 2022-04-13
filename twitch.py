@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from math import ceil
 from time import time
 from functools import partial
 from collections import abc, OrderedDict
+from datetime import datetime, timedelta, timezone
 from contextlib import suppress, asynccontextmanager
 from typing import Final, NoReturn, cast, TYPE_CHECKING
 
@@ -32,8 +34,6 @@ from constants import (
 )
 
 if TYPE_CHECKING:
-    from datetime import datetime
-
     from utils import Game
     from gui import LoginForm
     from settings import Settings
@@ -200,9 +200,9 @@ class Twitch:
                 self._state_change.clear()
             elif self._state is State.INVENTORY_FETCH:
                 # NOTE: maintenance task is restarted on inventory fetch
-                if self._mnt_task is not None:
+                if self._mnt_task is not None and not self._mnt_task.done():
                     self._mnt_task.cancel()
-                self._mnt_task = asyncio.create_task(self._maintenance_loop())
+                self._mnt_task = asyncio.create_task(self._maintenance_task())
                 await self.fetch_inventory()
                 self.gui.set_games(set(campaign.game for campaign in self.inventory))
                 self.change_state(State.GAMES_UPDATE)
@@ -449,18 +449,29 @@ class Twitch:
             await self._watch_sleep(last_watch + interval - time())
 
     @task_wrapper
-    async def _maintenance_loop(self) -> None:
-        # NOTE: this task is restarted on every inventory fetch
+    async def _maintenance_task(self) -> None:
+        # NOTE: this task is started anew / restarted on every inventory fetch
+        # 1m sleep to let the application sort out the starting sequence and watching channel
         await asyncio.sleep(60)
-        for i in range(2):
+        # figure out the maximum sleep period
+        # 1h at max, but can be shorter if there's an upcoming campaign earlier than that
+        # divide the period into up to two evenly spaced checks (usually ~15-30m)
+        now = datetime.now(timezone.utc)
+        period = min(
+            campaign.starts_at - now for campaign in self.inventory if campaign.starts_at > now
+        )
+        if period > (one_hour := timedelta(hours=1)):
+            period = one_hour
+        times = ceil(period.total_seconds() / 30 * 60)
+        period /= times
+        for i in range(times):
             channel = self.watching_channel.get_with_default(None)
-            # ensure every 30 minutes that we don't have unclaimed points bonus
+            # ensure every ~20-30 minutes that we don't have unclaimed points bonus
             if channel is not None:
                 await channel.claim_bonus()
-            await asyncio.sleep(30*60)
+            await asyncio.sleep(period.total_seconds())
         # this triggers this task restart every 60 minutes
         self.change_state(State.INVENTORY_FETCH)
-        self._mnt_task = None
 
     def can_watch(self, channel: Channel) -> bool:
         """
