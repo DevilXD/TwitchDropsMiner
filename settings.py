@@ -61,7 +61,7 @@ class Settings:
         return getattr(super(), name)
 
     def __setattr__(self, name: str, value: Any, /) -> None:
-        if name in ("_settings", "_args"):
+        if name in ("_settings", "_args", "_altered"):
             # passthrough
             return super().__setattr__(name, value)
         elif name in self._settings:
