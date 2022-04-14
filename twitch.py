@@ -149,6 +149,13 @@ class Twitch:
         """
         self.gui.print(*args, **kwargs)
 
+    def save(self) -> None:
+        """
+        Saves the application state.
+        """
+        self.gui.save()
+        self.settings.save()
+
     @staticmethod
     def _viewers_key(channel: Channel) -> int:
         if (viewers := channel.viewers) is not None:
@@ -205,6 +212,8 @@ class Twitch:
                 self._mnt_task = asyncio.create_task(self._maintenance_task())
                 await self.fetch_inventory()
                 self.gui.set_games(set(campaign.game for campaign in self.inventory))
+                # Save state on every inventory fetch
+                self.save()
                 self.change_state(State.GAMES_UPDATE)
             elif self._state is State.GAMES_UPDATE:
                 # Figure out which games to watch, and claim the drops we can
@@ -925,7 +934,6 @@ class Twitch:
             self._drops.update((drop.id, drop) for drop in campaign.drops)
             await self.gui.inv.add_campaign(campaign)
             self.inventory.append(campaign)
-        self.gui.save()
 
     def get_active_drop(self, channel: Channel | None = None) -> TimedDrop | None:
         if not self.games:

@@ -42,6 +42,7 @@ class ImageCache:
         self._images: dict[ImageHash, Image] = {}
         self._photos: dict[tuple[ImageHash, ImageSize], PhotoImage] = {}
         self._lock = asyncio.Lock()
+        self._altered: bool = False
         # cleanup the URLs
         hash_counts: dict[ImageHash, int] = {}
         now = datetime.now(timezone.utc)
@@ -51,6 +52,7 @@ class ImageCache:
                 hash_counts[img_hash] = 0
             if now >= hash_dict["expires"]:
                 del self._hashes[url]
+                self._altered = True
             else:
                 hash_counts[img_hash] += 1
         for img_hash, count in hash_counts.items():
@@ -60,7 +62,8 @@ class ImageCache:
                     file.unlink()
 
     def save(self) -> None:
-        json_save(CACHE_DB, self._hashes)
+        if self._altered:
+            json_save(CACHE_DB, self._hashes)
 
     def _new_expires(self) -> datetime:
         return datetime.now(timezone.utc) + self.LIFETIME
@@ -94,6 +97,9 @@ class ImageCache:
                     "hash": img_hash,
                     "expires": self._new_expires()
                 }
+        # NOTE: If self._hashes ever stops being updated in both above if cases,
+        # this will need to be moved
+        self._altered = True
         if size is None:
             size = image.size
         photo_key = (img_hash, size)
