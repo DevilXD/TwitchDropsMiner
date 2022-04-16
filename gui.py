@@ -233,6 +233,20 @@ class PaddedListbox(tk.Listbox):
         self.configure(*args, **kwargs)
 
 
+class MouseOverLabel(ttk.Label):
+    def __init__(self, *args, alt_text: str = '', **kwargs) -> None:
+        options = {}
+        if args and args[0] is not None:
+            options.update(args[0])
+        if kwargs:
+            options.update(kwargs)
+        self._org_text: str = options.get("text", '')
+        self._alt_text: str = alt_text
+        super().__init__(*args, **kwargs)
+        self.bind("<Enter>", lambda e: self.config(text=self._alt_text))
+        self.bind("<Leave>", lambda e: self.config(text=self._org_text))
+
+
 class _WSEntry(TypedDict):
     status: str
     topics: int
@@ -287,8 +301,7 @@ class WebsocketStatus:
         status_lines: list[str] = []
         topic_lines: list[str] = []
         for idx in range(MAX_WEBSOCKETS):
-            item = self._items.get(idx)
-            if item is None:
+            if (item := self._items.get(idx)) is None:
                 status_lines.append('')
                 topic_lines.append('')
             else:
@@ -930,10 +943,13 @@ class InventoryOverview:
         ttk.Label(
             campaign_frame, text=status_text, takefocus=False, foreground=status_color
         ).grid(column=1, row=1, sticky="w", padx=4)
-        ttk.Label(
+        MouseOverLabel(
             campaign_frame,
             text=f"Ends: {campaign.ends_at.astimezone().replace(microsecond=0, tzinfo=None)}",
-            takefocus=False
+            alt_text=(
+                f"Starts: {campaign.starts_at.astimezone().replace(microsecond=0, tzinfo=None)}"
+            ),
+            takefocus=False,
         ).grid(column=1, row=2, sticky="w", padx=4)
         acl = campaign.allowed_channels
         if acl:
@@ -1511,6 +1527,7 @@ if __name__ == "__main__":
         td = total_drops
         cm = current_minutes
         tm = total_minutes
+        ref_stamp = datetime.now(timezone.utc).replace(minute=0, second=0)
         mock = SimpleNamespace(
             id="0",
             campaign=SimpleNamespace(
@@ -1520,7 +1537,8 @@ if __name__ == "__main__":
                 upcoming=True,
                 image_url="https://static-cdn.jtvnw.net/ttv-boxart/460630-285x380.jpg",
                 allowed_channels=[],
-                ends_at=datetime.now(timezone.utc) + timedelta(days=5, hours=6, minutes=23),
+                starts_at=ref_stamp,
+                ends_at=ref_stamp + timedelta(days=7),
                 timed_drops={},
                 claimed_drops=cd,
                 total_drops=td,
