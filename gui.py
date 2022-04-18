@@ -622,24 +622,25 @@ class ChannelList:
         width_template: str | None = None,
     ):
         table = self._table
-        # we need to save the column settings and headings before modifying the columns...
-        columns: tuple[str, ...] = table.cget("columns") or ()
-        column_settings: dict[str, tuple[str, tk._Anchor, int, int]] = {}
-        for s_cid in columns:
-            s_column = table.column(s_cid)
-            assert s_column is not None
-            s_heading = table.heading(s_cid)
-            assert s_heading is not None
-            column_settings[s_cid] = (
-                s_heading["text"], s_heading["anchor"], s_column["width"], s_column["minwidth"]
-            )
-        # ..., then add the column, but ensure we're not adding the icons column...
+        # NOTE: we don't do this for the icon column
         if cid != "#0":
+            # we need to save the column settings and headings before modifying the columns...
+            columns: tuple[str, ...] = table.cget("columns") or ()
+            column_settings: dict[str, tuple[str, tk._Anchor, int, int]] = {}
+            for s_cid in columns:
+                s_column = table.column(s_cid)
+                assert s_column is not None
+                s_heading = table.heading(s_cid)
+                assert s_heading is not None
+                column_settings[s_cid] = (
+                    s_heading["text"], s_heading["anchor"], s_column["width"], s_column["minwidth"]
+                )
+            # ..., then add the column
             table.config(columns=columns + (cid,))
-        # ..., and then restore column settings and headings afterwards
-        for s_cid, (s_name, s_anchor, s_width, s_minwidth) in column_settings.items():
-            table.heading(s_cid, text=s_name, anchor=s_anchor)
-            table.column(s_cid, minwidth=s_minwidth, width=s_width, stretch=False)
+            # ..., and then restore column settings and headings afterwards
+            for s_cid, (s_name, s_anchor, s_width, s_minwidth) in column_settings.items():
+                table.heading(s_cid, text=s_name, anchor=s_anchor)
+                table.column(s_cid, minwidth=s_minwidth, width=s_width, stretch=False)
         # set heading and column settings for the new column
         if width_template is not None:
             width = self._measure(width_template)
