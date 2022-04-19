@@ -466,10 +466,12 @@ class Twitch:
         # 1h at max, but can be shorter if there's an upcoming campaign earlier than that
         # divide the period into up to two evenly spaced checks (usually ~15-30m)
         now = datetime.now(timezone.utc)
+        one_hour = timedelta(hours=1)
         period = min(
-            campaign.starts_at - now for campaign in self.inventory if campaign.starts_at > now
+            (campaign.starts_at - now for campaign in self.inventory if campaign.starts_at > now),
+            default=one_hour,
         )
-        if period > (one_hour := timedelta(hours=1)):
+        if period > one_hour:
             period = one_hour
         times = ceil(period.total_seconds() / 30 * 60)
         period /= times
