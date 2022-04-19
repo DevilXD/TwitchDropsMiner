@@ -941,7 +941,7 @@ class Twitch:
         watching_channel = self.watching_channel.get_with_default(channel)
         drops: list[TimedDrop] = []
         strict_drops: list[TimedDrop] = []
-        game = watching_channel is not None and watching_channel.game or None
+        game: Game | None = watching_channel is not None and watching_channel.game or None
         for campaign in self.inventory:
             if campaign.game in self.games and campaign.can_earn(watching_channel):
                 new_drops = [drop for drop in campaign.drops if drop.can_earn(watching_channel)]
