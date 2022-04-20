@@ -25,6 +25,12 @@ Every ~60 seconds, the application sends a "minute watched" event to the channel
 - Make sure to link your Twitch account to game accounts on the [campaigns page](https://www.twitch.tv/drops/campaigns), to enable more games to be mined.
 - Persistent cookies will be stored in the `cookies.jar` file, from which the authorization (login) information will be restored on each subsequent run.
 
+**Pictures:**
+
+![Main](https://user-images.githubusercontent.com/4180725/164298155-c0880ad7-6423-4419-8d73-f3c053730a1b.png)
+![Inventory](https://user-images.githubusercontent.com/4180725/164298315-81cae0d2-24a4-4822-a056-154fd763c284.png)
+![Settings](https://user-images.githubusercontent.com/4180725/164298391-b13ad40d-3881-436c-8d4c-34e2bbe33a78.png)
+
 **Notes:**
 
 - Make sure to keep your cookies file safe, as the authorization information it stores can give another person access to your Twitch account.
