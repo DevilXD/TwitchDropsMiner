@@ -479,7 +479,12 @@ class Twitch:
             channel = self.watching_channel.get_with_default(None)
             # ensure every ~20-30 minutes that we don't have unclaimed points bonus
             if channel is not None:
-                await channel.claim_bonus()
+                try:
+                    await channel.claim_bonus()
+                except asyncio.CancelledError:
+                    raise  # let this one through
+                except Exception:
+                    pass  # we intentionally silently skip anything else
             await asyncio.sleep(period.total_seconds())
         # this triggers this task restart every 60 minutes
         self.change_state(State.INVENTORY_FETCH)
