@@ -1460,7 +1460,7 @@ class GUIManager:
         self, drop: TimedDrop, *, countdown: bool = True, subone: bool = False
     ) -> None:
         self.progress.display(drop, countdown=countdown, subone=subone)  # main tab
-        self.inv.update_drop(drop)  # inventory
+        # inventory overview is updated from within drops themselves via change events
         self.tray.update_title(drop)  # tray
 
     def print(self, *args, **kwargs):

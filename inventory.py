@@ -13,8 +13,8 @@ if TYPE_CHECKING:
     from collections import abc
 
     from twitch import Twitch
-    from gui import GUIManager
     from constants import JsonType
+    from gui import GUIManager, InventoryOverview
 
 
 DIMS_PATTERN = re.compile(r'-\d+x\d+(?=\.(?:jpg|png|gif)$)', re.I)
@@ -141,6 +141,7 @@ class TimedDrop(BaseDrop):
     ):
         super().__init__(campaign, data, claimed_benefits)
         self._manager: GUIManager = self._twitch.gui
+        self._gui_inv: InventoryOverview = self._manager.inv
         self.current_minutes: int = 0
         if "self" in data:
             self.current_minutes = data["self"]["currentMinutesWatched"]
@@ -170,9 +171,15 @@ class TimedDrop(BaseDrop):
     def progress(self) -> float:
         return self.current_minutes / self.required_minutes
 
+    def _on_claim(self) -> None:
+        result = super()._on_claim()
+        self._gui_inv.update_drop(self)
+        return result
+
     def _on_minutes_changed(self) -> None:
         invalidate_cache(self, "progress", "remaining_minutes")
         self.campaign._on_minutes_changed()
+        self._gui_inv.update_drop(self)
 
     async def claim(self) -> bool:
         result = await super().claim()
