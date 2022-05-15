@@ -1204,6 +1204,7 @@ class SettingsPanel:
             self._priority_list.insert("end", game_name)
             self._priority_list.see("end")
             self._settings.priority.append(game_name)
+            self._settings.alter()
         else:
             # already there, set the selection on it
             self._priority_list.selection_set(existing_idx)
@@ -1230,6 +1231,7 @@ class SettingsPanel:
         self._priority_list.see(swap_idx)
         p = self._settings.priority
         p[idx], p[swap_idx] = p[swap_idx], p[idx]
+        self._settings.alter()
 
     def priority_delete(self) -> None:
         idx: int | None = self._priority_idx()
@@ -1237,6 +1239,7 @@ class SettingsPanel:
             return
         self._priority_list.delete(idx)
         del self._settings.priority[idx]
+        self._settings.alter()
 
     def priority_only(self) -> None:
         self._settings.priority_only = bool(self._vars["priority_only"].get())
@@ -1250,6 +1253,7 @@ class SettingsPanel:
         exclude = self._settings.exclude
         if game_name not in exclude:
             exclude.add(game_name)
+            self._settings.alter()
             # insert it alphabetically
             for i, item in enumerate(self._exclude_list.get(0, "end")):
                 if game_name < item:
@@ -1279,6 +1283,7 @@ class SettingsPanel:
         item: str = self._exclude_list.get(idx)
         if item in self._settings.exclude:
             self._settings.exclude.discard(item)
+            self._settings.alter()
             self._exclude_list.delete(idx)
 
 

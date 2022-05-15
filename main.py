@@ -180,7 +180,7 @@ loop.run_until_complete(client.gui.wait_until_closed())
 # save settings
 # NOTE: we have to do it after wait_until_closed,
 # because the user can alter settings between shutdown and closing the window
-client.settings.save()
+client.settings.save(force=True)
 client.gui.stop()
 client.gui.close_window()
 loop.run_until_complete(loop.shutdown_asyncgens())

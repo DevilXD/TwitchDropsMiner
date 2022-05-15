@@ -73,6 +73,9 @@ class Settings:
     def __delattr__(self, name: str, /) -> None:
         raise RuntimeError("settings can't be deleted")
 
-    def save(self) -> None:
-        if self._altered:
+    def alter(self) -> None:
+        self._altered = True
+
+    def save(self, *, force: bool = False) -> None:
+        if self._altered or force:
             json_save(SETTINGS_PATH, self._settings)
