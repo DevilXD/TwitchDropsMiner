@@ -1032,6 +1032,7 @@ class _SettingsVars(TypedDict):
 
 class SettingsPanel:
     AUTOSTART_NAME: str = "TwitchDropsMiner"
+    AUTOSTART_KEY: str = "HKCU/Software/Microsoft/Windows/CurrentVersion/Run"
 
     def __init__(self, manager: GUIManager, master: ttk.Widget):
         self._twitch = manager._twitch
@@ -1172,10 +1173,10 @@ class SettingsPanel:
             self_path = f'"{SELF_PATH.resolve()!s}"'
             if tray:
                 self_path += " --tray"
-            with RegistryKey("HKCU/Software/Microsoft/Windows/CurrentVersion/Run") as key:
+            with RegistryKey(self.AUTOSTART_KEY) as key:
                 key.set(self.AUTOSTART_NAME, ValueType.REG_SZ, self_path)
         else:
-            with RegistryKey("HKCU/Software/Microsoft/Windows/CurrentVersion/Run") as key:
+            with RegistryKey(self.AUTOSTART_KEY) as key:
                 key.delete(self.AUTOSTART_NAME, silent=True)
 
     def set_games(self, games: abc.Iterable[Game]) -> None:
