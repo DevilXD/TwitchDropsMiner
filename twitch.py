@@ -17,8 +17,8 @@ from gui import GUIManager
 from channel import Channel
 from websocket import WebsocketPool
 from inventory import DropsCampaign
-from utils import task_wrapper, timestamp, AwaitableValue, OrderedSet
 from exceptions import ExitRequest, RequestException, LoginException, CaptchaRequired
+from utils import task_wrapper, timestamp, AwaitableValue, OrderedSet, ExponentialBackoff
 from constants import (
     BASE_URL,
     CLIENT_ID,
@@ -856,12 +856,12 @@ class Twitch:
         for attempt in range(attempts):
             logger.debug(f"Request: ({method=}, {url=}, {attempts=}, {kwargs=})")
             try:
-                while True:
+                for delay in ExponentialBackoff(shift=4, maximum=3*60):
                     async with session.request(method, url, **kwargs) as response:
                         logger.debug(f"Response: {response.status}: {response}")
                         if response.status >= 500:
-                            self.print("Twitter is down, retrying in 120 seconds...")
-                            await asyncio.sleep(120)
+                            self.print(f"Twitter is down, retrying in {round(delay)} seconds...")
+                            await asyncio.sleep(delay)
                             continue
                         yield response
                         break
