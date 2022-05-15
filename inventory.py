@@ -102,7 +102,7 @@ class BaseDrop:
     async def claim(self) -> bool:
         result = await self._claim()
         if result:
-            self.is_claimed = True
+            self.is_claimed = result
             # notify the campaign about claiming
             # this will cause it to call our _on_claim, so no need to call it ourselves here
             self.campaign._on_claim()

@@ -230,11 +230,9 @@ class Channel:
         return URLType(match.group(1))
 
     async def get_stream(self) -> Stream | None:
-        response: JsonType | None = await self._twitch.gql_request(
+        response: JsonType = await self._twitch.gql_request(
             GQL_OPERATIONS["GetStreamInfo"].with_variables({"channel": self._login})
         )
-        if not response:
-            return None
         stream_data: JsonType | None = response["data"]["user"]
         if not stream_data:
             return None
@@ -295,7 +293,7 @@ class Channel:
         """
         This claims bonus points if they're available, and fills out the 'points' attribute.
         """
-        response = await self._twitch.gql_request(
+        response: JsonType = await self._twitch.gql_request(
             GQL_OPERATIONS["ChannelPointsContext"].with_variables({"channelLogin": self._login})
         )
         channel_data: JsonType = response["data"]["community"]["channel"]
