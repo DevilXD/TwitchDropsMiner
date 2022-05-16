@@ -24,6 +24,14 @@ def remove_dimensions(url: URLType) -> URLType:
     return URLType(DIMS_PATTERN.sub('', url))
 
 
+class Benefit:
+    def __init__(self, data: JsonType):
+        benefit_data: JsonType = data["benefit"]
+        self.id: str = benefit_data["id"]
+        self.name: str = benefit_data["name"]
+        self.image_url: URLType = benefit_data["imageAssetURL"]
+
+
 class BaseDrop:
     def __init__(
         self, campaign: DropsCampaign, data: JsonType, claimed_benefits: dict[str, datetime]
@@ -32,9 +40,7 @@ class BaseDrop:
         self.id: str = data["id"]
         self.name: str = data["name"]
         self.campaign: DropsCampaign = campaign
-        self.rewards: list[str] = [b["benefit"]["name"] for b in data["benefitEdges"]]
-        # we use the first benefit's image specifically here
-        self.image_url: URLType = data["benefitEdges"][0]["benefit"]["imageAssetURL"]
+        self.benefits: list[Benefit] = [Benefit(b) for b in data["benefitEdges"]]
         self.starts_at: datetime = timestamp(data["startAt"])
         self.ends_at: datetime = timestamp(data["endAt"])
         self.claim_id: str | None = None
@@ -52,8 +58,8 @@ class BaseDrop:
             (
                 dts := [
                     claimed_benefits[bid]
-                    for b in data["benefitEdges"]
-                    if (bid := b["benefit"]["id"]) in claimed_benefits
+                    for benefit in self.benefits
+                    if (bid := benefit.id) in claimed_benefits
                 ]
             )
             and all(self.starts_at <= dt < self.ends_at for dt in dts)
@@ -97,7 +103,7 @@ class BaseDrop:
         self.claim_id = claim_id
 
     def rewards_text(self, delim: str = ", ") -> str:
-        return delim.join(self.rewards)
+        return delim.join(benefit.name for benefit in self.benefits)
 
     async def claim(self) -> bool:
         result = await self._claim()

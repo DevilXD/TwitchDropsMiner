@@ -975,10 +975,13 @@ class InventoryOverview:
         for i, drop in enumerate(campaign.drops):
             drop_frame = ttk.Frame(drops_row, relief="ridge", borderwidth=1, padding=5)
             drop_frame.grid(column=i, row=0, padx=4)
-            drop_image = await self._cache.get(drop.image_url, (80, 80))
-            ttk.Label(
-                drop_frame, text=drop.rewards_text(), image=drop_image, compound="bottom"
-            ).grid(column=0, row=0)
+            benefits_frame = ttk.Frame(drop_frame)
+            benefits_frame.grid(column=0, row=0)
+            for i, benefit in enumerate(drop.benefits):
+                benefit_image = await self._cache.get(benefit.image_url, (80, 80))
+                ttk.Label(
+                    benefits_frame, text=benefit.name, image=benefit_image, compound="bottom"
+                ).grid(column=i, row=0, padx=5)
             progress_text, progress_color = self.get_progress(drop)
             self._drops[drop.id] = label = ttk.Label(
                 drop_frame, text=progress_text, foreground=progress_color
