@@ -126,6 +126,12 @@ class Websocket:
                     f"Websocket[{self._idx}] connection error (sleep: {delay:.3}s)", exc_info=True
                 )
                 await asyncio.sleep(delay)
+            except RuntimeError:
+                ws_logger.warning(
+                    f"Websocket[{self._idx}] exiting backoff connect loop "
+                    "because session is closed (RuntimeError)"
+                )
+                break
 
     @task_wrapper
     async def _handle(self):
