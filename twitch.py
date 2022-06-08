@@ -879,6 +879,8 @@ class Twitch:
                 cause = exc
                 if attempt < attempts - 1:
                     await asyncio.sleep(0.1 * attempt)
+        if "json" in kwargs and "password" in kwargs["json"]:
+            kwargs["json"]["password"] = "..."
         raise RequestException(
             "Ran out of attempts while handling a request: "
             f"({method=}, {url=}, {attempts=}, {kwargs=})"
