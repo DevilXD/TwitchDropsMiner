@@ -17,7 +17,9 @@ from gui import GUIManager
 from channel import Channel
 from websocket import WebsocketPool
 from inventory import DropsCampaign
-from exceptions import ExitRequest, RequestException, LoginException, CaptchaRequired
+from exceptions import (
+    MinerException, RequestException, LoginException, CaptchaRequired, ExitRequest
+)
 from utils import task_wrapper, timestamp, AwaitableValue, OrderedSet, ExponentialBackoff
 from constants import (
     BASE_URL,
@@ -731,10 +733,17 @@ class Twitch:
             payload.pop("authy_token", None)
             payload.pop("twitchguard_code", None)
             for attempt in range(2):
-                async with self.request(
-                    "POST", "https://passport.twitch.tv/login", json=payload
-                ) as response:
-                    login_response: JsonType = await response.json()
+                try:
+                    async with self.request(
+                        "POST", "https://passport.twitch.tv/login", json=payload
+                    ) as response:
+                        login_response: JsonType = await response.json()
+                except aiohttp.ContentTypeError as exc:
+                    raise MinerException(
+                        "Unexpected content type returned instead of JSON, "
+                        "usually due to being redirected. "
+                        "Do you need to login for internet access?"
+                    ) from exc
 
                 # Feed this back in to avoid running into CAPTCHA if possible
                 if "captcha_proof" in login_response:
