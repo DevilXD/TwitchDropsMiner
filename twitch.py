@@ -861,24 +861,30 @@ class Twitch:
         method = method.upper()
         if self.settings.proxy and "proxy" not in kwargs:
             kwargs["proxy"] = self.settings.proxy
+        logger.debug(f"Request: ({method=}, {url=}, {attempts=}, {kwargs=})")
+        attempt = 0
         cause: Exception | None = None
-        for attempt in range(attempts):
-            logger.debug(f"Request: ({method=}, {url=}, {attempts=}, {kwargs=})")
+        backoff = ExponentialBackoff(shift=4, maximum=3*60)
+        while attempt < attempts + 1:
+            delay: float | None = None
             try:
-                for delay in ExponentialBackoff(shift=4, maximum=3*60):
-                    async with session.request(method, url, **kwargs) as response:
-                        logger.debug(f"Response: {response.status}: {response}")
-                        if response.status >= 500:
-                            self.print(f"Twitter is down, retrying in {round(delay)} seconds...")
-                            await asyncio.sleep(delay)
-                            continue
+                async with session.request(method, url, **kwargs) as response:
+                    logger.debug(f"Response: {response.status}: {response}")
+                    if response.status < 500:
                         yield response
-                        break
-                return
+                        return
+                    delay = next(backoff)
+                    self.print(f"Twitter is down, retrying in {round(delay)} seconds...")
+            except asyncio.TimeoutError:
+                delay = next(backoff)
+                self.print(f"Cannot connect to Twitter, retrying in {round(delay)} seconds...")
             except aiohttp.ClientConnectionError as exc:
                 cause = exc
-                if attempt < attempts - 1:
-                    await asyncio.sleep(0.1 * attempt)
+            if delay is not None:
+                await asyncio.sleep(delay)
+            else:
+                await asyncio.sleep(0.1 * attempt)
+                attempt += 1
         if "json" in kwargs and "password" in kwargs["json"]:
             kwargs["json"]["password"] = "..."
         raise RequestException(
