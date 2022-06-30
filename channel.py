@@ -62,6 +62,11 @@ class Stream:
             tags=data["tags"],
         )
 
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, self.__class__):
+            return self.broadcast_id == other.broadcast_id
+        return NotImplemented
+
 
 class Channel:
     def __init__(
@@ -245,8 +250,8 @@ class Channel:
 
     async def check_online(self) -> bool:
         self._stream = await self.get_stream()
+        invalidate_cache(self, "_payload")
         if self._stream is None:
-            invalidate_cache(self, "_payload")
             return False
         return True
 
