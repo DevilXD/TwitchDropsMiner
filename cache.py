@@ -59,7 +59,7 @@ class ImageCache:
             if count == 0:
                 # hashes come with an extension already
                 for file in CACHE_PATH.glob(img_hash):
-                    file.unlink()
+                    file.unlink(missing_ok=True)
 
     def save(self) -> None:
         if self._altered:
