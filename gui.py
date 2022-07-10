@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import webbrowser
 import tkinter as tk
 from math import log10, ceil
 from functools import partial
-from tkinter.font import Font
 from collections import abc, namedtuple
+from tkinter.font import Font, nametofont
 from tkinter import Tk, ttk, StringVar, DoubleVar, IntVar
 from typing import Any, TypedDict, NoReturn, TYPE_CHECKING
 
@@ -28,8 +29,6 @@ if TYPE_CHECKING:
 
 
 digits = ceil(log10(WS_TOPICS_LIMIT))
-WS_FONT = ("Courier New", 10)
-LARGE_FONT = (..., 12)
 
 
 class _TKOutputHandler(logging.Handler):
@@ -235,16 +234,27 @@ class PaddedListbox(tk.Listbox):
 
 class MouseOverLabel(ttk.Label):
     def __init__(self, *args, alt_text: str = '', **kwargs) -> None:
-        options = {}
-        if args and args[0] is not None:
-            options.update(args[0])
-        if kwargs:
-            options.update(kwargs)
-        self._org_text: str = options.get("text", '')
+        self._org_text: str = kwargs.get("text", '')
         self._alt_text: str = alt_text
         super().__init__(*args, **kwargs)
         self.bind("<Enter>", lambda e: self.config(text=self._alt_text))
         self.bind("<Leave>", lambda e: self.config(text=self._org_text))
+
+
+class LinkLabel(ttk.Label):
+    def __init__(self, *args, link: str, **kwargs) -> None:
+        if "foreground" not in kwargs:
+            kwargs["foreground"] = "blue"
+        if "cursor" not in kwargs:
+            kwargs["cursor"] = "hand2"
+        if "style" not in kwargs:
+            kwargs["style"] = "Link.TLabel"
+        self._link: str = link
+        super().__init__(*args, **kwargs)
+        self.bind("<ButtonRelease-1>", self.webopen(self._link))
+
+    def webopen(self, url: str):
+        return lambda e: webbrowser.open_new_tab(url)
 
 
 class _WSEntry(TypedDict):
@@ -258,24 +268,25 @@ class WebsocketStatus:
         self._topics_var = StringVar(master)
         frame = ttk.LabelFrame(master, text="Websocket Status", padding=(4, 0, 4, 4))
         frame.grid(column=0, row=0, sticky="nsew", padx=2)
+        monospace_font = Font(frame, family="Courier New", size=10)
         ttk.Label(
             frame,
             text='\n'.join(f"Websocket #{i}:" for i in range(1, MAX_WEBSOCKETS + 1)),
-            font=WS_FONT,
+            font=monospace_font,
         ).grid(column=0, row=0)
         ttk.Label(
             frame,
             textvariable=self._status_var,
             width=16,
             justify="left",
-            font=WS_FONT,
+            font=monospace_font,
         ).grid(column=1, row=0)
         ttk.Label(
             frame,
             textvariable=self._topics_var,
             width=(digits * 2 + 1),
             justify="right",
-            font=WS_FONT,
+            font=monospace_font,
         ).grid(column=2, row=0)
         self._items: dict[int, _WSEntry | None] = {i: None for i in range(MAX_WEBSOCKETS)}
         self._update()
@@ -1291,6 +1302,65 @@ class SettingsPanel:
             self._exclude_list.delete(idx)
 
 
+class HelpTab:
+    WIDTH = 800
+
+    def __init__(self, manager: GUIManager, master: ttk.Widget):
+        self._twitch = manager._twitch
+        master.rowconfigure(0, weight=1)
+        master.columnconfigure(0, weight=1)
+        # use a frame to center the content within the tab
+        center_frame = ttk.Frame(master)
+        center_frame.grid(column=0, row=0)
+        irow = 0
+        links = ttk.LabelFrame(center_frame, padding=(4, 0, 4, 4), text="Useful links")
+        links.grid(column=0, row=(irow := irow + 1), sticky="nsew", padx=2)
+        LinkLabel(
+            links, link="https://www.twitch.tv/drops/inventory", text="See Twitch Inventory"
+        ).grid(column=0, row=0, sticky="nsew")
+        LinkLabel(
+            links, link="https://www.twitch.tv/drops/campaigns", text="Manage account links"
+        ).grid(column=0, row=1, sticky="nsew")
+        howitworks = ttk.LabelFrame(center_frame, padding=(4, 0, 4, 4), text="How It Works")
+        howitworks.grid(column=0, row=(irow := irow + 1), sticky="nsew", padx=2)
+        ttk.Label(
+            howitworks,
+            text=(
+                "Every ~60 seconds, the application sends a \"minute watched\" event "
+                "to the channel that's currently being watched - this is enough "
+                "to advance the drops. Note that this completely bypasses the need to download "
+                "any actual stream video and sound. "
+                "To keep the status (ONLINE or OFFLINE) of the channels up-to-date, "
+                "there's a websocket connection estabilished that receives events about streams "
+                "going up or down, or updates regarding the current amount of viewers."
+            ),
+            wraplength=self.WIDTH,
+        ).grid(sticky="nsew")
+        getstarted = ttk.LabelFrame(center_frame, padding=(4, 0, 4, 4), text="Getting Started")
+        getstarted.grid(column=0, row=(irow := irow + 1), sticky="nsew", padx=2)
+        ttk.Label(
+            getstarted,
+            text=(
+                "1. Login into the application.\n"
+                "2. Ensure your Twitch account is linked to all campaigns "
+                "you're interested in mining.\n"
+                "3. If you're interested in just mining everything, "
+                "uncheck \"Priority only\" and press on \"Reload\".\n"
+                "4. If you want to mine specific games first, use the \"Priority\" list "
+                "to setup an ordered list of games of your choice. Games from the top of the list "
+                "will be attempted to be mined first, before the ones lower down the list.\n"
+                "5. Keep the \"Priority only\" option checked, to avoid mining games "
+                "that are not on the priority list.\n"
+                "6. Use the \"Exclude\" list to tell the application "
+                "which games should never be mined."
+                "7. Changing the contents of either of the lists, or changing the state "
+                "of the \"Priority only\" option, requires you to press on \"Reload\" "
+                "for the changes to take an effect."
+            ),
+            wraplength=self.WIDTH,
+        ).grid(sticky="nsew")
+
+
 class GUIManager:
     def __init__(self, twitch: Twitch):
         self._twitch: Twitch = twitch
@@ -1309,6 +1379,7 @@ class GUIManager:
 
         # style adjustements
         self._style = style = ttk.Style(root)
+        default_font = nametofont("TkDefaultFont")
         # theme
         theme = ''
         # theme = style.theme_names()[6]
@@ -1336,8 +1407,14 @@ class GUIManager:
             sublayout[1] = sublayout[1][1]["children"][0]
             del original[0][1]["children"][1]
             style.layout("TCheckbutton", original)
-        # adds a style with a larger font for buttons
-        style.configure("Large.TButton", font=LARGE_FONT)
+        # adds a button style with a larger font
+        large_font = default_font.copy()
+        large_font.config(size=12)
+        style.configure("Large.TButton", font=large_font)
+        # adds a label style that mimics links
+        link_font = default_font.copy()
+        link_font.config(underline=True)
+        style.configure("Link.TLabel", font=link_font)
         # end of style changes
 
         root_frame = ttk.Frame(root, padding=8)
@@ -1364,6 +1441,10 @@ class GUIManager:
         settings_frame = ttk.Frame(root_frame, padding=8)
         self.settings = SettingsPanel(self, settings_frame)
         self.tabs.add_tab(settings_frame, name="Settings")
+        # Help tab
+        help_frame = ttk.Frame(root_frame, padding=8)
+        self.help = HelpTab(self, help_frame)
+        self.tabs.add_tab(help_frame, name="Help")
         # clamp minimum window size (update geometry first)
         root.update_idletasks()
         root.minsize(width=root.winfo_reqwidth(), height=root.winfo_reqheight())
@@ -1527,7 +1608,7 @@ if __name__ == "__main__":
 
     def create_drop(
         campaign_name: str,
-        rewards: str,
+        rewards: list[str],
         claimed_drops: int,
         total_drops: int,
         current_minutes: int,
@@ -1538,6 +1619,11 @@ if __name__ == "__main__":
         cm = current_minutes
         tm = total_minutes
         ref_stamp = datetime.now(timezone.utc).replace(minute=0, second=0)
+        image_url = (
+            "https://static-cdn.jtvnw.net/twitch-drops-assets-prod/"
+            "BENEFIT-81ab5665-b2f4-4179-96e6-74da5a82da28.jpeg"
+        )
+        benefits = [SimpleNamespace(name=name, image_url=image_url) for name in rewards]
         mock = SimpleNamespace(
             id="0",
             campaign=SimpleNamespace(
@@ -1556,14 +1642,12 @@ if __name__ == "__main__":
                 progress=(cd * tm + cm) / (td * tm),
                 remaining_minutes=(td - cd) * tm - cm,
             ),
-            image_url=(
-                "https://static-cdn.jtvnw.net/twitch-drops-assets-prod/"
-                "BENEFIT-81ab5665-b2f4-4179-96e6-74da5a82da28.jpeg"
-            ),
+            image_url=image_url,
             can_claim=False,
             is_claimed=False,
             preconditions=True,
-            rewards_text=lambda: rewards,
+            benefits=benefits,
+            rewards_text=lambda: ', '.join(b.name for b in benefits),
             progress=cm/tm,
             current_minutes=cm,
             required_minutes=tm,
@@ -1645,10 +1729,11 @@ if __name__ == "__main__":
         await asyncio.sleep(1)
         gui.tray.notify("Bounty Coins (3/7)", "Mined Drop")
         # Inventory overview
-        drop = create_drop("Wardrobe Cleaning", "Fancy Pants", 2, 7, 239, 240)
+        drop = create_drop("Wardrobe Cleaning", ["Fancy Pants"], 2, 7, 239, 240)
         await gui.inv.add_campaign(drop.campaign)
         # Drop progress
         gui.display_drop(drop)
+
         await asyncio.sleep(63)
         drop.current_minutes = 240
         drop.remaining_minutes = 0
