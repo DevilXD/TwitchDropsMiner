@@ -511,18 +511,14 @@ class Twitch:
         Determines if the given channel qualifies as a switch candidate.
         """
         watching_channel = self.watching_channel.get_with_default(None)
+        if watching_channel is None:
+            return True
         channel_order = self._game_key(channel)
-        if watching_channel is not None:
-            watching_order = self._game_key(watching_channel)
-        else:
-            # stub it with some high value, it doesn't really matter
-            # since 'is None' check returns earlier anyway
-            watching_order = 1
+        watching_order = self._game_key(watching_channel)
         return (
-            watching_channel is None  # there's no current watching channel
-            # or this channel's game is higher order than the watching one's
+            # this channel's game is higher order than the watching one's
             # NOTE: order is tied to the priority list position, so lower == higher
-            or channel_order < watching_order
+            channel_order < watching_order
             or channel_order == watching_order  # or the order is the same
             # and this channel has priority over the watching channel
             and channel.priority > watching_channel.priority
