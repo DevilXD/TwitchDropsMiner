@@ -25,7 +25,7 @@ default_settings: SettingsFile = {
     "priority": [],
     "exclude": set(),
     "autostart": False,
-    "priority_only": False,
+    "priority_only": True,
     "autostart_tray": False,
 }
 
