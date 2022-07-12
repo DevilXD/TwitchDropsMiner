@@ -870,10 +870,10 @@ class Twitch:
                         yield response
                         return
                     delay = next(backoff)
-                    self.print(f"Twitter is down, retrying in {round(delay)} seconds...")
+                    self.print(f"Twitch is down, retrying in {round(delay)} seconds...")
             except asyncio.TimeoutError:
                 delay = next(backoff)
-                self.print(f"Cannot connect to Twitter, retrying in {round(delay)} seconds...")
+                self.print(f"Cannot connect to Twitch, retrying in {round(delay)} seconds...")
             except aiohttp.ClientConnectionError as exc:
                 cause = exc
             if delay is not None:
