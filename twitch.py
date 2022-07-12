@@ -17,9 +17,7 @@ from gui import GUIManager
 from channel import Channel
 from websocket import WebsocketPool
 from inventory import DropsCampaign
-from exceptions import (
-    MinerException, RequestException, LoginException, CaptchaRequired, ExitRequest
-)
+from exceptions import MinerException, LoginException, CaptchaRequired, ExitRequest
 from utils import task_wrapper, timestamp, AwaitableValue, OrderedSet, ExponentialBackoff
 from constants import (
     BASE_URL,
@@ -851,42 +849,24 @@ class Twitch:
 
     @asynccontextmanager
     async def request(
-        self, method: str, url: str, *, attempts: int = 5, **kwargs
+        self, method: str, url: str, **kwargs
     ) -> abc.AsyncIterator[aiohttp.ClientResponse]:
         session = await self.get_session()
         method = method.upper()
         if self.settings.proxy and "proxy" not in kwargs:
             kwargs["proxy"] = self.settings.proxy
-        logger.debug(f"Request: ({method=}, {url=}, {attempts=}, {kwargs=})")
-        attempt = 0
-        cause: Exception | None = None
-        backoff = ExponentialBackoff(shift=4, maximum=3*60)
-        while attempt < attempts + 1:
-            delay: float | None = None
+        logger.debug(f"Request: ({method=}, {url=}, {kwargs=})")
+        for delay in ExponentialBackoff(maximum=3*60):
             try:
                 async with session.request(method, url, **kwargs) as response:
                     logger.debug(f"Response: {response.status}: {response}")
                     if response.status < 500:
                         yield response
                         return
-                    delay = next(backoff)
                     self.print(f"Twitch is down, retrying in {round(delay)} seconds...")
-            except asyncio.TimeoutError:
-                delay = next(backoff)
+            except (aiohttp.ClientConnectionError, asyncio.TimeoutError):
                 self.print(f"Cannot connect to Twitch, retrying in {round(delay)} seconds...")
-            except aiohttp.ClientConnectionError as exc:
-                cause = exc
-            if delay is not None:
-                await asyncio.sleep(delay)
-            else:
-                await asyncio.sleep(0.1 * attempt)
-                attempt += 1
-        if "json" in kwargs and "password" in kwargs["json"]:
-            kwargs["json"]["password"] = "..."
-        raise RequestException(
-            "Ran out of attempts while handling a request: "
-            f"({method=}, {url=}, {attempts=}, {kwargs=})"
-        ) from cause
+            await asyncio.sleep(delay)
 
     async def gql_request(self, op: GQLOperation) -> JsonType:
         gql_logger.debug(f"GQL Request: {op}")
