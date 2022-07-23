@@ -473,7 +473,7 @@ class Twitch:
         )
         if period > one_hour:
             period = one_hour
-        times = ceil(period.total_seconds() / 30 * 60)
+        times = ceil(period.total_seconds() / (30 * 60))
         period /= times
         for i in range(times):
             channel = self.watching_channel.get_with_default(None)
