@@ -477,7 +477,7 @@ class Twitch:
         period /= times
         for i in range(times):
             channel = self.watching_channel.get_with_default(None)
-            # ensure every ~20-30 minutes that we don't have unclaimed points bonus
+            # ensure that we don't have unclaimed points bonus
             if channel is not None:
                 try:
                     await channel.claim_bonus()
@@ -486,7 +486,7 @@ class Twitch:
                 except Exception:
                     pass  # we intentionally silently skip anything else
             await asyncio.sleep(period.total_seconds())
-        # this triggers this task restart every 60 minutes
+        # this triggers this task restart every (up to) 60 minutes
         self.change_state(State.INVENTORY_FETCH)
 
     def can_watch(self, channel: Channel) -> bool:
@@ -856,7 +856,7 @@ class Twitch:
         if self.settings.proxy and "proxy" not in kwargs:
             kwargs["proxy"] = self.settings.proxy
         logger.debug(f"Request: ({method=}, {url=}, {kwargs=})")
-        for delay in ExponentialBackoff(maximum=3*60):
+        for delay in ExponentialBackoff(shift=1, maximum=3*60):
             try:
                 async with session.request(method, url, **kwargs) as response:
                     logger.debug(f"Response: {response.status}: {response}")
@@ -865,7 +865,9 @@ class Twitch:
                         return
                     self.print(f"Twitch is down, retrying in {round(delay)} seconds...")
             except (aiohttp.ClientConnectionError, asyncio.TimeoutError):
-                self.print(f"Cannot connect to Twitch, retrying in {round(delay)} seconds...")
+                # just so that quick 2nd retries that often happen, aren't shown
+                if delay > 1:
+                    self.print(f"Cannot connect to Twitch, retrying in {round(delay)} seconds...")
             await asyncio.sleep(delay)
 
     async def gql_request(self, op: GQLOperation) -> JsonType:
