@@ -460,8 +460,8 @@ class Twitch:
     @task_wrapper
     async def _maintenance_task(self) -> None:
         # NOTE: this task is started anew / restarted on every inventory fetch
-        # 1m sleep to let the application sort out the starting sequence and watching channel
-        await asyncio.sleep(60)
+        # short sleep to let the application sort out the starting sequence and watching channel
+        await asyncio.sleep(30)
         # figure out the maximum sleep period
         # 1h at max, but can be shorter if there's an upcoming campaign earlier than that
         # divide the period into up to two evenly spaced checks (usually ~15-30m)
@@ -473,7 +473,7 @@ class Twitch:
         )
         if period > one_hour:
             period = one_hour
-        times = ceil(period.total_seconds() / (30 * 60))
+        times = ceil(period / timedelta(minutes=30))
         period /= times
         for i in range(times):
             channel = self.watching_channel.get_with_default(None)
