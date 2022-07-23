@@ -249,6 +249,9 @@ class LinkLabel(ttk.Label):
             kwargs["cursor"] = "hand2"
         if "style" not in kwargs:
             kwargs["style"] = "Link.TLabel"
+        if "padding" not in kwargs:
+            # W, N, E, S
+            kwargs["padding"] = (0, 2, 0, 2)
         self._link: str = link
         super().__init__(*args, **kwargs)
         self.bind("<ButtonRelease-1>", self.webopen(self._link))
@@ -1317,26 +1320,34 @@ class HelpTab:
         about = ttk.LabelFrame(center_frame, padding=(4, 0, 4, 4), text="About")
         about.grid(column=0, row=(irow := irow + 1), sticky="nsew", padx=2)
         about.columnconfigure(2, weight=1)
+        # About - created by
         ttk.Label(
             about, text="Application created by: ", anchor="e"
         ).grid(column=0, row=0, sticky="nsew")
         LinkLabel(
             about, link="https://github.com/DevilXD", text="DevilXD"
         ).grid(column=1, row=0, sticky="nsew")
+        # About - repo link
         ttk.Label(about, text="Repository: ", anchor="e").grid(column=0, row=1, sticky="nsew")
         LinkLabel(
             about,
             link="https://github.com/DevilXD/TwitchDropsMiner",
             text="https://github.com/DevilXD/TwitchDropsMiner",
         ).grid(column=1, row=1, sticky="nsew")
+        # About - donate
+        ttk.Separator(
+            about, orient="horizontal"
+        ).grid(column=0, row=2, columnspan=3, sticky="nsew")
+        ttk.Label(about, text="Donate: ", anchor="e").grid(column=0, row=3, sticky="nsew")
         LinkLabel(
             about,
             link="https://www.buymeacoffee.com/DevilXD",
             text=(
                 "If you like the application and found it useful, "
-                "please consider donating a small amount to support me. Thank you!"
+                "please consider donating a small amount of money to support me. Thank you!"
             ),
-        ).grid(column=0, row=2, columnspan=3, sticky="nsew")
+            wraplength=self.WIDTH,
+        ).grid(column=1, row=3, sticky="nsew")
         # Useful links
         links = ttk.LabelFrame(center_frame, padding=(4, 0, 4, 4), text="Useful links")
         links.grid(column=0, row=(irow := irow + 1), sticky="nsew", padx=2)
@@ -1376,7 +1387,7 @@ class HelpTab:
                 "to setup an ordered list of games of your choice. Games from the top of the list "
                 "will be attempted to be mined first, before the ones lower down the list.\n"
                 "5. Keep the \"Priority only\" option checked, to avoid mining games "
-                "that are not on the priority list.\n"
+                "that are not on the priority list. Or not - it's up to you.\n"
                 "6. Use the \"Exclude\" list to tell the application "
                 "which games should never be mined.\n"
                 "7. Changing the contents of either of the lists, or changing the state "
