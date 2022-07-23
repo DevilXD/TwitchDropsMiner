@@ -1313,6 +1313,31 @@ class HelpTab:
         center_frame = ttk.Frame(master)
         center_frame.grid(column=0, row=0)
         irow = 0
+        # About
+        about = ttk.LabelFrame(center_frame, padding=(4, 0, 4, 4), text="About")
+        about.grid(column=0, row=(irow := irow + 1), sticky="nsew", padx=2)
+        about.columnconfigure(2, weight=1)
+        ttk.Label(
+            about, text="Application created by: ", anchor="e"
+        ).grid(column=0, row=0, sticky="nsew")
+        LinkLabel(
+            about, link="https://github.com/DevilXD", text="DevilXD"
+        ).grid(column=1, row=0, sticky="nsew")
+        ttk.Label(about, text="Repository: ", anchor="e").grid(column=0, row=1, sticky="nsew")
+        LinkLabel(
+            about,
+            link="https://github.com/DevilXD/TwitchDropsMiner",
+            text="https://github.com/DevilXD/TwitchDropsMiner",
+        ).grid(column=1, row=1, sticky="nsew")
+        LinkLabel(
+            about,
+            link="https://www.buymeacoffee.com/DevilXD",
+            text=(
+                "If you like the application and found it useful, "
+                "please consider donating a small amount to support me. Thank you!"
+            ),
+        ).grid(column=0, row=2, columnspan=3, sticky="nsew")
+        # Useful links
         links = ttk.LabelFrame(center_frame, padding=(4, 0, 4, 4), text="Useful links")
         links.grid(column=0, row=(irow := irow + 1), sticky="nsew", padx=2)
         LinkLabel(
@@ -1321,6 +1346,7 @@ class HelpTab:
         LinkLabel(
             links, link="https://www.twitch.tv/drops/campaigns", text="Manage account links"
         ).grid(column=0, row=1, sticky="nsew")
+        # How It Works
         howitworks = ttk.LabelFrame(center_frame, padding=(4, 0, 4, 4), text="How It Works")
         howitworks.grid(column=0, row=(irow := irow + 1), sticky="nsew", padx=2)
         ttk.Label(
@@ -1352,7 +1378,7 @@ class HelpTab:
                 "5. Keep the \"Priority only\" option checked, to avoid mining games "
                 "that are not on the priority list.\n"
                 "6. Use the \"Exclude\" list to tell the application "
-                "which games should never be mined."
+                "which games should never be mined.\n"
                 "7. Changing the contents of either of the lists, or changing the state "
                 "of the \"Priority only\" option, requires you to press on \"Reload\" "
                 "for the changes to take an effect."
