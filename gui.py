@@ -924,7 +924,7 @@ class InventoryOverview:
         self._campaigns: list[DropsCampaign] = []
         self._drops: dict[str, ttk.Label] = {}
 
-    def _canvas_update(self, event: tk.Event[tk.Canvas]):
+    def _canvas_update(self, event: tk.Event[tk.Canvas] | None = None):
         self._canvas.configure(scrollregion=self._canvas.bbox("all"))
 
     def _on_mousewheel(self, event: tk.Event[tk.Misc]):
@@ -1001,6 +1001,7 @@ class InventoryOverview:
                 drop_frame, text=progress_text, foreground=progress_color
             )
             label.grid(column=0, row=1)
+        self._canvas_update()
 
     def clear(self) -> None:
         for child in self._main_frame.winfo_children():
