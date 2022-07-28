@@ -1791,7 +1791,8 @@ if __name__ == "__main__":
         if task.exception() is not None:
             exit_event.set()
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     exit_event = asyncio.Event()
     main_task = loop.create_task(main(exit_event))
     main_task.add_done_callback(main_exit)
