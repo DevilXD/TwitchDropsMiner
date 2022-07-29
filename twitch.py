@@ -460,17 +460,22 @@ class Twitch:
     @task_wrapper
     async def _maintenance_task(self) -> None:
         # NOTE: this task is started anew / restarted on every inventory fetch
-        # short sleep to let the application sort out the starting sequence and watching channel
-        await asyncio.sleep(30)
+        # sleep until the application sorts out the starting sequence and watching channel
+        while self._state is State.INVENTORY_FETCH:
+            await asyncio.sleep(5)
         # figure out the maximum sleep period
-        # 1h at max, but can be shorter if there's an upcoming campaign earlier than that
+        # 1h at max, but can be shorter if there's a campaign state change earlier than that
         # divide the period into up to two evenly spaced checks (usually ~15-30m)
         now = datetime.now(timezone.utc)
         one_hour = timedelta(hours=1)
-        period = min(
-            (campaign.starts_at - now for campaign in self.inventory if campaign.starts_at > now),
-            default=one_hour,
-        )
+        period = timedelta.max
+        for campaign in self.inventory:
+            if not campaign.linked:
+                break
+            if campaign.starts_at > now and (test_period := campaign.starts_at - now) < period:
+                period = test_period
+            elif campaign.ends_at > now and (test_period := campaign.ends_at - now) < period:
+                period = test_period
         if period > one_hour:
             period = one_hour
         times = ceil(period / timedelta(minutes=30))
@@ -925,21 +930,24 @@ class Twitch:
             for c in available_list
             if (
                 c["status"] in applicable_statuses  # that are currently ACTIVE
-                and c["self"]["isAccountConnected"]  # and account is connected
                 and c["id"] not in existing_campaigns  # and they aren't in the inventory already
             )
         }
         # add campaigns that remained, that can be earned but are not in-progress yet
-        for campaign_id, available_data in available_campaigns.items():
-            campaign = await self.fetch_campaign(campaign_id, available_data, claimed_benefits)
-            if campaign.can_earn():
-                campaigns.append(campaign)
+        fetched_campaigns: list[DropsCampaign] = await asyncio.gather(
+            *(
+                self.fetch_campaign(campaign_id, available_data, claimed_benefits)
+                for campaign_id, available_data in available_campaigns.items()
+            )
+        )
+        campaigns.extend(fetched_campaigns)
         campaigns.sort(key=lambda c: c.ends_at)
+        campaigns.sort(key=lambda c: not c.linked)
         self._drops.clear()
         self.gui.inv.clear()
         self.inventory.clear()
         for campaign in campaigns:
-            self._drops.update((drop.id, drop) for drop in campaign.drops)
+            self._drops.update({drop.id: drop for drop in campaign.drops})
             await self.gui.inv.add_campaign(campaign)
             self.inventory.append(campaign)
 

@@ -8,8 +8,8 @@ from math import log10, ceil
 from functools import partial
 from collections import abc, namedtuple
 from tkinter.font import Font, nametofont
-from tkinter import Tk, ttk, StringVar, DoubleVar, IntVar
 from typing import Any, TypedDict, NoReturn, TYPE_CHECKING
+from tkinter import Tk, ttk, StringVar, DoubleVar, IntVar, PhotoImage
 
 import pystray
 from yarl import URL
@@ -243,16 +243,18 @@ class MouseOverLabel(ttk.Label):
 
 class LinkLabel(ttk.Label):
     def __init__(self, *args, link: str, **kwargs) -> None:
-        if "foreground" not in kwargs:
-            kwargs["foreground"] = "blue"
-        if "cursor" not in kwargs:
-            kwargs["cursor"] = "hand2"
+        self._link: str = link
+        # style provides font and foreground color
         if "style" not in kwargs:
             kwargs["style"] = "Link.TLabel"
+        elif not kwargs["style"]:
+            super().__init__(*args, **kwargs)
+            return
+        if "cursor" not in kwargs:
+            kwargs["cursor"] = "hand2"
         if "padding" not in kwargs:
             # W, N, E, S
             kwargs["padding"] = (0, 2, 0, 2)
-        self._link: str = link
         super().__init__(*args, **kwargs)
         self.bind("<ButtonRelease-1>", self.webopen(self._link))
 
@@ -271,25 +273,24 @@ class WebsocketStatus:
         self._topics_var = StringVar(master)
         frame = ttk.LabelFrame(master, text="Websocket Status", padding=(4, 0, 4, 4))
         frame.grid(column=0, row=0, sticky="nsew", padx=2)
-        monospace_font = Font(frame, family="Courier New", size=10)
         ttk.Label(
             frame,
             text='\n'.join(f"Websocket #{i}:" for i in range(1, MAX_WEBSOCKETS + 1)),
-            font=monospace_font,
+            style="MS.TLabel",
         ).grid(column=0, row=0)
         ttk.Label(
             frame,
             textvariable=self._status_var,
             width=16,
             justify="left",
-            font=monospace_font,
+            style="MS.TLabel",
         ).grid(column=1, row=0)
         ttk.Label(
             frame,
             textvariable=self._topics_var,
             width=(digits * 2 + 1),
             justify="right",
-            font=monospace_font,
+            style="MS.TLabel",
         ).grid(column=2, row=0)
         self._items: dict[int, _WSEntry | None] = {i: None for i in range(MAX_WEBSOCKETS)}
         self._update()
@@ -905,14 +906,36 @@ class Notebook:
 class InventoryOverview:
     def __init__(self, manager: GUIManager, master: ttk.Widget):
         self._cache = manager._cache
-        master.rowconfigure(0, weight=1)
-        master.columnconfigure(0, weight=1)
+        self._filters = {
+            "notlinked": IntVar(master, 0),
+            "expired": IntVar(master, 1),
+            "upcoming": IntVar(master, 1),
+        }
+        filter_frame = ttk.LabelFrame(master, text="Filter", padding=(4, 0, 4, 4))
+        LABEL_SPACING = 20
+        filter_frame.grid(column=0, row=0, columnspan=2, sticky="nsew")
+        ttk.Label(filter_frame, text="Show:", padding=(0, 0, 10, 0)).grid(column=0, row=0)
+        ttk.Checkbutton(filter_frame, variable=self._filters["notlinked"]).grid(column=1, row=0)
+        ttk.Label(
+            filter_frame, text="Not linked", padding=(0, 0, LABEL_SPACING, 0)
+        ).grid(column=2, row=0)
+        ttk.Checkbutton(filter_frame, variable=self._filters["expired"]).grid(column=3, row=0)
+        ttk.Label(
+            filter_frame, text="Expired", padding=(0, 0, LABEL_SPACING, 0)
+        ).grid(column=4, row=0)
+        ttk.Checkbutton(filter_frame, variable=self._filters["upcoming"]).grid(column=5, row=0)
+        ttk.Label(
+            filter_frame, text="Upcoming", padding=(0, 0, LABEL_SPACING, 0)
+        ).grid(column=6, row=0)
+        ttk.Button(filter_frame, text="Refresh", command=self.refresh).grid(column=7, row=0)
         self._canvas = tk.Canvas(master, scrollregion=(0, 0, 0, 0))
-        self._canvas.grid(column=0, row=0, sticky="nsew")
+        self._canvas.grid(column=0, row=1, sticky="nsew")
+        master.rowconfigure(1, weight=1)
+        master.columnconfigure(0, weight=1)
         xscroll = ttk.Scrollbar(master, orient="horizontal", command=self._canvas.xview)
-        xscroll.grid(column=0, row=1, sticky="ew")
+        xscroll.grid(column=0, row=2, sticky="ew")
         yscroll = ttk.Scrollbar(master, orient="vertical", command=self._canvas.yview)
-        yscroll.grid(column=1, row=0, sticky="ns")
+        yscroll.grid(column=1, row=1, sticky="ns")
         self._canvas.configure(xscrollcommand=xscroll.set, yscrollcommand=yscroll.set)
         self._canvas.bind("<Configure>", self._canvas_update)
         self._main_frame = ttk.Frame(self._canvas)
@@ -921,10 +944,31 @@ class InventoryOverview:
         )
         self._canvas.bind("<Leave>", lambda e: self._canvas.unbind_all("<MouseWheel>"))
         self._canvas.create_window(0, 0, anchor="nw", window=self._main_frame)
-        self._campaigns: list[DropsCampaign] = []
+        self._campaigns: dict[DropsCampaign, ttk.Frame] = {}
         self._drops: dict[str, ttk.Label] = {}
 
+    def _update_visibility(self, campaign: DropsCampaign):
+        # True if the campaign is supposed to show, False makes it hidden.
+        frame = self._campaigns[campaign]
+        if (
+            (campaign.linked or self._filters["notlinked"].get())
+            and (
+                campaign.active
+                or self._filters["expired"].get() and campaign.expired
+                or self._filters["upcoming"].get() and campaign.upcoming
+            )
+        ):
+            frame.grid()
+        else:
+            frame.grid_remove()
+
+    def refresh(self):
+        for campaign in self._campaigns:
+            self._update_visibility(campaign)
+        self._canvas_update()
+
     def _canvas_update(self, event: tk.Event[tk.Canvas] | None = None):
+        self._canvas.update_idletasks()
         self._canvas.configure(scrollregion=self._canvas.bbox("all"))
 
     def _on_mousewheel(self, event: tk.Event[tk.Misc]):
@@ -939,13 +983,16 @@ class InventoryOverview:
     async def add_campaign(self, campaign: DropsCampaign) -> None:
         campaign_frame = ttk.Frame(self._main_frame, relief="ridge", borderwidth=1, padding=4)
         campaign_frame.grid(column=0, row=len(self._campaigns), sticky="nsew", pady=3)
-        self._campaigns.append(campaign)
-        campaign_frame.rowconfigure(3, weight=1)
+        self._campaigns[campaign] = campaign_frame
+        self._update_visibility(campaign)
+        campaign_frame.rowconfigure(4, weight=1)
         campaign_frame.columnconfigure(1, weight=1)
         campaign_frame.columnconfigure(3, weight=10000)
+        # Name
         ttk.Label(
             campaign_frame, text=campaign.name, takefocus=False, width=45
         ).grid(column=0, row=0, columnspan=2, sticky="w")
+        # Status
         if campaign.active:
             status_text: str = "Active ✔"
             status_color: tk._Color = "green"
@@ -958,6 +1005,7 @@ class InventoryOverview:
         ttk.Label(
             campaign_frame, text=status_text, takefocus=False, foreground=status_color
         ).grid(column=1, row=1, sticky="w", padx=4)
+        # Starts / Ends
         MouseOverLabel(
             campaign_frame,
             text=f"Ends: {campaign.ends_at.astimezone().replace(microsecond=0, tzinfo=None)}",
@@ -966,6 +1014,26 @@ class InventoryOverview:
             ),
             takefocus=False,
         ).grid(column=1, row=2, sticky="w", padx=4)
+        # Linking status
+        if campaign.linked:
+            link_kwargs = {
+                "style": '',
+                "text": "Linked ✔",
+                "foreground": "green",
+            }
+        else:
+            link_kwargs = {
+                "text": "Not linked ❌",
+                "foreground": "red",
+            }
+        LinkLabel(
+            campaign_frame,
+            link=campaign.link_url,
+            takefocus=False,
+            padding=0,
+            **link_kwargs,
+        ).grid(column=1, row=3, sticky="w", padx=4)
+        # ACL channels
         acl = campaign.allowed_channels
         if acl:
             if len(acl) <= 5:
@@ -977,24 +1045,29 @@ class InventoryOverview:
             allowed_text = "All"
         ttk.Label(
             campaign_frame, text=f"Allowed channels:\n{allowed_text}", takefocus=False
-        ).grid(column=1, row=3, sticky="nw", padx=4)
-        campaign_image = await self._cache.get(campaign.image_url, size=(96, 128))
-        ttk.Label(campaign_frame, image=campaign_image).grid(column=0, row=1, rowspan=3)
+        ).grid(column=1, row=4, sticky="nw", padx=4)
+        # Image
+        campaign_image = await self._cache.get(campaign.image_url, size=(108, 144))
+        ttk.Label(campaign_frame, image=campaign_image).grid(column=0, row=1, rowspan=4)
+        # Drops separator
         ttk.Separator(
             campaign_frame, orient="vertical", takefocus=False
-        ).grid(column=2, row=0, rowspan=4, sticky="ns")
+        ).grid(column=2, row=0, rowspan=5, sticky="ns")
+        # Drops display
         drops_row = ttk.Frame(campaign_frame)
-        drops_row.grid(column=3, row=0, rowspan=4, sticky="nsew", padx=4)
+        drops_row.grid(column=3, row=0, rowspan=5, sticky="nsew", padx=4)
         drops_row.rowconfigure(0, weight=1)
         for i, drop in enumerate(campaign.drops):
             drop_frame = ttk.Frame(drops_row, relief="ridge", borderwidth=1, padding=5)
             drop_frame.grid(column=i, row=0, padx=4)
             benefits_frame = ttk.Frame(drop_frame)
             benefits_frame.grid(column=0, row=0)
-            for i, benefit in enumerate(drop.benefits):
-                benefit_image = await self._cache.get(benefit.image_url, (80, 80))
+            benefit_images: list[PhotoImage] = await asyncio.gather(
+                *(self._cache.get(benefit.image_url, (80, 80)) for benefit in drop.benefits)
+            )
+            for i, benefit, image in zip(range(len(drop.benefits)), drop.benefits, benefit_images):
                 ttk.Label(
-                    benefits_frame, text=benefit.name, image=benefit_image, compound="bottom"
+                    benefits_frame, text=benefit.name, image=image, compound="bottom"
                 ).grid(column=i, row=0, padx=5)
             progress_text, progress_color = self.get_progress(drop)
             self._drops[drop.id] = label = ttk.Label(
@@ -1037,7 +1110,7 @@ def proxy_validate(entry: PlaceholderEntry, settings: Settings) -> bool:
     if valid:
         settings.proxy = url
     else:
-        entry.delete(0, "end")
+        entry.clear()
     return valid
 
 
@@ -1445,14 +1518,21 @@ class GUIManager:
             sublayout[1] = sublayout[1][1]["children"][0]
             del original[0][1]["children"][1]
             style.layout("TCheckbutton", original)
-        # adds a button style with a larger font
+        # label style - green, yellow and red text
+        style.configure("green.TLabel", foreground="green")
+        style.configure("yellow.TLabel", foreground="goldenrod")
+        style.configure("red.TLabel", foreground="red")
+        # label style with a monospace font
+        monospaced_font = Font(root, family="Courier New", size=10)
+        style.configure("MS.TLabel", font=monospaced_font)
+        # button style with a larger font
         large_font = default_font.copy()
         large_font.config(size=12)
         style.configure("Large.TButton", font=large_font)
-        # adds a label style that mimics links
+        # label style that mimics links
         link_font = default_font.copy()
         link_font.config(underline=True)
-        style.configure("Link.TLabel", font=link_font)
+        style.configure("Link.TLabel", font=link_font, foreground="blue")
         # end of style changes
 
         root_frame = ttk.Frame(root, padding=8)
@@ -1607,6 +1687,9 @@ if __name__ == "__main__":
                 return self._str__(self)
             return super().__str__()
 
+    class HashNamespace(SimpleNamespace):
+        __hash__ = object.__hash__  # type: ignore
+
     def create_game(id: int, name: str):
         return StrNamespace(name=name, id=id, _str__=lambda s: s.name)
 
@@ -1664,11 +1747,14 @@ if __name__ == "__main__":
         benefits = [SimpleNamespace(name=name, image_url=image_url) for name in rewards]
         mock = SimpleNamespace(
             id="0",
-            campaign=SimpleNamespace(
+            campaign=HashNamespace(
                 name=campaign_name,
                 id="campaign",
+                expired=False,
                 active=False,
                 upcoming=True,
+                linked=False,
+                link_url="https://google.com",
                 image_url="https://static-cdn.jtvnw.net/ttv-boxart/460630-285x380.jpg",
                 allowed_channels=[],
                 starts_at=ref_stamp,

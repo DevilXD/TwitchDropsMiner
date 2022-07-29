@@ -212,6 +212,8 @@ class DropsCampaign:
         self.id: str = data["id"]
         self.name: str = data["name"]
         self.game: Game = Game(data["game"])
+        self.linked: bool = data["self"]["isAccountConnected"]
+        self.link_url: str = data["accountLinkURL"]
         # campaign's image actually comes from the game object
         # we use regex to get rid of the dimensions part (ex. ".../game_id-285x380.jpg")
         self.image_url: URLType = remove_dimensions(data["game"]["boxArtURL"])
@@ -279,7 +281,8 @@ class DropsCampaign:
 
     def _base_can_earn(self, channel: Channel | None = None) -> bool:
         return (
-            self.active  # campaign is active
+            self.linked  # account is connected
+            and self.active  # campaign is active
             # channel isn't specified, or there's no ACL, or the channel is in the ACL
             and (channel is None or not self.allowed_channels or channel in self.allowed_channels)
         )
