@@ -202,6 +202,7 @@ class Twitch:
         self.change_state(State.INVENTORY_FETCH)
         while True:
             if self._state is State.IDLE:
+                self.gui.status.update("Idle")
                 self.stop_watching()
                 # clear the flag and wait until it's set again
                 self._state_change.clear()
@@ -244,6 +245,7 @@ class Twitch:
                 self.restart_watching()
                 self.change_state(State.CHANNELS_CLEANUP)
             elif self._state is State.CHANNELS_CLEANUP:
+                self.gui.status.update("Cleaning up channels...")
                 if not self.games or full_cleanup:
                     # no games selected or we're doing full cleanup: remove everything
                     to_remove: list[Channel] = list(channels.values())
@@ -280,6 +282,7 @@ class Twitch:
                     )
                     self.change_state(State.IDLE)
             elif self._state is State.CHANNELS_FETCH:
+                self.gui.status.update("Gathering channels...")
                 # start with all current channels
                 new_channels: OrderedSet[Channel] = OrderedSet(self.channels.values())
                 # gather and add ACL channels from campaigns
@@ -360,6 +363,7 @@ class Twitch:
                         break
                 self.change_state(State.CHANNEL_SWITCH)
             elif self._state is State.CHANNEL_SWITCH:
+                self.gui.status.update("Switching the channel...")
                 # Change into the selected channel, stay in the watching channel,
                 # or select a new channel that meets the required conditions
                 new_watching = None
@@ -388,9 +392,14 @@ class Twitch:
                         # if we have a better switch target - do so
                         # otherwise, continue watching what we had before
                         self.watch(new_watching)
+                    # should immediately complete, since we'll definitely
+                    # have a channel we're watching here
+                    watching_channel = await self.watching_channel.get()
+                    self.gui.status.update(f"Watching {watching_channel.name}")
                     # break the state change chain by clearing the flag
                     self._state_change.clear()
             elif self._state is State.EXIT:
+                self.gui.status.update("Exiting...")
                 # we've been requested to exit the application
                 break
             await self._state_change.wait()
@@ -908,6 +917,8 @@ class Twitch:
         return DropsCampaign(self, campaign_data, claimed_benefits)
 
     async def fetch_inventory(self) -> None:
+        status_update = self.gui.status.update
+        status_update("Fetching inventory...")
         # fetch in-progress campaigns (inventory)
         response = await self.gql_request(GQL_OPERATIONS["Inventory"])
         inventory: JsonType = response["data"]["currentUser"]["inventory"]
@@ -934,19 +945,27 @@ class Twitch:
             )
         }
         # add campaigns that remained, that can be earned but are not in-progress yet
-        fetched_campaigns: list[DropsCampaign] = await asyncio.gather(
-            *(
+        status_update(f"Fetching campaigns... (0/{len(available_campaigns)})")
+        fetched_campaigns: list[DropsCampaign] = []
+        for i, coro in enumerate(
+            # specifically use an intermediate list per a Python bug
+            # https://github.com/python/cpython/issues/88342
+            asyncio.as_completed([
                 self.fetch_campaign(campaign_id, available_data, claimed_benefits)
                 for campaign_id, available_data in available_campaigns.items()
-            )
-        )
+            ]),
+            start=1,
+        ):
+            fetched_campaigns.append(await coro)
+            status_update(f"Fetching campaigns... ({i}/{len(available_campaigns)})")
         campaigns.extend(fetched_campaigns)
         campaigns.sort(key=lambda c: c.ends_at)
         campaigns.sort(key=lambda c: not c.linked)
         self._drops.clear()
         self.gui.inv.clear()
         self.inventory.clear()
-        for campaign in campaigns:
+        for i, campaign in enumerate(campaigns, start=1):
+            status_update(f"Adding campaigns to inventory... ({i}/{len(campaigns)})")
             self._drops.update({drop.id: drop for drop in campaign.drops})
             await self.gui.inv.add_campaign(campaign)
             self.inventory.append(campaign)

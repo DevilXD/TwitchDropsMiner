@@ -262,6 +262,20 @@ class LinkLabel(ttk.Label):
         return lambda e: webbrowser.open_new_tab(url)
 
 
+class StatusBar:
+    def __init__(self, manager: GUIManager, master: ttk.Widget):
+        frame = ttk.LabelFrame(master, text="Status", padding=(4, 0, 4, 4))
+        frame.grid(column=0, row=0, columnspan=3, sticky="nsew", padx=2)
+        self._label = ttk.Label(frame)
+        self._label.grid(column=0, row=0, sticky="nsew")
+
+    def update(self, text: str):
+        self._label.config(text=text)
+
+    def clear(self):
+        self._label.config(text='')
+
+
 class _WSEntry(TypedDict):
     status: str
     topics: int
@@ -269,10 +283,10 @@ class _WSEntry(TypedDict):
 
 class WebsocketStatus:
     def __init__(self, manager: GUIManager, master: ttk.Widget):
-        self._status_var = StringVar(master)
-        self._topics_var = StringVar(master)
         frame = ttk.LabelFrame(master, text="Websocket Status", padding=(4, 0, 4, 4))
-        frame.grid(column=0, row=0, sticky="nsew", padx=2)
+        frame.grid(column=0, row=1, sticky="nsew", padx=2)
+        self._status_var = StringVar(frame)
+        self._topics_var = StringVar(frame)
         ttk.Label(
             frame,
             text='\n'.join(f"Websocket #{i}:" for i in range(1, MAX_WEBSOCKETS + 1)),
@@ -334,7 +348,7 @@ class LoginForm:
         self._manager = manager
         self._var = StringVar(master)
         frame = ttk.LabelFrame(master, text="Login Form", padding=(4, 0, 4, 4))
-        frame.grid(column=1, row=0, sticky="nsew", padx=2)
+        frame.grid(column=1, row=1, sticky="nsew", padx=2)
         frame.columnconfigure(0, weight=2)
         frame.columnconfigure(1, weight=1)
         frame.rowconfigure(4, weight=1)
@@ -425,7 +439,7 @@ class CampaignProgress:
         self._frame = frame = ttk.LabelFrame(
             master, text="Campaign Progress", padding=(4, 0, 4, 4)
         )
-        frame.grid(column=0, row=1, columnspan=2, sticky="nsew", padx=2)
+        frame.grid(column=0, row=2, columnspan=2, sticky="nsew", padx=2)
         frame.columnconfigure(0, weight=2)
         frame.columnconfigure(1, weight=1)
         ttk.Label(frame, text="Campaign:").grid(column=0, row=0, columnspan=2)
@@ -542,11 +556,11 @@ class CampaignProgress:
 class ConsoleOutput:
     def __init__(self, manager: GUIManager, master: ttk.Widget):
         frame = ttk.LabelFrame(master, text="Output", padding=(4, 0, 4, 4))
-        frame.grid(column=0, row=2, columnspan=2, sticky="nsew", padx=2)
+        frame.grid(column=0, row=3, columnspan=2, sticky="nsew", padx=2)
+        # tell master frame that the containing row can expand
+        master.rowconfigure(3, weight=1)
         frame.rowconfigure(0, weight=1)  # let the frame expand
         frame.columnconfigure(0, weight=1)
-        # tell master frame that the containing row can expand
-        master.rowconfigure(2, weight=1)
         xscroll = ttk.Scrollbar(frame, orient="horizontal")
         yscroll = ttk.Scrollbar(frame, orient="vertical")
         self._text = tk.Text(
@@ -582,11 +596,11 @@ class ChannelList:
     def __init__(self, manager: GUIManager, master: ttk.Widget):
         self._manager = manager
         frame = ttk.LabelFrame(master, text="Channels", padding=(4, 0, 4, 4))
-        frame.grid(column=2, row=0, rowspan=3, sticky="nsew", padx=2)
-        frame.rowconfigure(1, weight=1)
-        frame.columnconfigure(0, weight=1)
+        frame.grid(column=2, row=1, rowspan=3, sticky="nsew", padx=2)
         # tell master frame that the containing column can expand
         master.columnconfigure(2, weight=1)
+        frame.rowconfigure(1, weight=1)
+        frame.columnconfigure(0, weight=1)
         buttons_frame = ttk.Frame(frame)
         self._buttons: _Buttons = {
             "frame": buttons_frame,
@@ -911,6 +925,7 @@ class InventoryOverview:
             "expired": IntVar(master, 1),
             "upcoming": IntVar(master, 1),
         }
+        # Filtering options
         filter_frame = ttk.LabelFrame(master, text="Filter", padding=(4, 0, 4, 4))
         LABEL_SPACING = 20
         filter_frame.grid(column=0, row=0, columnspan=2, sticky="nsew")
@@ -928,6 +943,7 @@ class InventoryOverview:
             filter_frame, text="Upcoming", padding=(0, 0, LABEL_SPACING, 0)
         ).grid(column=6, row=0)
         ttk.Button(filter_frame, text="Refresh", command=self.refresh).grid(column=7, row=0)
+        # Inventory view
         self._canvas = tk.Canvas(master, scrollregion=(0, 0, 0, 0))
         self._canvas.grid(column=0, row=1, sticky="nsew")
         master.rowconfigure(1, weight=1)
@@ -1546,6 +1562,7 @@ class GUIManager:
         # Main tab
         main_frame = ttk.Frame(root_frame, padding=8)
         self.tabs.add_tab(main_frame, name="Main")
+        self.status = StatusBar(self, main_frame)
         self.websockets = WebsocketStatus(self, main_frame)
         self.login = LoginForm(self, main_frame)
         self.progress = CampaignProgress(self, main_frame)
