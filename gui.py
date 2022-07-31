@@ -921,28 +921,44 @@ class InventoryOverview:
     def __init__(self, manager: GUIManager, master: ttk.Widget):
         self._cache = manager._cache
         self._filters = {
-            "notlinked": IntVar(master, 0),
+            "linked": IntVar(master, 1),
             "expired": IntVar(master, 1),
             "upcoming": IntVar(master, 1),
+            "finished": IntVar(master, 1),
         }
         # Filtering options
         filter_frame = ttk.LabelFrame(master, text="Filter", padding=(4, 0, 4, 4))
         LABEL_SPACING = 20
         filter_frame.grid(column=0, row=0, columnspan=2, sticky="nsew")
         ttk.Label(filter_frame, text="Show:", padding=(0, 0, 10, 0)).grid(column=0, row=0)
-        ttk.Checkbutton(filter_frame, variable=self._filters["notlinked"]).grid(column=1, row=0)
+        icolumn = 0
+        ttk.Checkbutton(
+            filter_frame, variable=self._filters["linked"]
+        ).grid(column=(icolumn := icolumn + 1), row=0)
         ttk.Label(
-            filter_frame, text="Not linked", padding=(0, 0, LABEL_SPACING, 0)
-        ).grid(column=2, row=0)
-        ttk.Checkbutton(filter_frame, variable=self._filters["expired"]).grid(column=3, row=0)
+            filter_frame, text="Linked", padding=(0, 0, LABEL_SPACING, 0)
+        ).grid(column=(icolumn := icolumn + 1), row=0)
+        ttk.Checkbutton(
+            filter_frame, variable=self._filters["expired"]
+        ).grid(column=(icolumn := icolumn + 1), row=0)
         ttk.Label(
             filter_frame, text="Expired", padding=(0, 0, LABEL_SPACING, 0)
-        ).grid(column=4, row=0)
-        ttk.Checkbutton(filter_frame, variable=self._filters["upcoming"]).grid(column=5, row=0)
+        ).grid(column=(icolumn := icolumn + 1), row=0)
+        ttk.Checkbutton(
+            filter_frame, variable=self._filters["upcoming"]
+        ).grid(column=(icolumn := icolumn + 1), row=0)
         ttk.Label(
             filter_frame, text="Upcoming", padding=(0, 0, LABEL_SPACING, 0)
-        ).grid(column=6, row=0)
-        ttk.Button(filter_frame, text="Refresh", command=self.refresh).grid(column=7, row=0)
+        ).grid(column=(icolumn := icolumn + 1), row=0)
+        ttk.Checkbutton(
+            filter_frame, variable=self._filters["finished"]
+        ).grid(column=(icolumn := icolumn + 1), row=0)
+        ttk.Label(
+            filter_frame, text="Finished", padding=(0, 0, LABEL_SPACING, 0)
+        ).grid(column=(icolumn := icolumn + 1), row=0)
+        ttk.Button(
+            filter_frame, text="Refresh", command=self.refresh
+        ).grid(column=(icolumn := icolumn + 1), row=0)
         # Inventory view
         self._canvas = tk.Canvas(master, scrollregion=(0, 0, 0, 0))
         self._canvas.grid(column=0, row=1, sticky="nsew")
@@ -966,13 +982,14 @@ class InventoryOverview:
     def _update_visibility(self, campaign: DropsCampaign):
         # True if the campaign is supposed to show, False makes it hidden.
         frame = self._campaigns[campaign]
+        linked = bool(self._filters["linked"].get())
+        expired = bool(self._filters["expired"].get())
+        upcoming = bool(self._filters["upcoming"].get())
+        finished = bool(self._filters["finished"].get())
         if (
-            (campaign.linked or self._filters["notlinked"].get())
-            and (
-                campaign.active
-                or self._filters["expired"].get() and campaign.expired
-                or self._filters["upcoming"].get() and campaign.upcoming
-            )
+            (not linked or campaign.linked)
+            and (campaign.active or upcoming and campaign.upcoming or expired and campaign.expired)
+            and (finished or not campaign.finished)
         ):
             frame.grid()
         else:

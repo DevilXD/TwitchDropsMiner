@@ -253,6 +253,10 @@ class DropsCampaign:
         return len(self.timed_drops)
 
     @cached_property
+    def finished(self) -> bool:
+        return all(d.is_claimed for d in self.drops)
+
+    @cached_property
     def claimed_drops(self) -> int:
         return sum(d.is_claimed for d in self.drops)
 
@@ -262,14 +266,14 @@ class DropsCampaign:
 
     @cached_property
     def remaining_minutes(self) -> int:
-        return sum(d.remaining_minutes for d in self.timed_drops.values())
+        return sum(d.remaining_minutes for d in self.drops)
 
     @cached_property
     def progress(self) -> float:
         return sum(d.progress for d in self.drops) / self.total_drops
 
     def _on_claim(self) -> None:
-        invalidate_cache(self, "claimed_drops", "remaining_drops")
+        invalidate_cache(self, "finished", "claimed_drops", "remaining_drops")
         for drop in self.drops:
             drop._on_claim()
 
