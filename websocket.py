@@ -5,7 +5,7 @@ import asyncio
 import logging
 from time import time
 from contextlib import suppress
-from typing import TYPE_CHECKING
+from typing import Any, Literal, TYPE_CHECKING
 
 import aiohttp
 
@@ -323,7 +323,7 @@ class WebsocketPool:
     def running(self) -> bool:
         return self._running.is_set()
 
-    def wait_until_connected(self):
+    def wait_until_connected(self) -> abc.Coroutine[Any, Any, Literal[True]]:
         return self._running.wait()
 
     async def start(self):

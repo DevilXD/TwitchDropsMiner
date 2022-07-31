@@ -78,7 +78,7 @@ class GQLOperation(JsonType):
         if variables is not None:
             self.__setitem__("variables", variables)
 
-    def with_variables(self, variables: JsonType):
+    def with_variables(self, variables: JsonType) -> GQLOperation:
         modified = copy(self)
         if "variables" in self:
             existing_variables: JsonType = modified["variables"]
@@ -209,7 +209,7 @@ class WebsocketTopic:
     def __repr__(self) -> str:
         return f"Topic({self._id})"
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if isinstance(other, WebsocketTopic):
             return self._id == other._id
         elif isinstance(other, str):

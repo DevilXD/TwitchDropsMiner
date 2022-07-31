@@ -8,7 +8,7 @@ from functools import partial
 from collections import abc, OrderedDict
 from datetime import datetime, timedelta, timezone
 from contextlib import suppress, asynccontextmanager
-from typing import Final, NoReturn, cast, TYPE_CHECKING
+from typing import Any, Literal, Final, NoReturn, cast, TYPE_CHECKING
 
 import aiohttp
 from yarl import URL
@@ -108,7 +108,7 @@ class Twitch:
         # this allows aiohttp to safely close the session
         await asyncio.sleep(start_time + 0.5 - time())
 
-    def wait_until_login(self):
+    def wait_until_login(self) -> abc.Coroutine[Any, Any, Literal[True]]:
         return self._is_logged_in.wait()
 
     def change_state(self, state: State) -> None:

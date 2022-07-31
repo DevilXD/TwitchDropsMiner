@@ -261,7 +261,7 @@ class AwaitableValue(Generic[_T]):
         return self._event.is_set()
 
     def wait(self) -> abc.Coroutine[Any, Any, Literal[True]]:
-        return cast("abc.Coroutine[Any, Any, Literal[True]]", self._event.wait())
+        return self._event.wait()
 
     def get_with_default(self, default: _D) -> _T | _D:
         if self._event.is_set():
@@ -291,7 +291,7 @@ class Game:
     def __repr__(self) -> str:
         return f"Game({self.id}, {self.name})"
 
-    def __eq__(self, other: object):
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, self.__class__):
             return self.id == other.id
         return NotImplemented

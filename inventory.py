@@ -237,7 +237,7 @@ class DropsCampaign:
         return self.timed_drops.values()
 
     @property
-    def active(self):
+    def active(self) -> bool:
         return self.starts_at <= datetime.now(timezone.utc) < self.ends_at
 
     @property
