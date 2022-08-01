@@ -233,12 +233,17 @@ class PaddedListbox(tk.Listbox):
 
 
 class MouseOverLabel(ttk.Label):
-    def __init__(self, *args, alt_text: str = '', **kwargs) -> None:
+    def __init__(self, *args, alt_text: str = '', reverse: bool = False, **kwargs) -> None:
         self._org_text: str = kwargs.get("text", '')
         self._alt_text: str = alt_text
         super().__init__(*args, **kwargs)
-        self.bind("<Enter>", lambda e: self.config(text=self._alt_text))
-        self.bind("<Leave>", lambda e: self.config(text=self._org_text))
+        if reverse:
+            self.bind("<Enter>", lambda e: self.config(text=self._org_text))
+            self.bind("<Leave>", lambda e: self.config(text=self._alt_text))
+            self.config(text=self._alt_text)
+        else:
+            self.bind("<Enter>", lambda e: self.config(text=self._alt_text))
+            self.bind("<Leave>", lambda e: self.config(text=self._org_text))
 
 
 class LinkLabel(ttk.Label):
@@ -1045,6 +1050,7 @@ class InventoryOverview:
             alt_text=(
                 f"Starts: {campaign.starts_at.astimezone().replace(microsecond=0, tzinfo=None)}"
             ),
+            reverse=campaign.upcoming,
             takefocus=False,
         ).grid(column=1, row=2, sticky="w", padx=4)
         # Linking status
