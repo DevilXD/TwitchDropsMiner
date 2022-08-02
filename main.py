@@ -29,7 +29,7 @@ except ModuleNotFoundError as exc:
 from twitch import Twitch
 from settings import Settings
 from version import __version__
-from exceptions import CaptchaRequired, ExitRequest
+from exceptions import CaptchaRequired
 from constants import SELF_PATH, FORMATTER, LOG_PATH, WINDOW_TITLE
 
 
@@ -156,8 +156,6 @@ signal.signal(signal.SIGINT, lambda *_: client.close())
 signal.signal(signal.SIGTERM, lambda *_: client.close())
 try:
     loop.run_until_complete(client.run())
-except ExitRequest:
-    pass
 except CaptchaRequired:
     exit_status = 1
     msg = "Your login attempt was denied by CAPTCHA.\nPlease try again in +12 hours."

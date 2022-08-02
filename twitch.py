@@ -171,7 +171,7 @@ class Twitch:
             return 0
         return self.games[game]
 
-    async def run(self):
+    async def _run(self):
         """
         Main method that runs the whole client.
 
@@ -181,11 +181,7 @@ class Twitch:
         • Changing the stream that's being watched if necessary
         """
         self.gui.start()
-        try:
-            await self.check_login()
-        except ExitRequest:
-            # we've been requested to exit during login, most likely
-            return
+        await self.check_login()
         await self.websocket.start()
         # NOTE: watch task is explicitly restarted on each new run
         if self._watching_task is not None:
@@ -403,6 +399,12 @@ class Twitch:
                 # we've been requested to exit the application
                 break
             await self._state_change.wait()
+
+    async def run(self):
+        try:
+            await self._run()
+        except ExitRequest:
+            pass
         # post-main-loop code goes here
 
     async def _watch_sleep(self, delay: float) -> None:
@@ -921,6 +923,8 @@ class Twitch:
         status_update("Fetching inventory...")
         # fetch in-progress campaigns (inventory)
         response = await self.gql_request(GQL_OPERATIONS["Inventory"])
+        if self.gui.close_requested:
+            raise ExitRequest()
         inventory: JsonType = response["data"]["currentUser"]["inventory"]
         ongoing_campaigns: list[JsonType] = inventory["dropCampaignsInProgress"] or []
         # this contains claimed benefit edge IDs, not drop IDs
@@ -933,6 +937,8 @@ class Twitch:
         ]
         # fetch all available campaigns data
         response = await self.gql_request(GQL_OPERATIONS["Campaigns"])
+        if self.gui.close_requested:
+            raise ExitRequest()
         available_list: list[JsonType] = response["data"]["currentUser"]["dropCampaigns"] or []
         applicable_statuses = ("ACTIVE", "UPCOMING")
         existing_campaigns: set[str] = set(c.id for c in campaigns)
@@ -958,6 +964,8 @@ class Twitch:
         ):
             fetched_campaigns.append(await coro)
             status_update(f"Fetching campaigns... ({i}/{len(available_campaigns)})")
+            if self.gui.close_requested:
+                raise ExitRequest()
         campaigns.extend(fetched_campaigns)
         campaigns.sort(key=lambda c: c.active, reverse=True)
         campaigns.sort(key=lambda c: c.upcoming and c.starts_at or c.ends_at)
@@ -970,6 +978,8 @@ class Twitch:
             self._drops.update({drop.id: drop for drop in campaign.drops})
             await self.gui.inv.add_campaign(campaign)
             self.inventory.append(campaign)
+            if self.gui.close_requested:
+                raise ExitRequest()
 
     def get_active_drop(self, channel: Channel | None = None) -> TimedDrop | None:
         if not self.games:
