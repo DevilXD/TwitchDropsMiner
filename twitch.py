@@ -203,6 +203,8 @@ class Twitch:
                 # clear the flag and wait until it's set again
                 self._state_change.clear()
             elif self._state is State.INVENTORY_FETCH:
+                # ensure the websocket is running
+                await self.websocket.start()
                 # NOTE: maintenance task is restarted on inventory fetch
                 if self._mnt_task is not None and not self._mnt_task.done():
                     self._mnt_task.cancel()
