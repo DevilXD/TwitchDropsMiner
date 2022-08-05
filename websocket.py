@@ -121,7 +121,11 @@ class Websocket:
                 async with session.ws_connect(ws_url, ssl=True, proxy=proxy) as websocket:
                     yield websocket
                     backoff.reset()
-            except (aiohttp.ClientConnectionError, asyncio.TimeoutError):
+            except (
+                asyncio.TimeoutError,
+                aiohttp.ClientResponseError,
+                aiohttp.ClientConnectionError,
+            ):
                 ws_logger.info(
                     f"Websocket[{self._idx}] connection problem (sleep: {delay:.3}s)",
                     exc_info=True,
