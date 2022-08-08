@@ -7,8 +7,8 @@ import tkinter as tk
 from math import log10, ceil
 from functools import partial
 from collections import abc, namedtuple
-from datetime import datetime, timezone
 from tkinter.font import Font, nametofont
+from datetime import datetime, timedelta, timezone
 from typing import Any, TypedDict, NoReturn, TYPE_CHECKING
 from tkinter import Tk, ttk, StringVar, DoubleVar, IntVar, PhotoImage
 
@@ -1130,12 +1130,8 @@ class InventoryOverview:
         elif drop.can_claim:
             progress_text = "Ready to claim ⏳"
             progress_color = "goldenrod"
-        elif drop.preconditions:
-            if drop.starts_at > datetime.now(timezone.utc):
-                progress_text = "Upcoming ⏳"
-                progress_color = "goldenrod"
-            else:
-                progress_text = f"{drop.progress:3.1%} of {drop.required_minutes} minutes"
+        elif drop.can_earn():
+            progress_text = f"{drop.progress:3.1%} of {drop.required_minutes} minutes"
         return (progress_text, progress_color)
 
     def update_drop(self, drop: TimedDrop) -> None:
@@ -1723,7 +1719,6 @@ class GUIManager:
 
 if __name__ == "__main__":
     # Everything below is for debug purposes only
-    from datetime import timedelta
     from types import SimpleNamespace
 
     class StrNamespace(SimpleNamespace):
