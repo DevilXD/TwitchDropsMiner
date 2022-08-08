@@ -1130,7 +1130,11 @@ class InventoryOverview:
             progress_text = "Ready to claim ⏳"
             progress_color = "goldenrod"
         elif drop.preconditions:
-            progress_text = f"{drop.progress:3.1%} of {drop.required_minutes} minutes"
+            if drop.starts_at > datetime.now(timezone.utc):
+                progress_text = "Upcoming ⏳"
+                progress_color = "goldenrod"
+            else:
+                progress_text = f"{drop.progress:3.1%} of {drop.required_minutes} minutes"
         return (progress_text, progress_color)
 
     def update_drop(self, drop: TimedDrop) -> None:
