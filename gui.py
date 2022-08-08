@@ -5,6 +5,7 @@ import logging
 import webbrowser
 import tkinter as tk
 from math import log10, ceil
+from datetime import datetime
 from functools import partial
 from collections import abc, namedtuple
 from tkinter.font import Font, nametofont
@@ -1130,7 +1131,11 @@ class InventoryOverview:
             progress_text = "Ready to claim ⏳"
             progress_color = "goldenrod"
         elif drop.preconditions:
-            progress_text = f"{drop.progress:3.1%} of {drop.required_minutes} minutes"
+            if drop.starts_at > datetime.now(timezone.utc):
+                progress_text = "Upcoming ⏳"
+                progress_color = "goldenrod"
+            else:
+                progress_text = f"{drop.progress:3.1%} of {drop.required_minutes} minutes"
         return (progress_text, progress_color)
 
     def update_drop(self, drop: TimedDrop) -> None:
@@ -1719,7 +1724,7 @@ class GUIManager:
 if __name__ == "__main__":
     # Everything below is for debug purposes only
     from types import SimpleNamespace
-    from datetime import datetime, timedelta, timezone
+    from datetime import timedelta, timezone
 
     class StrNamespace(SimpleNamespace):
         def __str__(self):
