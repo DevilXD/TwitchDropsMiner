@@ -5,9 +5,9 @@ import logging
 import webbrowser
 import tkinter as tk
 from math import log10, ceil
-from datetime import datetime
 from functools import partial
 from collections import abc, namedtuple
+from datetime import datetime, timezone
 from tkinter.font import Font, nametofont
 from typing import Any, TypedDict, NoReturn, TYPE_CHECKING
 from tkinter import Tk, ttk, StringVar, DoubleVar, IntVar, PhotoImage
@@ -1723,8 +1723,8 @@ class GUIManager:
 
 if __name__ == "__main__":
     # Everything below is for debug purposes only
+    from datetime import timedelta
     from types import SimpleNamespace
-    from datetime import timedelta, timezone
 
     class StrNamespace(SimpleNamespace):
         def __str__(self):
