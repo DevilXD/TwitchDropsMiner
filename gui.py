@@ -1808,6 +1808,7 @@ if __name__ == "__main__":
             ),
             image_url=image_url,
             can_claim=False,
+            can_earn=lambda: False,
             is_claimed=False,
             preconditions=True,
             benefits=benefits,
