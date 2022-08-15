@@ -928,9 +928,9 @@ class InventoryOverview:
         self._cache = manager._cache
         self._filters = {
             "linked": IntVar(master, 1),
-            "expired": IntVar(master, 1),
+            "expired": IntVar(master, 0),
             "upcoming": IntVar(master, 1),
-            "finished": IntVar(master, 1),
+            "finished": IntVar(master, 0),
         }
         # Filtering options
         filter_frame = ttk.LabelFrame(master, text="Filter", padding=(4, 0, 4, 4))
@@ -942,19 +942,19 @@ class InventoryOverview:
             filter_frame, variable=self._filters["linked"]
         ).grid(column=(icolumn := icolumn + 1), row=0)
         ttk.Label(
-            filter_frame, text="Linked", padding=(0, 0, LABEL_SPACING, 0)
-        ).grid(column=(icolumn := icolumn + 1), row=0)
-        ttk.Checkbutton(
-            filter_frame, variable=self._filters["expired"]
-        ).grid(column=(icolumn := icolumn + 1), row=0)
-        ttk.Label(
-            filter_frame, text="Expired", padding=(0, 0, LABEL_SPACING, 0)
+            filter_frame, text="Linked only", padding=(0, 0, LABEL_SPACING, 0)
         ).grid(column=(icolumn := icolumn + 1), row=0)
         ttk.Checkbutton(
             filter_frame, variable=self._filters["upcoming"]
         ).grid(column=(icolumn := icolumn + 1), row=0)
         ttk.Label(
             filter_frame, text="Upcoming", padding=(0, 0, LABEL_SPACING, 0)
+        ).grid(column=(icolumn := icolumn + 1), row=0)
+        ttk.Checkbutton(
+            filter_frame, variable=self._filters["expired"]
+        ).grid(column=(icolumn := icolumn + 1), row=0)
+        ttk.Label(
+            filter_frame, text="Expired", padding=(0, 0, LABEL_SPACING, 0)
         ).grid(column=(icolumn := icolumn + 1), row=0)
         ttk.Checkbutton(
             filter_frame, variable=self._filters["finished"]
@@ -1122,14 +1122,14 @@ class InventoryOverview:
         self._campaigns.clear()
 
     def get_progress(self, drop: TimedDrop) -> tuple[str, tk._Color]:
-        progress_text: str = ''
         progress_color: tk._Color = ''
+        progress_text: str = f"{drop.required_minutes} minutes"
         if drop.is_claimed:
-            progress_text = "Claimed ✔"
             progress_color = "green"
+            progress_text = "Claimed ✔"
         elif drop.can_claim:
-            progress_text = "Ready to claim ⏳"
             progress_color = "goldenrod"
+            progress_text = "Ready to claim ⏳"
         elif drop.can_earn():
             progress_text = f"{drop.progress:3.1%} of {drop.required_minutes} minutes"
         return (progress_text, progress_color)
