@@ -1794,6 +1794,7 @@ if __name__ == "__main__":
                 active=False,
                 upcoming=True,
                 linked=False,
+                finished=False,
                 link_url="https://google.com",
                 image_url="https://static-cdn.jtvnw.net/ttv-boxart/460630-285x380.jpg",
                 allowed_channels=[],
