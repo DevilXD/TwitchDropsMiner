@@ -12,6 +12,7 @@ __pycache__
 /Twitch Drops Miner
 # Dev files
 /env
+/lang
 /cache
 cookies.jar
 settings.json
