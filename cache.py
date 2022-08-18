@@ -38,7 +38,7 @@ class ImageCache:
     def __init__(self, manager: GUIManager) -> None:
         self._root = manager._root
         CACHE_PATH.mkdir(parents=True, exist_ok=True)
-        self._hashes: Hashes = json_load(CACHE_DB, default_database)
+        self._hashes: Hashes = json_load(CACHE_DB, default_database, merge=False)
         self._images: dict[ImageHash, Image] = {}
         self._photos: dict[tuple[ImageHash, ImageSize], PhotoImage] = {}
         self._lock = asyncio.Lock()
@@ -58,12 +58,18 @@ class ImageCache:
         for img_hash, count in hash_counts.items():
             if count == 0:
                 # hashes come with an extension already
-                for file in CACHE_PATH.glob(img_hash):
-                    file.unlink(missing_ok=True)
+                CACHE_PATH.joinpath(img_hash).unlink(missing_ok=True)
+                # NOTE: The hashes are deleted from self._hashes above
+        # NOTE: This cleanups the cache folder from unused PNG files
+        # orphans = [
+        #     file.name for file in CACHE_PATH.glob("*.png") if file.name not in hash_counts
+        # ]
+        # for filename in orphans:
+        #     CACHE_PATH.joinpath(filename).unlink(missing_ok=True)
 
-    def save(self) -> None:
-        if self._altered:
-            json_save(CACHE_DB, self._hashes)
+    def save(self, *, force: bool = False) -> None:
+        if self._altered or force:
+            json_save(CACHE_DB, self._hashes, sort=True)
 
     def _new_expires(self) -> datetime:
         return datetime.now(timezone.utc) + self.LIFETIME

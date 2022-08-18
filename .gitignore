@@ -1,10 +1,8 @@
 # Cache files
 __pycache__
 .mypy_cache
-# Build files
+# Build and dist files
 /build
-/*.spec
-# Dist files
 /dist
 /7z.exe
 /*.zip
@@ -12,7 +10,7 @@ __pycache__
 /Twitch Drops Miner
 # Dev files
 /env
-/lang
 /cache
 cookies.jar
 settings.json
+/lang/English.json

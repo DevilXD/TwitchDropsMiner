@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 
 class SettingsFile(TypedDict):
     proxy: URL
+    language: str
     autostart: bool
     exclude: set[str]
     priority: list[str]
@@ -25,6 +26,7 @@ default_settings: SettingsFile = {
     "priority": [],
     "exclude": set(),
     "autostart": False,
+    "language": "English",
     "priority_only": True,
     "autostart_tray": False,
 }
@@ -41,11 +43,14 @@ class Settings:
     logging_level: int
     # from settings file
     proxy: URL
+    language: str
     autostart: bool
     exclude: set[str]
     priority: list[str]
     priority_only: bool
     autostart_tray: bool
+
+    PASSTHROUGH = ("_settings", "_args", "_altered")
 
     def __init__(self, args: ParsedArgs):
         self._settings: SettingsFile = json_load(SETTINGS_PATH, default_settings)
@@ -54,14 +59,17 @@ class Settings:
 
     # default logic of reading settings is to check args first, then the settings file
     def __getattr__(self, name: str, /) -> Any:
-        if hasattr(self._args, name):
+        if name in self.PASSTHROUGH:
+            # passthrough
+            return getattr(super(), name)
+        elif hasattr(self._args, name):
             return getattr(self._args, name)
         elif name in self._settings:
             return self._settings[name]  # type: ignore[literal-required]
         return getattr(super(), name)
 
     def __setattr__(self, name: str, value: Any, /) -> None:
-        if name in ("_settings", "_args", "_altered"):
+        if name in self.PASSTHROUGH:
             # passthrough
             return super().__setattr__(name, value)
         elif name in self._settings:
@@ -78,4 +86,4 @@ class Settings:
 
     def save(self, *, force: bool = False) -> None:
         if self._altered or force:
-            json_save(SETTINGS_PATH, self._settings)
+            json_save(SETTINGS_PATH, self._settings, sort=True)

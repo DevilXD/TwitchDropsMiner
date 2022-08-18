@@ -13,6 +13,7 @@ from typing import Any, Literal, Final, NoReturn, cast, TYPE_CHECKING
 import aiohttp
 from yarl import URL
 
+from translate import _
 from gui import GUIManager
 from channel import Channel
 from websocket import WebsocketPool
@@ -87,7 +88,7 @@ class Twitch:
 
     async def shutdown(self) -> None:
         start_time = time()
-        self.gui.print("Exiting...")
+        self.gui.print(_("status", "exiting"))
         self.stop_watching()
         if self._watching_task is not None:
             self._watching_task.cancel()
@@ -102,8 +103,6 @@ class Twitch:
             session, self._session = self._session, None
             await session.close()
         await self.websocket.stop()
-        # save image cache
-        self.gui.save()
         # wait at least half a second + whatever it takes to complete the closing
         # this allows aiohttp to safely close the session
         await asyncio.sleep(start_time + 0.5 - time())
@@ -149,12 +148,12 @@ class Twitch:
         """
         self.gui.print(*args, **kwargs)
 
-    def save(self) -> None:
+    def save(self, *, force: bool = False) -> None:
         """
         Saves the application state.
         """
-        self.gui.save()
-        self.settings.save()
+        self.gui.save(force=force)
+        self.settings.save(force=force)
 
     @staticmethod
     def _viewers_key(channel: Channel) -> int:
@@ -198,7 +197,7 @@ class Twitch:
         self.change_state(State.INVENTORY_FETCH)
         while True:
             if self._state is State.IDLE:
-                self.gui.status.update("Idle")
+                self.gui.status.update(_("gui", "status", "idle"))
                 self.stop_watching()
                 # clear the flag and wait until it's set again
                 self._state_change.clear()
@@ -243,7 +242,7 @@ class Twitch:
                 self.restart_watching()
                 self.change_state(State.CHANNELS_CLEANUP)
             elif self._state is State.CHANNELS_CLEANUP:
-                self.gui.status.update("Cleaning up channels...")
+                self.gui.status.update(_("gui", "status", "cleanup"))
                 if not self.games or full_cleanup:
                     # no games selected or we're doing full cleanup: remove everything
                     to_remove: list[Channel] = list(channels.values())
@@ -275,12 +274,10 @@ class Twitch:
                     self.change_state(State.CHANNELS_FETCH)
                 else:
                     # with no games available, we switch to IDLE after cleanup
-                    self.gui.print(
-                        "No active campaigns to mine drops for. Waiting for an active campaign..."
-                    )
+                    self.gui.print(_("gui", "status", "no_campaigns"))
                     self.change_state(State.IDLE)
             elif self._state is State.CHANNELS_FETCH:
-                self.gui.status.update("Gathering channels...")
+                self.gui.status.update(_("gui", "status", "gathering"))
                 # start with all current channels
                 new_channels: OrderedSet[Channel] = OrderedSet(self.channels.values())
                 # gather and add ACL channels from campaigns
@@ -361,7 +358,7 @@ class Twitch:
                         break
                 self.change_state(State.CHANNEL_SWITCH)
             elif self._state is State.CHANNEL_SWITCH:
-                self.gui.status.update("Switching the channel...")
+                self.gui.status.update(_("gui", "status", "switching"))
                 # Change into the selected channel, stay in the watching channel,
                 # or select a new channel that meets the required conditions
                 new_watching = None
@@ -381,9 +378,7 @@ class Twitch:
                 watching_channel = self.watching_channel.get_with_default(None)
                 if watching_channel is None and new_watching is None:
                     # not watching anything and there isn't anything to watch either
-                    self.gui.print(
-                        "No available channels to watch. Waiting for an ONLINE channel..."
-                    )
+                    self.gui.print(_("status", "no_channel"))
                     self.change_state(State.IDLE)
                 else:
                     if new_watching is not None:
@@ -393,11 +388,13 @@ class Twitch:
                     # should immediately complete, since we'll definitely
                     # have a channel we're watching here
                     watching_channel = await self.watching_channel.get()
-                    self.gui.status.update(f"Watching {watching_channel.name}")
+                    self.gui.status.update(
+                        _("gui", "status", "watching").format(channel=watching_channel.name)
+                    )
                     # break the state change chain by clearing the flag
                     self._state_change.clear()
             elif self._state is State.EXIT:
-                self.gui.status.update("Exiting...")
+                self.gui.status.update(_("status", "exiting"))
                 # we've been requested to exit the application
                 break
             await self._state_change.wait()
@@ -422,8 +419,7 @@ class Twitch:
             channel = await self.watching_channel.get()
             succeeded = await channel.send_watch()
             if not succeeded:
-                # this usually means there are connection problems
-                self.gui.print("Connection problems, retrying in 60 seconds...")
+                # this usually means the campaign expired in the middle of mining
                 await self._watch_sleep(60)
                 continue
             last_watch = time()
@@ -484,10 +480,11 @@ class Twitch:
         period = timedelta.max
         for campaign in self.inventory:
             if not campaign.linked:
+                # this relies on the linked campaigns being first due to sorting
                 break
-            if campaign.starts_at > now and (test_period := campaign.starts_at - now) < period:
+            if campaign.starts_at >= now and (test_period := campaign.starts_at - now) < period:
                 period = test_period
-            elif campaign.ends_at > now and (test_period := campaign.ends_at - now) < period:
+            elif campaign.ends_at >= now and (test_period := campaign.ends_at - now) < period:
                 period = test_period
         if period > one_hour:
             period = one_hour
@@ -514,7 +511,7 @@ class Twitch:
         if not self.games:
             return False
         return (
-            channel.online  # steam online
+            channel.online  # stream online
             and channel.drops_enabled  # drops are enabled
             # it's one of the games we've selected
             and channel.game is not None and channel.game in self.games
@@ -588,7 +585,7 @@ class Twitch:
             self.can_watch(channel)  # we can watch the channel that just got ONLINE
             and self.should_switch(channel)  # and we should!
         ):
-            self.gui.print(f"{channel.name} goes ONLINE, switching...")
+            self.gui.print(_("status", "goes_online").format(channel=channel.name))
             self.watch(channel)
 
     def on_offline(self, channel: Channel):
@@ -598,7 +595,7 @@ class Twitch:
         # change the channel if we're currently watching it
         watching_channel = self.watching_channel.get_with_default(None)
         if watching_channel is not None and watching_channel == channel:
-            self.gui.print(f"{channel.name} goes OFFLINE, switching...")
+            self.gui.print(_("status", "goes_offline").format(channel=channel.name))
             self.change_state(State.CHANNEL_SWITCH)
         else:
             logger.debug(f"{channel.name} goes OFFLINE")
@@ -629,8 +626,8 @@ class Twitch:
                     f"{drop.rewards_text()} "
                     f"({campaign.claimed_drops}/{campaign.total_drops})"
                 )
-                self.gui.print(f"Claimed drop: {claim_text}")
-                self.gui.tray.notify(claim_text, "Mined Drop")
+                self.gui.print(_("status", "claimed_drop").format(drop=claim_text))
+                self.gui.tray.notify(claim_text, _("gui", "tray", "notification_title"))
             else:
                 logger.error(f"Drop claim failed! Drop ID: {drop_id}")
             # About 4-20s after claiming the drop, next drop can be started
@@ -720,12 +717,14 @@ class Twitch:
             if channel is not None:
                 channel.points = balance
                 channel.display()
-            self.gui.print(f"Earned points for watching: {points:3}, total: {balance}")
+            self.gui.print(
+                _("status", "earned_points").format(points=f"{points:3}", balance=balance)
+            )
         elif msg_type == "claim-available":
             claim_data = message["data"]["claim"]
             points = claim_data["point_gain"]["total_points"]
             await self.claim_points(claim_data["channel_id"], claim_data["id"])
-            self.gui.print(f"Claimed bonus points: {points}")
+            self.gui.print(_("status", "claimed_points").format(points=points))
 
     async def _login(self) -> str:
         logger.debug("Login flow started")
@@ -822,7 +821,7 @@ class Twitch:
         # looks like we're missing something
         login_form: LoginForm = self.gui.login
         logger.debug("Checking login")
-        login_form.update("Logging in...", None)
+        login_form.update(_("gui", "login", "logging_in"), None)
         # NOTE: We need this here because of the jar being accessed
         session = await self.get_session()
         url = URL(BASE_URL)
@@ -860,7 +859,7 @@ class Twitch:
         cookie["persistent"] = str(self._user_id)
         self._is_logged_in.set()
         logger.debug(f"Login successful, user ID: {self._user_id}")
-        login_form.update("Logged in", self._user_id)
+        login_form.update(_("gui", "login", "logged_in"), self._user_id)
         # update our cookie and save it
         jar.update_cookies(cookie, url)
         jar.save(COOKIES_PATH)
@@ -881,11 +880,11 @@ class Twitch:
                     if response.status < 500:
                         yield response
                         return
-                    self.print(f"Twitch is down, retrying in {round(delay)} seconds...")
+                    self.print(_("error", "site_down").format(seconds=round(delay)))
             except (aiohttp.ClientConnectionError, asyncio.TimeoutError):
                 # just so that quick 2nd retries that often happen, aren't shown
                 if delay > 1:
-                    self.print(f"Cannot connect to Twitch, retrying in {round(delay)} seconds...")
+                    self.print(_("error", "no_connection").format(seconds=round(delay)))
             await asyncio.sleep(delay)
 
     async def gql_request(self, op: GQLOperation) -> JsonType:
@@ -922,7 +921,7 @@ class Twitch:
 
     async def fetch_inventory(self) -> None:
         status_update = self.gui.status.update
-        status_update("Fetching inventory...")
+        status_update(_("gui", "status", "fetching_inventory"))
         # fetch in-progress campaigns (inventory)
         response = await self.gql_request(GQL_OPERATIONS["Inventory"])
         if self.gui.close_requested:
@@ -953,7 +952,11 @@ class Twitch:
             )
         }
         # add campaigns that remained, that can be earned but are not in-progress yet
-        status_update(f"Fetching campaigns... (0/{len(available_campaigns)})")
+        status_update(
+            _("gui", "status", "fetching_campaigns").format(
+                counter=f"(0/{len(available_campaigns)})"
+            )
+        )
         fetched_campaigns: list[DropsCampaign] = []
         for i, coro in enumerate(
             # specifically use an intermediate list per a Python bug
@@ -965,7 +968,11 @@ class Twitch:
             start=1,
         ):
             fetched_campaigns.append(await coro)
-            status_update(f"Fetching campaigns... ({i}/{len(available_campaigns)})")
+            status_update(
+                _("gui", "status", "fetching_campaigns").format(
+                    counter=f"({i}/{len(available_campaigns)})"
+                )
+            )
             if self.gui.close_requested:
                 raise ExitRequest()
         campaigns.extend(fetched_campaigns)
@@ -976,7 +983,9 @@ class Twitch:
         self.gui.inv.clear()
         self.inventory.clear()
         for i, campaign in enumerate(campaigns, start=1):
-            status_update(f"Adding campaigns to inventory... ({i}/{len(campaigns)})")
+            status_update(
+                _("gui", "status", "adding_campaigns").format(counter=f"({i}/{len(campaigns)})")
+            )
             self._drops.update({drop.id: drop for drop in campaign.drops})
             await self.gui.inv.add_campaign(campaign)
             self.inventory.append(campaign)

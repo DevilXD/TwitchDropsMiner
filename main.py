@@ -26,6 +26,7 @@ try:
 except ModuleNotFoundError as exc:
     raise ImportError("You have to run 'pip install pillow' first") from exc
 
+from translate import _
 from twitch import Twitch
 from settings import Settings
 from version import __version__
@@ -133,6 +134,13 @@ if exists and not settings.no_run_check:
     # already running - exit
     sys.exit(3)
 
+# set language
+try:
+    _.set_language(settings.language)
+except ValueError:
+    # this language doesn't exist - stick to English
+    pass
+
 # handle logging stuff
 if settings.logging_level > logging.DEBUG:
     # redirect the root logger into a NullHandler, effectively ignoring all logging calls
@@ -158,14 +166,12 @@ try:
     loop.run_until_complete(client.run())
 except CaptchaRequired:
     exit_status = 1
-    msg = "Your login attempt was denied by CAPTCHA.\nPlease try again in +12 hours."
-    logger.exception(msg)
+    msg = _("error", "captcha")
     client.prevent_close()
     client.print(msg)
 except Exception:
     exit_status = 1
     msg = "Fatal error encountered:\n"
-    logger.exception(msg)
     client.prevent_close()
     client.print(msg)
     client.print(traceback.format_exc())
@@ -174,14 +180,12 @@ finally:
     signal.signal(signal.SIGTERM, signal.SIG_DFL)
     loop.run_until_complete(client.shutdown())
 if not client.gui.close_requested:
-    client.print(
-        "\nApplication Terminated.\nClose the window to exit the application."
-    )
+    client.print(_("status", "terminated"))
 loop.run_until_complete(client.gui.wait_until_closed())
-# save settings
+# save the application state
 # NOTE: we have to do it after wait_until_closed,
-# because the user can alter settings between shutdown and closing the window
-client.settings.save(force=True)
+# because the user can alter some settings between app termination and closing the window
+client.save(force=True)
 client.gui.stop()
 client.gui.close_window()
 loop.run_until_complete(loop.shutdown_asyncgens())

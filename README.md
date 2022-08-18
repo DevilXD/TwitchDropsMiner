@@ -57,3 +57,8 @@ Every ~60 seconds, the application sends a "minute watched" event to the channel
 - Run `setup_env.bat` to setup the virtual environment for the application. Activate it by running `env/Scripts/activate.bat`, or just use `python`, `pythonw` and `pip` executables from the `env/Scripts` directly going forward.
 - Run `pythonw main.py` to start the application without a console. `python main.py` can be used to start with a console, in case you'd expect errors to be printed out to the console - may help with debugging problems.
 - If you'd like to build the executable yourself, you'll need to `pip install pyinstaller` into the virtual environment, and then simply run `build.bat`. The end result can be found inside the `dist` folder. If you supply a `7z.exe` ([or `7za.exe` from 7z Extras](https://www.7-zip.org/download.html)) executable inside the project's folder, a packaged zip with the whole release should be created next to the `dist` folder as well.
+
+
+### Credits:
+
+@Suz1e - For the entirety of the Chinese (简体中文) translation.

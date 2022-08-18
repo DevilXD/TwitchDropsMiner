@@ -15,9 +15,35 @@ if TYPE_CHECKING:
     from typing_extensions import TypeAlias
 
 
+# True if we're running from a built EXE, False inside a dev build
+IS_PACKAGED = hasattr(sys, "_MEIPASS")
+
+
+def _resource_path(relative_path: Path | str) -> Path:
+    """
+    Get an absolute path to a bundled resource.
+
+    Works for dev and for PyInstaller.
+    """
+    if IS_PACKAGED:
+        # PyInstaller's folder where the one-file app is unpacked
+        meipass: str = getattr(sys, "_MEIPASS")
+        base_path = Path(meipass)
+    else:
+        base_path = WORKING_DIR
+    return base_path.joinpath(relative_path)
+
+
 # Base Paths
-SELF_PATH = Path(sys.argv[0])
+# NOTE: pyinstaller will set this to its own executable when building,
+# detect this to use __file__ and main.py redirection instead
+SELF_PATH = Path(sys.argv[0]).absolute()
+if SELF_PATH.stem == "pyinstaller":
+    SELF_PATH = Path(__file__).with_name("main.py").absolute()
 WORKING_DIR = SELF_PATH.absolute().parent
+# Translations path
+# NOTE: These don't have to be available to the end-user, so the path points to the internal dir
+LANG_PATH = _resource_path("lang")
 # Other Paths
 LOG_PATH = Path(WORKING_DIR, "log.txt")
 CACHE_PATH = Path(WORKING_DIR, "cache")
@@ -32,6 +58,7 @@ TopicProcess: TypeAlias = "abc.Callable[[int, JsonType], Any]"
 MAX_WEBSOCKETS = 8
 WS_TOPICS_LIMIT = 50
 # Misc
+DEFAULT_LANG = "English"
 BASE_URL = "https://twitch.tv"
 CLIENT_ID = "kimne78kx3ncx6brgo4mv6wki5h1ko"
 USER_AGENT = (

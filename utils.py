@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sys
 import json
 import random
 import string
@@ -19,7 +18,8 @@ from typing import (
 
 import yarl
 
-from constants import WORKING_DIR, JsonType
+from constants import JsonType
+from constants import _resource_path as resource_path  # noqa
 
 if TYPE_CHECKING:
     from typing_extensions import ParamSpec
@@ -50,21 +50,6 @@ def json_minify(data: JsonType | list[JsonType]) -> str:
     Returns minified JSON for payload usage.
     """
     return json.dumps(data, separators=(',', ':'))
-
-
-def resource_path(relative_path: Path | str) -> Path:
-    """
-    Get an absolute path to a bundled resource.
-
-    Works for dev and for PyInstaller.
-    """
-    if hasattr(sys, "_MEIPASS"):
-        # PyInstaller's folder where the one-file app is unpacked
-        meipass: str = getattr(sys, "_MEIPASS")
-        base_path = Path(meipass)
-    else:
-        base_path = WORKING_DIR
-    return base_path.joinpath(relative_path)
 
 
 def timestamp(string: str) -> datetime:
@@ -142,6 +127,9 @@ def _remove_missing(obj: JsonType) -> JsonType:
             del obj[key]
         elif isinstance(value, dict):
             _remove_missing(value)
+            if not value:
+                # the dict is empty now, so remove it's key entirely
+                del obj[key]
     return obj
 
 
@@ -155,17 +143,41 @@ def _deserialize(obj: JsonType) -> Any:
     return obj
 
 
-def json_load(path: Path, defaults: _JSON_T) -> _JSON_T:
-    combined: JsonType = dict(defaults)
+def merge_json(obj: JsonType, template: Mapping[Any, Any]) -> None:
+    # NOTE: This modifies object in place
+    for k, v in list(obj.items()):
+        if k not in template:
+            del obj[k]
+        elif isinstance(v, dict):
+            if isinstance(template[k], dict):
+                merge_json(v, template[k])
+            else:
+                # object is a dict, template is not: overwrite from template
+                obj[k] = template[k]
+        elif isinstance(template[k], dict):
+            # template is a dict, object is not: overwrite from template
+            obj[k] = template[k]
+    # ensure the object is not missing any keys
+    for k in template.keys():
+        if k not in obj:
+            obj[k] = template[k]
+
+
+def json_load(path: Path, defaults: _JSON_T, *, merge: bool = True) -> _JSON_T:
+    defaults_dict: JsonType = dict(defaults)
     if path.exists():
-        with open(path, 'r') as file:
-            combined.update(_remove_missing(json.load(file, object_hook=_deserialize)))
+        with open(path, 'r', encoding="utf8") as file:
+            combined: JsonType = _remove_missing(json.load(file, object_hook=_deserialize))
+        if merge:
+            merge_json(combined, defaults_dict)
+    else:
+        combined = defaults_dict
     return cast(_JSON_T, combined)
 
 
-def json_save(path: Path, contents: Mapping[Any, Any]) -> None:
-    with open(path, 'w') as file:
-        json.dump(contents, file, default=_serialize, sort_keys=True, indent=4)
+def json_save(path: Path, contents: Mapping[Any, Any], *, sort: bool = False) -> None:
+    with open(path, 'w', encoding="utf8") as file:
+        json.dump(contents, file, default=_serialize, sort_keys=sort, indent=4)
 
 
 class ExponentialBackoff:
