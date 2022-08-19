@@ -121,14 +121,15 @@ class Twitch:
         # perfect for GUI usage
         return partial(self.change_state, state)
 
-    def close(self):
+    def signal_close(self):
         """
         Called when the application is requested to close by the operating system,
         usually by receiving a SIGINT or SIGTERM.
         """
+        # delegate this to the same action as the user clicking on the X in the GUI window
         self.gui.close()
 
-    def request_close(self):
+    def close(self):
         """
         Called when the application is requested to close by the user,
         usually by the console or application window being closed.

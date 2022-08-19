@@ -1621,7 +1621,7 @@ class GUIManager:
     def __init__(self, twitch: Twitch):
         self._twitch: Twitch = twitch
         self._poll_task: asyncio.Task[NoReturn] | None = None
-        self._closed = asyncio.Event()
+        self._close_requested = asyncio.Event()
         self._root = root = Tk()
         # withdraw immediately to prevent the window from flashing
         self._root.withdraw()
@@ -1744,14 +1744,14 @@ class GUIManager:
 
     @property
     def close_requested(self) -> bool:
-        return self._closed.is_set()
+        return self._close_requested.is_set()
 
     async def wait_until_closed(self):
         # wait until the user closes the window
-        await self._closed.wait()
+        await self._close_requested.wait()
 
     def prevent_close(self):
-        self._closed.clear()
+        self._close_requested.clear()
 
     def start(self):
         if self._poll_task is None:
@@ -1783,12 +1783,12 @@ class GUIManager:
 
     def close(self):
         """
-        Requests the application to close.
+        Requests the GUI application to close.
         The window itself will be closed in the closing sequence later.
         """
-        self._closed.set()
+        self._close_requested.set()
         # notify client we're supposed to close
-        self._twitch.request_close()
+        self._twitch.close()
 
     def close_window(self):
         """
