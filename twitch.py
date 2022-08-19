@@ -275,7 +275,7 @@ class Twitch:
                     self.change_state(State.CHANNELS_FETCH)
                 else:
                     # with no games available, we switch to IDLE after cleanup
-                    self.gui.print(_("gui", "status", "no_campaigns"))
+                    self.gui.print(_("status", "no_campaign"))
                     self.change_state(State.IDLE)
             elif self._state is State.CHANNELS_FETCH:
                 self.gui.status.update(_("gui", "status", "gathering"))
