@@ -74,8 +74,10 @@ class Twitch:
         self._mnt_task: asyncio.Task[None] | None = None
 
     async def get_session(self) -> aiohttp.ClientSession:
-        if self._session is not None:
-            return self._session
+        if (session := self._session) is not None:
+            if session.closed:
+                raise RuntimeError("Session is closed")
+            return session
         cookie_jar = aiohttp.CookieJar()
         if COOKIES_PATH.exists():
             cookie_jar.load(COOKIES_PATH)
@@ -100,8 +102,8 @@ class Twitch:
         if self._session is not None:
             cookie_jar = cast(aiohttp.CookieJar, self._session.cookie_jar)
             cookie_jar.save(COOKIES_PATH)
-            session, self._session = self._session, None
-            await session.close()
+            await self._session.close()
+            self._session = None
         await self.websocket.stop()
         # wait at least half a second + whatever it takes to complete the closing
         # this allows aiohttp to safely close the session
