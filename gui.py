@@ -1629,6 +1629,7 @@ class GUIManager:
         root.iconbitmap(resource_path("pickaxe.ico"))  # window icon
         root.title(WINDOW_TITLE)  # window title
         root.protocol("WM_DELETE_WINDOW", self.close)  # hook the X window closing button
+        root.protocol("WM_ENDSESSION", self.close)  # hook the Windows shutdown signal
         root.bind_all("<KeyPress-Escape>", self.unfocus)  # pressing ESC unfocuses selection
         # Image cache for displaying images
         self._cache = ImageCache(self)
@@ -1781,7 +1782,7 @@ class GUIManager:
             await asyncio.sleep(0.05)
         self._poll_task = None
 
-    def close(self):
+    def close(self, *args):
         """
         Requests the GUI application to close.
         The window itself will be closed in the closing sequence later.
