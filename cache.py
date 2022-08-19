@@ -8,7 +8,6 @@ from typing import Dict, TypedDict, NewType, TYPE_CHECKING
 from utils import json_load, json_save
 from constants import URLType, CACHE_PATH, CACHE_DB
 
-import aiohttp
 from PIL import Image as Image_module
 from PIL.ImageTk import PhotoImage
 
@@ -37,6 +36,7 @@ class ImageCache:
 
     def __init__(self, manager: GUIManager) -> None:
         self._root = manager._root
+        self._twitch = manager._twitch
         CACHE_PATH.mkdir(parents=True, exist_ok=True)
         self._hashes: Hashes = json_load(CACHE_DB, default_database, merge=False)
         self._images: dict[ImageHash, Image] = {}
@@ -94,7 +94,7 @@ class ImageCache:
                     except FileNotFoundError:
                         pass
             if image is None:
-                async with aiohttp.request("GET", url) as response:
+                async with self._twitch.request("GET", url) as response:
                     image = Image_module.open(io.BytesIO(await response.read()))
                 img_hash = self._hash(image)
                 self._images[img_hash] = image
