@@ -1,6 +1,5 @@
 {
     "status": {
-        "exiting": "正在退出...",
         "terminated": "\n应用程序已终止，请关闭窗口以退出应用程序。",
         "goes_online": "{channel} 该频道已上线, 正在切换...",
         "goes_offline": "{channel} 该频道已离线, 正在切换...",
@@ -28,6 +27,8 @@
         "status": {
             "name": "状态",
             "idle": "已完成获取",
+            "exiting": "正在退出...",
+            "terminated": "应用已终止运行",
             "cleanup": "清除频道中...",
             "gathering": "搜索直播频道...",
             "switching": "切换直播频道中...",

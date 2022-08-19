@@ -88,7 +88,7 @@ class Twitch:
 
     async def shutdown(self) -> None:
         start_time = time()
-        self.gui.print(_("status", "exiting"))
+        self.gui.print(_("gui", "status", "exiting"))
         self.stop_watching()
         if self._watching_task is not None:
             self._watching_task.cancel()
@@ -394,7 +394,7 @@ class Twitch:
                     # break the state change chain by clearing the flag
                     self._state_change.clear()
             elif self._state is State.EXIT:
-                self.gui.status.update(_("status", "exiting"))
+                self.gui.status.update(_("gui", "status", "exiting"))
                 # we've been requested to exit the application
                 break
             await self._state_change.wait()

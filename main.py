@@ -181,6 +181,7 @@ finally:
     loop.run_until_complete(client.shutdown())
 if not client.gui.close_requested:
     client.print(_("status", "terminated"))
+    client.gui.status.update(_("gui", "status", "terminated"))
 loop.run_until_complete(client.gui.wait_until_closed())
 # save the application state
 # NOTE: we have to do it after wait_until_closed,

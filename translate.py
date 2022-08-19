@@ -11,7 +11,6 @@ if TYPE_CHECKING:
 
 
 class StatusMessages(TypedDict):
-    exiting: str
     terminated: str
     goes_online: str
     goes_offline: str
@@ -40,6 +39,8 @@ class ErrorMessages(TypedDict):
 class GUIStatus(TypedDict):
     name: str
     idle: str
+    exiting: str
+    terminated: str
     cleanup: str
     gathering: str
     switching: str
@@ -202,7 +203,6 @@ class Translation(TypedDict):
 
 default_translation: Translation = {
     "status": {
-        "exiting": "Exiting...",
         "terminated": "\nApplication Terminated.\nClose the window to exit the application.",
         "goes_online": "{channel} goes ONLINE, switching...",
         "goes_offline": "{channel} goes OFFLINE, switching...",
@@ -233,6 +233,8 @@ default_translation: Translation = {
         "status": {
             "name": "Status",
             "idle": "Idle",
+            "exiting": "Exiting...",
+            "terminated": "Terminated",
             "watching": "Watching {channel}",
             "cleanup": "Cleaning up channels...",
             "gathering": "Gathering channels...",
