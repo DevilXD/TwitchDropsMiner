@@ -133,7 +133,7 @@ class GUIInvStatus(TypedDict):
     expired: str
     upcoming: str
     claimed: str
-    ready: str
+    ready_to_claim: str
 
 
 class GUIInventory(TypedDict):
@@ -318,7 +318,7 @@ default_translation: Translation = {
                 "upcoming": "Upcoming ⏳",
                 "expired": "Expired ❌",
                 "claimed": "Claimed ✔",
-                "ready": "Ready to claim ⏳",
+                "ready_to_claim": "Ready to claim ⏳",
             },
             "starts": "Starts: {time}",
             "ends": "Ends: {time}",
