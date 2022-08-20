@@ -1213,20 +1213,22 @@ class InventoryOverview:
         self._campaigns.clear()
 
     def get_progress(self, drop: TimedDrop) -> tuple[str, tk._Color]:
+        progress_text: str
         progress_color: tk._Color = ''
-        progress_text: str = _("gui", "inventory", "minutes_progress").format(
-            minutes=drop.required_minutes
-        )
         if drop.is_claimed:
             progress_color = "green"
             progress_text = _("gui", "inventory", "status", "claimed")
         elif drop.can_claim:
             progress_color = "goldenrod"
-            progress_text = _("gui", "inventory", "status", "ready")
-        elif drop.can_earn():
+            progress_text = _("gui", "inventory", "status", "ready_to_claim")
+        elif drop.current_minutes or drop.can_earn():
             progress_text = _("gui", "inventory", "percent_progress").format(
                 percent=f"{drop.progress:3.1%}",
                 minutes=drop.required_minutes,
+            )
+        else:
+            progress_text = _("gui", "inventory", "minutes_progress").format(
+                minutes=drop.required_minutes
             )
         return (progress_text, progress_color)
 
