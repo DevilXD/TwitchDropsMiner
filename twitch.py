@@ -869,6 +869,8 @@ class Twitch:
             kwargs["proxy"] = self.settings.proxy
         logger.debug(f"Request: ({method=}, {url=}, {kwargs=})")
         for delay in ExponentialBackoff(shift=1, maximum=3*60):
+            if self.gui.close_requested:
+                raise ExitRequest()
             try:
                 async with session.request(method, url, **kwargs) as response:
                     logger.debug(f"Response: {response.status}: {response}")
