@@ -869,8 +869,6 @@ class Twitch:
             kwargs["proxy"] = self.settings.proxy
         logger.debug(f"Request: ({method=}, {url=}, {kwargs=})")
         for delay in ExponentialBackoff(shift=1, maximum=3*60):
-            if self.gui.close_requested:
-                raise ExitRequest()
             try:
                 async with session.request(method, url, **kwargs) as response:
                     logger.debug(f"Response: {response.status}: {response}")
@@ -882,7 +880,11 @@ class Twitch:
                 # just so that quick 2nd retries that often happen, aren't shown
                 if delay > 1:
                     self.print(_("error", "no_connection").format(seconds=round(delay)))
+            if self.gui.close_requested:
+                raise ExitRequest()
             await asyncio.sleep(delay)
+            if self.gui.close_requested:
+                raise ExitRequest()
 
     async def gql_request(self, op: GQLOperation) -> JsonType:
         gql_logger.debug(f"GQL Request: {op}")
