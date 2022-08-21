@@ -870,17 +870,7 @@ class Twitch:
         logger.debug(f"Request: ({method=}, {url=}, {kwargs=})")
         for delay in ExponentialBackoff(shift=1, maximum=3*60):
             try:
-                response = None
-                done, pending = await asyncio.wait(
-                    [session.request(method, url, **kwargs), self.gui.wait_until_closed()],
-                    return_when=asyncio.FIRST_COMPLETED,
-                )
-                if self.gui.close_requested:
-                    raise ExitRequest()
-                for task in done:
-                    response = task.result()
-                    break
-                if response is not None:
+                async with session.request(method, url, **kwargs) as response:
                     logger.debug(f"Response: {response.status}: {response}")
                     if response.status < 500:
                         yield response
@@ -890,9 +880,6 @@ class Twitch:
                 # just so that quick 2nd retries that often happen, aren't shown
                 if delay > 1:
                     self.print(_("error", "no_connection").format(seconds=round(delay)))
-            finally:
-                if response is not None:
-                    response.release()
             await asyncio.sleep(delay)
 
     async def gql_request(self, op: GQLOperation) -> JsonType:
