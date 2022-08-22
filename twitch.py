@@ -884,6 +884,7 @@ class Twitch:
 
     async def gql_request(self, op: GQLOperation) -> JsonType:
         gql_logger.debug(f"GQL Request: {op}")
+        await self.check_login()
         async with self.request(
             "POST",
             "https://gql.twitch.tv/gql",

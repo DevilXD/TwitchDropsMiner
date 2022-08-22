@@ -200,6 +200,7 @@ class Websocket:
             # nothing to do
             return
         self._topics_changed.clear()
+        await self._twitch.check_login()
         current: set[WebsocketTopic] = set(self.topics.values())
         # handle removed topics
         removed = self._submitted.difference(current)
