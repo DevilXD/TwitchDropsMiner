@@ -869,22 +869,37 @@ class Twitch:
             kwargs["proxy"] = self.settings.proxy
         logger.debug(f"Request: ({method=}, {url=}, {kwargs=})")
         for delay in ExponentialBackoff(shift=1, maximum=3*60):
+            if self.gui.close_requested:
+                raise ExitRequest()
             try:
-                async with session.request(method, url, **kwargs) as response:
-                    logger.debug(f"Response: {response.status}: {response}")
-                    if response.status < 500:
-                        yield response
-                        return
+                response: aiohttp.ClientResponse | None = None
+                done, pending = await asyncio.wait(
+                    [session.request(method, url, **kwargs), self.gui.wait_until_closed()],
+                    return_when=asyncio.FIRST_COMPLETED,
+                )
+                if self.gui.close_requested:
+                    raise ExitRequest()
+                for task in pending:
+                    task.cancel()
+                for task in done:
+                    response = task.result()
+                    break
+                if response is None:
+                    raise RuntimeError("Close request leak")
+                logger.debug(f"Response: {response.status}: {response}")
+                if response.status >= 500:
                     self.print(_("error", "site_down").format(seconds=round(delay)))
+                yield response
+                return
             except (aiohttp.ClientConnectionError, asyncio.TimeoutError):
                 # just so that quick 2nd retries that often happen, aren't shown
                 if delay > 1:
                     self.print(_("error", "no_connection").format(seconds=round(delay)))
-            if self.gui.close_requested:
-                raise ExitRequest()
-            await asyncio.sleep(delay)
-            if self.gui.close_requested:
-                raise ExitRequest()
+            finally:
+                if response is not None:
+                    response.release()
+            with suppress(asyncio.TimeoutError):
+                await asyncio.wait_for(self.gui.wait_until_closed(), timeout=delay)
 
     async def gql_request(self, op: GQLOperation) -> JsonType:
         gql_logger.debug(f"GQL Request: {op}")
@@ -924,8 +939,6 @@ class Twitch:
         status_update(_("gui", "status", "fetching_inventory"))
         # fetch in-progress campaigns (inventory)
         response = await self.gql_request(GQL_OPERATIONS["Inventory"])
-        if self.gui.close_requested:
-            raise ExitRequest()
         inventory: JsonType = response["data"]["currentUser"]["inventory"]
         ongoing_campaigns: list[JsonType] = inventory["dropCampaignsInProgress"] or []
         # this contains claimed benefit edge IDs, not drop IDs
@@ -938,8 +951,6 @@ class Twitch:
         ]
         # fetch all available campaigns data
         response = await self.gql_request(GQL_OPERATIONS["Campaigns"])
-        if self.gui.close_requested:
-            raise ExitRequest()
         available_list: list[JsonType] = response["data"]["currentUser"]["dropCampaigns"] or []
         applicable_statuses = ("ACTIVE", "UPCOMING")
         existing_campaigns: set[str] = set(c.id for c in campaigns)
@@ -973,8 +984,6 @@ class Twitch:
                     counter=f"({i}/{len(available_campaigns)})"
                 )
             )
-            if self.gui.close_requested:
-                raise ExitRequest()
         campaigns.extend(fetched_campaigns)
         campaigns.sort(key=lambda c: c.active, reverse=True)
         campaigns.sort(key=lambda c: c.upcoming and c.starts_at or c.ends_at)
@@ -987,10 +996,9 @@ class Twitch:
                 _("gui", "status", "adding_campaigns").format(counter=f"({i}/{len(campaigns)})")
             )
             self._drops.update({drop.id: drop for drop in campaign.drops})
+            # NOTE: this adds pictures, so might be slow sometimes
             await self.gui.inv.add_campaign(campaign)
             self.inventory.append(campaign)
-            if self.gui.close_requested:
-                raise ExitRequest()
 
     def get_active_drop(self, channel: Channel | None = None) -> TimedDrop | None:
         if not self.games:
