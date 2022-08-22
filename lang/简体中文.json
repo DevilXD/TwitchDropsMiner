@@ -112,7 +112,7 @@
                 "upcoming": "即将上线 \u23f3",
                 "expired": "已结束 \u274c",
                 "claimed": "声明 \u2714",
-                "ready": "准备掉宝 \u23f3"
+                "ready_to_claim": "准备掉宝 \u23f3"
             },
             "starts": "开始时间: {time}",
             "ends": "结束时间: {time}",

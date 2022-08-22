@@ -880,7 +880,11 @@ class Twitch:
                 # just so that quick 2nd retries that often happen, aren't shown
                 if delay > 1:
                     self.print(_("error", "no_connection").format(seconds=round(delay)))
+            if self.gui.close_requested:
+                raise ExitRequest()
             await asyncio.sleep(delay)
+            if self.gui.close_requested:
+                raise ExitRequest()
 
     async def gql_request(self, op: GQLOperation) -> JsonType:
         gql_logger.debug(f"GQL Request: {op}")
