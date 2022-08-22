@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import sys
 import logging
-from copy import copy
 from pathlib import Path
+from copy import deepcopy
 from enum import Enum, auto
 from datetime import timedelta
 from typing import Any, Dict, Literal, NewType, TYPE_CHECKING
@@ -106,7 +106,7 @@ class GQLOperation(JsonType):
             self.__setitem__("variables", variables)
 
     def with_variables(self, variables: JsonType) -> GQLOperation:
-        modified = copy(self)
+        modified = deepcopy(self)
         if "variables" in self:
             existing_variables: JsonType = modified["variables"]
             existing_variables.update(variables)
