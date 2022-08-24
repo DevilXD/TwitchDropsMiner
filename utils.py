@@ -19,6 +19,7 @@ from typing import (
 import yarl
 
 from constants import JsonType
+from exceptions import ExitRequest
 from constants import _resource_path as resource_path  # noqa
 
 if TYPE_CHECKING:
@@ -74,6 +75,8 @@ def task_wrapper(
     async def wrapper(*args: _P.args, **kwargs: _P.kwargs):
         try:
             await afunc(*args, **kwargs)
+        except ExitRequest:
+            pass
         except Exception:
             logger.exception("Exception in task")
             raise  # raise up to the wrapping task
