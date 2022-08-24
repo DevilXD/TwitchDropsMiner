@@ -4,8 +4,8 @@ from typing import Any, TypedDict, TYPE_CHECKING
 
 from yarl import URL
 
-from constants import SETTINGS_PATH
 from utils import json_load, json_save
+from constants import SETTINGS_PATH, DEFAULT_LANG
 
 if TYPE_CHECKING:
     from main import ParsedArgs
@@ -26,9 +26,9 @@ default_settings: SettingsFile = {
     "priority": [],
     "exclude": set(),
     "autostart": False,
-    "language": "English",
     "priority_only": True,
     "autostart_tray": False,
+    "language": DEFAULT_LANG,
 }
 
 
