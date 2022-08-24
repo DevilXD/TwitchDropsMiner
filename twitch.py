@@ -165,6 +165,14 @@ class Twitch:
             return 0
         return self.games[game]
 
+    async def run(self):
+        try:
+            await self._run()
+        except ExitRequest:
+            pass
+        except aiohttp.ContentTypeError as exc:
+            raise MinerException(_("login", "unexpected_content")) from exc
+
     async def _run(self):
         """
         Main method that runs the whole client.
@@ -393,13 +401,6 @@ class Twitch:
                 # we've been requested to exit the application
                 break
             await self._state_change.wait()
-
-    async def run(self):
-        try:
-            await self._run()
-        except ExitRequest:
-            pass
-        # post-main-loop code goes here
 
     async def _watch_sleep(self, delay: float) -> None:
         # we use wait_for here to allow an asyncio.sleep-like that can be ended prematurely
@@ -739,17 +740,10 @@ class Twitch:
             payload.pop("authy_token", None)
             payload.pop("twitchguard_code", None)
             for attempt in range(2):
-                try:
-                    async with self.request(
-                        "POST", "https://passport.twitch.tv/login", json=payload
-                    ) as response:
-                        login_response: JsonType = await response.json()
-                except aiohttp.ContentTypeError as exc:
-                    raise MinerException(
-                        "Unexpected content type returned instead of JSON, "
-                        "usually due to being redirected. "
-                        "Do you need to login for internet access?"
-                    ) from exc
+                async with self.request(
+                    "POST", "https://passport.twitch.tv/login", json=payload
+                ) as response:
+                    login_response: JsonType = await response.json()
 
                 # Feed this back in to avoid running into CAPTCHA if possible
                 if "captcha_proof" in login_response:

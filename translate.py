@@ -214,7 +214,7 @@ default_translation: Translation = {
     },
     "login": {
         "unexpected_content": (
-            "Unexpected content type returned instead of JSON, usually due to being redirected. "
+            "Unexpected content type returned, usually due to being redirected. "
             "Do you need to login for internet access?"
         ),
         "incorrect_login_pass": "Incorrect username or password.",
