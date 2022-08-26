@@ -216,8 +216,8 @@ class WebsocketTopic:
         target_id: int,
         process: TopicProcess,
     ):
-        self._id: str = f"{WEBSOCKET_TOPICS[category][topic_name]}.{target_id}"
         assert isinstance(target_id, int)
+        self._id: str = self.as_str(category, topic_name, target_id)
         self._target_id = target_id
         self._process: TopicProcess = process
 
