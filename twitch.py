@@ -416,6 +416,7 @@ class Twitch:
             succeeded = await channel.send_watch()
             if not succeeded:
                 # this usually means the campaign expired in the middle of mining
+                # NOTE: the maintenance task should switch the channel right after this happens
                 await self._watch_sleep(60)
                 continue
             last_watch = time()
@@ -458,8 +459,6 @@ class Twitch:
                     if (drop := self.get_active_drop()) is not None:
                         drop.bump_minutes()
                         drop.display()
-                    else:
-                        logger.error("Active drop search failed")
             await self._watch_sleep(last_watch + interval - time())
 
     @task_wrapper
@@ -469,10 +468,10 @@ class Twitch:
         while self._state is State.INVENTORY_FETCH:
             await asyncio.sleep(5)
         # figure out the maximum sleep period
-        # 1h at max, but can be shorter if there's a campaign state change earlier than that
+        # max period time can be shorter if there's a campaign state change earlier than that
         # divide the period into up to two evenly spaced checks (usually ~15-30m)
         now = datetime.now(timezone.utc)
-        one_hour = timedelta(hours=1)
+        max_period = timedelta(hours=1)
         period = timedelta.max
         for campaign in self.inventory:
             if not campaign.linked:
@@ -482,8 +481,8 @@ class Twitch:
                 period = test_period
             elif campaign.ends_at >= now and (test_period := campaign.ends_at - now) < period:
                 period = test_period
-        if period > one_hour:
-            period = one_hour
+        if period > max_period:
+            period = max_period
         times = ceil(period / timedelta(minutes=30))
         period /= times
         for i in range(times):
