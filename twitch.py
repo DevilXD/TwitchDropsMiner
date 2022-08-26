@@ -871,10 +871,10 @@ class Twitch:
                     [session.request(method, url, **kwargs), self.gui.wait_until_closed()],
                     return_when=asyncio.FIRST_COMPLETED,
                 )
-                if self.gui.close_requested:
-                    raise ExitRequest()
                 for task in pending:
                     task.cancel()
+                if self.gui.close_requested:
+                    raise ExitRequest()
                 for task in done:
                     response = task.result()
                     break

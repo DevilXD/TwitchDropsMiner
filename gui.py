@@ -434,15 +434,16 @@ class LoginForm:
         self._confirm.clear()
         self._button.config(state="normal")
         # NOTE: we need this to allow for the closing window event to break the waiting here
-        await asyncio.wait(
+        done, pending = await asyncio.wait(
             [self._confirm.wait(), self._manager.wait_until_closed()],
             return_when=asyncio.FIRST_COMPLETED,
         )
+        for task in pending:
+            task.cancel()
         if self._manager.close_requested:
             raise ExitRequest()
         self._button.config(state="disabled")
-        data = LoginData(self._login_entry.get(), self._pass_entry.get(), self._token_entry.get())
-        return data
+        return LoginData(self._login_entry.get(), self._pass_entry.get(), self._token_entry.get())
 
     def update(self, status: str, user_id: int | None):
         if user_id is not None:
