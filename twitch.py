@@ -379,23 +379,25 @@ class Twitch:
                             new_watching = channel
                             break
                 watching_channel = self.watching_channel.get_with_default(None)
-                if watching_channel is None and new_watching is None:
-                    # not watching anything and there isn't anything to watch either
-                    self.gui.print(_("status", "no_channel"))
-                    self.change_state(State.IDLE)
-                else:
-                    if new_watching is not None:
-                        # if we have a better switch target - do so
-                        # otherwise, continue watching what we had before
-                        self.watch(new_watching)
-                    # should immediately complete, since we'll definitely
-                    # have a channel we're watching here
-                    watching_channel = await self.watching_channel.get()
+                if new_watching is not None:
+                    # if we have a better switch target - do so
+                    self.watch(new_watching)
+                    self.gui.status.update(
+                        _("gui", "status", "watching").format(channel=new_watching.name)
+                    )
+                    # break the state change chain by clearing the flag
+                    self._state_change.clear()
+                elif watching_channel is not None:
+                    # otherwise, continue watching what we had before
                     self.gui.status.update(
                         _("gui", "status", "watching").format(channel=watching_channel.name)
                     )
                     # break the state change chain by clearing the flag
                     self._state_change.clear()
+                else:
+                    # not watching anything and there isn't anything to watch either
+                    self.gui.print(_("status", "no_channel"))
+                    self.change_state(State.IDLE)
             elif self._state is State.EXIT:
                 self.gui.status.update(_("gui", "status", "exiting"))
                 # we've been requested to exit the application
@@ -580,8 +582,11 @@ class Twitch:
             self.can_watch(channel)  # we can watch the channel that just got ONLINE
             and self.should_switch(channel)  # and we should!
         ):
-            self.gui.print(_("status", "goes_online").format(channel=channel.name))
             self.watch(channel)
+            self.gui.print(_("status", "goes_online").format(channel=channel.name))
+            self.gui.status.update(
+                _("gui", "status", "watching").format(channel=channel.name)
+            )
 
     def on_offline(self, channel: Channel):
         """
