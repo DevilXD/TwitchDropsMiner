@@ -63,7 +63,7 @@ BASE_URL = "https://twitch.tv"
 CLIENT_ID = "kimne78kx3ncx6brgo4mv6wki5h1ko"
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/99.0.4844.51 Safari/537.36"
+    "Chrome/105.0.0.0 Safari/537.36"
 )
 # Intervals and Delays
 PING_INTERVAL = timedelta(minutes=3)
