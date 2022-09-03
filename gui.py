@@ -1948,9 +1948,10 @@ if __name__ == "__main__":
         )
         mock.change_state = lambda state: mock.gui.print(f"State change: {state.value}")
         mock.state_change = lambda state: partial(mock.change_state, state)
+        mock.request = aiohttp.request
         gui = GUIManager(mock)  # type: ignore
         mock.gui = gui
-        mock.request_close = gui.stop
+        mock.close = gui.stop
         gui.start()
         assert gui._poll_task is not None
         gui._poll_task.add_done_callback(lambda t: exit_event.set())
