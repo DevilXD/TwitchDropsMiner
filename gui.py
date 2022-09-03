@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import sys
+import ctypes
 import asyncio
 import logging
 import webbrowser
@@ -1727,18 +1729,29 @@ class GUIManager:
             self._root.after_idle(self.tray.minimize)
         else:
             self._root.deiconify()
-        # NOTE: this root.update() is required for the below to work - don't remove
-        root.update()
-        self._message_map = {
-            # window close request
-            win32con.WM_CLOSE: self.close,
-            # shutdown request
-            win32con.WM_QUERYENDSESSION: self.close,
-        }
-        # This hooks up the wnd_proc function as the message processor for the root window.
-        self.old_wnd_proc = win32gui.SetWindowLong(
-            self._handle, win32con.GWL_WNDPROC, self.wnd_proc
-        )
+        if sys.platform == "win32":
+            # gracefully handle Windows shutdown closing the application
+            # NOTE: this root.update() is required for the below to work - don't remove
+            root.update()
+            self._message_map = {
+                # window close request
+                win32con.WM_CLOSE: self.close,
+                # shutdown request
+                win32con.WM_QUERYENDSESSION: self.close,
+            }
+            # This hooks up the wnd_proc function as the message processor for the root window.
+            self.old_wnd_proc = win32gui.SetWindowLong(
+                self._handle, win32con.GWL_WNDPROC, self.wnd_proc
+            )
+            # This ensures all of this works when the application is withdrawn or iconified
+            ctypes.windll.user32.ShutdownBlockReasonCreate(
+                self._handle, ctypes.c_wchar_p(_("gui", "status", "exiting"))
+            )
+            # DEV NOTE: use this to remove the reason in the future
+            # ctypes.windll.user32.ShutdownBlockReasonDestroy(self._handle)
+        else:
+            # use old-style window closing protocol for non-windows platforms
+            root.protocol("WM_DESTROY_WINDOW", self.close)
 
     # https://stackoverflow.com/questions/56329342/tkinter-treeview-background-tag-not-working
     def _fixed_map(self, option):
