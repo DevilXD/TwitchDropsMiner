@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import io
 import sys
-import ctypes
 import signal
 import asyncio
 import logging
@@ -25,6 +24,10 @@ try:
     import PIL  # noqa
 except ModuleNotFoundError as exc:
     raise ImportError("You have to run 'pip install pillow' first") from exc
+try:
+    import win32gui  # noqa
+except ModuleNotFoundError as exc:
+    raise ImportError("You have to run 'pip install pywin32' first") from exc
 
 from translate import _
 from twitch import Twitch
@@ -126,7 +129,7 @@ root.destroy()
 
 # check if we're not already running
 try:
-    exists = ctypes.windll.user32.FindWindowW(None, WINDOW_TITLE)
+    exists = win32gui.FindWindow(None, WINDOW_TITLE)
 except AttributeError:
     # we're not on Windows - continue
     exists = False

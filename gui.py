@@ -5,14 +5,17 @@ import logging
 import webbrowser
 import tkinter as tk
 from math import log10, ceil
-from functools import partial
 from collections import abc, namedtuple
 from tkinter.font import Font, nametofont
+from functools import partial, cached_property
 from datetime import datetime, timedelta, timezone
 from typing import Any, TypedDict, NoReturn, Generic, TYPE_CHECKING
 from tkinter import Tk, ttk, StringVar, DoubleVar, IntVar, PhotoImage
 
 import pystray
+import win32api
+import win32con
+import win32gui
 from yarl import URL
 from PIL import Image as Image_module
 
@@ -1631,8 +1634,6 @@ class GUIManager:
         # root.resizable(False, True)
         root.iconbitmap(resource_path("pickaxe.ico"))  # window icon
         root.title(WINDOW_TITLE)  # window title
-        root.protocol("WM_DELETE_WINDOW", self.close)  # hook the X window closing button
-        root.protocol("WM_ENDSESSION", self.close)  # hook the Windows shutdown signal
         root.bind_all("<KeyPress-Escape>", self.unfocus)  # pressing ESC unfocuses selection
         # Image cache for displaying images
         self._cache = ImageCache(self)
@@ -1726,6 +1727,18 @@ class GUIManager:
             self._root.after_idle(self.tray.minimize)
         else:
             self._root.deiconify()
+        # NOTE: this root.update() is required for the below to work - don't remove
+        root.update()
+        self._message_map = {
+            # window close request
+            win32con.WM_CLOSE: self.close,
+            # shutdown request
+            win32con.WM_QUERYENDSESSION: self.close,
+        }
+        # This hooks up the wnd_proc function as the message processor for the root window.
+        self.old_wnd_proc = win32gui.SetWindowLong(
+            self._handle, win32con.GWL_WNDPROC, self.wnd_proc
+        )
 
     # https://stackoverflow.com/questions/56329342/tkinter-treeview-background-tag-not-working
     def _fixed_map(self, option):
@@ -1741,6 +1754,21 @@ class GUIManager:
             elm for elm in self._style.map("Treeview", query_opt=option)
             if elm[:2] != ("!disabled", "!selected")
         ]
+
+    def wnd_proc(self, hwnd, msg, w_param, l_param):
+        """
+        This function serves as a message processor for all messages sent
+        to the application by Windows.
+        """
+        if msg == win32con.WM_DESTROY:
+            win32api.SetWindowLong(self._handle, win32con.GWL_WNDPROC, self.old_wnd_proc)
+        if msg in self._message_map:
+            return self._message_map[msg](w_param, l_param)
+        return win32gui.CallWindowProc(self.old_wnd_proc, hwnd, msg, w_param, l_param)
+
+    @cached_property
+    def _handle(self) -> int:
+        return int(self._root.wm_frame(), 16)
 
     @property
     def running(self) -> bool:
@@ -1785,7 +1813,7 @@ class GUIManager:
             await asyncio.sleep(0.05)
         self._poll_task = None
 
-    def close(self, *args):
+    def close(self, *args) -> int:
         """
         Requests the GUI application to close.
         The window itself will be closed in the closing sequence later.
@@ -1793,6 +1821,7 @@ class GUIManager:
         self._close_requested.set()
         # notify client we're supposed to close
         self._twitch.close()
+        return 0
 
     def close_window(self):
         """
@@ -1828,6 +1857,7 @@ class GUIManager:
 
 if __name__ == "__main__":
     # Everything below is for debug purposes only
+    import aiohttp
     from types import SimpleNamespace
 
     class StrNamespace(SimpleNamespace):
