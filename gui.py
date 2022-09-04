@@ -1840,8 +1840,9 @@ class GUIManager:
         """
         Closes the window. Invalidates the logger.
         """
-        self._root.destroy()
+        self.tray.stop()
         logging.getLogger("TwitchDrops").removeHandler(self._handler)
+        self._root.destroy()
 
     def unfocus(self, event):
         # support pressing ESC to unfocus
