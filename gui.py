@@ -1723,14 +1723,8 @@ class GUIManager:
         self._handler = _TKOutputHandler(self)
         self._handler.setFormatter(FORMATTER)
         logging.getLogger("TwitchDrops").addHandler(self._handler)
-        # stay hidden in tray if needed, otherwise show the window when everything's ready
-        if self._twitch.settings.tray:
-            # NOTE: this starts the tray icon thread
-            self._root.after_idle(self.tray.minimize)
-        else:
-            self._root.deiconify()
+        # gracefully handle Windows shutdown closing the application
         if sys.platform == "win32":
-            # gracefully handle Windows shutdown closing the application
             # NOTE: this root.update() is required for the below to work - don't remove
             root.update()
             self._message_map = {
@@ -1752,6 +1746,12 @@ class GUIManager:
         else:
             # use old-style window closing protocol for non-windows platforms
             root.protocol("WM_DESTROY_WINDOW", self.close)
+        # stay hidden in tray if needed, otherwise show the window when everything's ready
+        if self._twitch.settings.tray:
+            # NOTE: this starts the tray icon thread
+            self._root.after_idle(self.tray.minimize)
+        else:
+            self._root.deiconify()
 
     # https://stackoverflow.com/questions/56329342/tkinter-treeview-background-tag-not-working
     def _fixed_map(self, option):
