@@ -1751,7 +1751,7 @@ class GUIManager:
             # NOTE: this starts the tray icon thread
             self._root.after_idle(self.tray.minimize)
         else:
-            self._root.deiconify()
+            self._root.after_idle(self._root.deiconify)
 
     # https://stackoverflow.com/questions/56329342/tkinter-treeview-background-tag-not-working
     def _fixed_map(self, option):
