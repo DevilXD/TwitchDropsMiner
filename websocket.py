@@ -200,7 +200,7 @@ class Websocket:
             # nothing to do
             return
         self._topics_changed.clear()
-        await self._twitch.check_login()
+        access_token, user_id = await self._twitch.check_login()
         current: set[WebsocketTopic] = set(self.topics.values())
         # handle removed topics
         removed = self._submitted.difference(current)
@@ -212,7 +212,7 @@ class Websocket:
                     "type": "UNLISTEN",
                     "data": {
                         "topics": topics_list,
-                        "auth_token": self._twitch._access_token,
+                        "auth_token": access_token,
                     }
                 }
             )
@@ -227,7 +227,7 @@ class Websocket:
                     "type": "LISTEN",
                     "data": {
                         "topics": topics_list,
-                        "auth_token": self._twitch._access_token,
+                        "auth_token": access_token,
                     }
                 }
             )

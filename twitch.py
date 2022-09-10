@@ -807,10 +807,10 @@ class Twitch:
                     login_form.clear()
                     return self._access_token
 
-    async def check_login(self) -> None:
+    async def check_login(self) -> tuple[str, int]:
         if self._access_token is not None and self._user_id is not None:
             # we're all good
-            return
+            return (self._access_token, self._user_id)
         # looks like we're missing something
         login_form: LoginForm = self.gui.login
         logger.debug("Checking login")
@@ -824,14 +824,16 @@ class Twitch:
             cookie = jar.filter_cookies(url)
             if not cookie:
                 # no cookie - login
-                await self._login()
-                # store our auth token inside the cookie
-                cookie["auth-token"] = cast(str, self._access_token)
+                access_token: str = await self._login()
+                # store the auth token inside the cookie
+                cookie["auth-token"] = access_token
             elif self._access_token is None:
                 # have cookie - get our access token
-                self._access_token = cookie["auth-token"].value
+                access_token = cookie["auth-token"].value
                 logger.debug("Restoring session from cookie")
-            # validate our access token, by obtaining user_id
+            # store the auth token within the application
+            self._access_token = access_token
+            # validate the auth token, by obtaining user_id
             async with self.request(
                 "GET",
                 "https://id.twitch.tv/oauth2/validate",
@@ -856,6 +858,7 @@ class Twitch:
         # update our cookie and save it
         jar.update_cookies(cookie, url)
         jar.save(COOKIES_PATH)
+        return (self._access_token, self._user_id)
 
     @asynccontextmanager
     async def request(
@@ -901,13 +904,13 @@ class Twitch:
 
     async def gql_request(self, op: GQLOperation) -> JsonType:
         gql_logger.debug(f"GQL Request: {op}")
-        await self.check_login()
+        access_token, user_id = await self.check_login()
         async with self.request(
             "POST",
             "https://gql.twitch.tv/gql",
             json=op,
             headers={
-                "Authorization": f"OAuth {self._access_token}",
+                "Authorization": f"OAuth {access_token}",
                 "Client-Id": CLIENT_ID,
             }
         ) as response:
