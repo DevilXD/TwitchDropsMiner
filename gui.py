@@ -954,7 +954,6 @@ class TrayIcon:
             self.icon = None
 
     def quit(self):
-        self.stop()
         self._manager.close()
 
     def minimize(self):
