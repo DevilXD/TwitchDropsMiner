@@ -189,7 +189,7 @@ class ExponentialBackoff:
         *,
         base: float = 2,
         variance: float | tuple[float, float] = 0.1,
-        shift: float = -1,
+        shift: float = 0,
         maximum: float = 300,
     ):
         if base <= 1:
