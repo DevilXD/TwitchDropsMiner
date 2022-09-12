@@ -120,8 +120,9 @@ class GUIInvFilter(TypedDict):
     name: str
     show: str
     linked: str
-    expired: str
     upcoming: str
+    expired: str
+    excluded: str
     finished: str
     refresh: str
 
@@ -306,8 +307,9 @@ default_translation: Translation = {
                 "name": "Filter",
                 "show": "Show:",
                 "linked": "Linked only",
-                "expired": "Expired",
                 "upcoming": "Upcoming",
+                "expired": "Expired",
+                "excluded": "Excluded",
                 "finished": "Finished",
                 "refresh": "Refresh",
             },

@@ -1003,11 +1003,13 @@ class Notebook:
 
 class InventoryOverview:
     def __init__(self, manager: GUIManager, master: ttk.Widget):
-        self._cache = manager._cache
+        self._cache: ImageCache = manager._cache
+        self._settings: Settings = manager._twitch.settings
         self._filters = {
             "linked": IntVar(master, 1),
-            "expired": IntVar(master, 0),
             "upcoming": IntVar(master, 1),
+            "expired": IntVar(master, 0),
+            "excluded": IntVar(master, 0),
             "finished": IntVar(master, 0),
         }
         # Filtering options
@@ -1042,6 +1044,14 @@ class InventoryOverview:
         ttk.Label(
             filter_frame,
             text=_("gui", "inventory", "filter", "expired"),
+            padding=(0, 0, LABEL_SPACING, 0),
+        ).grid(column=(icolumn := icolumn + 1), row=0)
+        ttk.Checkbutton(
+            filter_frame, variable=self._filters["excluded"]
+        ).grid(column=(icolumn := icolumn + 1), row=0)
+        ttk.Label(
+            filter_frame,
+            text=_("gui", "inventory", "filter", "excluded"),
             padding=(0, 0, LABEL_SPACING, 0),
         ).grid(column=(icolumn := icolumn + 1), row=0)
         ttk.Checkbutton(
@@ -1080,11 +1090,13 @@ class InventoryOverview:
         frame = self._campaigns[campaign]
         linked = bool(self._filters["linked"].get())
         expired = bool(self._filters["expired"].get())
+        excluded = bool(self._filters["excluded"].get())
         upcoming = bool(self._filters["upcoming"].get())
         finished = bool(self._filters["finished"].get())
         if (
             (not linked or campaign.linked)
             and (campaign.active or upcoming and campaign.upcoming or expired and campaign.expired)
+            and (excluded or not excluded and campaign.game.name not in self._settings.exclude)
             and (finished or not campaign.finished)
         ):
             frame.grid()
