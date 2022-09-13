@@ -1093,10 +1093,16 @@ class InventoryOverview:
         excluded = bool(self._filters["excluded"].get())
         upcoming = bool(self._filters["upcoming"].get())
         finished = bool(self._filters["finished"].get())
+        priority_only = self._settings.priority_only
         if (
             (not linked or campaign.linked)
             and (campaign.active or upcoming and campaign.upcoming or expired and campaign.expired)
-            and (excluded or not excluded and campaign.game.name not in self._settings.exclude)
+            and (
+                excluded or (
+                    campaign.game.name not in self._settings.exclude
+                    and not priority_only or campaign.game.name in self._settings.priority
+                )
+            )
             and (finished or not campaign.finished)
         ):
             frame.grid()
