@@ -916,6 +916,8 @@ class Twitch:
         ) as response:
             response_json: JsonType = await response.json()
         gql_logger.debug(f"GQL Response: {response_json}")
+        if "errors" in response_json and response_json["errors"]:
+            raise MinerException(f"GQL error: {response_json['errors']}")
         return response_json
 
     async def fetch_campaign(
