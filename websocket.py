@@ -13,7 +13,13 @@ from translate import _
 from exceptions import MinerException, WebsocketClosed
 from constants import PING_INTERVAL, PING_TIMEOUT, MAX_WEBSOCKETS, WS_TOPICS_LIMIT
 from utils import (
-    task_wrapper, create_nonce, json_minify, format_traceback, AwaitableValue, ExponentialBackoff
+    CHARS_ASCII,
+    task_wrapper,
+    create_nonce,
+    json_minify,
+    format_traceback,
+    AwaitableValue,
+    ExponentialBackoff,
 )
 
 if TYPE_CHECKING:
@@ -200,7 +206,7 @@ class Websocket:
             # nothing to do
             return
         self._topics_changed.clear()
-        access_token, user_id = await self._twitch.check_login()
+        auth_state = await self._twitch.get_auth()
         current: set[WebsocketTopic] = set(self.topics.values())
         # handle removed topics
         removed = self._submitted.difference(current)
@@ -212,7 +218,7 @@ class Websocket:
                     "type": "UNLISTEN",
                     "data": {
                         "topics": topics_list,
-                        "auth_token": access_token,
+                        "auth_token": auth_state.access_token,
                     }
                 }
             )
@@ -227,7 +233,7 @@ class Websocket:
                     "type": "LISTEN",
                     "data": {
                         "topics": topics_list,
-                        "auth_token": access_token,
+                        "auth_token": auth_state.access_token,
                     }
                 }
             )
@@ -316,7 +322,7 @@ class Websocket:
         ws = self._ws.get_with_default(None)
         assert ws is not None
         if message["type"] != "PING":
-            message["nonce"] = create_nonce()
+            message["nonce"] = create_nonce(CHARS_ASCII, 30)
         await ws.send_json(message, dumps=json_minify)
         ws_logger.debug(f"Websocket[{self._idx}] sent: {message}")
 

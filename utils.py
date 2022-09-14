@@ -57,11 +57,13 @@ def timestamp(string: str) -> datetime:
     return datetime.strptime(string, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
 
 
-NONCE_CHARS = string.ascii_letters + string.digits
+CHARS_ASCII = string.ascii_letters + string.digits
+CHARS_HEX_LOWER = string.digits + "abcdef"
+CHARS_HEX_UPPER = string.digits + "ABCDEF"
 
 
-def create_nonce(length: int = 30) -> str:
-    return ''.join(random.choices(NONCE_CHARS, k=length))
+def create_nonce(chars: str, length: int) -> str:
+    return ''.join(random.choices(chars, k=length))
 
 
 def deduplicate(iterable: abc.Iterable[_T]) -> list[_T]:
