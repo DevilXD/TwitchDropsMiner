@@ -101,6 +101,7 @@
                 "show": "Drop:",
                 "linked": "Pouze živě",
                 "expired": "Ukončeno",
+                "excluded": "Vynecháno",
                 "upcoming": "Nadcházející",
                 "finished": "Dokončeno",
                 "refresh": "Obnovit"
