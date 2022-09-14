@@ -62,3 +62,4 @@ Every ~60 seconds, the application sends a "minute watched" event to the channel
 ### Credits:
 
 @Suz1e - For the entirety of the Chinese (简体中文) translation.
+@nwvh - For the entirety of the Czech (Čeština) translation.
