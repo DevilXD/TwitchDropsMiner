@@ -92,6 +92,7 @@ class _AuthState:
         self.access_token: str
         self.client_version: str
         self.integrity_token: _IntegrityToken
+        self._logged_in = asyncio.Event()
 
     async def _login(self) -> str:
         logger.debug("Login flow started")
@@ -249,7 +250,7 @@ class _AuthState:
                 headers=self.gql_headers(integrity=False)
             ) as response:
                 self.integrity_token = _IntegrityToken(await response.json())
-        self._twitch._is_logged_in.set()
+        self._logged_in.set()
 
 
 class Twitch:
@@ -261,12 +262,11 @@ class Twitch:
         self.games: dict[Game, int] = {}
         self.inventory: list[DropsCampaign] = []
         self._drops: dict[str, TimedDrop] = {}
-        # GUI
-        self.gui = GUIManager(self)
-        # Cookies, session and auth
+        # Session and auth
         self._session: aiohttp.ClientSession | None = None
         self._auth_state: _AuthState = _AuthState(self)
-        self._is_logged_in = asyncio.Event()
+        # GUI
+        self.gui = GUIManager(self)
         # Storing and watching channels
         self.channels: OrderedDict[int, Channel] = OrderedDict()
         self.watching_channel: AwaitableValue[Channel] = AwaitableValue()
@@ -315,7 +315,7 @@ class Twitch:
         await asyncio.sleep(start_time + 0.5 - time())
 
     def wait_until_login(self) -> abc.Coroutine[Any, Any, Literal[True]]:
-        return self._is_logged_in.wait()
+        return self._auth_state._logged_in.wait()
 
     def change_state(self, state: State) -> None:
         if self._state is not State.EXIT:
