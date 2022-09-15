@@ -324,7 +324,7 @@ class Channel:
                     "channel_id": self.id,
                     "broadcast_id": self._stream.broadcast_id,
                     "player": "site",
-                    "user_id": self._twitch._user_id,
+                    "user_id": self._twitch._auth_state.user_id,
                 }
             }
         ]

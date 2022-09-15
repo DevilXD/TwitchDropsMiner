@@ -237,7 +237,6 @@ class _AuthState:
                 raise RuntimeError("Login verification failure")
             self.user_id = int(validate_response["user_id"])
             cookie["persistent"] = str(self.user_id)
-            self._twitch._is_logged_in.set()
             logger.debug(f"Login successful, user ID: {self.user_id}")
             login_form.update(_("gui", "login", "logged_in"), self.user_id)
             # update our cookie and save it
@@ -250,6 +249,7 @@ class _AuthState:
                 headers=self.gql_headers(integrity=False)
             ) as response:
                 self.integrity_token = _IntegrityToken(await response.json())
+        self._twitch._is_logged_in.set()
 
 
 class Twitch:
