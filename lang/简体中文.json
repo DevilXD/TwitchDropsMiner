@@ -3,19 +3,19 @@
         "terminated": "\n应用程序已终止，请关闭窗口以退出应用程序。",
         "goes_online": "{channel} 该频道已上线, 正在切换...",
         "goes_offline": "{channel} 该频道已离线, 正在切换...",
-        "claimed_drop": "声明的掉宝: {drop}",
-        "claimed_points": "声明的积分奖励: {points}",
+        "claimed_drop": "领取的掉宝: {drop}",
+        "claimed_points": "领取的积分奖励: {points}",
         "earned_points": "观看直播获得积分: {points}, 总积分: {balance}",
         "no_channel": "没有可观看的频道，等待一个在线直播频道...",
         "no_campaign": "没有可用于掉宝的活动，等待一个有效的掉宝活动..."
     },
     "login": {
-        "unexpected_content": "返回的内容类型有误通常是由于被重定向.您需要VPN才能登录吗？",
+        "unexpected_content": "返回的内容类型有误通常是由于被重定向.您需要登陆才能联网吗？",
         "incorrect_login_pass": "用户名或密码错误.",
-        "incorrect_email_code": "电子邮箱错误.",
-        "incorrect_twofa_code": "邮箱令牌错误.",
-        "email_code_required": "需要电子邮件代码 查看你的邮件.",
-        "twofa_code_required": "需要邮箱2FA令牌."
+        "incorrect_email_code": "电子邮箱验证码错误.",
+        "incorrect_twofa_code": "2FA令牌错误.",
+        "email_code_required": "需要电子邮件验证码 查看你的邮件.",
+        "twofa_code_required": "需要2FA令牌."
     },
     "error": {
         "captcha": "您的登录存在异常,Twitch官方已进行限制,请在12小时后重试.",
@@ -81,8 +81,8 @@
             "campaign_progress": "活动进度:"
         },
         "channels": {
-            "name": "活动渠道",
-            "switch": "连接",
+            "name": "活动频道",
+            "switch": "切换",
             "load_points": "加载积分",
             "online": "ONLINE  \u2714",
             "pending": "OFFLINE \u23f3",
@@ -99,20 +99,20 @@
             "filter": {
                 "name": "筛选",
                 "show": "掉宝活动:",
-                "linked": "仅直播中",
+                "linked": "仅已连接",
                 "expired": "已结束",
                 "upcoming": "即将上线",
                 "finished": "已完成",
                 "refresh": "刷新"
             },
             "status": {
-                "linked": "直播中 \u2714",
-                "not_linked": "暂无直播中的频道 \u274c",
+                "linked": "已连接账号 \u2714",
+                "not_linked": "未连接账号 \u274c",
                 "active": "已上线 \u2714",
                 "upcoming": "即将上线 \u23f3",
                 "expired": "已结束 \u274c",
-                "claimed": "声明 \u2714",
-                "ready_to_claim": "准备掉宝 \u23f3"
+                "claimed": "已领取 \u2714",
+                "ready_to_claim": "可以领取 \u23f3"
             },
             "starts": "开始时间: {time}",
             "ends": "结束时间: {time}",
@@ -127,12 +127,12 @@
                 "name": "功能设置",
                 "autostart": "开机自启动: ",
                 "tray": "开机自启动并最小化: ",
-                "priority_only": "仅掉宝游戏模式: ",
+                "priority_only": "仅参与优先掉宝游戏: ",
                 "proxy": "代理:"
             },
             "game_name": "游戏名称",
-            "priority": "添加掉宝游戏",
-            "exclude": "添加不参与掉宝游戏",
+            "priority": "优先掉宝游戏",
+            "exclude": "不参与掉宝游戏",
             "reload": "刷新",
             "reload_text": "大多数设置更改后需要重新启动软件或刷新才能生效: "
         },
@@ -140,12 +140,12 @@
             "links": {
                 "name": "帮助",
                 "inventory": "查看Twitch库存",
-                "campaigns": "查看所有掉宝活动并管理账户关联"
+                "campaigns": "查看所有掉宝活动并管理连接账号"
             },
-            "how_it_works": "使用帮助",
-            "how_it_works_text": "每隔约 60 秒，应用程序会向当前正在观看的频道发送一个“分钟观看”事件 - 这足以推进投放。请注意，这完全绕过了下载任何实际流视频和声音的需要。为了使频道的状态（在线或离线）保持最新，建立了一个 websocket 连接，用于接收有关流上升或下降的事件，或有关当前观众数量的更新。",
+            "how_it_works": "工作原理",
+            "how_it_works_text": "每隔约 60 秒，应用程序会向当前正在观看的频道发送一个“观看了一分钟”事件 - 这足以推进掉宝进度。这完全不需要下载任何实际视频流和声音。为了使频道的状态（在线或离线）保持最新，建立了websocket连接，用于接收有关直播开播下播事件，或当前观众数量的更新。",
             "getting_started": "入门设置",
-            "getting_started_text": "1. 登录应用程序。\n2.确保您的 Twitch 帐户与您有兴趣挖掘的所有广告系列相关联。\n3.如果您只想挖掘所有内容，请取消选中“仅优先级”，然后按“重新加载”。\n4.如果您想先挖掘特定游戏，请使用“优先级”列表设置您选择的游戏的有序列表。将首先尝试挖掘列表顶部的游戏，然后再尝试挖掘列表较低的游戏。\n5.保持“仅限优先”选项处于选中状态，以避免挖掘不在优先列表中的游戏。或不 - 这取决于你。\n6。使用“排除”列表告诉应用程序哪些游戏不应该被挖掘。\n7.更改任一列表的内容，或更改“仅优先级”选项的状态，需要您按“重新加载”才能使更改生效."
+            "getting_started_text": "1. 登录应用程序。\n2.确保所有感兴趣挖掘的游戏的账号已连接到您的Twitch账号。\n3.如果您想挖掘所有掉宝，请不要勾选“仅参与优先掉宝游戏”，然后按“刷新”。\n4.如果您想优先挖掘特定游戏，请使用“优先掉宝游戏”列表设置您想挖掘的游戏的优先顺序。程序将尝试先挖掘列表顶部的游戏，然后再挖掘后边的游戏。\n5.勾选“仅参与优先掉宝游戏”时，不会挖掘不在优先列表中的游戏。勾不勾选取决于你。\n6。使用“不参与掉宝游戏”列表设置永不挖掘的游戏。\n7.更改任一列表的内容，或更改“仅参与优先掉宝游戏”勾选状态，需要手动按“刷新”才能使更改生效。"
         }
     }
 }
