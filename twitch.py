@@ -179,6 +179,9 @@ class _AuthState:
     def gql_headers(self, *, integrity: bool) -> JsonType:
         headers = {
             "Authorization": f"OAuth {self.access_token}",
+            "Accept": "*/*",
+            "Origin": "https://www.twitch.tv",
+            "Referer": "https://www.twitch.tv/",
             "Client-Id": CLIENT_ID,
             "Client-Session-Id": self.session_id,
             "Client-Version": self.client_version,
