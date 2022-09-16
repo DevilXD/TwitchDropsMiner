@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import abc
 from typing import Any, TypedDict, TYPE_CHECKING
 
+from exceptions import MinerException
 from utils import json_load, json_save
 from constants import IS_PACKAGED, LANG_PATH, DEFAULT_LANG
 
@@ -431,8 +432,14 @@ class Translator:
         if not path:
             raise ValueError("Language path expected")
         v: Any = self._translation
-        for key in path:
-            v = v[key]
+        try:
+            for key in path:
+                v = v[key]
+        except KeyError:
+            # this can only really happen for the default translation
+            raise MinerException(
+                f"{self.current} translation is missing the '{' -> '.join(path)}' translation key"
+            )
         return v
 
 
