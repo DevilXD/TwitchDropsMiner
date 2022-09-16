@@ -180,6 +180,8 @@ class _AuthState:
         headers = {
             "Authorization": f"OAuth {self.access_token}",
             "Accept": "*/*",
+            "Pragma": "no-cache",
+            "Cache-Control": "no-cache",
             "Origin": "https://www.twitch.tv",
             "Referer": "https://www.twitch.tv/",
             "Client-Id": CLIENT_ID,
