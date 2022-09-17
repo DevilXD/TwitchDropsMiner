@@ -19,7 +19,20 @@ class ExitRequest(MinerException):
         if args:
             super().__init__(*args)
         else:
-            super().__init__("Unknown error during request")
+            super().__init__("Application was requested to exit")
+
+
+class ReloadRequest(MinerException):
+    """
+    Raised when the application is requested to reload by an expired request.
+
+    Intended for internal use only.
+    """
+    def __init__(self, *args: object):
+        if args:
+            super().__init__(*args)
+        else:
+            super().__init__("Application was requested to reload its state")
 
 
 class RequestException(MinerException):

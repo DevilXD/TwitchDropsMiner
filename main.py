@@ -181,6 +181,7 @@ except Exception:
 finally:
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     signal.signal(signal.SIGTERM, signal.SIG_DFL)
+    client.print(_("gui", "status", "exiting"))
     loop.run_until_complete(client.shutdown())
 if not client.gui.close_requested:
     client.print(_("status", "terminated"))

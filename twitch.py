@@ -21,7 +21,7 @@ from gui import GUIManager
 from channel import Channel
 from websocket import WebsocketPool
 from inventory import DropsCampaign
-from exceptions import MinerException, LoginException, CaptchaRequired, ExitRequest
+from exceptions import MinerException, LoginException, CaptchaRequired, ExitRequest, ReloadRequest
 from utils import (
     CHARS_HEX_LOWER,
     timestamp,
@@ -73,6 +73,20 @@ class _AuthState:
     @property
     def integrity_expired(self) -> bool:
         return datetime.now(timezone.utc) >= self.integrity_expires
+
+    def _delattr(self, attr: str) -> None:
+        if hasattr(self, attr):
+            delattr(self, attr)
+
+    def clear(self) -> None:
+        self._delattr("user_id")
+        self._delattr("device_id")
+        self._delattr("session_id")
+        self._delattr("access_token")
+        self._delattr("client_version")
+        self._delattr("integrity_token")
+        self._delattr("integrity_expires")
+        self._logged_in.clear()
 
     async def _login(self) -> str:
         logger.debug("Login flow started")
@@ -302,7 +316,6 @@ class Twitch:
 
     async def shutdown(self) -> None:
         start_time = time()
-        self.gui.print(_("gui", "status", "exiting"))
         self.stop_watching()
         if self._watching_task is not None:
             self._watching_task.cancel()
@@ -310,13 +323,19 @@ class Twitch:
         if self._mnt_task is not None:
             self._mnt_task.cancel()
             self._mnt_task = None
-        # close session, save cookies and stop websocket
+        # stop websocket, close session and save cookies
+        await self.websocket.stop(clear_topics=True)
         if self._session is not None:
             cookie_jar = cast(aiohttp.CookieJar, self._session.cookie_jar)
             cookie_jar.save(COOKIES_PATH)
             await self._session.close()
             self._session = None
-        await self.websocket.stop()
+        self._drop_update = None
+        self.games.clear()
+        self._drops.clear()
+        self.channels.clear()
+        self.inventory.clear()
+        self._auth_state.clear()
         # wait at least half a second + whatever it takes to complete the closing
         # this allows aiohttp to safely close the session
         await asyncio.sleep(start_time + 0.5 - time())
@@ -378,12 +397,17 @@ class Twitch:
         return self.games[game]
 
     async def run(self):
-        try:
-            await self._run()
-        except ExitRequest:
-            pass
-        except aiohttp.ContentTypeError as exc:
-            raise MinerException(_("login", "unexpected_content")) from exc
+        while True:
+            try:
+                await self._run()
+            except ReloadRequest:
+                await self.shutdown()
+                continue
+            except ExitRequest:
+                pass
+            except aiohttp.ContentTypeError as exc:
+                raise MinerException(_("login", "unexpected_content")) from exc
+            break
 
     async def _run(self):
         """
@@ -943,7 +967,7 @@ class Twitch:
 
     @asynccontextmanager
     async def request(
-        self, method: str, url: str, **kwargs
+        self, method: str, url: str, *, invalidate_after: datetime | None = None, **kwargs
     ) -> abc.AsyncIterator[aiohttp.ClientResponse]:
         session = await self.get_session()
         method = method.upper()
@@ -953,6 +977,8 @@ class Twitch:
         for delay in ExponentialBackoff(maximum=3*60):
             if self.gui.close_requested:
                 raise ExitRequest()
+            elif invalidate_after is not None and datetime.now(timezone.utc) >= invalidate_after:
+                raise ReloadRequest()
             try:
                 response: aiohttp.ClientResponse | None = None
                 done, pending = await asyncio.wait(
@@ -990,7 +1016,8 @@ class Twitch:
             "POST",
             "https://gql.twitch.tv/gql",
             json=op,
-            headers=auth_state.gql_headers(integrity=True)
+            headers=auth_state.gql_headers(integrity=True),
+            invalidate_after=auth_state.integrity_expires,
         ) as response:
             response_json: JsonType = await response.json()
         gql_logger.debug(f"GQL Response: {response_json}")
