@@ -974,10 +974,17 @@ class Twitch:
         if self.settings.proxy and "proxy" not in kwargs:
             kwargs["proxy"] = self.settings.proxy
         logger.debug(f"Request: ({method=}, {url=}, {kwargs=})")
+        session_timeout = timedelta(
+            seconds=cast(aiohttp.ClientTimeout, session.timeout).total or 0
+        )
         for delay in ExponentialBackoff(maximum=3*60):
             if self.gui.close_requested:
                 raise ExitRequest()
-            elif invalidate_after is not None and datetime.now(timezone.utc) >= invalidate_after:
+            elif (
+                invalidate_after is not None
+                # account for the expiration landing during the request
+                and datetime.now(timezone.utc) >= (invalidate_after - session_timeout)
+            ):
                 raise ReloadRequest()
             try:
                 response: aiohttp.ClientResponse | None = None
