@@ -101,6 +101,8 @@ class Websocket:
                     await asyncio.wait_for(self._handle_task, timeout=2)
                 self._handle_task = None
             if remove:
+                self.topics.clear()
+                self._topics_changed.set()
                 self._twitch.gui.websockets.remove(self._idx)
 
     def stop_nowait(self, *, remove: bool = False):
@@ -200,6 +202,7 @@ class Websocket:
             # nothing to do
             return
         self._topics_changed.clear()
+        self.set_status(refresh_topics=True)
         auth_state = await self._twitch.get_auth()
         current: set[WebsocketTopic] = set(self.topics.values())
         # handle removed topics
@@ -299,7 +302,6 @@ class Websocket:
             changed = True
         if changed:
             self._topics_changed.set()
-            self.set_status(refresh_topics=True)
 
     def remove_topics(self, topics_set: set[str]):
         existing = topics_set.intersection(self.topics.keys())
@@ -310,7 +312,6 @@ class Websocket:
         for topic in existing:
             del self.topics[topic]
         self._topics_changed.set()
-        self.set_status(refresh_topics=True)
 
     async def send(self, message: JsonType):
         ws = self._ws.get_with_default(None)
@@ -339,9 +340,9 @@ class WebsocketPool:
         self._running.set()
         await asyncio.gather(*(ws.start() for ws in self.websockets))
 
-    async def stop(self):
+    async def stop(self, *, clear_topics: bool = False):
         self._running.clear()
-        await asyncio.gather(*(ws.stop() for ws in self.websockets))
+        await asyncio.gather(*(ws.stop(remove=clear_topics) for ws in self.websockets))
 
     def add_topics(self, topics: abc.Iterable[WebsocketTopic]):
         # ensure no topics end up duplicated
