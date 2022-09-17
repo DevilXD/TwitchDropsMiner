@@ -113,7 +113,7 @@ class _AuthState:
                     elif error_code == 3001:
                         # wrong password you dummy
                         logger.debug("Login failed due to incorrect username or password")
-                        gui_print("Incorrect username or password.")
+                        gui_print(_("login", "incorrect_login_pass"))
                         login_form.clear(password=True)
                         break
                     elif error_code in (
@@ -122,9 +122,9 @@ class _AuthState:
                     ):
                         logger.debug("Login failed due to incorrect 2FA code")
                         if error_code == 3023:
-                            gui_print("Incorrect email code.")
+                            gui_print(_("login", "incorrect_email_code"))
                         else:
-                            gui_print("Incorrect 2FA code.")
+                            gui_print(_("login", "incorrect_twofa_code"))
                         login_form.clear(token=True)
                         break
                     elif error_code in (
@@ -137,9 +137,9 @@ class _AuthState:
                         if not token:
                             # user didn't provide a token, so ask them for it
                             if email:
-                                gui_print("Email code required. Check your email.")
+                                gui_print(_("login", "email_code_required"))
                             else:
-                                gui_print("2FA token required.")
+                                gui_print(_("login", "twofa_code_required"))
                             break
                         if email:
                             payload["twitchguard_code"] = token
