@@ -106,7 +106,7 @@
                 "refresh": "刷新"
             },
             "status": {
-                "linked": "已连接账号 \u2714",
+                "linked": "已关联 \u2714",
                 "not_linked": "未关联账户 \u274c",
                 "active": "已上线 \u2714",
                 "upcoming": "即将上线 \u23f3",
