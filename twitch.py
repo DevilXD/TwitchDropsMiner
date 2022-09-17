@@ -57,42 +57,22 @@ logger = logging.getLogger("TwitchDrops")
 gql_logger = logging.getLogger("TwitchDrops.gql")
 
 
-class _IntegrityToken:
-    def __init__(self, response: JsonType):
-        self.token: str = response["token"]
-        self.expires: datetime = datetime.fromtimestamp(
-            response["expiration"] / 1000, timezone.utc
-        )
-        # verify the integrity token's contents for the "is_bad_bot" flag
-        stripped_token: str = self.token.split('.')[2] + "=="
-        messy_json: str = urlsafe_b64decode(
-            stripped_token.encode()
-        ).decode(errors="ignore").replace('\n', '')
-        match = re.search(r'(.+)(?<="}).+$', messy_json)
-        if match is None:
-            raise MinerException("Unable to parse the integrity token")
-        decoded_header: JsonType = json.loads(match.group(1))
-        if decoded_header.get("is_bad_bot", "false") != "false":
-            raise MinerException(
-                "Twitch considers this miner as a \"Bad Bot\". "
-                "Try deleting the cookie file and try again."
-            )
-
-    @property
-    def expired(self) -> bool:
-        return datetime.now(timezone.utc) >= self.expires
-
-
 class _AuthState:
     def __init__(self, twitch: Twitch):
         self._twitch: Twitch = twitch
+        self._lock = asyncio.Lock()
+        self._logged_in = asyncio.Event()
         self.user_id: int
         self.device_id: str
         self.session_id: str
         self.access_token: str
         self.client_version: str
-        self.integrity_token: _IntegrityToken
-        self._logged_in = asyncio.Event()
+        self.integrity_token: str
+        self.integrity_expires: datetime
+
+    @property
+    def integrity_expired(self) -> bool:
+        return datetime.now(timezone.utc) >= self.integrity_expires
 
     async def _login(self) -> str:
         logger.debug("Login flow started")
@@ -133,7 +113,7 @@ class _AuthState:
                     elif error_code == 3001:
                         # wrong password you dummy
                         logger.debug("Login failed due to incorrect username or password")
-                        gui_print("Incorrect username or password.")
+                        gui_print(_("login", "incorrect_login_pass"))
                         login_form.clear(password=True)
                         break
                     elif error_code in (
@@ -142,9 +122,9 @@ class _AuthState:
                     ):
                         logger.debug("Login failed due to incorrect 2FA code")
                         if error_code == 3023:
-                            gui_print("Incorrect email code.")
+                            gui_print(_("login", "incorrect_email_code"))
                         else:
-                            gui_print("Incorrect 2FA code.")
+                            gui_print(_("login", "incorrect_twofa_code"))
                         login_form.clear(token=True)
                         break
                     elif error_code in (
@@ -157,9 +137,9 @@ class _AuthState:
                         if not token:
                             # user didn't provide a token, so ask them for it
                             if email:
-                                gui_print("Email code required. Check your email.")
+                                gui_print(_("login", "email_code_required"))
                             else:
-                                gui_print("2FA token required.")
+                                gui_print(_("login", "twofa_code_required"))
                             break
                         if email:
                             payload["twitchguard_code"] = token
@@ -190,10 +170,14 @@ class _AuthState:
             "X-Device-Id": self.device_id,
         }
         if integrity:
-            headers["Client-Integrity"] = self.integrity_token.token
+            headers["Client-Integrity"] = self.integrity_token
         return headers
 
     async def verify(self):
+        async with self._lock:
+            await self._verify()
+
+    async def _verify(self):
         if not hasattr(self, "session_id"):
             self.session_id = create_nonce(CHARS_HEX_LOWER, 16)
         if not (hasattr(self, "client_version") and hasattr(self, "device_id")):
@@ -248,13 +232,31 @@ class _AuthState:
             # update our cookie and save it
             jar.update_cookies(cookie, url)
             jar.save(COOKIES_PATH)
-        if not hasattr(self, "integrity_token") or self.integrity_token.expired:
+        if not hasattr(self, "integrity_token") or self.integrity_expired:
             async with self._twitch.request(
                 "POST",
                 "https://gql.twitch.tv/integrity",
                 headers=self.gql_headers(integrity=False)
             ) as response:
-                self.integrity_token = _IntegrityToken(await response.json())
+                response_json: JsonType = await response.json()
+            self.integrity_token = cast(str, response_json["token"])
+            self.integrity_expires = datetime.fromtimestamp(
+                response_json["expiration"] / 1000, timezone.utc
+            )
+            # verify the integrity token's contents for the "is_bad_bot" flag
+            stripped_token: str = self.integrity_token.split('.')[2] + "=="
+            messy_json: str = urlsafe_b64decode(
+                stripped_token.encode()
+            ).decode(errors="ignore").replace('\n', '')
+            match = re.search(r'(.+)(?<="}).+$', messy_json)
+            if match is None:
+                raise MinerException("Unable to parse the integrity token")
+            decoded_header: JsonType = json.loads(match.group(1))
+            if decoded_header.get("is_bad_bot", "false") != "false":
+                raise MinerException(
+                    "Twitch considers this miner as a \"Bad Bot\". "
+                    "Try deleting the cookie file and try again."
+                )
         self._logged_in.set()
 
 
