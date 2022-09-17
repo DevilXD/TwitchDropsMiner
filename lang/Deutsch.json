@@ -13,7 +13,7 @@
         "unexpected_content": "Unerwarteter Inhaltstyp zurückgegeben, normalerweise aufgrund einer Weiterleitung.\nIst ein Login für den Internetzugang erforderlich?",
         "incorrect_login_pass": "Falscher Benutzername oder Passwort.",
         "incorrect_email_code": "Falscher E-Mail Code.",
-        "incorrect_twofa_code": "Falsche 2FA Code.",
+        "incorrect_twofa_code": "Falscher 2FA Code.",
         "email_code_required": "E-Mail Code erforderlich. Bitte E-Mail prüfen.",
         "twofa_code_required": "2FA Token erforderlich."
     },
