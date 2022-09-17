@@ -99,7 +99,7 @@
             "filter": {
                 "name": "筛选",
                 "show": "掉宝活动:",
-                "linked": "仅已连接",
+                "linked": "仅已关联账户的游戏掉宝",
                 "expired": "已结束",
                 "upcoming": "即将上线",
                 "finished": "已完成",
