@@ -15,7 +15,7 @@
         "incorrect_email_code": "电子邮箱验证码错误.",
         "incorrect_twofa_code": "双重验证2FA令牌错误.",
         "email_code_required": "需要电子邮件验证码 查看你的邮件.",
-        "twofa_code_required": "需要2FA令牌."
+        "twofa_code_required": "需要双重验证2FA令牌."
     },
     "error": {
         "captcha": "您的登录存在异常,Twitch官方已进行限制,请在12小时后重试.",
