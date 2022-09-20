@@ -4,8 +4,8 @@
         "goes_online": "{channel} ist ONLINE gegangen, wechseln...",
         "goes_offline": "{channel} ist OFFLINE gegangen, wechseln...",
         "claimed_drop": "Drop abgeholt: {drop}",
-        "claimed_points": "Kanalpunkte verdient: {points}",
-        "earned_points": "Verdiente Kanalpunkte fürs zuschauen: {points} | Summe: {balance}",
+        "claimed_points": "Kanal-Punkte verdient: {points}",
+        "earned_points": "Verdiente Kanal-Punkte fürs zuschauen: {points} | Summe: {balance}",
         "no_channel": "Keine teilnehmenden Kanäle online. Warten auf Kanäle...",
         "no_campaign": "Keine aktiven Kampagnen verfügbar. Warten auf neue Kampagne..."
     },
@@ -13,7 +13,7 @@
         "unexpected_content": "Unerwarteter Inhaltstyp zurückgegeben, normalerweise aufgrund einer Weiterleitung.\nIst ein Login für den Internetzugang erforderlich?",
         "incorrect_login_pass": "Falscher Benutzername oder Passwort.",
         "incorrect_email_code": "Falscher E-Mail Code.",
-        "incorrect_twofa_code": "Falscher 2FA Code.",
+        "incorrect_twofa_code": "Falsche 2FA Code.",
         "email_code_required": "E-Mail Code erforderlich. Bitte E-Mail prüfen.",
         "twofa_code_required": "2FA Token erforderlich."
     },
@@ -131,7 +131,7 @@
                 "priority_only": "Nur Priorität: ",
                 "proxy": "Proxy (Erfordert Neustart):"
             },
-            "game_name": "Spielname",
+            "game_name": "Spiel",
             "priority": "Priorität",
             "exclude": "Ausschließen",
             "reload": "Neu laden",
@@ -144,9 +144,9 @@
                 "campaigns": "Alle Twitch-Kampagnen ansehen"
             },
             "how_it_works": "So funktioniert's",
-            "how_it_works_text": "Alle ~60 Sekunden sendet die Anwendung ein \"Minute zugesehen\" Ereignis an den Kanal, dem gerade zugesehen wird.\nDies reicht aus um den Drop voranzutreiben. Auf diese Weise ist es nicht nötig den Stream herunterzuladen.\nUm den Online- oder Offline-Status der Kanäle aktuell zu halten, wird eine Websocket-Verbindung eingerichtet,\ndie die Kanäle auf ihren Status überprüft.",
+            "how_it_works_text": "Alle ~60 Sekunden sendet die Anwendung ein \"Minute zugesehen\" Ereignis an den Kanal, dem gerade zugesehen wird.\nDies reicht aus, um den Drop voranzutreiben. Auf diese Weise ist es nicht nötig den Stream herunterzuladen und spart Bandbreite.\nUm den Online- oder Offline-Status der Kanäle aktuell zu halten, wird eine Websocket-Verbindung eingerichtet,\ndie die Kanäle auf ihren Status überprüft.",
             "getting_started": "Erste Schritte",
-            "getting_started_text": "• In der Anwednung anmelden.\n• Stelle sicher, dass das Twitch-Konto mit allen Kampagnen verbunden ist an denen Interesse besteht.\n• Sollen alle Drops  bearbeitet werden, entferne den Haken bei \"Nur Priorität\" und drücke \"Neu laden\".\n• Sollen nur bestimmte Spiele in betracht gezogen werden, die \"Priorität\" Liste verwenden um die Wahl nach Spielen einzugrenzen.\n• Die Liste priorisiert von oben nach unten.\n• Die Option \"Nur Priorität\" verhindert, dass Spiele die nicht auf der Prioritätsliste stehen bearbeitet werden.\n• Mit der Liste \"Ausschließen\", ist es möglich Spiele zu filtern, die niemals in betracht gezogen werden sollen.\n• Wenn Listen oder Optionen angepasst wurden, muss \"Neu laden\" gedrückt werden, damit die Änderungen übernommen werden."
+            "getting_started_text": "• In der Anwendung anmelden.\n• Stelle sicher, dass das Twitch-Konto mit allen Kampagnen verbunden ist an denen Interesse besteht.\n• Sollen alle Drops  bearbeitet werden, entferne den Haken bei \"Nur Priorität\" und drücke \"Neu laden\".\n• Sollen nur bestimmte Spiele in betracht gezogen werden, die \"Priorität\" Liste verwenden um die Wahl nach Spielen einzugrenzen.\n• Die Liste priorisiert von oben nach unten.\n• Die Option \"Nur Priorität\" verhindert, dass Spiele, die nicht auf der Prioritätenliste stehen, bearbeitet werden.\n• Mit der Liste \"Ausschließen\", ist es möglich Spiele zu filtern, die niemals in betracht gezogen werden sollen.\n• Wenn Listen oder Optionen angepasst wurden, muss \"Neu laden\" gedrückt werden, damit die Änderungen übernommen werden."
         }
     }
 }
