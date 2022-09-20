@@ -166,6 +166,12 @@ class GUISettings(TypedDict):
     reload: str
     reload_text: str
 
+class GUIHelpAbout(TypedDict):
+    name: str
+    created_by: str
+    repository: str
+    donate: str
+    donation_linktext: str
 
 class GUIHelpLinks(TypedDict):
     name: str
@@ -346,6 +352,13 @@ default_translation: Translation = {
             "reload_text": "Most changes require a reload to take an immediate effect: ",
         },
         "help": {
+            "about": {
+                "name": "About",
+                "created_by": "Application created by: ",
+                "repository": "Repository: ",
+                "donate": "Donate: ",
+                "donation_linktext": "If you like the application and found it useful, please consider donating a small amount of money to support me. Thank you!",
+            },
             "links": {
                 "name": "Useful Links",
                 "inventory": "See Twitch inventory",

@@ -138,6 +138,13 @@
             "reload_text": "Die meisten Änderungen erfordern ein neu laden, um sofort wirksam zu werden: "
         },
         "help": {
+            "about": {
+                "name": "Über",
+                "created_by": "Erstellt von: ",
+                "repository": "Quelle: ",
+                "donate": "Spenden: ",
+                "donation_linktext": "Wenn Ihnen die Anwendung gefällt und Sie sie nützlich finden, ziehen Sie bitte in Erwägung, mich mit einer kleinen Spende zu unterstützen.\nIch danke Ihnen!"
+            },
             "links": {
                 "name": "Hilfreiche Links",
                 "inventory": "Twitch Inventar ansehen",
