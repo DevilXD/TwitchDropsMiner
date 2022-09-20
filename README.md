@@ -71,4 +71,4 @@ if they aren't already there. Doing so ensures proper markdown rendering on Gith
 
 @Suz1e - For the entirety of the Chinese (简体中文) translation.  
 @nwvh - For the entirety of the Czech (Čeština) translation.  
-@ThisIsCyreX - For the entirety of the German (Deutch) translation.
+@ThisIsCyreX - For the entirety of the German (Deutsch) translation.
