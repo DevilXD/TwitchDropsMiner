@@ -15,24 +15,28 @@ class ExitRequest(MinerException):
 
     Intended for internal use only.
     """
-    def __init__(self, *args: object):
-        if args:
-            super().__init__(*args)
-        else:
-            super().__init__("Application was requested to exit")
+    def __init__(self):
+        super().__init__("Application was requested to exit")
 
 
 class ReloadRequest(MinerException):
     """
-    Raised when the application is requested to reload by an expired request.
+    Raised when the application is requested to reload entirely, without closing the GUI.
 
     Intended for internal use only.
     """
-    def __init__(self, *args: object):
-        if args:
-            super().__init__(*args)
-        else:
-            super().__init__("Application was requested to reload its state")
+    def __init__(self):
+        super().__init__("Application was requested to reload entirely")
+
+
+class RequestInvalid(MinerException):
+    """
+    Raised when a request becomes no longer valid inside its retry loop.
+
+    Intended for internal use only.
+    """
+    def __init__(self):
+        super().__init__("Request became invalid during its retry loop")
 
 
 class RequestException(MinerException):
@@ -76,7 +80,7 @@ class LoginException(RequestException):
 
 class CaptchaRequired(LoginException):
     """
-    The most dreaded thing about automated scripts.
+    The most dreaded thing about automated scripts...
     """
     def __init__(self):
         super().__init__("Captcha is required")

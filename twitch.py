@@ -21,7 +21,9 @@ from gui import GUIManager
 from channel import Channel
 from websocket import WebsocketPool
 from inventory import DropsCampaign
-from exceptions import MinerException, LoginException, CaptchaRequired, ExitRequest, ReloadRequest
+from exceptions import (
+    MinerException, LoginException, CaptchaRequired, ExitRequest, ReloadRequest, RequestInvalid
+)
 from utils import (
     CHARS_HEX_LOWER,
     timestamp,
@@ -69,10 +71,15 @@ class _AuthState:
         self.client_version: str
         self.integrity_token: str
         self.integrity_expires: datetime
+        self.integrity_request: datetime
+        self.integrity_response: datetime
 
     @property
     def integrity_expired(self) -> bool:
-        return datetime.now(timezone.utc) >= self.integrity_expires
+        return (
+            hasattr(self, "integrity_expires")
+            and datetime.now(timezone.utc) >= self.integrity_expires
+        )
 
     def _delattr(self, attr: str) -> None:
         if hasattr(self, attr):
@@ -187,11 +194,11 @@ class _AuthState:
             headers["Client-Integrity"] = self.integrity_token
         return headers
 
-    async def verify(self):
+    async def validate(self):
         async with self._lock:
-            await self._verify()
+            await self._validate()
 
-    async def _verify(self):
+    async def _validate(self):
         if not hasattr(self, "session_id"):
             self.session_id = create_nonce(CHARS_HEX_LOWER, 16)
         if not (hasattr(self, "client_version") and hasattr(self, "device_id")):
@@ -247,16 +254,20 @@ class _AuthState:
             jar.update_cookies(cookie, url)
             jar.save(COOKIES_PATH)
         if not hasattr(self, "integrity_token") or self.integrity_expired:
+            self.integrity_request = datetime.now(timezone.utc)
             async with self._twitch.request(
                 "POST",
                 "https://gql.twitch.tv/integrity",
                 headers=self.gql_headers(integrity=False)
             ) as response:
+                self.integrity_response = datetime.now(timezone.utc)
                 response_json: JsonType = await response.json()
             self.integrity_token = cast(str, response_json["token"])
-            self.integrity_expires = datetime.fromtimestamp(
-                response_json["expiration"] / 1000, timezone.utc
-            )
+            # (i = Math.round(.9 * (n.expiration - Date.now()))) < 0
+            # || (this.logger.debug("Refreshing in ".concat(Math.round(i / 1e3 / 60), " minutes"))
+            now = datetime.now(timezone.utc)
+            expiration = datetime.fromtimestamp(response_json["expiration"] / 1000, timezone.utc)
+            self.integrity_expires = ((expiration - now) * 0.9) + now
             # verify the integrity token's contents for the "is_bad_bot" flag
             stripped_token: str = self.integrity_token.split('.')[2] + "=="
             messy_json: str = urlsafe_b64decode(
@@ -272,6 +283,12 @@ class _AuthState:
                     "Try deleting the cookie file and try again."
                 )
         self._logged_in.set()
+
+    def invalidate(self, *, auth: bool = False, integrity: bool = False):
+        if auth:
+            self._delattr("access_token")
+        if integrity:
+            self.integrity_expires = datetime.now(timezone.utc)
 
 
 class Twitch:
@@ -962,7 +979,7 @@ class Twitch:
             self.gui.print(_("status", "claimed_points").format(points=points))
 
     async def get_auth(self) -> _AuthState:
-        await self._auth_state.verify()
+        await self._auth_state.validate()
         return self._auth_state
 
     @asynccontextmanager
@@ -985,7 +1002,7 @@ class Twitch:
                 # account for the expiration landing during the request
                 and datetime.now(timezone.utc) >= (invalidate_after - session_timeout)
             ):
-                raise ReloadRequest()
+                raise RequestInvalid()
             try:
                 response: aiohttp.ClientResponse | None = None
                 done, pending = await asyncio.wait(
@@ -1018,19 +1035,38 @@ class Twitch:
 
     async def gql_request(self, op: GQLOperation) -> JsonType:
         gql_logger.debug(f"GQL Request: {op}")
-        auth_state = await self.get_auth()
-        async with self.request(
-            "POST",
-            "https://gql.twitch.tv/gql",
-            json=op,
-            headers=auth_state.gql_headers(integrity=True),
-            invalidate_after=auth_state.integrity_expires,
-        ) as response:
-            response_json: JsonType = await response.json()
-        gql_logger.debug(f"GQL Response: {response_json}")
-        if "errors" in response_json and response_json["errors"]:
-            raise MinerException(f"GQL error: {response_json['errors']}")
-        return response_json
+        while True:
+            try:
+                auth_state = await self.get_auth()
+                async with self.request(
+                    "POST",
+                    "https://gql.twitch.tv/gql",
+                    json=op,
+                    headers=auth_state.gql_headers(integrity=True),
+                    invalidate_after=auth_state.integrity_expires,
+                ) as response:
+                    response_json: JsonType = await response.json()
+            except RequestInvalid:
+                continue
+            gql_logger.debug(f"GQL Response: {response_json}")
+            if "errors" in response_json and response_json["errors"]:
+                errors_list = response_json["errors"]
+                if (
+                    len(errors_list) == 1
+                    and all("message" in error_dict for error_dict in errors_list)
+                    and errors_list[0]["message"] == "failed integrity check"
+                ):
+                    # auth_state.invalidate(integrity=True)
+                    # continue
+                    raise MinerException(
+                        "GQL integrity error: "
+                        f"now={datetime.now(timezone.utc).replace(tzinfo=None)!s}, "
+                        f"request={auth_state.integrity_request.replace(tzinfo=None)!s}, "
+                        f"response={auth_state.integrity_response.replace(tzinfo=None)!s}, "
+                        f"expires={auth_state.integrity_expires.replace(tzinfo=None)!s}"
+                    )
+                raise MinerException(f"GQL error: {errors_list}")
+            return response_json
 
     async def fetch_campaign(
         self,

@@ -61,5 +61,14 @@ Every ~60 seconds, the application sends a "minute watched" event to the channel
 
 ### Credits:
 
-@Suz1e - For the entirety of the Chinese (简体中文) translation.
-@nwvh - For the entirety of the Czech (Čeština) translation.
+<!---
+Note: When adding a new credits line below, please add two spaces at the end of the previous line,
+if they aren't already there. Doing so ensures proper markdown rendering on Github.
+
+• Last line can have them omitted.
+• Please ensure your editor won't trim the spaces upon saving the file.
+-->
+
+@Suz1e - For the entirety of the Chinese (简体中文) translation.  
+@nwvh - For the entirety of the Czech (Čeština) translation.  
+@ThisIsCyreX - For the entirety of the German (Deutch) translation.
