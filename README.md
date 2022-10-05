@@ -1,3 +1,7 @@
+# Important notice!
+
+This project has been put on hold due to the recent (~14th of September 2022) changes Twitch has made to their website, causing this miner (and any other scripts that'd automatically claim drops) to stop working and become pretty much useless. For more specifics of the change, please see the [issue $40](https://github.com/DevilXD/TwitchDropsMiner/issues/40) which covers the topic.
+
 # Twitch Drops Miner
 
 This application allows you to AFK mine timed Twitch drops, without having to worry about switching channels when the one you were watching goes offline, claiming the drops, or even receiving the stream data itself. This helps both you and Twitch save on bandwidth and hassle. Everybody wins!
