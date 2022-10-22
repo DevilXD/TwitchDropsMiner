@@ -284,7 +284,7 @@ class _AuthState:
                     "Twitch has detected this miner as a \"Bad Bot\", and may try to stop you "
                     "from claiming drops. You're proceeding at your own risk!"
                 )
-                await asyncio.sleep(7)
+                await asyncio.sleep(8)
         self._logged_in.set()
 
     def invalidate(self, *, auth: bool = False, integrity: bool = False):
