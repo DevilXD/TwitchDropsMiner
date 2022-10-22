@@ -60,7 +60,7 @@ WS_TOPICS_LIMIT = 50
 # Misc
 DEFAULT_LANG = "English"
 BASE_URL = "https://twitch.tv"
-CLIENT_ID = "kimne78kx3ncx6brgo4mv6wki5h1ko"
+CLIENT_ID = "kd1unb4b3q4t58fwlpcbzcbnm76a8fp"
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
     "Chrome/105.0.0.0 Safari/537.36"
