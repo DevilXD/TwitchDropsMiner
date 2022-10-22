@@ -106,6 +106,7 @@ class _AuthState:
             "client_id": CLIENT_ID,
             "undelete_user": False,
             "remember_me": True,
+            # 'force_twitchguard': False,
         }
 
         while True:
