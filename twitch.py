@@ -80,18 +80,21 @@ class _AuthState:
             and datetime.now(timezone.utc) >= self.integrity_expires
         )
 
-    def _delattr(self, attr: str) -> None:
-        if hasattr(self, attr):
-            delattr(self, attr)
+    def _delattrs(self, *attrs: str) -> None:
+        for attr in attrs:
+            if hasattr(self, attr):
+                delattr(self, attr)
 
     def clear(self) -> None:
-        self._delattr("user_id")
-        self._delattr("device_id")
-        self._delattr("session_id")
-        self._delattr("access_token")
-        self._delattr("client_version")
-        self._delattr("integrity_token")
-        self._delattr("integrity_expires")
+        self._delattrs(
+            "user_id",
+            "device_id",
+            "session_id",
+            "access_token",
+            "client_version",
+            "integrity_token",
+            "integrity_expires",
+        )
         self._logged_in.clear()
 
     async def _login(self) -> str:
@@ -276,16 +279,18 @@ class _AuthState:
                 raise MinerException("Unable to parse the integrity token")
             decoded_header: JsonType = json.loads(match.group(1))
             if decoded_header.get("is_bad_bot", "false") != "false":
-                raise MinerException(
-                    "Twitch considers this miner as a \"Bad Bot\". "
-                    "Try deleting the cookie file and try again."
+                self._twitch.print(
+                    "Twitch has detected this miner as a \"Bad Bot\", and may try to stop you "
+                    "from claiming drops. You're proceeding at your own risk!"
                 )
+                await asyncio.sleep(7)
         self._logged_in.set()
 
     def invalidate(self, *, auth: bool = False, integrity: bool = False):
         if auth:
-            self._delattr("access_token")
+            self._delattrs("access_token")
         if integrity:
+            self._delattrs("client_version")
             self.integrity_expires = datetime.now(timezone.utc)
 
 
