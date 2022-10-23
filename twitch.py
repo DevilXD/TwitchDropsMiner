@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import re
-import json
+# import json
 import asyncio
 import logging
 from math import ceil
 from time import time
 from functools import partial
-from base64 import urlsafe_b64decode
+# from base64 import urlsafe_b64decode
 from collections import abc, OrderedDict
 from datetime import datetime, timedelta, timezone
 from contextlib import suppress, asynccontextmanager
@@ -200,8 +200,8 @@ class _AuthState:
             "Client-Version": self.client_version,
             "X-Device-Id": self.device_id,
         }
-        if integrity:
-            headers["Client-Integrity"] = self.integrity_token
+        # if integrity:
+        #     headers["Client-Integrity"] = self.integrity_token
         return headers
 
     async def validate(self):
@@ -261,33 +261,31 @@ class _AuthState:
             # update our cookie and save it
             jar.update_cookies(cookie, BASE_URL)
             jar.save(COOKIES_PATH)
-        if not self._hasattrs("integrity_token") or self.integrity_expired:
-            async with self._twitch.request(
-                "POST",
-                "https://gql.twitch.tv/integrity",
-                headers=self.gql_headers(integrity=False)
-            ) as response:
-                self._last_request = datetime.now(timezone.utc)
-                response_json: JsonType = await response.json()
-            self.integrity_token = cast(str, response_json["token"])
-            # (i = Math.round(.9 * (n.expiration - Date.now()))) < 0
-            # || (this.logger.debug("Refreshing in ".concat(Math.round(i / 1e3 / 60), " minutes"))
-            now = datetime.now(timezone.utc)
-            expiration = datetime.fromtimestamp(response_json["expiration"] / 1000, timezone.utc)
-            self.integrity_expires = ((expiration - now) * 0.9) + now
-            # verify the integrity token's contents for the "is_bad_bot" flag
-            stripped_token: str = self.integrity_token.split('.')[2] + "=="
-            messy_json: str = urlsafe_b64decode(stripped_token.encode()).decode(errors="ignore")
-            match = re.search(r'(.+)(?<="}).+$', messy_json)
-            if match is None:
-                raise MinerException("Unable to parse the integrity token")
-            decoded_header: JsonType = json.loads(match.group(1))
-            if decoded_header.get("is_bad_bot", "false") != "false":
-                self._twitch.print(
-                    "Twitch has detected this miner as a \"Bad Bot\". "
-                    "You're proceeding at your own risk!"
-                )
-                await asyncio.sleep(8)
+        # if not self._hasattrs("integrity_token") or self.integrity_expired:
+        #     async with self._twitch.request(
+        #         "POST",
+        #         "https://gql.twitch.tv/integrity",
+        #         headers=self.gql_headers(integrity=False)
+        #     ) as response:
+        #         self._last_request = datetime.now(timezone.utc)
+        #         response_json: JsonType = await response.json()
+        #     self.integrity_token = cast(str, response_json["token"])
+        #     now = datetime.now(timezone.utc)
+        #     expiration = datetime.fromtimestamp(response_json["expiration"] / 1000, timezone.utc)
+        #     self.integrity_expires = ((expiration - now) * 0.9) + now
+        #     # verify the integrity token's contents for the "is_bad_bot" flag
+        #     stripped_token: str = self.integrity_token.split('.')[2] + "=="
+        #     messy_json: str = urlsafe_b64decode(stripped_token.encode()).decode(errors="ignore")
+        #     match = re.search(r'(.+)(?<="}).+$', messy_json)
+        #     if match is None:
+        #         raise MinerException("Unable to parse the integrity token")
+        #     decoded_header: JsonType = json.loads(match.group(1))
+        #     if decoded_header.get("is_bad_bot", "false") != "false":
+        #         self._twitch.print(
+        #             "Twitch has detected this miner as a \"Bad Bot\". "
+        #             "You're proceeding at your own risk!"
+        #         )
+        #         await asyncio.sleep(8)
         self._logged_in.set()
 
     def invalidate(self, *, auth: bool = False, integrity: bool = False):
@@ -1051,7 +1049,7 @@ class Twitch:
                     "https://gql.twitch.tv/gql",
                     json=op,
                     headers=auth_state.gql_headers(integrity=True),
-                    invalidate_after=auth_state.integrity_expires,
+                    invalidate_after=getattr(auth_state, "integrity_expires", None),
                 ) as response:
                     response_json: JsonType = await response.json()
             except RequestInvalid:
