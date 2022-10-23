@@ -76,8 +76,8 @@ class _AuthState:
     @property
     def integrity_expired(self) -> bool:
         return (
-            hasattr(self, "integrity_expires")
-            and datetime.now(timezone.utc) >= self.integrity_expires
+            not hasattr(self, "integrity_expires")
+            or datetime.now(timezone.utc) >= self.integrity_expires
         )
 
     def _hasattrs(self, *attrs: str) -> bool:
