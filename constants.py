@@ -8,6 +8,8 @@ from enum import Enum, auto
 from datetime import timedelta
 from typing import Any, Dict, Literal, NewType, TYPE_CHECKING
 
+from yarl import URL
+
 from version import __version__
 
 if TYPE_CHECKING:
@@ -59,7 +61,7 @@ MAX_WEBSOCKETS = 8
 WS_TOPICS_LIMIT = 50
 # Misc
 DEFAULT_LANG = "English"
-BASE_URL = "https://twitch.tv"
+BASE_URL = URL("https://twitch.tv")
 CLIENT_ID = "kd1unb4b3q4t58fwlpcbzcbnm76a8fp"
 # CLIENT_ID = "uo6dggojyb8d6soh92zknwmi5ej1q2"
 USER_AGENT = (
