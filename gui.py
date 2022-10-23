@@ -1233,6 +1233,7 @@ class InventoryOverview:
     def clear(self) -> None:
         for child in self._main_frame.winfo_children():
             child.destroy()
+        self._drops.clear()
         self._campaigns.clear()
 
     def get_progress(self, drop: TimedDrop) -> tuple[str, tk._Color]:
