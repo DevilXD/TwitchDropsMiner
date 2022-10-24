@@ -1025,12 +1025,12 @@ class Twitch:
                 if response is None:
                     raise RuntimeError("Close request leak")
                 logger.debug(f"Response: {response.status}: {response}")
-                if response.status >= 500:
-                    self.print(_("error", "site_down").format(seconds=round(delay)))
-                # pre-read the response to avoid getting errors outside of the context manager
-                await response.read()
-                yield response
-                return
+                if response.status < 500:
+                    # pre-read the response to avoid getting errors outside of the context manager
+                    await response.read()
+                    yield response
+                    return
+                self.print(_("error", "site_down").format(seconds=round(delay)))
             except (aiohttp.ClientConnectionError, asyncio.TimeoutError):
                 # just so that quick retries that often happen, aren't shown
                 if delay > 1:
