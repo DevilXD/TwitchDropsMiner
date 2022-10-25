@@ -70,7 +70,6 @@ class _AuthState:
         self.access_token: str
         self.client_version: str
         self.integrity_token: str
-        self._last_request: datetime
         self.integrity_expires: datetime
 
     @property
@@ -308,7 +307,6 @@ class Twitch:
         # Session and auth
         self._session: aiohttp.ClientSession | None = None
         self._auth_state: _AuthState = _AuthState(self)
-        self._last_request: datetime = datetime.now(timezone.utc)
         # GUI
         self.gui = GUIManager(self)
         # Storing and watching channels
@@ -1058,23 +1056,7 @@ class Twitch:
                 continue
             gql_logger.debug(f"GQL Response: {response_json}")
             if "errors" in response_json and response_json["errors"]:
-                errors_list = response_json["errors"]
-                if (
-                    len(errors_list) == 1
-                    and "message" in errors_list[0]
-                    and errors_list[0]["message"] == "failed integrity check"
-                ):
-                    self.print(
-                        "\nGQL integrity error:\n"
-                        f"integrity_request={auth_state._last_request.replace(tzinfo=None)!s},\n"
-                        f"gql_request={self._last_request.replace(tzinfo=None)!s},\n"
-                        f"now={datetime.now(timezone.utc).replace(tzinfo=None)!s},\n"
-                        f"expires={auth_state.integrity_expires.replace(tzinfo=None)!s}\n"
-                    )
-                    auth_state.invalidate(integrity=True)
-                    continue
-                raise MinerException(f"GQL error: {errors_list}")
-            self._last_request = datetime.now(timezone.utc)
+                raise MinerException(f"GQL error: {response_json['errors']}")
             return response_json
 
     async def fetch_campaign(
