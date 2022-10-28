@@ -1025,7 +1025,7 @@ class Twitch:
                 logger.debug(f"Response: {response.status}: {response}")
                 if response.status < 500:
                     # pre-read the response to avoid getting errors outside of the context manager
-                    await response.read()
+                    raw_response = await response.read()  # noqa
                     yield response
                     return
                 self.print(_("error", "site_down").format(seconds=round(delay)))
