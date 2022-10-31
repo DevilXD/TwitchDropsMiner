@@ -1102,7 +1102,7 @@ class Twitch:
             b["id"]: timestamp(b["lastAwardedAt"]) for b in inventory["gameEventDrops"]
         }
         inventory_data: dict[str, JsonType] = {c["id"]: c for c in ongoing_campaigns}
-        # fetch all available campaigns data
+        # fetch all available campaigns data (campaigns)
         response = await self.gql_request(GQL_OPERATIONS["Campaigns"])
         available_list: list[JsonType] = response["data"]["currentUser"]["dropCampaigns"] or []
         applicable_statuses = ("ACTIVE", "UPCOMING")
@@ -1111,12 +1111,7 @@ class Twitch:
             for c in available_list
             if c["status"] in applicable_statuses  # that are currently not expired
         }
-        # add campaigns that remained, that can be earned but are not in-progress yet
-        status_update(
-            _("gui", "status", "fetching_campaigns").format(
-                counter=f"(0/{len(available_campaigns)})"
-            )
-        )
+        # fetch additional data for each campaign that can be earned but is not in-progress yet
         fetched_campaigns: dict[str, JsonType] = {}
         for i, coro in enumerate(
             # specifically use an intermediate list per a Python bug
@@ -1134,6 +1129,7 @@ class Twitch:
             )
             campaign_data = await coro
             fetched_campaigns[campaign_data["id"]] = campaign_data
+        # merge the inventory and campaigns datas together, then use it to create campaign objects
         merged_campaigns: dict[str, JsonType] = self._merge_data(inventory_data, fetched_campaigns)
         campaigns: list[DropsCampaign] = [
             DropsCampaign(self, campaign_data, claimed_benefits)
@@ -1150,7 +1146,7 @@ class Twitch:
                 _("gui", "status", "adding_campaigns").format(counter=f"({i}/{len(campaigns)})")
             )
             self._drops.update({drop.id: drop for drop in campaign.drops})
-            # NOTE: this adds pictures, so might be slow sometimes
+            # NOTE: this fetches pictures from the CDN, so might be slow without a cache
             await self.gui.inv.add_campaign(campaign)
             self.inventory.append(campaign)
 
