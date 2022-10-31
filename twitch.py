@@ -6,6 +6,7 @@ import asyncio
 import logging
 from math import ceil
 from time import time
+from itertools import chain
 from functools import partial
 # from base64 import urlsafe_b64decode
 from collections import abc, OrderedDict
@@ -1059,23 +1060,35 @@ class Twitch:
                 raise MinerException(f"GQL error: {response_json['errors']}")
             return response_json
 
-    async def fetch_campaign(
-        self,
-        campaign_id: str,
-        available_data: JsonType,
-        claimed_benefits: dict[str, datetime],
-    ) -> DropsCampaign:
+    def _merge_data(self, primary_data: JsonType, secondary_data: JsonType) -> JsonType:
+        merged = {}
+        for key in set(chain(primary_data.keys(), secondary_data.keys())):
+            in_primary = key in primary_data
+            in_secondary = key in secondary_data
+            if in_primary and in_secondary:
+                vp = primary_data[key]
+                vs = secondary_data[key]
+                if not isinstance(vp, type(vs)) or not isinstance(vs, type(vp)):
+                    raise MinerException("Inconsistent merge data")
+                if isinstance(vp, dict):  # both are dicts
+                    merged[key] = self._merge_data(vp, vs)
+                else:
+                    # use primary value
+                    merged[key] = vp
+            elif in_primary:
+                merged[key] = primary_data[key]
+            else:  # in campaigns only
+                merged[key] = secondary_data[key]
+        return merged
+
+    async def fetch_campaign(self, campaign_id: str, available_data: JsonType) -> JsonType:
         auth_state = await self.get_auth()
         response = await self.gql_request(
             GQL_OPERATIONS["CampaignDetails"].with_variables(
                 {"channelLogin": str(auth_state.user_id), "dropID": campaign_id}
             )
         )
-        campaign_data: JsonType = response["data"]["user"]["dropCampaign"]
-        # NOTE: we use available_data to add a couple of fields missing from the existing details,
-        # most notably: game boxart
-        campaign_data["game"]["boxArtURL"] = available_data["game"]["boxArtURL"]
-        return DropsCampaign(self, campaign_data, claimed_benefits)
+        return self._merge_data(available_data, response["data"]["user"]["dropCampaign"])
 
     async def fetch_inventory(self) -> None:
         status_update = self.gui.status.update
@@ -1088,22 +1101,15 @@ class Twitch:
         claimed_benefits: dict[str, datetime] = {
             b["id"]: timestamp(b["lastAwardedAt"]) for b in inventory["gameEventDrops"]
         }
-        campaigns: list[DropsCampaign] = [
-            DropsCampaign(self, campaign_data, claimed_benefits)
-            for campaign_data in ongoing_campaigns
-        ]
+        inventory_data: dict[str, JsonType] = {c["id"]: c for c in ongoing_campaigns}
         # fetch all available campaigns data
         response = await self.gql_request(GQL_OPERATIONS["Campaigns"])
         available_list: list[JsonType] = response["data"]["currentUser"]["dropCampaigns"] or []
         applicable_statuses = ("ACTIVE", "UPCOMING")
-        existing_campaigns: set[str] = set(c.id for c in campaigns)
         available_campaigns: dict[str, JsonType] = {
             c["id"]: c
             for c in available_list
-            if (
-                c["status"] in applicable_statuses  # that are currently ACTIVE
-                and c["id"] not in existing_campaigns  # and they aren't in the inventory already
-            )
+            if c["status"] in applicable_statuses  # that are currently not expired
         }
         # add campaigns that remained, that can be earned but are not in-progress yet
         status_update(
@@ -1111,23 +1117,28 @@ class Twitch:
                 counter=f"(0/{len(available_campaigns)})"
             )
         )
-        fetched_campaigns: list[DropsCampaign] = []
+        fetched_campaigns: dict[str, JsonType] = {}
         for i, coro in enumerate(
             # specifically use an intermediate list per a Python bug
             # https://github.com/python/cpython/issues/88342
             asyncio.as_completed([
-                self.fetch_campaign(campaign_id, available_data, claimed_benefits)
+                self.fetch_campaign(campaign_id, available_data)
                 for campaign_id, available_data in available_campaigns.items()
             ]),
             start=1,
         ):
-            fetched_campaigns.append(await coro)
             status_update(
                 _("gui", "status", "fetching_campaigns").format(
                     counter=f"({i}/{len(available_campaigns)})"
                 )
             )
-        campaigns.extend(fetched_campaigns)
+            campaign_data = await coro
+            fetched_campaigns[campaign_data["id"]] = campaign_data
+        merged_campaigns: dict[str, JsonType] = self._merge_data(inventory_data, fetched_campaigns)
+        campaigns: list[DropsCampaign] = [
+            DropsCampaign(self, campaign_data, claimed_benefits)
+            for campaign_data in merged_campaigns.values()
+        ]
         campaigns.sort(key=lambda c: c.active, reverse=True)
         campaigns.sort(key=lambda c: c.upcoming and c.starts_at or c.ends_at)
         campaigns.sort(key=lambda c: c.linked, reverse=True)
