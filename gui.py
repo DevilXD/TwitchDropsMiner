@@ -1,18 +1,21 @@
 from __future__ import annotations
 
+import re
 import sys
+import json
 import ctypes
 import asyncio
 import logging
 import webbrowser
 import tkinter as tk
+from collections import abc
 from math import log10, ceil
-from collections import abc, namedtuple
+from subprocess import CREATE_NO_WINDOW
 from tkinter.font import Font, nametofont
 from functools import partial, cached_property
 from datetime import datetime, timedelta, timezone
-from typing import Any, TypedDict, NoReturn, Generic, TYPE_CHECKING
 from tkinter import Tk, ttk, StringVar, DoubleVar, IntVar, PhotoImage
+from typing import Any, Union, Tuple, TypedDict, NoReturn, Generic, TYPE_CHECKING
 
 import pystray
 import win32api
@@ -20,13 +23,18 @@ import win32con
 import win32gui
 from yarl import URL
 from PIL import Image as Image_module
+from undetected_chromedriver import ChromeOptions
+from seleniumwire.undetected_chromedriver.v2 import Chrome
+from selenium.common.exceptions import WebDriverException, NoSuchWindowException
 
 from translate import _
 from cache import ImageCache
-from exceptions import ExitRequest
 from utils import resource_path, Game, _T
 from registry import RegistryKey, ValueType
-from constants import SELF_PATH, FORMATTER, WS_TOPICS_LIMIT, MAX_WEBSOCKETS, WINDOW_TITLE, State
+from exceptions import MinerException, ExitRequest, LoginException
+from constants import (
+    CLIENT_ID, SELF_PATH, FORMATTER, WS_TOPICS_LIMIT, MAX_WEBSOCKETS, WINDOW_TITLE, State
+)
 
 if TYPE_CHECKING:
     from twitch import Twitch
@@ -35,7 +43,13 @@ if TYPE_CHECKING:
     from inventory import DropsCampaign, TimedDrop
 
 
+TK_PADDING = Union[int, Tuple[int, int], Tuple[int, int, int], Tuple[int, int, int, int]]
 digits = ceil(log10(WS_TOPICS_LIMIT))
+
+
+######################
+# GUI ELEMENTS START #
+######################
 
 
 class _TKOutputHandler(logging.Handler):
@@ -161,7 +175,7 @@ class PlaceholderCombobox(PlaceholderEntry, ttk.Combobox):
 
 
 class PaddedListbox(tk.Listbox):
-    def __init__(self, master: ttk.Widget, *args, padding: tk._Padding = (0, 0, 0, 0), **kwargs):
+    def __init__(self, master: ttk.Widget, *args, padding: TK_PADDING = (0, 0, 0, 0), **kwargs):
         # we place the listbox inside a frame with the same background
         # this means we need to forward the 'grid' method to the frame, not the listbox
         self._frame = tk.Frame(master)
@@ -210,7 +224,7 @@ class PaddedListbox(tk.Listbox):
         self._frame.configure(frame_options)
         # update padding
         if "padding" in options:
-            padding: tk._Padding = options.pop("padding")
+            padding: TK_PADDING = options.pop("padding")
             padx1: tk._ScreenUnits
             padx2: tk._ScreenUnits
             pady1: tk._ScreenUnits
@@ -221,9 +235,9 @@ class PaddedListbox(tk.Listbox):
                 padx1 = padx2 = pady1 = pady2 = padding
             elif len(padding) == 2:
                 padx1 = padx2 = padding[0]
-                pady1 = pady2 = padding[1]  # type: ignore
+                pady1 = pady2 = padding[1]
             elif len(padding) == 3:
-                padx1, padx2 = padding[0:2]  # type: ignore
+                padx1, padx2 = padding[0], padding[1]
                 pady1 = pady2 = padding[2]  # type: ignore
             else:
                 padx1, padx2, pady1, pady2 = padding  # type: ignore
@@ -309,7 +323,9 @@ class SelectMenu(tk.Menubutton, Generic[_T]):
         return self._menu_options[self.cget("text")]
 
 
-# GUI ELEMENTS END / GUI DEFINITION START
+###########################################
+# GUI ELEMENTS END / GUI DEFINITION START #
+###########################################
 
 
 class StatusBar:
@@ -395,9 +411,6 @@ class WebsocketStatus:
         self._topics_var.set('\n'.join(topic_lines))
 
 
-LoginData = namedtuple("LoginData", ["username", "password", "token"])
-
-
 class LoginForm:
     def __init__(self, manager: GUIManager, master: ttk.Widget):
         self._manager = manager
@@ -409,14 +422,14 @@ class LoginForm:
         frame.rowconfigure(4, weight=1)
         ttk.Label(frame, text=_("gui", "login", "labels")).grid(column=0, row=0)
         ttk.Label(frame, textvariable=self._var, justify="center").grid(column=1, row=0)
-        self._login_entry = PlaceholderEntry(frame, placeholder=_("gui", "login", "username"))
-        self._login_entry.grid(column=0, row=1, columnspan=2)
-        self._pass_entry = PlaceholderEntry(
-            frame, placeholder=_("gui", "login", "password"), show='•'
-        )
-        self._pass_entry.grid(column=0, row=2, columnspan=2)
-        self._token_entry = PlaceholderEntry(frame, placeholder=_("gui", "login", "twofa_code"))
-        self._token_entry.grid(column=0, row=3, columnspan=2)
+        # self._login_entry = PlaceholderEntry(frame, placeholder=_("gui", "login", "username"))
+        # self._login_entry.grid(column=0, row=1, columnspan=2)
+        # self._pass_entry = PlaceholderEntry(
+        #     frame, placeholder=_("gui", "login", "password"), show='•'
+        # )
+        # self._pass_entry.grid(column=0, row=2, columnspan=2)
+        # self._token_entry = PlaceholderEntry(frame, placeholder=_("gui", "login", "twofa_code"))
+        # self._token_entry.grid(column=0, row=3, columnspan=2)
         self._confirm = asyncio.Event()
         self._button = ttk.Button(
             frame, text=_("gui", "login", "button"), command=self._confirm.set, state="disabled"
@@ -424,31 +437,130 @@ class LoginForm:
         self._button.grid(column=0, row=4, columnspan=2)
         self.update(_("gui", "login", "logged_out"), None)
 
-    def clear(self, login: bool = False, password: bool = False, token: bool = False):
-        clear_all = not login and not password and not token
-        if login or clear_all:
-            self._login_entry.clear()
-        if password or clear_all:
-            self._pass_entry.clear()
-        if token or clear_all:
-            self._token_entry.clear()
+    @staticmethod
+    def interceptor(request) -> None:
+        if (
+            request.method == "POST"
+            and request.url == "https://passport.twitch.tv/protected_login"
+        ):
+            body = request.body.decode("utf-8")
+            data = json.loads(body)
+            data["client_id"] = CLIENT_ID
+            request.body = json.dumps(data).encode("utf-8")
+            del request.headers["Content-Length"]
+            request.headers["Content-Length"] = str(len(request.body))
 
-    async def ask_login(self) -> LoginData:
+    async def ask_login(self) -> str:
         self.update(_("gui", "login", "required"), None)
         self._manager.print(_("gui", "login", "request"))
         self._confirm.clear()
-        self._button.config(state="normal")
-        # NOTE: we need this to allow for the closing window event to break the waiting here
-        done, pending = await asyncio.wait(
-            [self._confirm.wait(), self._manager.wait_until_closed()],
-            return_when=asyncio.FIRST_COMPLETED,
-        )
-        for task in pending:
-            task.cancel()
-        if self._manager.close_requested:
-            raise ExitRequest()
-        self._button.config(state="disabled")
-        return LoginData(self._login_entry.get(), self._pass_entry.get(), self._token_entry.get())
+
+        # open the chrome browser on the Twitch's login page
+        # use a separate executor to void blocking the event loop
+        loop = asyncio.get_running_loop()
+        driver = None
+        try:
+            version_main = None
+            for attempt in range(2):
+                options = ChromeOptions()
+                options.add_argument("--log-level=3")
+                options.add_argument("--disable-web-security")
+                options.add_argument("--allow-running-insecure-content")
+                options.add_argument("--lang=en")
+                options.add_argument("--no-sandbox")
+                options.add_argument("--disable-gpu")
+                try:
+                    driver_coro = loop.run_in_executor(
+                        None,
+                        lambda: Chrome(
+                            options=options,
+                            # use_subprocess=True,
+                            suppress_welcome=True,
+                            version_main=version_main,
+                            service_creationflags=CREATE_NO_WINDOW,
+                        )
+                    )
+                    done, pending = await asyncio.wait(
+                        [driver_coro, self._manager.wait_until_closed()],
+                        return_when=asyncio.FIRST_COMPLETED
+                    )
+                    for task in pending:
+                        task.cancel()
+                    if self._manager.close_requested:
+                        raise ExitRequest()
+                    driver = next(iter(done)).result()
+                    break
+                except WebDriverException as exc:
+                    message = exc.msg
+                    if (
+                        message is not None
+                        and (match := re.search(
+                            r'Chrome version ([\d]+)\nCurrent browser version is ((\d+)\.[\d.]+)',
+                            message,
+                        )) is not None
+                    ):
+                        if not attempt:
+                            version_main = int(match.group(3))
+                            continue
+                        else:
+                            raise MinerException(
+                                "Your Chrome browser is out of date\n"
+                                f"Required version: {match.group(1)}\n"
+                                f"Current version: {match.group(2)}"
+                            ) from None
+                    raise MinerException(
+                        "An error occured while boostrapping the Chrome browser"
+                    ) from exc
+            assert driver is not None
+            driver.request_interceptor = self.interceptor
+            page_coro = loop.run_in_executor(None, driver.get, "https://twitch.tv/login")
+            done, pending = await asyncio.wait(
+                [page_coro, self._manager.wait_until_closed()],
+                return_when=asyncio.FIRST_COMPLETED
+            )
+            for task in pending:
+                task.cancel()
+            if self._manager.close_requested:
+                raise ExitRequest()
+            # enable the login button once the page finishes opening
+            self._button.config(state="normal")
+
+            # auto login
+            # driver.find_element("id", "login-username").send_keys(username)
+            # driver.find_element("id", "password-input").send_keys(password)
+            # driver.find_element(
+            #     "css selector", '[data-a-target="passport-login-button"]'
+            # ).click()
+            # token submit button css selectors
+            # Button: "screen="two_factor" target="submit_button"
+            # Input: <input type="text" autocomplete="one-time-code" data-a-target="tw-input"
+            # inputmode="numeric" pattern="[0-9]*" value="">
+
+            # wait for the user to navigate away from the URL, indicating successful login
+            # alternatively, they can press on the login button
+            while (
+                driver.current_url != "https://www.twitch.tv/?no-reload=true"
+                and not self._confirm.is_set()
+            ):
+                if self._manager.close_requested:
+                    raise ExitRequest()
+                await asyncio.sleep(0.5)
+
+            cookies = driver.get_cookies()
+            for cookie in cookies:
+                if cookie["name"] == "auth-token":
+                    auth_token = cookie["value"]
+                    break
+            else:
+                raise LoginException("Unable to extract authorization token")
+        except NoSuchWindowException:
+            driver = None
+            raise LoginException("Chrome window was closed, reopening...")
+        finally:
+            self._button.config(state="disabled")
+            if driver is not None:
+                driver.quit()
+        return auth_token
 
     def update(self, status: str, user_id: int | None):
         if user_id is not None:
@@ -1643,6 +1755,11 @@ class HelpTab:
         ).grid(sticky="nsew")
 
 
+##########################################
+# GUI DEFINITION END / GUI MANAGER START #
+##########################################
+
+
 class GUIManager:
     def __init__(self, twitch: Twitch):
         self._twitch: Twitch = twitch
@@ -1885,6 +2002,11 @@ class GUIManager:
     def print(self, *args, **kwargs):
         # print to our custom output
         self.output.print(*args, **kwargs)
+
+
+###################
+# GUI MANAGER END #
+###################
 
 
 if __name__ == "__main__":

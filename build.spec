@@ -31,7 +31,12 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     noarchive=False,
-    hiddenimports=[],
+    hiddenimports=[
+        "setuptools._distutils.log",
+        "setuptools._distutils.dir_util",
+        "setuptools._distutils.file_util",
+        "setuptools._distutils.archive_util",
+    ],
     runtime_hooks=[],
     cipher=block_cipher,
     win_no_prefer_redirects=False,

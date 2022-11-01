@@ -22,9 +22,7 @@ from gui import GUIManager
 from channel import Channel
 from websocket import WebsocketPool
 from inventory import DropsCampaign
-from exceptions import (
-    MinerException, LoginException, CaptchaRequired, ExitRequest, ReloadRequest, RequestInvalid
-)
+from exceptions import MinerException, ExitRequest, LoginException, ReloadRequest, RequestInvalid
 from utils import (
     CHARS_HEX_LOWER,
     timestamp,
@@ -103,89 +101,18 @@ class _AuthState:
     async def _login(self) -> str:
         logger.debug("Login flow started")
         login_form: LoginForm = self._twitch.gui.login
-        gui_print = self._twitch.gui.print
 
-        payload: JsonType = {
-            "client_id": CLIENT_ID,
-            "undelete_user": False,
-            "remember_me": True,
-            # 'force_twitchguard': False,
-        }
-
-        while True:
-            username, password, token = await login_form.ask_login()
-            payload["username"] = username
-            payload["password"] = password
-            # remove stale 2FA tokens, if present
-            payload.pop("authy_token", None)
-            payload.pop("twitchguard_code", None)
-            for attempt in range(2):
-                async with self._twitch.request(
-                    "POST", "https://passport.twitch.tv/login", json=payload
-                ) as response:
-                    login_response: JsonType = await response.json()
-
-                # Feed this back in to avoid running into CAPTCHA if possible
-                if "captcha_proof" in login_response:
-                    payload["captcha"] = {"proof": login_response["captcha_proof"]}
-
-                # Error handling
-                if "error_code" in login_response:
-                    error_code: int = login_response["error_code"]
-                    logger.debug(f"Login error code: {error_code}")
-                    if error_code in (1000, 5027):
-                        # we've failed bois
-                        session = await self._twitch.get_session()
-                        jar = cast(aiohttp.CookieJar, session.cookie_jar)
-                        assert BASE_URL.host is not None
-                        jar.clear_domain(BASE_URL.host)
-                        logger.debug("Login failed due to CAPTCHA")
-                        raise CaptchaRequired()
-                    elif error_code == 3001:
-                        # wrong password you dummy
-                        logger.debug("Login failed due to incorrect username or password")
-                        gui_print(_("login", "incorrect_login_pass"))
-                        login_form.clear(password=True)
-                        break
-                    elif error_code in (
-                        3012,  # Invalid authy token
-                        3023,  # Invalid email code
-                    ):
-                        logger.debug("Login failed due to incorrect 2FA code")
-                        if error_code == 3023:
-                            gui_print(_("login", "incorrect_email_code"))
-                        else:
-                            gui_print(_("login", "incorrect_twofa_code"))
-                        login_form.clear(token=True)
-                        break
-                    elif error_code in (
-                        3011,  # Authy token needed
-                        3022,  # Email code needed
-                    ):
-                        # 2FA handling
-                        logger.debug("2FA token required")
-                        email = error_code == 3022
-                        if not token:
-                            # user didn't provide a token, so ask them for it
-                            if email:
-                                gui_print(_("login", "email_code_required"))
-                            else:
-                                gui_print(_("login", "twofa_code_required"))
-                            break
-                        if email:
-                            payload["twitchguard_code"] = token
-                        else:
-                            payload["authy_token"] = token
-                        continue
-                    else:
-                        raise LoginException(login_response["error"])
-                # Success handling
-                if "access_token" in login_response:
-                    # we're in bois
-                    self.access_token = cast(str, login_response["access_token"])
-                    logger.debug("Access token granted")
-                    login_form.clear()
-                    return self.access_token
+        for attempt in range(1, 6):  # 5 attempts
+            try:
+                self.access_token = await login_form.ask_login()
+                break
+            except LoginException as exc:
+                if attempt < 5:
+                    self._twitch.gui.print(exc.args[0])
+                    continue
+                raise  # reraise on and past the 5th attempt
+        logger.debug("Access token granted")
+        return self.access_token
 
     def gql_headers(self, *, integrity: bool) -> JsonType:
         headers = {
