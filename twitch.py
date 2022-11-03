@@ -923,9 +923,7 @@ class Twitch:
         if self.settings.proxy and "proxy" not in kwargs:
             kwargs["proxy"] = self.settings.proxy
         logger.debug(f"Request: ({method=}, {url=}, {kwargs=})")
-        session_timeout = timedelta(
-            seconds=cast(aiohttp.ClientTimeout, session.timeout).total or 0
-        )
+        session_timeout = timedelta(seconds=session.timeout.total or 0)
         for delay in ExponentialBackoff(maximum=3*60):
             if self.gui.close_requested:
                 raise ExitRequest()
