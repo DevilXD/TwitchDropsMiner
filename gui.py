@@ -453,6 +453,13 @@ class LoginForm:
     async def ask_login(self) -> str:
         self.update(_("gui", "login", "required"), None)
         self._manager.print(_("gui", "login", "request"))
+        # the user needs to press on the login button to open the browser
+        self._confirm.clear()
+        try:
+            self._button.config(state="normal")
+            await self._confirm.wait()
+        finally:
+            self._button.config(state="disabled")
         self._confirm.clear()
 
         # open the chrome browser on the Twitch's login page
@@ -480,15 +487,7 @@ class LoginForm:
                             service_creationflags=CREATE_NO_WINDOW,
                         )
                     )
-                    done, pending = await asyncio.wait(
-                        [driver_coro, self._manager.wait_until_closed()],
-                        return_when=asyncio.FIRST_COMPLETED
-                    )
-                    for task in pending:
-                        task.cancel()
-                    if self._manager.close_requested:
-                        raise ExitRequest()
-                    driver = next(iter(done)).result()
+                    driver = await self._manager.coro_unless_closed(driver_coro)
                     break
                 except WebDriverException as exc:
                     message = exc.msg
@@ -514,14 +513,7 @@ class LoginForm:
             assert driver is not None
             driver.request_interceptor = self.interceptor
             page_coro = loop.run_in_executor(None, driver.get, "https://twitch.tv/login")
-            done, pending = await asyncio.wait(
-                [page_coro, self._manager.wait_until_closed()],
-                return_when=asyncio.FIRST_COMPLETED
-            )
-            for task in pending:
-                task.cancel()
-            if self._manager.close_requested:
-                raise ExitRequest()
+            await self._manager.coro_unless_closed(page_coro)
             # enable the login button once the page finishes opening
             self._button.config(state="normal")
 
@@ -537,7 +529,7 @@ class LoginForm:
             # inputmode="numeric" pattern="[0-9]*" value="">
 
             # wait for the user to navigate away from the URL, indicating successful login
-            # alternatively, they can press on the login button
+            # alternatively, they can press on the login button again
             while (
                 driver.current_url != "https://www.twitch.tv/?no-reload=true"
                 and not self._confirm.is_set()
@@ -1929,6 +1921,17 @@ class GUIManager:
     async def wait_until_closed(self):
         # wait until the user closes the window
         await self._close_requested.wait()
+
+    async def coro_unless_closed(self, coro: abc.Awaitable[_T]) -> _T:
+        done, pending = await asyncio.wait(
+            [coro, self._close_requested.wait()],
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+        for task in pending:
+            task.cancel()
+        if self._close_requested.is_set():
+            raise ExitRequest()
+        return next(iter(done)).result()
 
     def prevent_close(self):
         self._close_requested.clear()

@@ -935,19 +935,10 @@ class Twitch:
                 raise RequestInvalid()
             try:
                 response: aiohttp.ClientResponse | None = None
-                done, pending = await asyncio.wait(
-                    [session.request(method, url, **kwargs), self.gui.wait_until_closed()],
-                    return_when=asyncio.FIRST_COMPLETED,
+                response = await self.gui.coro_unless_closed(
+                    session.request(method, url, **kwargs)
                 )
-                for task in pending:
-                    task.cancel()
-                if self.gui.close_requested:
-                    raise ExitRequest()
-                for task in done:
-                    response = task.result()
-                    break
-                if response is None:
-                    raise RuntimeError("Close request leak")
+                assert response is not None
                 logger.debug(f"Response: {response.status}: {response}")
                 if response.status < 500:
                     # pre-read the response to avoid getting errors outside of the context manager
