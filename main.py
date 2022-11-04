@@ -37,6 +37,7 @@ if __name__ == "__main__":
     from translate import _
     from twitch import Twitch
     from settings import Settings
+    from utils import resource_path
     from version import __version__
     from exceptions import CaptchaRequired
     from constants import SELF_PATH, FORMATTER, LOG_PATH, WINDOW_TITLE
@@ -101,6 +102,7 @@ if __name__ == "__main__":
     root = tk.Tk()
     root.overrideredirect(True)
     root.withdraw()
+    root.iconbitmap(resource_path("pickaxe.ico"))
     root.update()
     parser = Parser(
         SELF_PATH.name,
