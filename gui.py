@@ -457,7 +457,7 @@ class LoginForm:
         self._confirm.clear()
         try:
             self._button.config(state="normal")
-            await self._confirm.wait()
+            await self._manager.coro_unless_closed(self._confirm.wait())
         finally:
             self._button.config(state="disabled")
         self._confirm.clear()
