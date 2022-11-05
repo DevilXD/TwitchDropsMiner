@@ -1922,12 +1922,12 @@ class GUIManager:
         # wait until the user closes the window
         await self._close_requested.wait()
 
-    async def coro_unless_closed(self, coro: abc.Awaitable[_T]) -> _T:
+    async def coro_unless_closed(self, coro: Any) -> _T:
         # In Python 3.11, we need to explicitly wrap awaitables
-        future: asyncio.Future[_T] = asyncio.ensure_future(coro)
+        task = asyncio.create_task(coro)
         done: set[asyncio.Task[Any]]
         done, pending = await asyncio.wait(
-            [future, self._close_requested.wait()],
+            [task, self._close_requested.wait()],
             return_when=asyncio.FIRST_COMPLETED,
         )
         for task in pending:
