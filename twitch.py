@@ -349,6 +349,7 @@ class Twitch:
         while True:
             try:
                 await self._run()
+                break
             except ReloadRequest:
                 await self.shutdown()
             except ExitRequest:
@@ -1062,6 +1063,9 @@ class Twitch:
             self._drops.update({drop.id: drop for drop in campaign.drops})
             # NOTE: this fetches pictures from the CDN, so might be slow without a cache
             await self.gui.inv.add_campaign(campaign)
+            # this is needed here explicitly, because images aren't always fetched
+            if self.gui.close_requested:
+                raise ExitRequest()
             self.inventory.append(campaign)
 
     def get_active_drop(self, channel: Channel | None = None) -> TimedDrop | None:
