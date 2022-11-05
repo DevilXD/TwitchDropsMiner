@@ -336,7 +336,6 @@ class WebsocketPool:
         return self._running.wait()
 
     async def start(self):
-        await self._twitch.wait_until_login()
         self._running.set()
         await asyncio.gather(*(ws.start() for ws in self.websockets))
 
