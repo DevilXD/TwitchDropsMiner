@@ -351,12 +351,10 @@ class Twitch:
                 await self._run()
             except ReloadRequest:
                 await self.shutdown()
-                continue
             except ExitRequest:
-                pass
+                break
             except aiohttp.ContentTypeError as exc:
                 raise MinerException(_("login", "unexpected_content")) from exc
-            break
 
     async def _run(self):
         """
