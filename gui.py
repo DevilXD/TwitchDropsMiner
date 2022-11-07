@@ -453,6 +453,8 @@ class LoginForm:
     async def ask_login(self) -> str:
         self.update(_("gui", "login", "required"), None)
         self._manager.print(_("gui", "login", "request"))
+        # ensure the window isn't hidden into tray when this runs
+        self._manager.tray.restore()
         # the user needs to press on the login button to open the browser
         self._confirm.clear()
         try:
@@ -1068,7 +1070,7 @@ class TrayIcon:
     def restore(self):
         if self.is_tray():
             self.stop()
-            self._manager._root.deiconify()
+        self._manager._root.deiconify()
 
     def notify(
         self, message: str, title: str | None = None, duration: float = 10
