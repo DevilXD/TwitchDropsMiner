@@ -195,8 +195,8 @@ class ExponentialBackoff:
         maximum: float = 300,
     ):
         if base <= 1:
-            raise ValueError("base has to be greater than 1")
-        self.exp: int = 0
+            raise ValueError("Base has to be greater than 1")
+        self.steps: int = 0
         self.base: float = float(base)
         self.shift: float = float(shift)
         self.maximum: float = float(maximum)
@@ -208,12 +208,16 @@ class ExponentialBackoff:
             self.variance_min = 1 - variance
             self.variance_max = 1 + variance
 
+    @property
+    def exp(self) -> int:
+        return max(0, self.steps - 1)
+
     def __iter__(self) -> abc.Iterator[float]:
         return self
 
     def __next__(self) -> float:
         value: float = (
-            pow(self.base, self.exp)
+            pow(self.base, self.steps)
             * random.uniform(self.variance_min, self.variance_max)
             + self.shift
         )
@@ -222,11 +226,11 @@ class ExponentialBackoff:
         # NOTE: variance can cause the returned value to be lower than the previous one already,
         # so this should be safe to move past the first return,
         # to prevent the exponent from getting very big after reaching max and many iterations
-        self.exp += 1
+        self.steps += 1
         return value
 
     def reset(self) -> None:
-        self.exp = 0
+        self.steps = 0
 
 
 class OrderedSet(MutableSet[_T]):

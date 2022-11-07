@@ -923,7 +923,8 @@ class Twitch:
             kwargs["proxy"] = self.settings.proxy
         logger.debug(f"Request: ({method=}, {url=}, {kwargs=})")
         session_timeout = timedelta(seconds=session.timeout.total or 0)
-        for delay in ExponentialBackoff(maximum=3*60):
+        backoff = ExponentialBackoff(maximum=3*60)
+        for delay in backoff:
             if self.gui.close_requested:
                 raise ExitRequest()
             elif (
@@ -947,7 +948,7 @@ class Twitch:
                 self.print(_("error", "site_down").format(seconds=round(delay)))
             except (aiohttp.ClientConnectionError, asyncio.TimeoutError):
                 # just so that quick retries that often happen, aren't shown
-                if delay > 1:
+                if backoff.steps > 1:
                     self.print(_("error", "no_connection").format(seconds=round(delay)))
             finally:
                 if response is not None:
