@@ -23,9 +23,10 @@ import win32con
 import win32gui
 from yarl import URL
 from PIL import Image as Image_module
-from undetected_chromedriver import ChromeOptions
-from seleniumwire.undetected_chromedriver.v2 import Chrome
-from selenium.common.exceptions import WebDriverException, NoSuchWindowException
+from seleniumwire.request import Request
+from selenium.common.exceptions import WebDriverException
+from seleniumwire.undetected_chromedriver import Chrome, ChromeOptions
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
 from translate import _
 from cache import ImageCache
@@ -33,7 +34,14 @@ from utils import resource_path, Game, _T
 from registry import RegistryKey, ValueType
 from exceptions import MinerException, ExitRequest, LoginException
 from constants import (
-    CLIENT_ID, SELF_PATH, FORMATTER, WS_TOPICS_LIMIT, MAX_WEBSOCKETS, WINDOW_TITLE, State
+    CLIENT_ID,
+    SELF_PATH,
+    # CACHE_PATH,
+    FORMATTER,
+    WS_TOPICS_LIMIT,
+    MAX_WEBSOCKETS,
+    WINDOW_TITLE,
+    State,
 )
 
 if TYPE_CHECKING:
@@ -438,7 +446,7 @@ class LoginForm:
         self.update(_("gui", "login", "logged_out"), None)
 
     @staticmethod
-    def interceptor(request) -> None:
+    def interceptor(request: Request) -> None:
         if (
             request.method == "POST"
             and request.url == "https://passport.twitch.tv/protected_login"
@@ -463,6 +471,7 @@ class LoginForm:
         finally:
             self._button.config(state="disabled")
         self._confirm.clear()
+        self._manager.print("Opening Chrome...")
 
         # open the chrome browser on the Twitch's login page
         # use a separate executor to void blocking the event loop
@@ -477,16 +486,21 @@ class LoginForm:
                 options.add_argument("--allow-running-insecure-content")
                 options.add_argument("--lang=en")
                 options.add_argument("--no-sandbox")
+                options.add_argument("--test-type")
                 options.add_argument("--disable-gpu")
+                desired_capabilities = DesiredCapabilities.CHROME.copy()
+                # speed up page loading detection
+                desired_capabilities["pageLoadStrategy"] = "eager"
                 try:
                     driver_coro = loop.run_in_executor(
                         None,
                         lambda: Chrome(
                             options=options,
-                            # use_subprocess=True,
                             suppress_welcome=True,
                             version_main=version_main,
                             service_creationflags=CREATE_NO_WINDOW,
+                            desired_capabilities=desired_capabilities,
+                            # user_data_dir=str(CACHE_PATH.joinpath("ChromeProfile")),
                         )
                     )
                     driver = await self._manager.coro_unless_closed(driver_coro)
@@ -514,6 +528,7 @@ class LoginForm:
                     ) from exc
             assert driver is not None
             driver.request_interceptor = self.interceptor
+            # driver.set_page_load_timeout(30)
             page_coro = loop.run_in_executor(None, driver.get, "https://twitch.tv/login")
             await self._manager.coro_unless_closed(page_coro)
             # enable the login button once the page finishes opening
@@ -540,16 +555,32 @@ class LoginForm:
                     raise ExitRequest()
                 await asyncio.sleep(0.5)
 
+            # cookies = [
+            #     {
+            #         "domain": ".twitch.tv",
+            #         "expiry": 1700000000,
+            #         "httpOnly": False,
+            #         "name": "auth-token",
+            #         "path": "/",
+            #         "sameSite": "None",
+            #         "secure": True,
+            #         "value": "..."
+            #     },
+            #     ...,
+            # ]
             cookies = driver.get_cookies()
             for cookie in cookies:
-                if cookie["name"] == "auth-token":
+                if "twitch.tv" in cookie["domain"] and cookie["name"] == "auth-token":
                     auth_token = cookie["value"]
                     break
             else:
                 raise LoginException("Unable to extract authorization token")
-        except NoSuchWindowException:
+        except WebDriverException:
             driver = None
-            raise LoginException("Chrome window was closed, reopening...")
+            raise LoginException(
+                "Chrome window was closed before the login procedure could complete.\n"
+                "You can manually complete the procedure by pressing the Login button again."
+            )
         finally:
             self._button.config(state="disabled")
             if driver is not None:

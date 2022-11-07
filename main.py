@@ -3,6 +3,7 @@ from __future__ import annotations
 # import an additional thing for proper PyInstaller freeze support
 from multiprocessing import freeze_support
 
+
 if __name__ == "__main__":
     freeze_support()
     import io
@@ -41,6 +42,7 @@ if __name__ == "__main__":
     from version import __version__
     from exceptions import CaptchaRequired
     from constants import SELF_PATH, FORMATTER, LOG_PATH, WINDOW_TITLE
+
 
     class Parser(argparse.ArgumentParser):
         def __init__(self, *args, **kwargs) -> None:
