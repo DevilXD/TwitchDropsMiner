@@ -5,9 +5,9 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-self_path = str(Path(".").absolute())
-if self_path not in sys.path:
-    sys.path.insert(0, self_path)
+SELF_PATH = str(Path(".").absolute())
+if SELF_PATH not in sys.path:
+    sys.path.insert(0, SELF_PATH)
 
 from constants import WORKING_DIR, DEFAULT_LANG
 
@@ -16,7 +16,12 @@ if TYPE_CHECKING:
     from PyInstaller.building.build_main import Analysis
 
 
-datas: list[tuple[str | Path, str]] = [("pickaxe.ico", '.')]
+datas: list[tuple[str | Path, str]] = [
+    ("pickaxe.ico", '.'),  # icon file
+    # SeleniumWire HTTPS/SSL cert file and key
+    ("./env/Lib/site-packages/seleniumwire/ca.crt", "./seleniumwire"),
+    ("./env/Lib/site-packages/seleniumwire/ca.key", "./seleniumwire"),
+]
 for lang_filepath in WORKING_DIR.joinpath("lang").glob("*.json"):
     if lang_filepath.stem != DEFAULT_LANG:
         datas.append((lang_filepath, "lang"))
