@@ -27,7 +27,6 @@ try:
     from seleniumwire.request import Request
     from selenium.common.exceptions import WebDriverException
     from seleniumwire.undetected_chromedriver import Chrome, ChromeOptions
-    from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 except ImportError as exc:
     raise ImportError(
         "You need to install Visual C++ Redist (x86 and x64): "
@@ -494,9 +493,7 @@ class LoginForm:
                 options.add_argument("--no-sandbox")
                 options.add_argument("--test-type")
                 options.add_argument("--disable-gpu")
-                desired_capabilities = DesiredCapabilities.CHROME.copy()
-                # speed up page loading detection
-                desired_capabilities["pageLoadStrategy"] = "eager"
+                options.set_capability("pageLoadStrategy", "eager")
                 try:
                     driver_coro = loop.run_in_executor(
                         None,
@@ -505,7 +502,6 @@ class LoginForm:
                             suppress_welcome=True,
                             version_main=version_main,
                             service_creationflags=CREATE_NO_WINDOW,
-                            desired_capabilities=desired_capabilities,
                             # user_data_dir=str(CACHE_PATH.joinpath("ChromeProfile")),
                         )
                     )
@@ -539,6 +535,9 @@ class LoginForm:
             await self._manager.coro_unless_closed(page_coro)
             # enable the login button once the page finishes opening
             self._button.config(state="normal")
+            self._manager.print(
+                "Complete the login procedure manually by pressing the Login button again."
+            )
 
             # auto login
             # driver.find_element("id", "login-username").send_keys(username)
@@ -584,8 +583,7 @@ class LoginForm:
         except WebDriverException:
             driver = None
             raise LoginException(
-                "Chrome window was closed before the login procedure could complete.\n"
-                "You can manually complete the procedure by pressing the Login button again."
+                "Chrome window was closed before the login procedure could complete."
             )
         finally:
             self._button.config(state="disabled")
