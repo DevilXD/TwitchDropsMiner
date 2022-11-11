@@ -23,10 +23,16 @@ import win32con
 import win32gui
 from yarl import URL
 from PIL import Image as Image_module
-from seleniumwire.request import Request
-from selenium.common.exceptions import WebDriverException
-from seleniumwire.undetected_chromedriver import Chrome, ChromeOptions
-from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+try:
+    from seleniumwire.request import Request
+    from selenium.common.exceptions import WebDriverException
+    from seleniumwire.undetected_chromedriver import Chrome, ChromeOptions
+    from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+except ImportError as exc:
+    raise ImportError(
+        "You need to install Visual C++ Redist (x86 and x64): "
+        "https://support.microsoft.com/en-gb/help/2977003/the-latest-supported-visual-c-downloads"
+    ) from exc
 
 from translate import _
 from cache import ImageCache

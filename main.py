@@ -43,7 +43,6 @@ if __name__ == "__main__":
     from exceptions import CaptchaRequired
     from constants import SELF_PATH, FORMATTER, LOG_PATH, WINDOW_TITLE
 
-
     class Parser(argparse.ArgumentParser):
         def __init__(self, *args, **kwargs) -> None:
             super().__init__(*args, **kwargs)
