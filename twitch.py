@@ -695,14 +695,19 @@ class Twitch:
         """
         if not self.wanted_games:
             return False
-        return (
-            channel.online  # stream online
-            and channel.drops_enabled  # drops are enabled
-            # it's one of the games we've selected
-            and (game := channel.game) is not None and game in self.wanted_games
-            # we can progress any campaign for the selected game
-            and any(campaign.can_earn(channel) for campaign in self.inventory)
-        )
+        # exit early if
+        if (
+            not channel.online  # stream is offline
+            or not channel.drops_enabled  # drops aren't enabled
+            # there's no game or it's not one of the games we've selected
+            or (game := channel.game) is None or game not in self.wanted_games
+        ):
+            return False
+        # check if we can progress any campaign for the played game
+        for campaign in self.inventory:
+            if campaign.game == game and campaign.can_earn(channel):
+                return True
+        return False
 
     def should_switch(self, channel: Channel) -> bool:
         """
