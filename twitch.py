@@ -1074,23 +1074,24 @@ class Twitch:
             self.inventory.append(campaign)
 
     def get_active_drop(self, channel: Channel | None = None) -> TimedDrop | None:
-        if not self.games:
+        if not self.wanted_games:
             return None
         watching_channel = self.watching_channel.get_with_default(channel)
+        if watching_channel is None:
+            # if we aren't watching anything, we can't earn any drops
+            return None
+        watching_game: Game | None = watching_channel.game
+        if watching_game is None:
+            # if the channel isn't playing anything in particular, we can't determine the drop
+            return None
         drops: list[TimedDrop] = []
-        strict_drops: list[TimedDrop] = []
-        game: Game | None = watching_channel is not None and watching_channel.game or None
         for campaign in self.inventory:
-            if campaign.game in self.games and campaign.can_earn(watching_channel):
-                new_drops = [drop for drop in campaign.drops if drop.can_earn(watching_channel)]
-                drops.extend(new_drops)
-                # 'strict_drops' has an additional condition - watching channel game must match
-                # the campaign's game. If this list would end up empty,
-                # we use 'drops' as a fallback without this extra condition.
-                if game is not None and campaign.game == game:
-                    strict_drops.extend(new_drops)
-        if strict_drops:
-            drops = strict_drops
+            if (
+                campaign.game == watching_game  # campaign's game matches watching game
+                and campaign.can_earn(watching_channel)  # can be earned on this channel
+            ):
+                # add only the drops we can actually earn
+                drops.extend(drop for drop in campaign.drops if drop.can_earn(watching_channel))
         if drops:
             drops.sort(key=lambda d: d.remaining_minutes)
             return drops[0]
