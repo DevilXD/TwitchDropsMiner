@@ -493,16 +493,18 @@ class LoginForm:
                 options.add_argument("--no-sandbox")
                 options.add_argument("--test-type")
                 options.add_argument("--disable-gpu")
-                if self._manager._twitch.settings.proxy:
-                    options.add_argument(f"--proxy-server={self._manager._twitch.settings.proxy}")
                 options.set_capability("pageLoadStrategy", "eager")
                 try:
+                    wire_options: dict[str, Any] = {"proxy": {}}
+                    if self._manager._twitch.settings.proxy:
+                        wire_options["proxy"]["http"] = str(self._manager._twitch.settings.proxy)
                     driver_coro = loop.run_in_executor(
                         None,
                         lambda: Chrome(
                             options=options,
                             suppress_welcome=True,
                             version_main=version_main,
+                            seleniumwire_options=wire_options,
                             service_creationflags=CREATE_NO_WINDOW,
                             # user_data_dir=str(CACHE_PATH.joinpath("ChromeProfile")),
                         )
