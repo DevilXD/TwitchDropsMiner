@@ -865,7 +865,7 @@ class ChannelList:
         self._add_column(
             "points", _("gui", "channels", "headings", "points"), width_template="1234567"
         )
-        self._add_column("priority", "❗", width_template="✔")
+        self._add_column("acl_base", "📋", width_template="✔")
         self._channel_map: dict[str, Channel] = {}
 
     def _add_column(
@@ -999,8 +999,8 @@ class ChannelList:
         self.shrink()
 
     def display(self, channel: Channel, *, add: bool = False):
-        # priority
-        priority = "✔" if channel.priority else "❌"
+        # ACL-based
+        acl_based = "✔" if channel.acl_based else "❌"
         # status
         if channel.online:
             status = _("gui", "channels", "online")
@@ -1026,7 +1026,7 @@ class ChannelList:
             self._set(iid, "drops", drops)
             self._set(iid, "status", status)
             self._set(iid, "viewers", viewers)
-            self._set(iid, "priority", priority)
+            self._set(iid, "acl_base", acl_based)
             if points != '':  # we still want to display 0
                 self._set(iid, "points", points)
         elif add:
@@ -1039,7 +1039,7 @@ class ChannelList:
                     "points": points,
                     "status": status,
                     "viewers": viewers,
-                    "priority": priority,
+                    "acl_base": acl_based,
                     "channel": channel.name,
                 },
             )
@@ -1613,7 +1613,7 @@ class SettingsPanel:
         # NOTE: we shift the indexes so that 0 can be used as the default one
         size = self._priority_list.size()
         return {
-            game_name: i - size for i, game_name in enumerate(self._priority_list.get(0, "end"))
+            game_name: size - i for i, game_name in enumerate(self._priority_list.get(0, "end"))
         }
 
     def priority_add(self) -> None:

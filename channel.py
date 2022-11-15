@@ -76,7 +76,7 @@ class Channel:
         id: SupportsInt,
         login: str,
         display_name: str | None = None,
-        priority: bool = False,
+        acl_based: bool = False,
     ):
         self._twitch: Twitch = twitch
         self._gui_channels: ChannelList = twitch.gui.channels
@@ -87,11 +87,11 @@ class Channel:
         self.points: int | None = None
         self._stream: Stream | None = None
         self._pending_stream_up: asyncio.Task[Any] | None = None
-        # Priority channels are:
+        # ACL-based channels are:
         # • considered first when switching channels
-        # • if we're watching a non-priority channel, a priority channel going up triggers a switch
+        # • if we're watching a non-based channel, a based channel going up triggers a switch
         # • not cleaned up unless they're streaming a game we haven't selected
-        self.priority: bool = priority
+        self.acl_based: bool = acl_based
 
     @classmethod
     def from_acl(cls, twitch: Twitch, data: JsonType) -> Channel:
@@ -100,7 +100,7 @@ class Channel:
             id=data["id"],
             login=data["name"],
             display_name=data.get("displayName"),
-            priority=True,
+            acl_based=True,
         )
 
     @classmethod
@@ -114,9 +114,9 @@ class Channel:
 
     @classmethod
     async def from_name(
-        cls, twitch: Twitch, channel_login: str, *, priority: bool = False
+        cls, twitch: Twitch, channel_login: str, *, acl_based: bool = False
     ) -> Channel:
-        self = cls(twitch, id=0, login=channel_login, priority=priority)
+        self = cls(twitch, id=0, login=channel_login, acl_based=acl_based)
         # id and display name to be filled/overwritten by get_stream
         stream = await self.get_stream()
         if stream is not None:

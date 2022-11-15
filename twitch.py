@@ -229,7 +229,7 @@ class Twitch:
         # State management
         self._state: State = State.IDLE
         self._state_change = asyncio.Event()
-        self.games: dict[Game, int] = {}
+        self.wanted_games: dict[Game, int] = {}
         self.inventory: list[DropsCampaign] = []
         self._drops: dict[str, TimedDrop] = {}
         # Session and auth
@@ -280,11 +280,11 @@ class Twitch:
             await self._session.close()
             self._session = None
         self._drop_update = None
-        self.games.clear()
         self._drops.clear()
         self.channels.clear()
         self.inventory.clear()
         self._auth_state.clear()
+        self.wanted_games.clear()
         # wait at least half a second + whatever it takes to complete the closing
         # this allows aiohttp to safely close the session
         await asyncio.sleep(start_time + 0.5 - time())
@@ -330,20 +330,26 @@ class Twitch:
         self.gui.save(force=force)
         self.settings.save(force=force)
 
+    def get_priority(self, channel: Channel) -> int:
+        """
+        Return a priority number for a given channel.
+
+        Higher number, higher priority.
+        Priority 0 is given to channels streaming a game not on the priority list.
+        Priority -1 is given to OFFLINE channels, or channels streaming no particular games.
+        """
+        if (game := channel.game) is None:
+            # None when OFFLINE or no game set
+            return -1
+        elif game not in self.wanted_games:
+            return 0
+        return self.wanted_games[game]
+
     @staticmethod
     def _viewers_key(channel: Channel) -> int:
         if (viewers := channel.viewers) is not None:
             return viewers
         return -1
-
-    def _game_key(self, channel: Channel) -> int:
-        if (game := channel.game) is None:
-            return 1
-        elif game not in self.games:
-            # in case a channel is gathered from an ACL and doesn't play the expected game,
-            # we use the same priority as for non-prioritized games
-            return 0
-        return self.games[game]
 
     async def run(self):
         while True:
@@ -400,36 +406,35 @@ class Twitch:
                 self.save()
                 self.change_state(State.GAMES_UPDATE)
             elif self._state is State.GAMES_UPDATE:
-                # Figure out which games to watch, and claim the drops we can
-                self.games.clear()
-                priorities = self.gui.settings.priorities()
                 # claim drops from expired and active campaigns
                 for campaign in self.inventory:
                     if not campaign.upcoming:
                         for drop in campaign.drops:
                             if drop.can_claim:
                                 await drop.claim()
-                # collect games from active campaigns
+                # figure out which games we want
+                self.wanted_games.clear()
+                priorities = self.gui.settings.priorities()
                 exclude = self.settings.exclude
                 priority = self.settings.priority
                 priority_only = self.settings.priority_only
                 for campaign in self.inventory:
                     game = campaign.game
                     if (
-                        game not in self.games  # isn't already there
+                        game not in self.wanted_games  # isn't already there
                         and game.name not in exclude  # and isn't excluded
                         # and isn't excluded by priority_only
                         and (not priority_only or game.name in priority)
                         and campaign.can_earn()  # and can be progressed (active required)
                     ):
-                        # non-excluded games with no priority, are placed last, below priority ones
-                        self.games[game] = priorities.get(game.name, 0)
+                        # non-excluded games with no priority are placed last, below priority ones
+                        self.wanted_games[game] = priorities.get(game.name, 0)
                 full_cleanup = True
                 self.restart_watching()
                 self.change_state(State.CHANNELS_CLEANUP)
             elif self._state is State.CHANNELS_CLEANUP:
                 self.gui.status.update(_("gui", "status", "cleanup"))
-                if not self.games or full_cleanup:
+                if not self.wanted_games or full_cleanup:
                     # no games selected or we're doing full cleanup: remove everything
                     to_remove: list[Channel] = list(channels.values())
                 else:
@@ -438,11 +443,11 @@ class Twitch:
                         channel
                         for channel in channels.values()
                         if (
-                            not channel.priority  # aren't prioritized
+                            not channel.acl_based  # aren't ACL-based
                             and (
                                 channel.offline  # and are offline
                                 # or online but aren't streaming the game we want anymore
-                                or (channel.game is None or channel.game not in self.games)
+                                or (channel.game is None or channel.game not in self.wanted_games)
                             )
                         )
                     ]
@@ -456,7 +461,7 @@ class Twitch:
                         del channels[channel.id]
                         channel.remove()
                     del to_remove
-                if self.games:
+                if self.wanted_games:
                     self.change_state(State.CHANNELS_FETCH)
                 else:
                     # with no games available, we switch to IDLE after cleanup
@@ -472,7 +477,7 @@ class Twitch:
                 no_acl: set[Game] = set()
                 acl_channels: OrderedSet[Channel] = OrderedSet()
                 for campaign in self.inventory:
-                    if campaign.game in self.games and campaign.can_earn():
+                    if campaign.game in self.wanted_games and campaign.can_earn():
                         if campaign.allowed_channels:
                             acl_channels.update(campaign.allowed_channels)
                         else:
@@ -493,8 +498,8 @@ class Twitch:
                 ordered_channels: list[Channel] = sorted(
                     new_channels, key=self._viewers_key, reverse=True
                 )
-                ordered_channels.sort(key=lambda ch: ch.priority, reverse=True)
-                ordered_channels.sort(key=self._game_key)
+                ordered_channels.sort(key=lambda ch: ch.acl_based, reverse=True)
+                ordered_channels.sort(key=self.get_priority, reverse=True)
                 # ensure that we won't end up with more channels than we can handle
                 # NOTE: we substract 2 due to the two base topics always being added:
                 # channel points gain and drop update subscriptions
@@ -557,7 +562,7 @@ class Twitch:
                     # for a switch (including the watching one)
                     # NOTE: we need to sort the channels every time because one channel
                     # can end up streaming any game - channels aren't game-tied
-                    for channel in sorted(channels.values(), key=self._game_key):
+                    for channel in sorted(channels.values(), key=self.get_priority, reverse=True):
                         if self.can_watch(channel) and self.should_switch(channel):
                             new_watching = channel
                             break
@@ -688,13 +693,13 @@ class Twitch:
         """
         Determines if the given channel qualifies as a watching candidate.
         """
-        if not self.games:
+        if not self.wanted_games:
             return False
         return (
             channel.online  # stream online
             and channel.drops_enabled  # drops are enabled
             # it's one of the games we've selected
-            and channel.game is not None and channel.game in self.games
+            and (game := channel.game) is not None and game in self.wanted_games
             # we can progress any campaign for the selected game
             and any(campaign.can_earn(channel) for campaign in self.inventory)
         )
@@ -706,15 +711,14 @@ class Twitch:
         watching_channel = self.watching_channel.get_with_default(None)
         if watching_channel is None:
             return True
-        channel_order = self._game_key(channel)
-        watching_order = self._game_key(watching_channel)
+        channel_order = self.get_priority(channel)
+        watching_order = self.get_priority(watching_channel)
         return (
             # this channel's game is higher order than the watching one's
-            # NOTE: order is tied to the priority list position, so lower == higher
-            channel_order < watching_order
+            channel_order > watching_order
             or channel_order == watching_order  # or the order is the same
-            # and this channel has priority over the watching channel
-            and channel.priority > watching_channel.priority
+            # and this channel is ACL-based and the watching channel isn't
+            and channel.acl_based > watching_channel.acl_based
         )
 
     def watch(self, channel: Channel):
