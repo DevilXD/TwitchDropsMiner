@@ -1279,6 +1279,12 @@ class Twitch:
                 continue
             gql_logger.debug(f"GQL Response: {response_json}")
             if "errors" in response_json and response_json["errors"]:
+                if (
+                    "message" in response_json["errors"]
+                    and response_json["errors"]["message"] == "service timeout"
+                ):
+                    await asyncio.sleep(1)
+                    continue
                 raise MinerException(f"GQL error: {response_json['errors']}")
             return response_json
 
