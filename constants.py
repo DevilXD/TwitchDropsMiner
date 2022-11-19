@@ -64,9 +64,9 @@ DEFAULT_LANG = "English"
 BASE_URL = URL("https://twitch.tv")
 CLIENT_ID = "kd1unb4b3q4t58fwlpcbzcbnm76a8fp"
 # CLIENT_ID = "uo6dggojyb8d6soh92zknwmi5ej1q2"
-USER_AGENT = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/105.0.0.0 Safari/537.36"
+ANDROID_USER_AGENT = (
+    "Dalvik/2.1.0 (Linux; U; Android 7.1.2; SM-G975N Build/N2G48C) "
+    "tv.twitch.android.app/13.4.1/1304010"
 )
 # Intervals and Delays
 PING_INTERVAL = timedelta(minutes=3)

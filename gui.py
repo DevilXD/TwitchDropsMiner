@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import re
 import sys
-import json
 import ctypes
 import asyncio
 import logging
@@ -10,7 +8,7 @@ import webbrowser
 import tkinter as tk
 from collections import abc
 from math import log10, ceil
-from subprocess import CREATE_NO_WINDOW
+from dataclasses import dataclass
 from tkinter.font import Font, nametofont
 from functools import partial, cached_property
 from datetime import datetime, timedelta, timezone
@@ -23,31 +21,13 @@ import win32con
 import win32gui
 from yarl import URL
 from PIL import Image as Image_module
-try:
-    from seleniumwire.request import Request
-    from selenium.common.exceptions import WebDriverException
-    from seleniumwire.undetected_chromedriver import Chrome, ChromeOptions
-except ImportError as exc:
-    raise ImportError(
-        "You need to install Visual C++ Redist (x86 and x64): "
-        "https://support.microsoft.com/en-gb/help/2977003/the-latest-supported-visual-c-downloads"
-    ) from exc
 
 from translate import _
 from cache import ImageCache
+from exceptions import ExitRequest
 from utils import resource_path, Game, _T
 from registry import RegistryKey, ValueType
-from exceptions import MinerException, ExitRequest, LoginException
-from constants import (
-    CLIENT_ID,
-    SELF_PATH,
-    # CACHE_PATH,
-    FORMATTER,
-    WS_TOPICS_LIMIT,
-    MAX_WEBSOCKETS,
-    WINDOW_TITLE,
-    State,
-)
+from constants import SELF_PATH, FORMATTER, WS_TOPICS_LIMIT, MAX_WEBSOCKETS, WINDOW_TITLE, State
 
 if TYPE_CHECKING:
     from twitch import Twitch
@@ -424,6 +404,13 @@ class WebsocketStatus:
         self._topics_var.set('\n'.join(topic_lines))
 
 
+@dataclass
+class LoginData:
+    username: str
+    password: str
+    token: str
+
+
 class LoginForm:
     def __init__(self, manager: GUIManager, master: ttk.Widget):
         self._manager = manager
@@ -435,14 +422,14 @@ class LoginForm:
         frame.rowconfigure(4, weight=1)
         ttk.Label(frame, text=_("gui", "login", "labels")).grid(column=0, row=0)
         ttk.Label(frame, textvariable=self._var, justify="center").grid(column=1, row=0)
-        # self._login_entry = PlaceholderEntry(frame, placeholder=_("gui", "login", "username"))
-        # self._login_entry.grid(column=0, row=1, columnspan=2)
-        # self._pass_entry = PlaceholderEntry(
-        #     frame, placeholder=_("gui", "login", "password"), show='•'
-        # )
-        # self._pass_entry.grid(column=0, row=2, columnspan=2)
-        # self._token_entry = PlaceholderEntry(frame, placeholder=_("gui", "login", "twofa_code"))
-        # self._token_entry.grid(column=0, row=3, columnspan=2)
+        self._login_entry = PlaceholderEntry(frame, placeholder=_("gui", "login", "username"))
+        self._login_entry.grid(column=0, row=1, columnspan=2)
+        self._pass_entry = PlaceholderEntry(
+            frame, placeholder=_("gui", "login", "password"), show='•'
+        )
+        self._pass_entry.grid(column=0, row=2, columnspan=2)
+        self._token_entry = PlaceholderEntry(frame, placeholder=_("gui", "login", "twofa_code"))
+        self._token_entry.grid(column=0, row=3, columnspan=2)
         self._confirm = asyncio.Event()
         self._button = ttk.Button(
             frame, text=_("gui", "login", "button"), command=self._confirm.set, state="disabled"
@@ -450,150 +437,46 @@ class LoginForm:
         self._button.grid(column=0, row=4, columnspan=2)
         self.update(_("gui", "login", "logged_out"), None)
 
-    @staticmethod
-    def interceptor(request: Request) -> None:
-        if (
-            request.method == "POST"
-            and request.url == "https://passport.twitch.tv/protected_login"
-        ):
-            body = request.body.decode("utf-8")
-            data = json.loads(body)
-            data["client_id"] = CLIENT_ID
-            request.body = json.dumps(data).encode("utf-8")
-            del request.headers["Content-Length"]
-            request.headers["Content-Length"] = str(len(request.body))
+    def clear(self, login: bool = False, password: bool = False, token: bool = False):
+        clear_all = not login and not password and not token
+        if login or clear_all:
+            self._login_entry.clear()
+        if password or clear_all:
+            self._pass_entry.clear()
+        if token or clear_all:
+            self._token_entry.clear()
 
-    async def ask_login(self) -> str:
-        self.update(_("gui", "login", "required"), None)
-        self._manager.print(_("gui", "login", "request"))
-        # ensure the window isn't hidden into tray when this runs
-        self._manager.tray.restore()
-        # the user needs to press on the login button to open the browser
+    async def wait_for_login_press(self) -> None:
         self._confirm.clear()
         try:
             self._button.config(state="normal")
             await self._manager.coro_unless_closed(self._confirm.wait())
         finally:
             self._button.config(state="disabled")
-        self._confirm.clear()
-        self._manager.print("Opening Chrome...")
 
-        # open the chrome browser on the Twitch's login page
-        # use a separate executor to void blocking the event loop
-        loop = asyncio.get_running_loop()
-        driver = None
-        try:
-            version_main = None
-            for attempt in range(2):
-                options = ChromeOptions()
-                options.add_argument("--log-level=3")
-                options.add_argument("--disable-web-security")
-                options.add_argument("--allow-running-insecure-content")
-                options.add_argument("--lang=en")
-                options.add_argument("--no-sandbox")
-                options.add_argument("--test-type")
-                options.add_argument("--disable-gpu")
-                options.set_capability("pageLoadStrategy", "eager")
-                try:
-                    wire_options: dict[str, Any] = {"proxy": {}}
-                    if self._manager._twitch.settings.proxy:
-                        wire_options["proxy"]["http"] = str(self._manager._twitch.settings.proxy)
-                    driver_coro = loop.run_in_executor(
-                        None,
-                        lambda: Chrome(
-                            options=options,
-                            suppress_welcome=True,
-                            version_main=version_main,
-                            seleniumwire_options=wire_options,
-                            service_creationflags=CREATE_NO_WINDOW,
-                            # user_data_dir=str(CACHE_PATH.joinpath("ChromeProfile")),
-                        )
-                    )
-                    driver = await self._manager.coro_unless_closed(driver_coro)
-                    break
-                except WebDriverException as exc:
-                    message = exc.msg
-                    if (
-                        message is not None
-                        and (match := re.search(
-                            r'Chrome version ([\d]+)\nCurrent browser version is ((\d+)\.[\d.]+)',
-                            message,
-                        )) is not None
-                    ):
-                        if not attempt:
-                            version_main = int(match.group(3))
-                            continue
-                        else:
-                            raise MinerException(
-                                "Your Chrome browser is out of date\n"
-                                f"Required version: {match.group(1)}\n"
-                                f"Current version: {match.group(2)}"
-                            ) from None
-                    raise MinerException(
-                        "An error occured while boostrapping the Chrome browser"
-                    ) from exc
-            assert driver is not None
-            driver.request_interceptor = self.interceptor
-            # driver.set_page_load_timeout(30)
-            page_coro = loop.run_in_executor(None, driver.get, "https://twitch.tv/login")
-            await self._manager.coro_unless_closed(page_coro)
-            # enable the login button once the page finishes opening
-            self._button.config(state="normal")
-            self._manager.print(
-                "Complete the login procedure manually by pressing the Login button again."
+    async def ask_login(self) -> LoginData:
+        self.update(_("gui", "login", "required"), None)
+        # ensure the window isn't hidden into tray when this runs
+        self._manager.tray.restore()
+        while True:
+            self._manager.print(_("gui", "login", "request"))
+            await self.wait_for_login_press()
+            login_data = LoginData(
+                self._login_entry.get().strip(),
+                self._pass_entry.get(),
+                self._token_entry.get().strip(),
             )
-
-            # auto login
-            # driver.find_element("id", "login-username").send_keys(username)
-            # driver.find_element("id", "password-input").send_keys(password)
-            # driver.find_element(
-            #     "css selector", '[data-a-target="passport-login-button"]'
-            # ).click()
-            # token submit button css selectors
-            # Button: "screen="two_factor" target="submit_button"
-            # Input: <input type="text" autocomplete="one-time-code" data-a-target="tw-input"
-            # inputmode="numeric" pattern="[0-9]*" value="">
-
-            # wait for the user to navigate away from the URL, indicating successful login
-            # alternatively, they can press on the login button again
-            while (
-                driver.current_url != "https://www.twitch.tv/?no-reload=true"
-                and not self._confirm.is_set()
-            ):
-                if self._manager.close_requested:
-                    raise ExitRequest()
-                await asyncio.sleep(0.5)
-
-            # cookies = [
-            #     {
-            #         "domain": ".twitch.tv",
-            #         "expiry": 1700000000,
-            #         "httpOnly": False,
-            #         "name": "auth-token",
-            #         "path": "/",
-            #         "sameSite": "None",
-            #         "secure": True,
-            #         "value": "..."
-            #     },
-            #     ...,
-            # ]
-            cookies = driver.get_cookies()
-            for cookie in cookies:
-                if "twitch.tv" in cookie["domain"] and cookie["name"] == "auth-token":
-                    auth_token = cookie["value"]
-                    break
-            else:
-                raise LoginException("Unable to extract authorization token")
-        except WebDriverException:
-            driver = None
-            raise LoginException(
-                "Chrome window was closed before the login procedure could complete."
-            )
-        finally:
-            self._button.config(state="disabled")
-            if driver is not None:
-                driver.quit()
-        return auth_token
+            # basic input data validation
+            if len(login_data.username) < 3:
+                self.clear(login=True)
+                continue
+            if len(login_data.password) < 8:
+                self.clear(password=True)
+                continue
+            if login_data.token and len(login_data.token) < 6:
+                self.clear(token=True)
+                continue
+            return login_data
 
     def update(self, status: str, user_id: int | None):
         if user_id is not None:

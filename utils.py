@@ -38,6 +38,17 @@ _JSON_T = TypeVar("_JSON_T", bound=Mapping[Any, Any])
 logger = logging.getLogger("TwitchDrops")
 
 
+async def first_to_complete(coros: abc.Iterable[abc.Coroutine[Any, Any, _T]]) -> _T:
+    # In Python 3.11, we need to explicitly wrap awaitables
+    tasks = [asyncio.ensure_future(coro) for coro in coros]
+    done: set[asyncio.Task[Any]]
+    pending: set[asyncio.Task[Any]]
+    done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+    for task in pending:
+        task.cancel()
+    return next(iter(done)).result()
+
+
 def format_traceback(exc: BaseException, **kwargs: Any) -> str:
     """
     Like `traceback.print_exc` but returns a string. Uses the passed-in exception.

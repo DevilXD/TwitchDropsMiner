@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import re
-# import json
+import sys
+import json
+import random
 import asyncio
 import logging
 from math import ceil
 from time import time
 from itertools import chain
 from functools import partial
-# from base64 import urlsafe_b64decode
+from subprocess import CREATE_NO_WINDOW
 from collections import abc, OrderedDict
 from datetime import datetime, timedelta, timezone
 from contextlib import suppress, asynccontextmanager
@@ -16,18 +18,34 @@ from typing import Any, Literal, Final, NoReturn, cast, TYPE_CHECKING
 
 import aiohttp
 from yarl import URL
+try:
+    from seleniumwire.request import Request
+    from selenium.common.exceptions import WebDriverException
+    from seleniumwire.undetected_chromedriver import Chrome, ChromeOptions
+except ImportError as exc:
+    raise ImportError(
+        "You need to install Visual C++ Redist (x86 and x64): "
+        "https://support.microsoft.com/en-gb/help/2977003/the-latest-supported-visual-c-downloads"
+    ) from exc
 
 from translate import _
 from gui import GUIManager
 from channel import Channel
 from websocket import WebsocketPool
 from inventory import DropsCampaign
-from exceptions import MinerException, ExitRequest, LoginException, ReloadRequest, RequestInvalid
+from exceptions import (
+    MinerException,
+    ExitRequest,
+    LoginException,
+    ReloadRequest,
+    RequestInvalid,
+)
 from utils import (
     CHARS_HEX_LOWER,
     timestamp,
     create_nonce,
     task_wrapper,
+    first_to_complete,
     OrderedSet,
     AwaitableValue,
     ExponentialBackoff,
@@ -35,13 +53,13 @@ from utils import (
 from constants import (
     BASE_URL,
     CLIENT_ID,
-    USER_AGENT,
     COOKIES_PATH,
     GQL_OPERATIONS,
     MAX_WEBSOCKETS,
     WATCH_INTERVAL,
     WS_TOPICS_LIMIT,
     DROPS_ENABLED_TAG,
+    ANDROID_USER_AGENT,
     State,
     WebsocketTopic,
 )
@@ -56,6 +74,16 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("TwitchDrops")
 gql_logger = logging.getLogger("TwitchDrops.gql")
+
+
+class SkipExtraJsonDecoder(json.JSONDecoder):
+    def decode(self, s: str, *args):
+        # skip whitespace check
+        obj, end = self.raw_decode(s)
+        return obj
+
+
+SAFE_LOADS = lambda s: json.loads(s, cls=SkipExtraJsonDecoder)
 
 
 class _AuthState:
@@ -98,37 +126,292 @@ class _AuthState:
         )
         self._logged_in.clear()
 
+    @staticmethod
+    def interceptor(request: Request) -> None:
+        if (
+            request.method == "POST"
+            and request.url == "https://passport.twitch.tv/protected_login"
+        ):
+            body = request.body.decode("utf-8")
+            data = json.loads(body)
+            data["client_id"] = CLIENT_ID
+            request.body = json.dumps(data).encode("utf-8")
+            del request.headers["Content-Length"]
+            request.headers["Content-Length"] = str(len(request.body))
+
+    async def _chrome_login(self) -> None:
+        gui_print = self._twitch.gui.print
+        login_form: LoginForm = self._twitch.gui.login
+        coro_unless_closed = self._twitch.gui.coro_unless_closed
+
+        # open the chrome browser on the Twitch's login page
+        # use a separate executor to void blocking the event loop
+        loop = asyncio.get_running_loop()
+        driver: Chrome | None = None
+        while True:
+            gui_print("Opening Chrome...")
+            try:
+                version_main = None
+                for attempt in range(2):
+                    options = ChromeOptions()
+                    options.add_argument("--log-level=3")
+                    options.add_argument("--disable-web-security")
+                    options.add_argument("--allow-running-insecure-content")
+                    options.add_argument("--lang=en")
+                    options.add_argument("--no-sandbox")
+                    options.add_argument("--test-type")
+                    options.add_argument("--disable-gpu")
+                    options.set_capability("pageLoadStrategy", "eager")
+                    try:
+                        wire_options: dict[str, Any] = {"proxy": {}}
+                        if self._twitch.settings.proxy:
+                            wire_options["proxy"]["http"] = str(self._twitch.settings.proxy)
+                        driver_coro = loop.run_in_executor(
+                            None,
+                            lambda: Chrome(
+                                options=options,
+                                suppress_welcome=True,
+                                version_main=version_main,
+                                seleniumwire_options=wire_options,
+                                service_creationflags=CREATE_NO_WINDOW,
+                            )
+                        )
+                        driver = await coro_unless_closed(driver_coro)
+                        break
+                    except WebDriverException as exc:
+                        message = exc.msg
+                        if (
+                            message is not None
+                            and (
+                                match := re.search(
+                                    (
+                                        r'Chrome version ([\d]+)\n'
+                                        r'Current browser version is ((\d+)\.[\d.]+)'
+                                    ),
+                                    message,
+                                )
+                            ) is not None
+                        ):
+                            if not attempt:
+                                version_main = int(match.group(3))
+                                continue
+                            else:
+                                raise MinerException(
+                                    "Your Chrome browser is out of date\n"
+                                    f"Required version: {match.group(1)}\n"
+                                    f"Current version: {match.group(2)}"
+                                ) from None
+                        raise MinerException(
+                            "An error occured while boostrapping the Chrome browser"
+                        ) from exc
+                assert driver is not None
+                driver.request_interceptor = self.interceptor
+                # driver.set_page_load_timeout(30)
+                # page_coro = loop.run_in_executor(None, driver.get, "https://twitch.tv")
+                # await coro_unless_closed(page_coro)
+                page_coro = loop.run_in_executor(None, driver.get, "https://twitch.tv/login")
+                await coro_unless_closed(page_coro)
+
+                # auto login
+                # if login_data.username and login_data.password:
+                #     driver.find_element("id", "login-username").send_keys(login_data.username)
+                #     driver.find_element("id", "password-input").send_keys(login_data.password)
+                #     driver.find_element(
+                #         "css selector", '[data-a-target="passport-login-button"]'
+                #     ).click()
+                # token submit button css selectors
+                # Button: "screen="two_factor" target="submit_button"
+                # Input: <input type="text" autocomplete="one-time-code" data-a-target="tw-input"
+                # inputmode="numeric" pattern="[0-9]*" value="">
+
+                # wait for the user to navigate away from the URL, indicating successful login
+                # alternatively, they can press on the login button again
+                async def url_waiter(driver=driver):
+                    while driver.current_url != "https://www.twitch.tv/?no-reload=true":
+                        await asyncio.sleep(0.5)
+
+                gui_print(
+                    "Complete the login procedure manually by pressing the Login button again."
+                )
+                await first_to_complete([
+                    url_waiter(),
+                    coro_unless_closed(login_form.wait_for_login_press()),
+                ])
+
+                # cookies = [
+                #     {
+                #         "domain": ".twitch.tv",
+                #         "expiry": 1700000000,
+                #         "httpOnly": False,
+                #         "name": "auth-token",
+                #         "path": "/",
+                #         "sameSite": "None",
+                #         "secure": True,
+                #         "value": "..."
+                #     },
+                #     ...,
+                # ]
+                cookies = driver.get_cookies()
+                for cookie in cookies:
+                    if "twitch.tv" in cookie["domain"] and cookie["name"] == "auth-token":
+                        self.access_token = cookie["value"]
+                        break
+                else:
+                    gui_print("Unable to extract authorization token")
+            except WebDriverException:
+                gui_print(
+                    "Chrome window was closed before the login procedure could complete."
+                )
+            finally:
+                if driver is not None:
+                    driver.quit()
+                    driver = None
+            await coro_unless_closed(login_form.wait_for_login_press())
+
     async def _login(self) -> str:
         logger.debug("Login flow started")
+        gui_print = self._twitch.gui.print
         login_form: LoginForm = self._twitch.gui.login
 
-        for attempt in range(1, 6):  # 5 attempts
-            try:
-                self.access_token = await login_form.ask_login()
-                break
-            except LoginException as exc:
-                if attempt < 5:
-                    self._twitch.gui.print(exc.args[0])
-                    continue
-                raise  # reraise on and past the 5th attempt
-        logger.debug("Access token granted")
-        return self.access_token
+        token_kind: str = ''
+        use_chrome: bool = False
+        payload: JsonType = {
+            "client_id": CLIENT_ID,  # client ID to-be associated with the access token
+            "undelete_user": False,  # purpose unknown
+            "remember_me": True,  # persist the session via the cookie
+            # "authy_token": str,  # 2FA token
+            # "twitchguard_code": str,  # email code
+            # "captcha": str,  # self-fed captcha
+            # 'force_twitchguard': False,  # force email code confirmation
+        }
 
-    def gql_headers(self, *, integrity: bool) -> JsonType:
+        while True:
+            login_data = await login_form.ask_login()
+            payload["username"] = login_data.username
+            payload["password"] = login_data.password
+            # reinstate the 2FA token, if present
+            payload.pop("authy_token", None)
+            payload.pop("twitchguard_code", None)
+            if login_data.token:
+                # if there's no token kind set yet, and the user has entered a token,
+                # we can immediately assume it's an authenticator token and not an email one
+                if not token_kind:
+                    token_kind = "authy"
+                if token_kind == "authy":
+                    payload["authy_token"] = login_data.token
+                elif token_kind == "email":
+                    payload["twitchguard_code"] = login_data.token
+
+            # use fancy headers to mimic the twitch android app
+            headers = {
+                "Accept": "application/vnd.twitchtv.v3+json",
+                "Accept-Encoding": "gzip",
+                "Accept-Language": "en-US",
+                "Client-Id": CLIENT_ID,
+                "Content-Type": "application/json; charset=UTF-8",
+                "Host": "passport.twitch.tv",
+                "User-Agent": ANDROID_USER_AGENT,
+                "X-Device-Id": self.device_id,
+                # "X-Device-Id": ''.join(random.choices('0123456789abcdef', k=32)),
+            }
+            async with self._twitch.request(
+                "POST", "https://passport.twitch.tv/login", headers=headers, json=payload
+            ) as response:
+                login_response: JsonType = await response.json(loads=SAFE_LOADS)
+
+            # Feed this back in to avoid running into CAPTCHA if possible
+            if "captcha_proof" in login_response:
+                payload["captcha"] = {"proof": login_response["captcha_proof"]}
+
+            # Error handling
+            if "error_code" in login_response:
+                error_code: int = login_response["error_code"]
+                logger.debug(f"Login error code: {error_code}")
+                if error_code == 1000:
+                    logger.debug("1000: CAPTCHA is required")
+                    use_chrome = True
+                    break
+                elif error_code == 3001:
+                    logger.debug("3001: Login failed due to incorrect username or password")
+                    gui_print(_("login", "incorrect_login_pass"))
+                    login_form.clear(password=True)
+                    continue
+                elif error_code in (
+                    3012,  # Invalid authy token
+                    3023,  # Invalid email code
+                ):
+                    logger.debug("3012/23: Login failed due to incorrect 2FA code")
+                    if error_code == 3023:
+                        token_kind = "email"
+                        gui_print(_("login", "incorrect_email_code"))
+                    else:
+                        token_kind = "authy"
+                        gui_print(_("login", "incorrect_twofa_code"))
+                    login_form.clear(token=True)
+                    continue
+                elif error_code in (
+                    3011,  # Authy token needed
+                    3022,  # Email code needed
+                ):
+                    # 2FA handling
+                    logger.debug("3011/22: 2FA token required")
+                    # user didn't provide a token, so ask them for it
+                    if error_code == 3022:
+                        token_kind = "email"
+                        gui_print(_("login", "email_code_required"))
+                    else:
+                        token_kind = "authy"
+                        gui_print(_("login", "twofa_code_required"))
+                    continue
+                elif error_code == 5027:
+                    # client blocked from this operation - use chrome
+                    logger.debug("5027: Client blocked from this operation")
+                    use_chrome = True
+                    break
+                else:
+                    msg = str(login_response["error"])
+                    logger.debug(msg)
+                    raise LoginException(msg)
+            # Success handling
+            if "access_token" in login_response:
+                self.access_token = cast(str, login_response["access_token"])
+                logger.debug("Access token granted")
+                login_form.clear()
+                break
+
+        if use_chrome:
+            await self._chrome_login()
+
+        if hasattr(self, "access_token"):
+            logger.debug("Access token granted")
+            return self.access_token
+        raise MinerException("Login flow finished without setting the access token")
+
+    def headers(
+        self, *, user_agent: str = '', gql: bool = False, integrity: bool = False
+    ) -> JsonType:
         headers = {
-            "Authorization": f"OAuth {self.access_token}",
             "Accept": "*/*",
+            "Accept-Encoding": "gzip",
+            "Accept-Language": "en-US",
             "Pragma": "no-cache",
             "Cache-Control": "no-cache",
-            "Origin": "https://www.twitch.tv",
-            "Referer": "https://www.twitch.tv/",
             "Client-Id": CLIENT_ID,
-            "Client-Session-Id": self.session_id,
-            "Client-Version": self.client_version,
-            "X-Device-Id": self.device_id,
         }
-        # if integrity:
-        #     headers["Client-Integrity"] = self.integrity_token
+        if user_agent:
+            headers["User-Agent"] = user_agent
+        if hasattr(self, "session_id"):
+            headers["Client-Session-Id"] = self.session_id
+        if hasattr(self, "client_version"):
+            headers["Client-Version"] = self.client_version
+        if hasattr(self, "device_id"):
+            headers["X-Device-Id"] = self.device_id
+        if gql:
+            headers["Origin"] = "https://www.twitch.tv"
+            headers["Referer"] = "https://www.twitch.tv/"
+            headers["Authorization"] = f"OAuth {self.access_token}"
+        if integrity:
+            headers["Client-Integrity"] = self.integrity_token
         return headers
 
     async def validate(self):
@@ -142,8 +425,11 @@ class _AuthState:
             session = await self._twitch.get_session()
             jar = cast(aiohttp.CookieJar, session.cookie_jar)
         if not self._hasattrs("client_version", "device_id"):
-            async with self._twitch.request("GET", BASE_URL) as response:
-                match = re.search(r'twilightBuildID="([-a-z0-9]+)"', await response.text("utf8"))
+            async with self._twitch.request(
+                "GET", BASE_URL, headers=self.headers()  # (user_agent=ANDROID_USER_AGENT)
+            ) as response:
+                page_html = await response.text("utf8")
+                match = re.search(r'twilightBuildID="([-a-z0-9]+)"', page_html)
             if match is None:
                 raise MinerException("Unable to extract client_version")
             self.client_version = match.group(1)
@@ -253,12 +539,23 @@ class Twitch:
             if session.closed:
                 raise RuntimeError("Session is closed")
             return session
+        # obtain the latest Chrome user agent from a Github project
+        async with aiohttp.request(
+            "GET", "https://jnrbsn.github.io/user-agents/user-agents.json"
+        ) as response:
+            agents = await response.json()
+        if sys.platform == "win32":
+            chrome_agent = random.choice(agents[:3])
+        elif sys.platform == "linux":
+            chrome_agent = random.choice(agents[7:11])
+        # load in cookies
         cookie_jar = aiohttp.CookieJar()
         if COOKIES_PATH.exists():
             cookie_jar.load(COOKIES_PATH)
+        # create session
         self._session = aiohttp.ClientSession(
             cookie_jar=cookie_jar,
-            headers={"User-Agent": USER_AGENT},
+            headers={"User-Agent": chrome_agent},
             timeout=aiohttp.ClientTimeout(connect=5, total=10),
         )
         return self._session
@@ -974,7 +1271,7 @@ class Twitch:
                     "POST",
                     "https://gql.twitch.tv/gql",
                     json=op,
-                    headers=auth_state.gql_headers(integrity=True),
+                    headers=auth_state.headers(gql=True),
                     invalidate_after=getattr(auth_state, "integrity_expires", None),
                 ) as response:
                     response_json: JsonType = await response.json()
