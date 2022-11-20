@@ -6,12 +6,11 @@ import json
 import random
 import asyncio
 import logging
-from math import ceil
 from time import time
 from itertools import chain
 from functools import partial
 from subprocess import CREATE_NO_WINDOW
-from collections import abc, OrderedDict
+from collections import abc, deque, OrderedDict
 from datetime import datetime, timedelta, timezone
 from contextlib import suppress, asynccontextmanager
 from typing import Any, Literal, Final, NoReturn, cast, TYPE_CHECKING
@@ -518,6 +517,7 @@ class Twitch:
         self.wanted_games: dict[Game, int] = {}
         self.inventory: list[DropsCampaign] = []
         self._drops: dict[str, TimedDrop] = {}
+        self._mnt_triggers: deque[datetime] = deque()
         # Session and auth
         self._session: aiohttp.ClientSession | None = None
         self._auth_state: _AuthState = _AuthState(self)
@@ -582,6 +582,7 @@ class Twitch:
         self.inventory.clear()
         self._auth_state.clear()
         self.wanted_games.clear()
+        self._mnt_triggers.clear()
         # wait at least half a second + whatever it takes to complete the closing
         # this allows aiohttp to safely close the session
         await asyncio.sleep(start_time + 0.5 - time())
@@ -693,10 +694,6 @@ class Twitch:
             elif self._state is State.INVENTORY_FETCH:
                 # ensure the websocket is running
                 await self.websocket.start()
-                # NOTE: maintenance task is restarted on inventory fetch
-                if self._mnt_task is not None and not self._mnt_task.done():
-                    self._mnt_task.cancel()
-                self._mnt_task = asyncio.create_task(self._maintenance_task())
                 await self.fetch_inventory()
                 self.gui.set_games(set(campaign.game for campaign in self.inventory))
                 # Save state on every inventory fetch
@@ -715,6 +712,7 @@ class Twitch:
                 exclude = self.settings.exclude
                 priority = self.settings.priority
                 priority_only = self.settings.priority_only
+                in_one_hour = datetime.now(timezone.utc) + timedelta(hours=1)
                 for campaign in self.inventory:
                     game = campaign.game
                     if (
@@ -722,7 +720,8 @@ class Twitch:
                         and game.name not in exclude  # and isn't excluded
                         # and isn't excluded by priority_only
                         and (not priority_only or game.name in priority)
-                        and campaign.can_earn()  # and can be progressed (active required)
+                        # and can be progressed within the next hour
+                        and campaign.can_earn_within(in_one_hour)
                     ):
                         # non-excluded games with no priority are placed last, below priority ones
                         self.wanted_games[game] = priorities.get(game.name, 0)
@@ -773,8 +772,12 @@ class Twitch:
                 # NOTE: we use another set so that we can set them online separately
                 no_acl: set[Game] = set()
                 acl_channels: OrderedSet[Channel] = OrderedSet()
+                in_one_hour = datetime.now(timezone.utc) + timedelta(hours=1)
                 for campaign in self.inventory:
-                    if campaign.game in self.wanted_games and campaign.can_earn():
+                    if (
+                        campaign.game in self.wanted_games
+                        and campaign.can_earn_within(in_one_hour)
+                    ):
                         if campaign.allowed_channels:
                             acl_channels.update(campaign.allowed_channels)
                         else:
@@ -950,40 +953,31 @@ class Twitch:
 
     @task_wrapper
     async def _maintenance_task(self) -> None:
-        # NOTE: this task is started anew / restarted on every inventory fetch
-        # sleep until the application sorts out the starting sequence and watching channel
-        while self._state is State.INVENTORY_FETCH:
-            await asyncio.sleep(5)
-        # figure out the maximum sleep period
-        # max period time can be shorter if there's a campaign state change earlier than that
-        # divide the period into up to two evenly spaced checks (usually ~15-30m)
-        now = datetime.now(timezone.utc)
+        claim_period = timedelta(minutes=30)
         max_period = timedelta(hours=1)
-        period = timedelta.max
-        for campaign in self.inventory:
-            if not campaign.linked:
-                # this relies on the linked campaigns being first due to sorting
+        now = datetime.now(timezone.utc)
+        next_period = now + max_period
+        while True:
+            now = datetime.now(timezone.utc)
+            if now >= next_period:
                 break
-            if campaign.starts_at >= now and (test_period := campaign.starts_at - now) < period:
-                period = test_period
-            elif campaign.ends_at >= now and (test_period := campaign.ends_at - now) < period:
-                period = test_period
-        if period > max_period:
-            period = max_period
-        times = ceil(period / timedelta(minutes=30))
-        period /= times
-        for i in range(times):
-            channel = self.watching_channel.get_with_default(None)
+            next_trigger = min(now + claim_period, next_period)
+            trigger_switch = False
+            while self._mnt_triggers and (switch_trigger := self._mnt_triggers[0]) <= next_trigger:
+                trigger_switch = True
+                self._mnt_triggers.popleft()
+                next_trigger = switch_trigger
+            await asyncio.sleep((next_trigger - now).total_seconds())
+            if trigger_switch:
+                self.change_state(State.CHANNEL_SWITCH)
             # ensure that we don't have unclaimed points bonus
+            channel = self.watching_channel.get_with_default(None)
             if channel is not None:
                 try:
                     await channel.claim_bonus()
-                except asyncio.CancelledError:
-                    raise  # let this one through
                 except Exception:
                     pass  # we intentionally silently skip anything else
-            await asyncio.sleep(period.total_seconds())
-        # this triggers this task restart every (up to) 60 minutes
+            # this triggers this task restart every (up to) 60 minutes
         self.change_state(State.INVENTORY_FETCH)
 
     def can_watch(self, channel: Channel) -> bool:
@@ -1369,17 +1363,30 @@ class Twitch:
         self._drops.clear()
         self.gui.inv.clear()
         self.inventory.clear()
+        switch_triggers: set[datetime] = set()
         for i, campaign in enumerate(campaigns, start=1):
             status_update(
                 _("gui", "status", "adding_campaigns").format(counter=f"({i}/{len(campaigns)})")
             )
             self._drops.update({drop.id: drop for drop in campaign.drops})
+            switch_triggers.add(campaign.starts_at)
+            switch_triggers.add(campaign.ends_at)
             # NOTE: this fetches pictures from the CDN, so might be slow without a cache
             await self.gui.inv.add_campaign(campaign)
             # this is needed here explicitly, because images aren't always fetched
             if self.gui.close_requested:
                 raise ExitRequest()
             self.inventory.append(campaign)
+        self._mnt_triggers.clear()
+        self._mnt_triggers.extend(sorted(switch_triggers))
+        # trim out all triggers that we're already past
+        now = datetime.now(timezone.utc)
+        while self._mnt_triggers and self._mnt_triggers[0] <= now:
+            self._mnt_triggers.popleft()
+        # NOTE: maintenance task is restarted at the end of each inventory fetch
+        if self._mnt_task is not None and not self._mnt_task.done():
+            self._mnt_task.cancel()
+        self._mnt_task = asyncio.create_task(self._maintenance_task())
 
     def get_active_drop(self, channel: Channel | None = None) -> TimedDrop | None:
         if not self.wanted_games:

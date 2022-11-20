@@ -92,6 +92,14 @@ class BaseDrop:
     def can_earn(self, channel: Channel | None = None) -> bool:
         return self.campaign._base_can_earn(channel) and self._base_can_earn()
 
+    def can_earn_within(self, stamp: datetime) -> bool:
+        return (
+            self.preconditions  # preconditions are met
+            and not self.is_claimed  # isn't already claimed
+            and self.ends_at > datetime.now(timezone.utc)
+            and self.starts_at < stamp
+        )
+
     @property
     def can_claim(self) -> bool:
         return self.claim_id is not None
@@ -294,3 +302,13 @@ class DropsCampaign:
     def can_earn(self, channel: Channel | None = None) -> bool:
         # True if any of the containing drops can be earned
         return self._base_can_earn(channel) and any(drop._base_can_earn() for drop in self.drops)
+
+    def can_earn_within(self, stamp: datetime) -> bool:
+        # Same as can_earn, but doesn't check the channel
+        # and uses a future timestamp to see if we can earn this campaign later
+        return (
+            self.linked
+            and self.ends_at > datetime.now(timezone.utc)
+            and self.starts_at < stamp
+            and any(drop.can_earn_within(stamp) for drop in self.drops)
+        )
