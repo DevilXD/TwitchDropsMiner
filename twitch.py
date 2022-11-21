@@ -362,15 +362,27 @@ class _AuthState:
                         token_kind = "authy"
                         gui_print(_("login", "twofa_code_required"))
                     continue
-                elif error_code == 5027:
-                    # client blocked from this operation - use chrome
-                    logger.debug("5027: Client blocked from this operation")
+                elif error_code >= 5000:
+                    # Special errors, usually from Twitch telling the user to "go away"
+                    # We print the code out to inform the user, and just use chrome flow instead
+                    # {
+                    #     "error_code":5023,
+                    #     "error":"Please update your app to continue",
+                    #     "error_description":"client is not supported for this feature"
+                    # }
+                    # {
+                    #     "error_code":5027,
+                    #     "error":"Please update your app to continue",
+                    #     "error_description":"client blocked from this operation"
+                    # }
+                    gui_print(f"Login error code: {error_code}")
+                    logger.debug(str(login_response))
                     use_chrome = True
                     break
                 else:
-                    msg = str(login_response["error"])
-                    logger.debug(msg)
-                    raise LoginException(msg)
+                    ext_msg = str(login_response)
+                    logger.debug(ext_msg)
+                    raise LoginException(ext_msg)
             # Success handling
             if "access_token" in login_response:
                 self.access_token = cast(str, login_response["access_token"])
