@@ -13,7 +13,7 @@ from subprocess import CREATE_NO_WINDOW
 from collections import abc, deque, OrderedDict
 from datetime import datetime, timedelta, timezone
 from contextlib import suppress, asynccontextmanager
-from typing import Any, Literal, Final, NoReturn, cast, TYPE_CHECKING
+from typing import Any, Literal, Final, NoReturn, overload, cast, TYPE_CHECKING
 
 import aiohttp
 from yarl import URL
@@ -41,6 +41,7 @@ from exceptions import (
 )
 from utils import (
     CHARS_HEX_LOWER,
+    chunk,
     timestamp,
     create_nonce,
     task_wrapper,
@@ -564,8 +565,10 @@ class Twitch:
         cookie_jar = aiohttp.CookieJar()
         if COOKIES_PATH.exists():
             cookie_jar.load(COOKIES_PATH)
-        # create session
+        # create session, limited to 50 connections at maximum
+        connector = aiohttp.TCPConnector(limit=50)
         self._session = aiohttp.ClientSession(
+            connector=connector,
             cookie_jar=cookie_jar,
             headers={"User-Agent": chrome_agent},
             timeout=aiohttp.ClientTimeout(connect=5, total=10),
@@ -1268,31 +1271,47 @@ class Twitch:
             with suppress(asyncio.TimeoutError):
                 await asyncio.wait_for(self.gui.wait_until_closed(), timeout=delay)
 
-    async def gql_request(self, op: GQLOperation) -> JsonType:
-        gql_logger.debug(f"GQL Request: {op}")
+    @overload
+    async def gql_request(self, ops: GQLOperation) -> JsonType:
+        ...
+
+    @overload
+    async def gql_request(self, ops: list[GQLOperation]) -> list[JsonType]:
+        ...
+
+    async def gql_request(
+        self, ops: GQLOperation | list[GQLOperation]
+    ) -> JsonType | list[JsonType]:
+        gql_logger.debug(f"GQL Request: {ops}")
         while True:
             try:
                 auth_state = await self.get_auth()
                 async with self.request(
                     "POST",
                     "https://gql.twitch.tv/gql",
-                    json=op,
+                    json=ops,
                     headers=auth_state.headers(gql=True),
                     invalidate_after=getattr(auth_state, "integrity_expires", None),
                 ) as response:
-                    response_json: JsonType = await response.json()
+                    response_json: JsonType | list[JsonType] = await response.json()
             except RequestInvalid:
                 continue
             gql_logger.debug(f"GQL Response: {response_json}")
-            if "errors" in response_json and response_json["errors"]:
-                if (
-                    "message" in response_json["errors"]
-                    and response_json["errors"]["message"] == "service timeout"
-                ):
-                    await asyncio.sleep(1)
-                    continue
-                raise MinerException(f"GQL error: {response_json['errors']}")
-            return response_json
+            orig_response = response_json
+            if isinstance(response_json, list):
+                response_list = response_json
+            else:
+                response_list = [response_json]
+            for response_json in response_list:
+                if "errors" in response_json and response_json["errors"]:
+                    if (
+                        "message" in response_json["errors"]
+                        and response_json["errors"]["message"] == "service timeout"
+                    ):
+                        await asyncio.sleep(1)
+                        continue
+                    raise MinerException(f"GQL error: {response_json['errors']}")
+            return orig_response
 
     def _merge_data(self, primary_data: JsonType, secondary_data: JsonType) -> JsonType:
         merged = {}
@@ -1315,14 +1334,24 @@ class Twitch:
                 merged[key] = secondary_data[key]
         return merged
 
-    async def fetch_campaign(self, campaign_id: str, available_data: JsonType) -> JsonType:
+    async def fetch_campaigns(
+        self, campaigns_chunk: list[tuple[str, JsonType]]
+    ) -> dict[str, JsonType]:
+        campaign_ids: dict[str, JsonType] = dict(campaigns_chunk)
         auth_state = await self.get_auth()
-        response = await self.gql_request(
-            GQL_OPERATIONS["CampaignDetails"].with_variables(
-                {"channelLogin": str(auth_state.user_id), "dropID": campaign_id}
-            )
+        response_list: list[JsonType] = await self.gql_request(
+            [
+                GQL_OPERATIONS["CampaignDetails"].with_variables(
+                    {"channelLogin": str(auth_state.user_id), "dropID": cid}
+                )
+                for cid in campaign_ids
+            ]
         )
-        return self._merge_data(available_data, response["data"]["user"]["dropCampaign"])
+        fetched_data: dict[str, JsonType] = {
+            (campaign_data := response_json["data"]["user"]["dropCampaign"])["id"]: campaign_data
+            for response_json in response_list
+        }
+        return self._merge_data(campaign_ids, fetched_data)
 
     async def fetch_inventory(self) -> None:
         status_update = self.gui.status.update
@@ -1336,7 +1365,7 @@ class Twitch:
             b["id"]: timestamp(b["lastAwardedAt"]) for b in inventory["gameEventDrops"]
         }
         inventory_data: dict[str, JsonType] = {c["id"]: c for c in ongoing_campaigns}
-        # fetch all available campaigns data (campaigns)
+        # fetch general available campaigns data (campaigns)
         response = await self.gql_request(GQL_OPERATIONS["Campaigns"])
         available_list: list[JsonType] = response["data"]["currentUser"]["dropCampaigns"] or []
         applicable_statuses = ("ACTIVE", "UPCOMING")
@@ -1345,14 +1374,13 @@ class Twitch:
             for c in available_list
             if c["status"] in applicable_statuses  # that are currently not expired
         }
-        # fetch additional data for each campaign that can be earned but is not in-progress yet
-        fetched_campaigns: dict[str, JsonType] = {}
-        for i, coro in enumerate(
+        # fetch detailed data for each campaign, in chunks
+        for i, chunk_coro in enumerate(
             # specifically use an intermediate list per a Python bug
             # https://github.com/python/cpython/issues/88342
             asyncio.as_completed([
-                self.fetch_campaign(campaign_id, available_data)
-                for campaign_id, available_data in available_campaigns.items()
+                self.fetch_campaigns(campaigns_chunk)
+                for campaigns_chunk in chunk(available_campaigns.items(), 20)
             ]),
             start=1,
         ):
@@ -1361,13 +1389,13 @@ class Twitch:
                     counter=f"({i}/{len(available_campaigns)})"
                 )
             )
-            campaign_data = await coro
-            fetched_campaigns[campaign_data["id"]] = campaign_data
-        # merge the inventory and campaigns datas together, then use it to create campaign objects
-        merged_campaigns: dict[str, JsonType] = self._merge_data(inventory_data, fetched_campaigns)
+            chunk_campaigns_data = await chunk_coro
+            # merge the inventory and campaigns datas together
+            inventory_data = self._merge_data(inventory_data, chunk_campaigns_data)
+        # # use it to create campaign objects
         campaigns: list[DropsCampaign] = [
             DropsCampaign(self, campaign_data, claimed_benefits)
-            for campaign_data in merged_campaigns.values()
+            for campaign_data in inventory_data.values()
         ]
         campaigns.sort(key=lambda c: c.active, reverse=True)
         campaigns.sort(key=lambda c: c.upcoming and c.starts_at or c.ends_at)

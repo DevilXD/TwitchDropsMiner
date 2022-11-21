@@ -49,6 +49,12 @@ async def first_to_complete(coros: abc.Iterable[abc.Coroutine[Any, Any, _T]]) ->
     return next(iter(done)).result()
 
 
+def chunk(to_chunk: abc.Iterable[_T], chunk_length: int) -> abc.Generator[list[_T], None, None]:
+    list_to_chunk = list(to_chunk)
+    for i in range(0, len(list_to_chunk), chunk_length):
+        yield list_to_chunk[i:i + chunk_length]
+
+
 def format_traceback(exc: BaseException, **kwargs: Any) -> str:
     """
     Like `traceback.print_exc` but returns a string. Uses the passed-in exception.
