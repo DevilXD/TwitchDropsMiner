@@ -1375,24 +1375,19 @@ class Twitch:
             if c["status"] in applicable_statuses  # that are currently not expired
         }
         # fetch detailed data for each campaign, in chunks
-        for i, chunk_coro in enumerate(
-            # specifically use an intermediate list per a Python bug
-            # https://github.com/python/cpython/issues/88342
-            asyncio.as_completed([
+        # specifically use an intermediate list per a Python bug
+        # https://github.com/python/cpython/issues/88342
+        status_update(_("gui", "status", "fetching_campaigns"))
+        for chunk_coro in asyncio.as_completed(
+            [
                 self.fetch_campaigns(campaigns_chunk)
                 for campaigns_chunk in chunk(available_campaigns.items(), 20)
-            ]),
-            start=1,
+            ]
         ):
-            status_update(
-                _("gui", "status", "fetching_campaigns").format(
-                    counter=f"({i}/{len(available_campaigns)})"
-                )
-            )
             chunk_campaigns_data = await chunk_coro
             # merge the inventory and campaigns datas together
             inventory_data = self._merge_data(inventory_data, chunk_campaigns_data)
-        # # use it to create campaign objects
+        # use the merged data to create campaign objects
         campaigns: list[DropsCampaign] = [
             DropsCampaign(self, campaign_data, claimed_benefits)
             for campaign_data in inventory_data.values()

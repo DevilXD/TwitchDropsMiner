@@ -34,7 +34,7 @@
             "gathering": "Kanäle sammeln...",
             "switching": "Wechsel des Kanals...",
             "fetching_inventory": "Lade Inventar...",
-            "fetching_campaigns": "Lade Kampagnen... {counter}",
+            "fetching_campaigns": "Lade Kampagnen...",
             "adding_campaigns": "Kampagnen dem Inventar hinzufügen... {counter}"
         },
         "tabs": {

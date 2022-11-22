@@ -34,7 +34,7 @@
             "switching": "Přepínám mezi kanály...",
             "watching": "Sledování kanálu {channel}",
             "fetching_inventory": "Načítání inventáře...",
-            "fetching_campaigns": "Načítání dropů... {counter}",
+            "fetching_campaigns": "Načítání dropů...",
             "adding_campaigns": "Přidávám dropy... {counter}"
         },
         "tabs": {

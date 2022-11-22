@@ -242,7 +242,7 @@ default_translation: Translation = {
             "gathering": "Gathering channels...",
             "switching": "Switching the channel...",
             "fetching_inventory": "Fetching inventory...",
-            "fetching_campaigns": "Fetching campaigns... {counter}",
+            "fetching_campaigns": "Fetching campaigns...",
             "adding_campaigns": "Adding campaigns to inventory... {counter}",
         },
         "tabs": {
@@ -392,8 +392,7 @@ class Translator:
         # if we're in dev, update the template English.json file
         if not IS_PACKAGED:
             default_langpath = LANG_PATH.joinpath(f"{DEFAULT_LANG}.json")
-            if not default_langpath.exists():
-                json_save(default_langpath, default_translation)
+            json_save(default_langpath, default_translation)
         self._translation["language_name"] = DEFAULT_LANG
         # load available translation names
         for filepath in LANG_PATH.glob("*.json"):

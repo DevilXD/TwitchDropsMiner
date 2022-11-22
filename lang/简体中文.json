@@ -34,7 +34,7 @@
             "switching": "切换直播频道中...",
             "watching": "正在观看 {channel}",
             "fetching_inventory": "获取库存中...",
-            "fetching_campaigns": "获取掉宝活动... {counter}",
+            "fetching_campaigns": "获取掉宝活动...",
             "adding_campaigns": "将掉宝活动列表添加至库存... {counter}"
         },
         "tabs": {
