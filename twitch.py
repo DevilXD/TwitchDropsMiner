@@ -727,7 +727,7 @@ class Twitch:
                 exclude = self.settings.exclude
                 priority = self.settings.priority
                 priority_only = self.settings.priority_only
-                in_one_hour = datetime.now(timezone.utc) + timedelta(hours=1)
+                next_hour = datetime.now(timezone.utc) + timedelta(hours=1)
                 for campaign in self.inventory:
                     game = campaign.game
                     if (
@@ -736,7 +736,7 @@ class Twitch:
                         # and isn't excluded by priority_only
                         and (not priority_only or game.name in priority)
                         # and can be progressed within the next hour
-                        and campaign.can_earn_within(in_one_hour)
+                        and campaign.can_earn_within(next_hour)
                     ):
                         # non-excluded games with no priority are placed last, below priority ones
                         self.wanted_games[game] = priorities.get(game.name, 0)
@@ -787,11 +787,11 @@ class Twitch:
                 # NOTE: we use another set so that we can set them online separately
                 no_acl: set[Game] = set()
                 acl_channels: OrderedSet[Channel] = OrderedSet()
-                in_one_hour = datetime.now(timezone.utc) + timedelta(hours=1)
+                next_hour = datetime.now(timezone.utc) + timedelta(hours=1)
                 for campaign in self.inventory:
                     if (
                         campaign.game in self.wanted_games
-                        and campaign.can_earn_within(in_one_hour)
+                        and campaign.can_earn_within(next_hour)
                     ):
                         if campaign.allowed_channels:
                             acl_channels.update(campaign.allowed_channels)
@@ -1404,13 +1404,15 @@ class Twitch:
         self.gui.inv.clear()
         self.inventory.clear()
         switch_triggers: set[datetime] = set()
+        next_hour = datetime.now(timezone.utc) + timedelta(hours=1)
         for i, campaign in enumerate(campaigns, start=1):
             status_update(
                 _("gui", "status", "adding_campaigns").format(counter=f"({i}/{len(campaigns)})")
             )
             self._drops.update({drop.id: drop for drop in campaign.drops})
-            switch_triggers.add(campaign.starts_at)
-            switch_triggers.add(campaign.ends_at)
+            if campaign.can_earn_within(next_hour):
+                switch_triggers.add(campaign.starts_at)
+                switch_triggers.add(campaign.ends_at)
             # NOTE: this fetches pictures from the CDN, so might be slow without a cache
             await self.gui.inv.add_campaign(campaign)
             # this is needed here explicitly, because images aren't always fetched
