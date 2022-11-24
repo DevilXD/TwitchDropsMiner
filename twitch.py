@@ -973,6 +973,7 @@ class Twitch:
         now = datetime.now(timezone.utc)
         next_period = now + max_period
         while True:
+            # exit if there's no need to repeat the loop
             now = datetime.now(timezone.utc)
             if now >= next_period:
                 break
@@ -983,6 +984,10 @@ class Twitch:
                 self._mnt_triggers.popleft()
                 next_trigger = switch_trigger
             await asyncio.sleep((next_trigger - now).total_seconds())
+            # exit after waiting, before the actions
+            now = datetime.now(timezone.utc)
+            if now >= next_period:
+                break
             if trigger_switch:
                 self.change_state(State.CHANNEL_SWITCH)
             # ensure that we don't have unclaimed points bonus
