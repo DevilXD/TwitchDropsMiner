@@ -2,7 +2,7 @@
 set /p "choice=Install PyInstaller so you can build an EXEcutable? (y/n) "
 set dirpath=%~dp0
 if "%dirpath:~-1%" == "\" set dirpath=%dirpath:~0,-1%
-git -v > nul
+git --version > nul
 if %errorlevel% NEQ 0 goto NOGIT
 if not exist "%dirpath%\env" (
     echo:
