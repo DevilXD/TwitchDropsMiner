@@ -21,6 +21,8 @@ logger = logging.getLogger("TwitchDrops")
 
 
 class Stream:
+    __slots__ = ("channel", "broadcast_id", "viewers", "drops_enabled", "game", "title")
+
     def __init__(
         self,
         channel: Channel,
@@ -180,7 +182,7 @@ class Channel:
 
     @property
     def game(self) -> Game | None:
-        if self._stream is not None and self._stream.game is not None:
+        if self._stream is not None:
             return self._stream.game
         return None
 

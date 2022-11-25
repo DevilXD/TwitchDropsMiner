@@ -25,6 +25,8 @@ def remove_dimensions(url: URLType) -> URLType:
 
 
 class Benefit:
+    __slots__ = ("id", "name", "image_url")
+
     def __init__(self, data: JsonType):
         benefit_data: JsonType = data["benefit"]
         self.id: str = benefit_data["id"]
