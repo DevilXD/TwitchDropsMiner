@@ -1858,7 +1858,7 @@ class GUIManager:
             task.cancel()
         if self._close_requested.is_set():
             raise ExitRequest()
-        return next(iter(done)).result()
+        return await next(iter(done))
 
     def prevent_close(self):
         self._close_requested.clear()
