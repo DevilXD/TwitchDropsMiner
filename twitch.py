@@ -548,15 +548,22 @@ class Twitch:
             if session.closed:
                 raise RuntimeError("Session is closed")
             return session
-        # obtain the latest Chrome user agent from a Github project
-        async with aiohttp.request(
-            "GET", "https://jnrbsn.github.io/user-agents/user-agents.json"
-        ) as response:
-            agents = await response.json()
-        if sys.platform == "win32":
-            chrome_agent = random.choice(agents[:3])
-        elif sys.platform == "linux":
-            chrome_agent = random.choice(agents[7:11])
+        # try to obtain the latest Chrome user agent from a Github project
+        try:
+            async with aiohttp.request(
+                "GET", "https://jnrbsn.github.io/user-agents/user-agents.json"
+            ) as response:
+                agents = await response.json()
+            if sys.platform == "win32":
+                chrome_agent = random.choice(agents[:3])
+            elif sys.platform == "linux":
+                chrome_agent = random.choice(agents[7:11])
+        except Exception:
+            # looks like we can't rely on 3rd parties too much
+            chrome_agent = (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"
+            )
         # load in cookies
         cookie_jar = aiohttp.CookieJar()
         if COOKIES_PATH.exists():
