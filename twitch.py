@@ -149,7 +149,7 @@ class _AuthState:
         loop = asyncio.get_running_loop()
         driver: Chrome | None = None
         while True:
-            gui_print("Opening Chrome...")
+            gui_print(_("login", "chrome", "startup"))
             try:
                 version_main = None
                 for attempt in range(2):
@@ -230,9 +230,7 @@ class _AuthState:
                     while driver.current_url != "https://www.twitch.tv/?no-reload=true":
                         await asyncio.sleep(0.5)
 
-                gui_print(
-                    "Complete the login procedure manually by pressing the Login button again."
-                )
+                gui_print(_("login", "chrome", "login_to_complete"))
                 await first_to_complete([
                     url_waiter(),
                     coro_unless_closed(login_form.wait_for_login_press()),
@@ -257,11 +255,9 @@ class _AuthState:
                         self.access_token = cookie["value"]
                         break
                 else:
-                    gui_print("Unable to extract authorization token")
+                    gui_print(_("login", "chrome", "no_token"))
             except WebDriverException:
-                gui_print(
-                    "Chrome window was closed before the login procedure could complete."
-                )
+                gui_print(_("login", "chrome", "closed_window"))
             finally:
                 if driver is not None:
                     driver.quit()
@@ -376,7 +372,7 @@ class _AuthState:
                     #     "error":"Please update your app to continue",
                     #     "error_description":"client blocked from this operation"
                     # }
-                    gui_print(f"Login error code: {error_code}")
+                    gui_print(_("login", "error_code").format(error_code=error_code))
                     logger.debug(str(login_response))
                     use_chrome = True
                     break

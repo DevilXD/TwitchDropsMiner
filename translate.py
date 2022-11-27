@@ -22,7 +22,16 @@ class StatusMessages(TypedDict):
     no_campaign: str
 
 
+class ChromeMessages(TypedDict):
+    startup: str
+    login_to_complete: str
+    no_token: str
+    closed_window: str
+
+
 class LoginMessages(TypedDict):
+    chrome: ChromeMessages
+    error_code: str
     unexpected_content: str
     email_code_required: str
     twofa_code_required: str
@@ -219,6 +228,17 @@ default_translation: Translation = {
             "Unexpected content type returned, usually due to being redirected. "
             "Do you need to login for internet access?"
         ),
+        "chrome": {
+            "startup": "Opening Chrome...",
+            "login_to_complete": (
+                "Complete the login procedure manually by pressing the Login button again."
+            ),
+            "no_token": "No authorization token could be found.",
+            "closed_window": (
+                "Chrome window was closed before the login procedure could complete."
+            ),
+        },
+        "error_code": "Login error code: {error_code}",
         "incorrect_login_pass": "Incorrect username or password.",
         "incorrect_email_code": "Incorrect email code.",
         "incorrect_twofa_code": "Incorrect 2FA code.",
