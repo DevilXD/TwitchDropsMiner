@@ -69,6 +69,7 @@ if they aren't already there. Doing so ensures proper markdown rendering on Gith
 • Please ensure your editor won't trim the spaces upon saving the file.
 -->
 
-@Suz1e - For the entirety of the Chinese (简体中文) translation.  
+@Suz1e - For the entirety of the Chinese (简体中文) translation and revisions.  
+@wwj010 - For the Chinese (简体中文) translation corrections and revisions.
 @nwvh - For the entirety of the Czech (Čeština) translation.  
 @ThisIsCyreX - For the entirety of the German (Deutsch) translation.

@@ -10,6 +10,13 @@
         "no_campaign": "Keine aktiven Kampagnen verfügbar. Warten auf neue Kampagne..."
     },
     "login": {
+        "chrome": {
+            "startup": "Starte Chrome...",
+            "login_to_complete": "Erneut auf Anmelden drücken, um den Anmeldevorgang manuell abzuschließen.",
+            "no_token": "Es wurde kein Autorisierungs-Token gefunden.",
+            "closed_window": "Das Chrome-Fenster wurde geschlossen, bevor der Anmeldevorgang abgeschlossen werden konnte."
+        },
+        "error_code": "Login-Fehlercode: {error_code}",
         "unexpected_content": "Unerwarteter Inhaltstyp zurückgegeben, normalerweise aufgrund einer Weiterleitung.\nIst ein Login für den Internetzugang erforderlich?",
         "incorrect_login_pass": "Falscher Benutzername oder Passwort.",
         "incorrect_email_code": "Falscher E-Mail Code.",
