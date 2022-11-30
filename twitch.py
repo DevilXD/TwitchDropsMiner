@@ -1129,8 +1129,8 @@ class Twitch:
             drop.display()
             if mined:
                 claim_text = (
-                    f"{drop.rewards_text()} "
-                    f"({campaign.claimed_drops}/{campaign.total_drops})"
+                    f"{campaign.game.name}\n"
+                    f"{drop.rewards_text()} ({campaign.claimed_drops}/{campaign.total_drops})"
                 )
                 self.gui.print(_("status", "claimed_drop").format(drop=claim_text))
                 self.gui.tray.notify(claim_text, _("gui", "tray", "notification_title"))

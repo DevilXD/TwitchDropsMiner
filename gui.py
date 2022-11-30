@@ -972,10 +972,12 @@ class TrayIcon:
     def get_title(self, drop: TimedDrop | None) -> str:
         if drop is None:
             return self.TITLE
+        campaign = drop.campaign
         return (
             f"{self.TITLE}\n"
-            f"{drop.rewards_text()}: {drop.progress:.1%} "
-            f"({drop.campaign.claimed_drops}/{drop.campaign.total_drops})"
+            f"{campaign.game.name}\n"
+            f"{drop.rewards_text()} "
+            f"{drop.progress:.1%} ({campaign.claimed_drops}/{campaign.total_drops})"
         )
 
     def start(self):
@@ -1875,9 +1877,7 @@ class GUIManager:
         tasks = [asyncio.ensure_future(coro), asyncio.ensure_future(self._close_requested.wait())]
         done: set[asyncio.Task[Any]]
         pending: set[asyncio.Task[Any]]
-        done, pending = await asyncio.wait(  # type: ignore
-            tasks, return_when=asyncio.FIRST_COMPLETED  # type: ignore
-        )
+        done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
         for task in pending:
             task.cancel()
         if self._close_requested.is_set():
@@ -2151,15 +2151,20 @@ if __name__ == "__main__":
         )
         gui._root.update()
         gui.channels.get_selection()
-        # Tray
-        # gui.tray.minimize()
-        await asyncio.sleep(2)
-        gui.tray.notify("Bounty Coins (3/7)", "Mined Drop")
         # Inventory overview
         drop = create_drop(
             "Wardrobe Cleaning", "Cleaning Masters", ["Fancy Pants"], 2, 7, 239, 240
         )
-        await gui.inv.add_campaign(drop.campaign)
+        campaign = drop.campaign
+        await gui.inv.add_campaign(campaign)
+        # Tray
+        # gui.tray.minimize()
+        await asyncio.sleep(2)
+        claim_text = (
+            f"{campaign.game.name}\n"
+            f"{drop.rewards_text()} ({campaign.claimed_drops}/{campaign.total_drops})"
+        )
+        gui.tray.notify(claim_text, "Mined Drop")
 
         # Drop progress
         gui.display_drop(drop, countdown=False)
