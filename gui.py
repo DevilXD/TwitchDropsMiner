@@ -494,6 +494,7 @@ class _BaseVars(TypedDict):
 
 class _CampaignVars(_BaseVars):
     name: StringVar
+    game: StringVar
 
 
 class _DropVars(_BaseVars):
@@ -512,15 +513,16 @@ class CampaignProgress:
         self._manager = manager
         self._vars: _ProgressVars = {
             "campaign": {
-                "name": StringVar(master, "..."),  # campaign name
+                "name": StringVar(master),  # campaign name
+                "game": StringVar(master),  # game name
                 "progress": DoubleVar(master),  # controls the progress bar
-                "percentage": StringVar(master, "-%"),  # percentage display string
+                "percentage": StringVar(master),  # percentage display string
                 "remaining": StringVar(master),  # time remaining string, filled via _update_time
             },
             "drop": {
-                "rewards": StringVar(master, "..."),  # drop rewards
+                "rewards": StringVar(master),  # drop rewards
                 "progress": DoubleVar(master),  # as above
-                "percentage": StringVar(master, "-%"),  # as above
+                "percentage": StringVar(master),  # as above
                 "remaining": StringVar(master),  # as above
             },
         }
@@ -530,10 +532,22 @@ class CampaignProgress:
         frame.grid(column=0, row=2, columnspan=2, sticky="nsew", padx=2)
         frame.columnconfigure(0, weight=2)
         frame.columnconfigure(1, weight=1)
-        ttk.Label(frame, text=_("gui", "progress", "campaign")).grid(column=0, row=0, columnspan=2)
+        game_campaign = ttk.Frame(frame)
+        game_campaign.grid(column=0, row=0, columnspan=2, sticky="nsew")
+        game_campaign.columnconfigure(0, weight=1)
+        game_campaign.columnconfigure(1, weight=1)
         ttk.Label(
-            frame, textvariable=self._vars["campaign"]["name"]
-        ).grid(column=0, row=1, columnspan=2)
+            game_campaign, text="Game:"
+        ).grid(column=0, row=0)
+        ttk.Label(
+            game_campaign, textvariable=self._vars["campaign"]["game"]
+        ).grid(column=0, row=1)
+        ttk.Label(
+            game_campaign, text=_("gui", "progress", "campaign")
+        ).grid(column=1, row=0)
+        ttk.Label(
+            game_campaign, textvariable=self._vars["campaign"]["name"]
+        ).grid(column=1, row=1)
         ttk.Label(
             frame, text=_("gui", "progress", "campaign_progress")
         ).grid(column=0, row=2, rowspan=2)
@@ -567,7 +581,7 @@ class CampaignProgress:
         ).grid(column=0, row=10, columnspan=2)
         self._drop: TimedDrop | None = None
         self._timer_task: asyncio.Task[None] | None = None
-        self._update_time(0)
+        self.display(None)
 
     @staticmethod
     def _divmod(minutes: int, seconds: int) -> tuple[int, int]:
@@ -620,22 +634,32 @@ class CampaignProgress:
             self._timer_task.cancel()
             self._timer_task = None
 
-    def display(self, drop: TimedDrop, *, countdown: bool = True, subone: bool = False):
+    def display(self, drop: TimedDrop | None, *, countdown: bool = True, subone: bool = False):
         self._drop = drop
-        # drop update
         vars_drop = self._vars["drop"]
+        vars_campaign = self._vars["campaign"]
+        self.stop_timer()
+        if drop is None:
+            # clear the drop display
+            vars_drop["rewards"].set("...")
+            vars_drop["progress"].set(0.0)
+            vars_drop["percentage"].set("-%")
+            vars_campaign["name"].set("...")
+            vars_campaign["game"].set("...")
+            vars_campaign["progress"].set(0.0)
+            vars_campaign["percentage"].set("-%")
+            self._update_time(0)
+            return
         vars_drop["rewards"].set(drop.rewards_text())
         vars_drop["progress"].set(drop.progress)
         vars_drop["percentage"].set(f"{drop.progress:6.1%}")
-        # campaign update
         campaign = drop.campaign
-        vars_campaign = self._vars["campaign"]
         vars_campaign["name"].set(campaign.name)
+        vars_campaign["game"].set(campaign.game.name)
         vars_campaign["progress"].set(campaign.progress)
         vars_campaign["percentage"].set(
             f"{campaign.progress:6.1%} ({campaign.claimed_drops}/{campaign.total_drops})"
         )
-        self.stop_timer()
         if countdown:
             # restart our seconds update timer
             self.start_timer()
@@ -1008,7 +1032,7 @@ class TrayIcon:
             return asyncio.create_task(notifier())
         return None
 
-    def update_title(self, drop: TimedDrop):
+    def update_title(self, drop: TimedDrop | None):
         if self.icon is not None:
             self.icon.title = self.get_title(drop)
 
@@ -1929,6 +1953,10 @@ class GUIManager:
         # inventory overview is updated from within drops themselves via change events
         self.tray.update_title(drop)  # tray
 
+    def clear_drop(self):
+        self.progress.display(None)
+        self.tray.update_title(None)
+
     def print(self, *args, **kwargs):
         # print to our custom output
         self.output.print(*args, **kwargs)
@@ -1965,7 +1993,7 @@ if __name__ == "__main__":
         drops: bool,
         viewers: int,
         points: int,
-        priority: bool,
+        acl_based: bool,
     ):
         # status: 0 -> OFFLINE, 1 -> PENDING_ONLINE, 2 -> ONLINE
         if status == 1:
@@ -1987,11 +2015,12 @@ if __name__ == "__main__":
             game=game_obj,
             drops_enabled=drops,
             viewers=viewers,
-            priority=priority,
+            acl_based=acl_based,
         )
 
     def create_drop(
         campaign_name: str,
+        game_name: str,
         rewards: list[str],
         claimed_drops: int,
         total_drops: int,
@@ -2013,6 +2042,7 @@ if __name__ == "__main__":
             campaign=HashNamespace(
                 name=campaign_name,
                 id="campaign",
+                game=create_game(0, game_name),
                 expired=False,
                 active=False,
                 upcoming=True,
@@ -2080,12 +2110,18 @@ if __name__ == "__main__":
         # Channel list
         gui.channels.display(
             create_channel(
-                name="Thomus", status=0, game=None, drops=False, viewers=0, points=0, priority=True
+                name="Thomus",
+                status=0,
+                game=None,
+                drops=False,
+                viewers=0,
+                points=0,
+                acl_based=True,
             ),
             add=True,
         )
         channel = create_channel(
-            name="Traitus", status=1, game=None, drops=False, viewers=0, points=0, priority=True
+            name="Traitus", status=1, game=None, drops=False, viewers=0, points=0, acl_based=True
         )
         gui.channels.display(channel, add=True,)
         gui.channels.set_watching(channel)
@@ -2097,7 +2133,7 @@ if __name__ == "__main__":
                 drops=True,
                 viewers=42,
                 points=1234567,
-                priority=False,
+                acl_based=False,
             ),
             add=True,
         )
@@ -2109,7 +2145,7 @@ if __name__ == "__main__":
                 drops=True,
                 viewers=69,
                 points=1234567,
-                priority=False,
+                acl_based=False,
             ),
             add=True,
         )
@@ -2117,12 +2153,21 @@ if __name__ == "__main__":
         gui.channels.get_selection()
         # Tray
         # gui.tray.minimize()
-        await asyncio.sleep(1)
+        await asyncio.sleep(2)
         gui.tray.notify("Bounty Coins (3/7)", "Mined Drop")
         # Inventory overview
-        drop = create_drop("Wardrobe Cleaning", ["Fancy Pants"], 2, 7, 239, 240)
+        drop = create_drop(
+            "Wardrobe Cleaning", "Cleaning Masters", ["Fancy Pants"], 2, 7, 239, 240
+        )
         await gui.inv.add_campaign(drop.campaign)
+
         # Drop progress
+        gui.display_drop(drop, countdown=False)
+        await asyncio.sleep(3)
+        gui.progress.start_timer()
+        await asyncio.sleep(5)
+        gui.clear_drop()
+        await asyncio.sleep(5)
         gui.display_drop(drop)
 
         await asyncio.sleep(63)

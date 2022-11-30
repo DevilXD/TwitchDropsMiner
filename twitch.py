@@ -1045,9 +1045,9 @@ class Twitch:
         self.watching_channel.set(channel)
 
     def stop_watching(self):
-        self.gui.progress.stop_timer()
-        self.gui.channels.clear_watching()
+        self.gui.clear_drop()
         self.watching_channel.clear()
+        self.gui.channels.clear_watching()
 
     def restart_watching(self):
         self.gui.progress.stop_timer()
