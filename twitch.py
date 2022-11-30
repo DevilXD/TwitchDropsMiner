@@ -9,11 +9,13 @@ import logging
 from time import time
 from itertools import chain
 from functools import partial
-from subprocess import CREATE_NO_WINDOW
 from collections import abc, deque, OrderedDict
 from datetime import datetime, timedelta, timezone
 from contextlib import suppress, asynccontextmanager
 from typing import Any, Literal, Final, NoReturn, overload, cast, TYPE_CHECKING
+
+if sys.platform == "win32":
+    from subprocess import CREATE_NO_WINDOW
 
 import aiohttp
 from yarl import URL
