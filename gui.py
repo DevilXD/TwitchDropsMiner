@@ -12,22 +12,27 @@ from dataclasses import dataclass
 from tkinter.font import Font, nametofont
 from functools import partial, cached_property
 from datetime import datetime, timedelta, timezone
-from tkinter import Tk, ttk, StringVar, DoubleVar, IntVar, PhotoImage
+from tkinter import Tk, ttk, StringVar, DoubleVar, IntVar
 from typing import Any, Union, Tuple, TypedDict, NoReturn, Generic, TYPE_CHECKING
 
 import pystray
-import win32api
-import win32con
-import win32gui
 from yarl import URL
+from PIL.ImageTk import PhotoImage
 from PIL import Image as Image_module
+
+if sys.platform == "win32":
+    import win32api
+    import win32con
+    import win32gui
 
 from translate import _
 from cache import ImageCache
 from exceptions import ExitRequest
 from utils import resource_path, Game, _T
-from registry import RegistryKey, ValueType
 from constants import SELF_PATH, FORMATTER, WS_TOPICS_LIMIT, MAX_WEBSOCKETS, WINDOW_TITLE, State
+if sys.platform == "win32":
+    from registry import RegistryKey, ValueType
+
 
 if TYPE_CHECKING:
     from twitch import Twitch
@@ -1502,16 +1507,17 @@ class SettingsPanel:
         tray = bool(self._vars["tray"].get())
         self._settings.autostart = enabled
         self._settings.autostart_tray = tray
-        if enabled:
-            # NOTE: we need double quotes in case the path contains spaces
-            self_path = f'"{SELF_PATH.resolve()!s}"'
-            if tray:
-                self_path += " --tray"
-            with RegistryKey(self.AUTOSTART_KEY) as key:
-                key.set(self.AUTOSTART_NAME, ValueType.REG_SZ, self_path)
-        else:
-            with RegistryKey(self.AUTOSTART_KEY) as key:
-                key.delete(self.AUTOSTART_NAME, silent=True)
+        if sys.platform == "win32":
+            if enabled:
+                # NOTE: we need double quotes in case the path contains spaces
+                self_path = f'"{SELF_PATH.resolve()!s}"'
+                if tray:
+                    self_path += " --tray"
+                with RegistryKey(self.AUTOSTART_KEY) as key:
+                    key.set(self.AUTOSTART_NAME, ValueType.REG_SZ, self_path)
+            else:
+                with RegistryKey(self.AUTOSTART_KEY) as key:
+                    key.delete(self.AUTOSTART_NAME, silent=True)
 
     def set_games(self, games: abc.Iterable[Game]) -> None:
         games_list = sorted(map(str, games))
@@ -1711,7 +1717,13 @@ class GUIManager:
         # withdraw immediately to prevent the window from flashing
         self._root.withdraw()
         # root.resizable(False, True)
-        root.iconbitmap(resource_path("pickaxe.ico"))  # window icon
+        root.iconphoto(  # window icon
+            True,
+            PhotoImage(
+                master=root,
+                image=Image_module.open(resource_path("pickaxe.ico")),
+            )
+        )
         root.title(WINDOW_TITLE)  # window title
         root.bind_all("<KeyPress-Escape>", self.unfocus)  # pressing ESC unfocuses selection
         # Image cache for displaying images

@@ -17,23 +17,11 @@ if __name__ == "__main__":
     from tkinter import messagebox
     from typing import IO, NoReturn
 
-    # pre-import 3rd party libraries, handling missing ones with an exception
-    try:
-        import aiohttp  # noqa
-    except ModuleNotFoundError as exc:
-        raise ImportError("You have to run 'pip install aiohttp' first") from exc
-    try:
-        import pystray  # noqa
-    except ModuleNotFoundError as exc:
-        raise ImportError("You have to run 'pip install pystray' first") from exc
-    try:
-        import PIL  # noqa
-    except ModuleNotFoundError as exc:
-        raise ImportError("You have to run 'pip install pillow' first") from exc
-    try:
-        import win32gui  # noqa
-    except ModuleNotFoundError as exc:
-        raise ImportError("You have to run 'pip install pywin32' first") from exc
+    from PIL.ImageTk import PhotoImage
+    from PIL import Image as Image_module
+
+    if sys.platform == "win32":
+        import win32gui
 
     from translate import _
     from twitch import Twitch
@@ -103,7 +91,9 @@ if __name__ == "__main__":
     root = tk.Tk()
     root.overrideredirect(True)
     root.withdraw()
-    root.iconbitmap(resource_path("pickaxe.ico"))
+    root.iconphoto(
+        True, PhotoImage(master=root, image=Image_module.open(resource_path("pickaxe.ico")))
+    )
     root.update()
     parser = Parser(
         SELF_PATH.name,
@@ -135,16 +125,19 @@ if __name__ == "__main__":
         sys.exit(4)
     # dummy window isn't needed anymore
     root.destroy()
+    # get rid of unneeded objects
+    del root, parser
 
     # check if we're not already running
-    try:
-        exists = win32gui.FindWindow(None, WINDOW_TITLE)
-    except AttributeError:
-        # we're not on Windows - continue
-        exists = False
-    if exists and not settings.no_run_check:
-        # already running - exit
-        sys.exit(3)
+    if sys.platform == "win32":
+        try:
+            exists = win32gui.FindWindow(None, WINDOW_TITLE)
+        except AttributeError:
+            # we're not on Windows - continue
+            exists = False
+        if exists and not settings.no_run_check:
+            # already running - exit
+            sys.exit(3)
 
     # set language
     try:

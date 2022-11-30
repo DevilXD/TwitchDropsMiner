@@ -1,7 +1,8 @@
 aiohttp>2.0,<4.0
 Pillow
 pystray
-pywin32
 selenium-wire
 # use a fork that has an extra option of hiding the unneeded Chrome's console cmd window
 git+https://github.com/sebdelsol/undetected-chromedriver
+# this is installed only on windows
+pywin32; sys_platform == "win32"
