@@ -1328,10 +1328,10 @@ def proxy_validate(entry: PlaceholderEntry, settings: Settings) -> bool:
     entry.replace(raw_url)
     url = URL(raw_url)
     valid = url.host is not None and url.port is not None
-    if valid:
-        settings.proxy = url
-    else:
+    if not valid:
         entry.clear()
+        url = URL()
+    settings.proxy = url
     return valid
 
 
