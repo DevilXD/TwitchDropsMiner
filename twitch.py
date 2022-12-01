@@ -983,9 +983,9 @@ class Twitch:
             if now >= next_period:
                 break
             next_trigger = min(now + claim_period, next_period)
-            trigger_switch = False
+            trigger_cleanup = False
             while self._mnt_triggers and (switch_trigger := self._mnt_triggers[0]) <= next_trigger:
-                trigger_switch = True
+                trigger_cleanup = True
                 self._mnt_triggers.popleft()
                 next_trigger = switch_trigger
             await asyncio.sleep((next_trigger - now).total_seconds())
@@ -993,8 +993,8 @@ class Twitch:
             now = datetime.now(timezone.utc)
             if now >= next_period:
                 break
-            if trigger_switch:
-                self.change_state(State.CHANNEL_SWITCH)
+            if trigger_cleanup:
+                self.change_state(State.CHANNELS_CLEANUP)
             # ensure that we don't have unclaimed points bonus
             channel = self.watching_channel.get_with_default(None)
             if channel is not None:
