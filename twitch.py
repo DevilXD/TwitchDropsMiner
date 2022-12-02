@@ -553,7 +553,9 @@ class Twitch:
         # try to obtain the latest Chrome user agent from a Github project
         try:
             async with aiohttp.request(
-                "GET", "https://jnrbsn.github.io/user-agents/user-agents.json"
+                "GET",
+                "https://jnrbsn.github.io/user-agents/user-agents.json",
+                proxy=self.settings.proxy or None,
             ) as response:
                 agents = await response.json()
             if sys.platform == "win32":
