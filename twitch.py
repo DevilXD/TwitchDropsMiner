@@ -1136,7 +1136,11 @@ class Twitch:
                     f"{campaign.game.name}\n"
                     f"{drop.rewards_text()} ({campaign.claimed_drops}/{campaign.total_drops})"
                 )
-                self.gui.print(_("status", "claimed_drop").format(drop=claim_text))
+                # two different claim texts, becase a new line after the game name
+                # looks ugly in the output window - replace it with a space
+                self.gui.print(
+                    _("status", "claimed_drop").format(drop=claim_text.replace('\n', ' '))
+                )
                 self.gui.tray.notify(claim_text, _("gui", "tray", "notification_title"))
             else:
                 logger.error(f"Drop claim failed! Drop ID: {drop_id}")
