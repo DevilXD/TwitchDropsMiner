@@ -1048,10 +1048,10 @@ class Notebook:
     def __init__(self, manager: GUIManager, master: ttk.Widget):
         self._nb = ttk.Notebook(master)
         self._nb.grid(column=0, row=0, sticky="nsew")
-        # prevent entries from being selected after switching tabs
-        self._nb.bind("<<NotebookTabChanged>>", lambda event: manager._root.focus_set())
         master.rowconfigure(0, weight=1)
         master.columnconfigure(0, weight=1)
+        # prevent entries from being selected after switching tabs
+        self._nb.bind("<<NotebookTabChanged>>", lambda event: manager._root.focus_set())
 
     def add_tab(self, widget: ttk.Widget, *, name: str, **kwargs):
         kwargs.pop("text", None)
@@ -1059,9 +1059,21 @@ class Notebook:
             kwargs["sticky"] = "nsew"
         self._nb.add(widget, text=name, **kwargs)
 
+    def current_tab(self) -> str:
+        return self._nb.tab("current", "text")
+
+    def add_view_event(self, callback: abc.Callable[[tk.Event[ttk.Notebook]], Any]):
+        self._nb.bind("<<NotebookTabChanged>>", callback, True)
+
+
+class CampaignDisplay(TypedDict):
+    frame: ttk.Frame
+    status: ttk.Label
+
 
 class InventoryOverview:
     def __init__(self, manager: GUIManager, master: ttk.Widget):
+        self._manager = manager
         self._cache: ImageCache = manager._cache
         self._settings: Settings = manager._twitch.settings
         self._filters = {
@@ -1071,6 +1083,7 @@ class InventoryOverview:
             "excluded": IntVar(master, 0),
             "finished": IntVar(master, 0),
         }
+        manager.tabs.add_view_event(self._on_tab_switched)
         # Filtering options
         filter_frame = ttk.LabelFrame(
             master, text=_("gui", "inventory", "filter", "name"), padding=(4, 0, 4, 4)
@@ -1141,12 +1154,12 @@ class InventoryOverview:
         )
         self._canvas.bind("<Leave>", lambda e: self._canvas.unbind_all("<MouseWheel>"))
         self._canvas.create_window(0, 0, anchor="nw", window=self._main_frame)
-        self._campaigns: dict[DropsCampaign, ttk.Frame] = {}
+        self._campaigns: dict[DropsCampaign, CampaignDisplay] = {}
         self._drops: dict[str, ttk.Label] = {}
 
     def _update_visibility(self, campaign: DropsCampaign):
         # True if the campaign is supposed to show, False makes it hidden.
-        frame = self._campaigns[campaign]
+        frame = self._campaigns[campaign]["frame"]
         linked = bool(self._filters["linked"].get())
         expired = bool(self._filters["expired"].get())
         excluded = bool(self._filters["excluded"].get())
@@ -1168,8 +1181,18 @@ class InventoryOverview:
         else:
             frame.grid_remove()
 
+    def _on_tab_switched(self, event: tk.Event[ttk.Notebook]) -> None:
+        if self._manager.tabs.current_tab() == "Inventory":
+            # refresh only if we're switching to the tab
+            self.refresh()
+
     def refresh(self):
         for campaign in self._campaigns:
+            # status
+            status_label = self._campaigns[campaign]["status"]
+            status_text, status_color = self.get_status(campaign)
+            status_label.config(text=status_text, foreground=status_color)
+            # visibility
             self._update_visibility(campaign)
         self._canvas_update()
 
@@ -1189,8 +1212,6 @@ class InventoryOverview:
     async def add_campaign(self, campaign: DropsCampaign) -> None:
         campaign_frame = ttk.Frame(self._main_frame, relief="ridge", borderwidth=1, padding=4)
         campaign_frame.grid(column=0, row=len(self._campaigns), sticky="nsew", pady=3)
-        self._campaigns[campaign] = campaign_frame
-        self._update_visibility(campaign)
         campaign_frame.rowconfigure(4, weight=1)
         campaign_frame.columnconfigure(1, weight=1)
         campaign_frame.columnconfigure(3, weight=10000)
@@ -1199,18 +1220,11 @@ class InventoryOverview:
             campaign_frame, text=campaign.name, takefocus=False, width=45
         ).grid(column=0, row=0, columnspan=2, sticky="w")
         # Status
-        if campaign.active:
-            status_text: str = _("gui", "inventory", "status", "active")
-            status_color: tk._Color = "green"
-        elif campaign.upcoming:
-            status_text = _("gui", "inventory", "status", "upcoming")
-            status_color = "goldenrod"
-        else:
-            status_text = _("gui", "inventory", "status", "expired")
-            status_color = "red"
-        ttk.Label(
+        status_text, status_color = self.get_status(campaign)
+        status_label = ttk.Label(
             campaign_frame, text=status_text, takefocus=False, foreground=status_color
-        ).grid(column=1, row=1, sticky="w", padx=4)
+        )
+        status_label.grid(column=1, row=1, sticky="w", padx=4)
         # Starts / Ends
         MouseOverLabel(
             campaign_frame,
@@ -1287,13 +1301,31 @@ class InventoryOverview:
                 drop_frame, text=progress_text, foreground=progress_color
             )
             label.grid(column=0, row=1)
-        self._canvas_update()
+        self._campaigns[campaign] = {
+            "frame": campaign_frame,
+            "status": status_label,
+        }
+        if self._manager.tabs.current_tab() == "Inventory":
+            self._update_visibility(campaign)
+            self._canvas_update()
 
     def clear(self) -> None:
         for child in self._main_frame.winfo_children():
             child.destroy()
         self._drops.clear()
         self._campaigns.clear()
+
+    def get_status(self, campaign: DropsCampaign) -> tuple[str, tk._Color]:
+        if campaign.active:
+            status_text: str = _("gui", "inventory", "status", "active")
+            status_color: tk._Color = "green"
+        elif campaign.upcoming:
+            status_text = _("gui", "inventory", "status", "upcoming")
+            status_color = "goldenrod"
+        else:
+            status_text = _("gui", "inventory", "status", "expired")
+            status_color = "red"
+        return (status_text, status_color)
 
     def get_progress(self, drop: TimedDrop) -> tuple[str, tk._Color]:
         progress_text: str
