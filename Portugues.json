@@ -10,6 +10,13 @@
         "no_campaign": "Sem campanhas ativas no momento para minerar. Esperando por uma campanha ativa..."
     },
     "login": {
+		"chrome": {
+    "startup": "Abrindo Google Chrome",
+    "login_to_complete": "Por Favor complete o login pela pagina web manualmente pressionando o botão Login novamente.",
+    "no_token": "Seu Token de autorização Twitch não foi encontrado",
+    "closed_window": "O aplicativo Goggle Chrome foi fechado , portanto o login não foi efetuado com sucesso .",
+},
+"error_code": "Login error code: {error_code}",
         "unexpected_content": "Algum erro inexperado aconteceu, geralmente por rediricionamento de internet. Voce precissa logar em algum site de internet para ter acesso?",
         "incorrect_login_pass": "Senha ou usuario incorreto",
         "incorrect_email_code": "Codigo de email incorreto",
