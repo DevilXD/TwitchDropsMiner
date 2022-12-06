@@ -1051,8 +1051,8 @@ class Notebook:
             kwargs["sticky"] = "nsew"
         self._nb.add(widget, text=name, **kwargs)
 
-    def current_tab(self) -> str:
-        return self._nb.tab("current", "text")
+    def current_tab(self) -> int:
+        return self._nb.index("current")
 
     def add_view_event(self, callback: abc.Callable[[tk.Event[ttk.Notebook]], Any]):
         self._nb.bind("<<NotebookTabChanged>>", callback, True)
@@ -1174,7 +1174,7 @@ class InventoryOverview:
             frame.grid_remove()
 
     def _on_tab_switched(self, event: tk.Event[ttk.Notebook]) -> None:
-        if self._manager.tabs.current_tab() == "Inventory":
+        if self._manager.tabs.current_tab() == 1:
             # refresh only if we're switching to the tab
             self.refresh()
 
@@ -1297,7 +1297,7 @@ class InventoryOverview:
             "frame": campaign_frame,
             "status": status_label,
         }
-        if self._manager.tabs.current_tab() == "Inventory":
+        if self._manager.tabs.current_tab() == 1:
             self._update_visibility(campaign)
             self._canvas_update()
 
