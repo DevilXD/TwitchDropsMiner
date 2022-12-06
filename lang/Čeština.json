@@ -75,8 +75,9 @@
         "progress": {
             "name": "Průběh Dropu",
             "drop": "Drop Odměny:",
-            "remaining": "Zbývá {time}",
+            "game": "Hra:",
             "campaign": "Kampaň:",
+            "remaining": "Zbývá {time}",
             "drop_progress": "Průběh dropu:",
             "campaign_progress": "Průběh kampaňe:"
         },

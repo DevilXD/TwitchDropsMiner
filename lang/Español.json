@@ -82,6 +82,7 @@
         "progress": {
             "name": "Progreso de la Campaña",
             "drop": "Drop:",
+            "game": "Juego:",
             "campaign": "Campaña:",
             "remaining": "{time} restante",
             "drop_progress": "Progreso:",
@@ -157,4 +158,3 @@
         }
     }
 }
-

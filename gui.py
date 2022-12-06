@@ -541,18 +541,10 @@ class CampaignProgress:
         game_campaign.grid(column=0, row=0, columnspan=2, sticky="nsew")
         game_campaign.columnconfigure(0, weight=1)
         game_campaign.columnconfigure(1, weight=1)
-        ttk.Label(
-            game_campaign, text="Game:"
-        ).grid(column=0, row=0)
-        ttk.Label(
-            game_campaign, textvariable=self._vars["campaign"]["game"]
-        ).grid(column=0, row=1)
-        ttk.Label(
-            game_campaign, text=_("gui", "progress", "campaign")
-        ).grid(column=1, row=0)
-        ttk.Label(
-            game_campaign, textvariable=self._vars["campaign"]["name"]
-        ).grid(column=1, row=1)
+        ttk.Label(game_campaign, text=_("gui", "progress", "game")).grid(column=0, row=0)
+        ttk.Label(game_campaign, textvariable=self._vars["campaign"]["game"]).grid(column=0, row=1)
+        ttk.Label(game_campaign, text=_("gui", "progress", "campaign")).grid(column=1, row=0)
+        ttk.Label(game_campaign, textvariable=self._vars["campaign"]["name"]).grid(column=1, row=1)
         ttk.Label(
             frame, text=_("gui", "progress", "campaign_progress")
         ).grid(column=0, row=2, rowspan=2)

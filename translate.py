@@ -102,6 +102,7 @@ class GUIWebsocket(TypedDict):
 class GUIProgress(TypedDict):
     name: str
     drop: str
+    game: str
     campaign: str
     remaining: str
     drop_progress: str
@@ -303,6 +304,7 @@ default_translation: Translation = {
         "progress": {
             "name": "Campaign Progress",
             "drop": "Drop:",
+            "game": "Game:",
             "campaign": "Campaign:",
             "remaining": "{time} remaining",
             "drop_progress": "Progress:",

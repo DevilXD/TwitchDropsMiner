@@ -82,6 +82,7 @@
         "progress": {
             "name": "掉宝活动进度",
             "drop": "掉宝奖励:",
+            "game": "游戏:",
             "remaining": "剩余 {time}",
             "campaign": "掉宝活动名称:",
             "drop_progress": "掉宝进度:",
