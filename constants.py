@@ -77,10 +77,13 @@ WATCH_INTERVAL = timedelta(seconds=59)
 DROPS_ENABLED_TAG = "c2542d6d-cd10-4532-919b-3d19f30a768b"
 WINDOW_TITLE = f"Twitch Drops Miner v{__version__} (by DevilXD)"
 # Logging
-FORMATTER = logging.Formatter(
+FILE_FORMATTER = logging.Formatter(
     "{asctime}.{msecs:03.0f}:\t{levelname:>7}:\t{message}",
     style='{',
     datefmt="%Y-%m-%d %H:%M:%S",
+)
+OUTPUT_FORMATTER = logging.Formatter(
+    "{asctime}: {levelname:>7}: {message}", style='{', datefmt="%H:%M:%S"
 )
 
 

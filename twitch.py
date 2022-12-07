@@ -268,7 +268,7 @@ class _AuthState:
             await coro_unless_closed(login_form.wait_for_login_press())
 
     async def _login(self) -> str:
-        logger.debug("Login flow started")
+        logger.info("Login flow started")
         gui_print = self._twitch.gui.print
         login_form: LoginForm = self._twitch.gui.login
 
@@ -325,13 +325,13 @@ class _AuthState:
             # Error handling
             if "error_code" in login_response:
                 error_code: int = login_response["error_code"]
-                logger.debug(f"Login error code: {error_code}")
+                logger.info(f"Login error code: {error_code}")
                 if error_code == 1000:
-                    logger.debug("1000: CAPTCHA is required")
+                    logger.info("1000: CAPTCHA is required")
                     use_chrome = True
                     break
                 elif error_code == 3001:
-                    logger.debug("3001: Login failed due to incorrect username or password")
+                    logger.info("3001: Login failed due to incorrect username or password")
                     gui_print(_("login", "incorrect_login_pass"))
                     login_form.clear(password=True)
                     continue
@@ -339,7 +339,7 @@ class _AuthState:
                     3012,  # Invalid authy token
                     3023,  # Invalid email code
                 ):
-                    logger.debug("3012/23: Login failed due to incorrect 2FA code")
+                    logger.info("3012/23: Login failed due to incorrect 2FA code")
                     if error_code == 3023:
                         token_kind = "email"
                         gui_print(_("login", "incorrect_email_code"))
@@ -353,7 +353,7 @@ class _AuthState:
                     3022,  # Email code needed
                 ):
                     # 2FA handling
-                    logger.debug("3011/22: 2FA token required")
+                    logger.info("3011/22: 2FA token required")
                     # user didn't provide a token, so ask them for it
                     if error_code == 3022:
                         token_kind = "email"
@@ -376,17 +376,17 @@ class _AuthState:
                     #     "error_description":"client blocked from this operation"
                     # }
                     gui_print(_("login", "error_code").format(error_code=error_code))
-                    logger.debug(str(login_response))
+                    logger.info(str(login_response))
                     use_chrome = True
                     break
                 else:
                     ext_msg = str(login_response)
-                    logger.debug(ext_msg)
+                    logger.info(ext_msg)
                     raise LoginException(ext_msg)
             # Success handling
             if "access_token" in login_response:
                 self.access_token = cast(str, login_response["access_token"])
-                logger.debug("Access token granted")
+                logger.info("Access token granted")
                 login_form.clear()
                 break
 
@@ -395,7 +395,6 @@ class _AuthState:
             raise CaptchaRequired()
 
         if hasattr(self, "access_token"):
-            logger.debug("Access token granted")
             return self.access_token
         raise MinerException("Login flow finished without setting the access token")
 
@@ -451,7 +450,7 @@ class _AuthState:
         if not self._hasattrs("access_token", "user_id"):
             # looks like we're missing something
             login_form: LoginForm = self._twitch.gui.login
-            logger.debug("Checking login")
+            logger.info("Checking login")
             login_form.update(_("gui", "login", "logging_in"), None)
             for attempt in range(2):
                 cookie = jar.filter_cookies(BASE_URL)
@@ -459,7 +458,7 @@ class _AuthState:
                     self.access_token = await self._login()
                     cookie["auth-token"] = self.access_token
                 elif not hasattr(self, "access_token"):
-                    logger.debug("Restoring session from cookie")
+                    logger.info("Restoring session from cookie")
                     self.access_token = cookie["auth-token"].value
                 # validate the auth token, by obtaining user_id
                 async with self._twitch.request(
@@ -470,7 +469,7 @@ class _AuthState:
                     status = response.status
                     if status == 401:
                         # the access token we have is invalid - clear the cookie and reauth
-                        logger.debug("Restored session is invalid")
+                        logger.info("Restored session is invalid")
                         assert BASE_URL.host is not None
                         jar.clear_domain(BASE_URL.host)
                         continue
@@ -481,7 +480,7 @@ class _AuthState:
                 raise RuntimeError("Login verification failure")
             self.user_id = int(validate_response["user_id"])
             cookie["persistent"] = str(self.user_id)
-            logger.debug(f"Login successful, user ID: {self.user_id}")
+            logger.info(f"Login successful, user ID: {self.user_id}")
             login_form.update(_("gui", "login", "logged_in"), self.user_id)
             # update our cookie and save it
             jar.update_cookies(cookie, BASE_URL)
@@ -1089,7 +1088,7 @@ class Twitch:
         """
         Called by a Channel when it goes online (after pending).
         """
-        logger.debug(f"{channel.name} goes ONLINE")
+        logger.info(f"{channel.name} goes ONLINE")
         if (
             self.can_watch(channel)  # we can watch the channel that just got ONLINE
             and self.should_switch(channel)  # and we should!
@@ -1110,7 +1109,7 @@ class Twitch:
             self.print(_("status", "goes_offline").format(channel=channel.name))
             self.change_state(State.CHANNEL_SWITCH)
         else:
-            logger.debug(f"{channel.name} goes OFFLINE")
+            logger.info(f"{channel.name} goes OFFLINE")
 
     @task_wrapper
     async def process_drops(self, user_id: int, message: JsonType):

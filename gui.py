@@ -29,7 +29,9 @@ from translate import _
 from cache import ImageCache
 from exceptions import ExitRequest
 from utils import resource_path, Game, _T
-from constants import SELF_PATH, FORMATTER, WS_TOPICS_LIMIT, MAX_WEBSOCKETS, WINDOW_TITLE, State
+from constants import (
+    SELF_PATH, OUTPUT_FORMATTER, WS_TOPICS_LIMIT, MAX_WEBSOCKETS, WINDOW_TITLE, State
+)
 if sys.platform == "win32":
     from registry import RegistryKey, ValueType
 
@@ -1837,8 +1839,11 @@ class GUIManager:
         root.minsize(width=root.winfo_reqwidth(), height=root.winfo_reqheight())
         # register logging handler
         self._handler = _TKOutputHandler(self)
-        self._handler.setFormatter(FORMATTER)
-        logging.getLogger("TwitchDrops").addHandler(self._handler)
+        self._handler.setFormatter(OUTPUT_FORMATTER)
+        logger = logging.getLogger("TwitchDrops")
+        logger.addHandler(self._handler)
+        if (logging_level := logger.getEffectiveLevel()) < logging.ERROR:
+            self.print(f"Logging level: {logging.getLevelName(logging_level)}")
         # gracefully handle Windows shutdown closing the application
         if sys.platform == "win32":
             # NOTE: this root.update() is required for the below to work - don't remove

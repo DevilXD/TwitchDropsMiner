@@ -29,7 +29,7 @@ if __name__ == "__main__":
     from utils import resource_path
     from version import __version__
     from exceptions import CaptchaRequired
-    from constants import SELF_PATH, FORMATTER, LOG_PATH, WINDOW_TITLE
+    from constants import SELF_PATH, FILE_FORMATTER, LOG_PATH, WINDOW_TITLE
 
     class Parser(argparse.ArgumentParser):
         def __init__(self, *args, **kwargs) -> None:
@@ -155,7 +155,7 @@ if __name__ == "__main__":
     logger.setLevel(settings.logging_level)
     if settings.log:
         handler = logging.FileHandler(LOG_PATH)
-        handler.setFormatter(FORMATTER)
+        handler.setFormatter(FILE_FORMATTER)
         logger.addHandler(handler)
     logging.getLogger("TwitchDrops.gql").setLevel(settings.debug_gql)
     logging.getLogger("TwitchDrops.websocket").setLevel(settings.debug_ws)

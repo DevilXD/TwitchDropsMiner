@@ -256,10 +256,12 @@ class Websocket:
             elif raw_message.type is WSMsgType.CLOSING:
                 pass  # skip these
             elif raw_message.type is WSMsgType.ERROR:
-                logger.error(f"Websocket[{self._idx}] error: {format_traceback(raw_message.data)}")
+                ws_logger.error(
+                    f"Websocket[{self._idx}] error: {format_traceback(raw_message.data)}"
+                )
                 raise WebsocketClosed()
             else:
-                logger.error(f"Websocket[{self._idx}] error: Unknown message: {raw_message}")
+                ws_logger.error(f"Websocket[{self._idx}] error: Unknown message: {raw_message}")
 
     def _handle_message(self, message):
         # request the assigned topic to process the response
