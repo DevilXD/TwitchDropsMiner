@@ -158,6 +158,7 @@ class Websocket:
             # NOTE: _topics_changed doesn't start set,
             # because there's no initial topics we can sub to right away
             self.set_status(_("gui", "websocket", "connected"))
+            ws_logger.info(f"Websocket[{self._idx}] connected.")
             try:
                 try:
                     while not self._reconnect_requested.is_set():
