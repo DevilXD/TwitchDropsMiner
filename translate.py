@@ -247,7 +247,7 @@ default_translation: Translation = {
         "twofa_code_required": "2FA token required.",
     },
     "error": {
-        "captcha": "Your login attempt was denied by CAPTCHA.\nPlease try again in +12 hours.",
+        "captcha": "Your login attempt was denied by CAPTCHA.\nPlease try again in 12+ hours.",
         "site_down": "Twitch is down, retrying in {seconds} seconds...",
         "no_connection": "Cannot connect to Twitch, retrying in {seconds} seconds...",
     },

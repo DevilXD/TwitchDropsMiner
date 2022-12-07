@@ -171,14 +171,12 @@ if __name__ == "__main__":
         loop.run_until_complete(client.run())
     except CaptchaRequired:
         exit_status = 1
-        msg = _("error", "captcha")
         client.prevent_close()
-        client.print(msg)
+        client.print(_("error", "captcha"))
     except Exception:
         exit_status = 1
-        msg = "Fatal error encountered:\n"
         client.prevent_close()
-        client.print(msg)
+        client.print("Fatal error encountered:\n")
         client.print(traceback.format_exc())
     finally:
         signal.signal(signal.SIGINT, signal.SIG_DFL)

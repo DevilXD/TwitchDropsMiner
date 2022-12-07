@@ -36,6 +36,7 @@ from websocket import WebsocketPool
 from inventory import DropsCampaign
 from exceptions import (
     MinerException,
+    CaptchaRequired,
     ExitRequest,
     LoginException,
     ReloadRequest,
@@ -390,7 +391,8 @@ class _AuthState:
                 break
 
         if use_chrome:
-            await self._chrome_login()
+            # await self._chrome_login()
+            raise CaptchaRequired()
 
         if hasattr(self, "access_token"):
             logger.debug("Access token granted")

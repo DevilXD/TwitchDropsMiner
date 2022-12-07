@@ -25,7 +25,7 @@
         "twofa_code_required": "Token F2A Requerido."
     },
     "error": {
-        "captcha": "Seu login foi negado pelo CAPTCHA.\nPor favor tente em aproximadamente +12 houras.",
+        "captcha": "Seu login foi negado pelo CAPTCHA.\nPor favor tente em aproximadamente 12+ houras.",
         "site_down": "Twitch esta fora do ar, tentando em {seconds} segundos...",
         "no_connection": "Sem conecao com a TWITCH, reconectando em {seconds} segundos..."
     },
