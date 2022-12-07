@@ -1,6 +1,6 @@
 # Twitch Drops Miner
 
-This application allows you to AFK mine timed Twitch drops, without having to worry about switching channels when the one you were watching goes offline, claiming the drops, or even receiving the stream data itself. This helps both you and Twitch save on bandwidth and hassle. Everybody wins!
+This application allows you to AFK mine timed Twitch drops, without having to worry about switching channels when the one you were watching goes offline, claiming the drops, or even receiving the stream data itself. This helps both you and Twitch save on bandwidth and hassle. Everyone wins!
 
 ### How It Works:
 
@@ -34,7 +34,7 @@ Every ~60 seconds, the application sends a "minute watched" event to the channel
 ### Notes:
 
 - Make sure to keep your cookies file safe, as the authorization information it stores can give another person access to your Twitch account.
-- Successfully logging into your Twitch account in the application, may cause Twitch to send you a "New Login" notification email. This is normal - you can verify that it comes from your own IP address. The application uses Chrome's user agent, so the detected browser during the login should signify that as well.
+- Successfully logging into your Twitch account in the application, may cause Twitch to send you a "New Login" notification email. This is normal - you can verify that it comes from your own IP address. The application uses the Twitch's Android app user agent, so the detected browser during the login should signify that as well.
 - The time remaining timer always countdowns a single minute and then stops - it is then restarted only after the application redetermines the remaining time. This "redetermination" can happen as early as at 10 seconds in a minute remaining, and as late as 20 seconds after the timer reaches zero (especially when finishing mining a drop), but is generally only an approximation and does not represent nor affect actual mining speed. The time variations are due to Twitch sometimes not reporting drop progress at all, or reporting progress for the wrong drop - these cases have all been accounted for in the application though.
 
 ### Support
@@ -50,14 +50,9 @@ Every ~60 seconds, the application sends a "minute watched" event to the channel
 
 </div>
 
-### Advanced Usage / Build Instructions:
+### Advanced Usage:
 
-- Note: The application has been developed using Python 3.8.10 specifically. It *should* (but may not necessarily will) run properly on higher versions too though.
-- Download or `git clone https://github.com/DevilXD/TwitchDropsMiner` the source code to a folder of choice.
-- Run `setup_env.bat` to setup the virtual environment for the application. Activate it by running `env/Scripts/activate.bat`, or just use `python`, `pythonw` and `pip` executables from the `env/Scripts` directly going forward.
-- Run `pythonw main.py` to start the application without a console. `python main.py` can be used to start with a console, in case you'd expect errors to be printed out to the console - may help with debugging problems.
-- If you'd like to build the executable yourself, you'll need to `pip install pyinstaller` into the virtual environment, and then simply run `build.bat`. The end result can be found inside the `dist` folder. If you supply a `7z.exe` ([or `7za.exe` from 7z Extras](https://www.7-zip.org/download.html)) executable inside the project's folder, a packaged zip with the whole release should be created next to the `dist` folder as well.
-
+If you'd be interested in running the latest master from source or building your own executable, see the wiki page explaining how to do so: https://github.com/DevilXD/TwitchDropsMiner/wiki/Setting-up-the-environment,-building-and-running
 
 ### Credits:
 
@@ -67,9 +62,11 @@ if they aren't already there. Doing so ensures proper markdown rendering on Gith
 
 • Last line can have them omitted.
 • Please ensure your editor won't trim the spaces upon saving the file.
+• Please leave a single empty new line at the end of the file.
 -->
 
 @Suz1e - For the entirety of the Chinese (简体中文) translation and revisions.  
-@wwj010 - For the Chinese (简体中文) translation corrections and revisions.
+@wwj010 - For the Chinese (简体中文) translation corrections and revisions.  
 @nwvh - For the entirety of the Czech (Čeština) translation.  
 @ThisIsCyreX - For the entirety of the German (Deutsch) translation.
+@zarigata - For the entirety of the Portuguese (Português) translation.
