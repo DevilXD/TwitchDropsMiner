@@ -639,11 +639,11 @@ class Twitch:
         """
         self.gui.prevent_close()
 
-    def print(self, *args, **kwargs):
+    def print(self, message: str):
         """
         Can be used to print messages within the GUI.
         """
-        self.gui.print(*args, **kwargs)
+        self.gui.print(message)
 
     def save(self, *, force: bool = False) -> None:
         """
@@ -785,7 +785,7 @@ class Twitch:
                     self.change_state(State.CHANNELS_FETCH)
                 else:
                     # with no games available, we switch to IDLE after cleanup
-                    self.gui.print(_("status", "no_campaign"))
+                    self.print(_("status", "no_campaign"))
                     self.change_state(State.IDLE)
             elif self._state is State.CHANNELS_FETCH:
                 self.gui.status.update(_("gui", "status", "gathering"))
@@ -908,7 +908,7 @@ class Twitch:
                     self._state_change.clear()
                 else:
                     # not watching anything and there isn't anything to watch either
-                    self.gui.print(_("status", "no_channel"))
+                    self.print(_("status", "no_channel"))
                     self.change_state(State.IDLE)
             elif self._state is State.EXIT:
                 self.gui.status.update(_("gui", "status", "exiting"))
@@ -1095,7 +1095,7 @@ class Twitch:
             and self.should_switch(channel)  # and we should!
         ):
             self.watch(channel)
-            self.gui.print(_("status", "goes_online").format(channel=channel.name))
+            self.print(_("status", "goes_online").format(channel=channel.name))
             self.gui.status.update(
                 _("gui", "status", "watching").format(channel=channel.name)
             )
@@ -1107,7 +1107,7 @@ class Twitch:
         # change the channel if we're currently watching it
         watching_channel = self.watching_channel.get_with_default(None)
         if watching_channel is not None and watching_channel == channel:
-            self.gui.print(_("status", "goes_offline").format(channel=channel.name))
+            self.print(_("status", "goes_offline").format(channel=channel.name))
             self.change_state(State.CHANNEL_SWITCH)
         else:
             logger.debug(f"{channel.name} goes OFFLINE")
@@ -1140,9 +1140,7 @@ class Twitch:
                 )
                 # two different claim texts, becase a new line after the game name
                 # looks ugly in the output window - replace it with a space
-                self.gui.print(
-                    _("status", "claimed_drop").format(drop=claim_text.replace('\n', ' '))
-                )
+                self.print(_("status", "claimed_drop").format(drop=claim_text.replace('\n', ' ')))
                 self.gui.tray.notify(claim_text, _("gui", "tray", "notification_title"))
             else:
                 logger.error(f"Drop claim failed! Drop ID: {drop_id}")
@@ -1233,14 +1231,12 @@ class Twitch:
             if channel is not None:
                 channel.points = balance
                 channel.display()
-            self.gui.print(
-                _("status", "earned_points").format(points=f"{points:3}", balance=balance)
-            )
+            self.print(_("status", "earned_points").format(points=f"{points:3}", balance=balance))
         elif msg_type == "claim-available":
             claim_data = message["data"]["claim"]
             points = claim_data["point_gain"]["total_points"]
             await self.claim_points(claim_data["channel_id"], claim_data["id"])
-            self.gui.print(_("status", "claimed_points").format(points=points))
+            self.print(_("status", "claimed_points").format(points=points))
 
     async def get_auth(self) -> _AuthState:
         await self._auth_state.validate()

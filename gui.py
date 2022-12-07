@@ -673,7 +673,7 @@ class CampaignProgress:
 class ConsoleOutput:
     def __init__(self, manager: GUIManager, master: ttk.Widget):
         frame = ttk.LabelFrame(master, text=_("gui", "output"), padding=(4, 0, 4, 4))
-        frame.grid(column=0, row=3, columnspan=2, sticky="nsew", padx=2)
+        frame.grid(column=0, row=3, columnspan=3, sticky="nsew", padx=2)
         # tell master frame that the containing row can expand
         master.rowconfigure(3, weight=1)
         frame.rowconfigure(0, weight=1)  # let the frame expand
@@ -696,9 +696,12 @@ class ConsoleOutput:
         xscroll.grid(column=0, row=1, sticky="ew")
         yscroll.grid(column=1, row=0, sticky="ns")
 
-    def print(self, *values, sep: str = ' ', end: str = '\n'):
+    def print(self, message: str):
+        stamp = datetime.now().strftime("%X")
+        if '\n' in message:
+            message = message.replace('\n', f"\n{stamp}: ")
         self._text.config(state="normal")
-        self._text.insert("end", f"{sep.join(values)}{end}")
+        self._text.insert("end", f"{stamp}: {message}\n")
         self._text.see("end")  # scroll to the newly added line
         self._text.config(state="disabled")
 
@@ -713,7 +716,7 @@ class ChannelList:
     def __init__(self, manager: GUIManager, master: ttk.Widget):
         self._manager = manager
         frame = ttk.LabelFrame(master, text=_("gui", "channels", "name"), padding=(4, 0, 4, 4))
-        frame.grid(column=2, row=1, rowspan=3, sticky="nsew", padx=2)
+        frame.grid(column=2, row=1, rowspan=2, sticky="nsew", padx=2)
         # tell master frame that the containing column can expand
         master.columnconfigure(2, weight=1)
         frame.rowconfigure(1, weight=1)
@@ -1993,9 +1996,9 @@ class GUIManager:
         self.progress.display(None)
         self.tray.update_title(None)
 
-    def print(self, *args, **kwargs):
+    def print(self, message: str):
         # print to our custom output
-        self.output.print(*args, **kwargs)
+        self.output.print(message)
 
 
 ###################
@@ -2193,6 +2196,11 @@ if __name__ == "__main__":
         )
         campaign = drop.campaign
         await gui.inv.add_campaign(campaign)
+
+        gui.print("Single-line test message")
+        await asyncio.sleep(1)
+        gui.print("Multi-line\ntest\nmessage")
+
         # Tray
         # gui.tray.minimize()
         await asyncio.sleep(2)
