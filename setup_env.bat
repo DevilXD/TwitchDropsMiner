@@ -1,5 +1,5 @@
 @echo off
-set /p "choice=Install PyInstaller so you can build an EXEcutable? (y/n) "
+cls
 set dirpath=%~dp0
 if "%dirpath:~-1%" == "\" set dirpath=%dirpath:~0,-1%
 git --version > nul
@@ -14,10 +14,6 @@ echo:
 echo Installing requirements.txt...
 "%dirpath%\env\scripts\pip" install wheel
 "%dirpath%\env\scripts\pip" install -r "%dirpath%\requirements.txt"
-echo:
-echo Installing PyInstaller...
-if "%choice%" == "y" "%dirpath%\env\scripts\pip" install pyinstaller
-"%dirpath%\env\scripts\python" "%dirpath%\env\scripts\pywin32_postinstall.py" -install -silent
 goto DONE
 :NOPYTHON
 echo:
