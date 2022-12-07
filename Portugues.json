@@ -10,7 +10,7 @@
         "no_campaign": "Sem campanhas ativas no momento para minerar. Esperando por uma campanha ativa..."
     },
     "login": {
-		"chrome": {
+        "chrome": {
             "startup": "Abrindo Google Chrome",
             "login_to_complete": "Por Favor complete o login pela pagina web manualmente pressionando o botão Login novamente.",
             "no_token": "Seu Token de autorização Twitch não foi encontrado",
