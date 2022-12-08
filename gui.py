@@ -476,7 +476,7 @@ class LoginForm:
             )
             # basic input data validation
             if (
-                3 <= len(login_data.username) <= 25  # 3-25 characters in length
+                not 3 <= len(login_data.username) <= 25  # 3-25 characters in length
                 and re.match(r'^[a-zA-Z0-9_]+$', login_data.username)  # only ascii and underscores
             ):
                 self.clear(login=True)
