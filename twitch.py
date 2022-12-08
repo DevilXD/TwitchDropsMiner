@@ -1315,16 +1315,22 @@ class Twitch:
                 response_list = response_json
             else:
                 response_list = [response_json]
+            has_timeout: bool = False
             for response_json in response_list:
-                if "errors" in response_json and response_json["errors"]:
-                    if (
-                        "message" in response_json["errors"]
-                        and response_json["errors"]["message"] == "service timeout"
-                    ):
-                        await asyncio.sleep(1)
-                        continue
-                    raise MinerException(f"GQL error: {response_json['errors']}")
-            return orig_response
+                if "errors" in response_json:
+                    for error_dict in response_json["errors"]:
+                        if (
+                            "message" in error_dict["errors"]
+                            and error_dict["errors"]["message"] == "service timeout"
+                        ):
+                            has_timeout = True
+                            break
+                        raise MinerException(f"GQL error: {response_json['errors']}")
+                if has_timeout:
+                    break
+            else:
+                return orig_response
+            await asyncio.sleep(1)
 
     def _merge_data(self, primary_data: JsonType, secondary_data: JsonType) -> JsonType:
         merged = {}
