@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import sys
 import ctypes
 import asyncio
@@ -474,7 +475,10 @@ class LoginForm:
                 self._token_entry.get().strip(),
             )
             # basic input data validation
-            if len(login_data.username) < 3:
+            if (
+                3 <= len(login_data.username) <= 25  # 3-25 characters in length
+                and re.match(r'^[a-zA-Z0-9_]+$', login_data.username)  # only ascii and underscores
+            ):
                 self.clear(login=True)
                 continue
             if len(login_data.password) < 8:

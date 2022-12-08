@@ -330,9 +330,12 @@ class _AuthState:
                     logger.info("1000: CAPTCHA is required")
                     use_chrome = True
                     break
-                elif error_code == 3001:
+                elif error_code in (2004, 3001):
                     logger.info("3001: Login failed due to incorrect username or password")
                     gui_print(_("login", "incorrect_login_pass"))
+                    if error_code == 2004:
+                        # invalid username
+                        login_form.clear(login=True)
                     login_form.clear(password=True)
                     continue
                 elif error_code in (
