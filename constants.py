@@ -82,7 +82,7 @@ FILE_FORMATTER = logging.Formatter(
     style='{',
     datefmt="%Y-%m-%d %H:%M:%S",
 )
-OUTPUT_FORMATTER = logging.Formatter("{levelname:>7}: {message}", style='{', datefmt="%H:%M:%S")
+OUTPUT_FORMATTER = logging.Formatter("{levelname}: {message}", style='{', datefmt="%H:%M:%S")
 
 
 class State(Enum):
