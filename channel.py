@@ -178,7 +178,7 @@ class Channel:
         This is because 'stream-up' event is received way before
         stream information becomes available.
         """
-        return self._pending_stream_up is not None
+        return self._stream is None and self._pending_stream_up is not None
 
     @property
     def game(self) -> Game | None:
@@ -250,12 +250,20 @@ class Channel:
             return None
         return Stream.from_get_stream(self, stream_data)
 
-    async def check_online(self) -> bool:
+    async def update_stream(self, *, trigger_events: bool) -> bool:
+        """
+        Fetches the current channel stream, and if one exists,
+        updates it's game, title, tags and viewers. Updates channel status in general.
+
+        Setting 'trigger_events' to True will trigger on_online and on_offline events,
+        if the new status differs from the one set before the call.
+        """
+        old_stream = self._stream
         self._stream = await self.get_stream()
         invalidate_cache(self, "_payload")
-        if self._stream is None:
-            return False
-        return True
+        if trigger_events:
+            self._twitch.on_channel_update(self, old_stream, self._stream)
+        return self._stream is not None
 
     async def _online_delay(self):
         """
@@ -263,11 +271,8 @@ class Channel:
         so just wait a bit and check if it's actually online by then.
         """
         await asyncio.sleep(ONLINE_DELAY.total_seconds())
-        online = await self.check_online()
         self._pending_stream_up = None  # for 'display' to work properly
-        self.display()
-        if online:
-            self._twitch.on_online(self)
+        await self.update_stream(trigger_events=True)
 
     def set_online(self):
         """
@@ -275,8 +280,9 @@ class Channel:
         it's going to be set to ONLINE.
 
         This is called externally, if we receive an event about this happening.
+        This is also called when an already online channel needs a delayed status update.
         """
-        if self.offline:
+        if self._pending_stream_up is None:
             self._pending_stream_up = asyncio.create_task(self._online_delay())
             self.display()
 
@@ -286,15 +292,19 @@ class Channel:
 
         This is called externally, if we receive an event about this happening.
         """
+        needs_display: bool = False
         if self._pending_stream_up is not None:
             self._pending_stream_up.cancel()
             self._pending_stream_up = None
-            self.display()
+            needs_display = True
         if self.online:
+            old_stream = self._stream
             self._stream = None
             invalidate_cache(self, "_payload")
+            self._twitch.on_channel_update(self, old_stream, self._stream)
+            needs_display = False
+        if needs_display:
             self.display()
-            self._twitch.on_offline(self)
 
     async def claim_bonus(self):
         """

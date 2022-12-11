@@ -45,7 +45,7 @@ if TYPE_CHECKING:
 
 
 TK_PADDING = Union[int, Tuple[int, int], Tuple[int, int, int], Tuple[int, int, int, int]]
-digits = ceil(log10(WS_TOPICS_LIMIT))
+DIGITS = ceil(log10(WS_TOPICS_LIMIT))
 
 
 ######################
@@ -372,7 +372,7 @@ class WebsocketStatus:
         ttk.Label(
             frame,
             textvariable=self._topics_var,
-            width=(digits * 2 + 1),
+            width=(DIGITS * 2 + 1),
             justify="right",
             style="MS.TLabel",
         ).grid(column=2, row=0)
@@ -407,7 +407,7 @@ class WebsocketStatus:
                 topic_lines.append('')
             else:
                 status_lines.append(item["status"])
-                topic_lines.append(f"{item['topics']:>{digits}}/{WS_TOPICS_LIMIT}")
+                topic_lines.append(f"{item['topics']:>{DIGITS}}/{WS_TOPICS_LIMIT}")
         self._status_var.set('\n'.join(status_lines))
         self._topics_var.set('\n'.join(topic_lines))
 
@@ -912,6 +912,10 @@ class ChannelList:
         self.shrink()
 
     def display(self, channel: Channel, *, add: bool = False):
+        iid = channel.iid
+        if not add and iid not in self._channel_map:
+            # the channel isn't on the list and we're not supposed to add it
+            return
         # ACL-based
         acl_based = "✔" if channel.acl_based else "❌"
         # status
@@ -933,7 +937,6 @@ class ChannelList:
         points = ''
         if channel.points is not None:
             points = str(channel.points)
-        iid = channel.iid
         if iid in self._channel_map:
             self._set(iid, "game", game)
             self._set(iid, "drops", drops)

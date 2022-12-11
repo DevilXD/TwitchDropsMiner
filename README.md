@@ -10,7 +10,7 @@ Every ~60 seconds, the application sends a "minute watched" event to the channel
 
 - Stream-less drop mining - save on bandwidth.
 - Game priority and exclusion lists, allowing you to focus on mining what you want, in the order you want, and ignore what you don't want.
-- Sharded websocket connection, allowing for tracking up to `8*50-2=398` channels at the same time.
+- Sharded websocket connection, allowing for tracking up to `8*25-2=199` channels at the same time.
 - Automatic drop campaigns discovery based on linked accounts (requires you to do [account linking](https://www.twitch.tv/drops/campaigns) yourself though)
 - Stream tags and drop campaign validation, to ensure you won't end up mining a stream that can't earn you the drop.
 - Automatic channel stream switching, when the one you were currently watching goes offline, as well as when a channel streaming a higher priority game goes online.

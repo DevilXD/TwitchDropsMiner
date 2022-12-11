@@ -19,6 +19,9 @@ if TYPE_CHECKING:
 
 # True if we're running from a built EXE, False inside a dev build
 IS_PACKAGED = hasattr(sys, "_MEIPASS")
+# logging special levels
+CALL = logging.INFO - 1
+logging.addLevelName(CALL, "CALL")
 
 
 def _resource_path(relative_path: Path | str) -> Path:
@@ -57,8 +60,12 @@ JsonType = Dict[str, Any]
 URLType = NewType("URLType", str)
 TopicProcess: TypeAlias = "abc.Callable[[int, JsonType], Any]"
 # Values
+BASE_TOPICS = 2
 MAX_WEBSOCKETS = 8
 WS_TOPICS_LIMIT = 50
+TOPICS_PER_CHANNEL = 2
+MAX_TOPICS = (MAX_WEBSOCKETS * WS_TOPICS_LIMIT) - BASE_TOPICS
+MAX_CHANNELS = MAX_TOPICS // TOPICS_PER_CHANNEL
 # Misc
 DEFAULT_LANG = "English"
 BASE_URL = URL("https://twitch.tv")
@@ -262,7 +269,6 @@ WEBSOCKET_TOPICS: dict[str, dict[str, str]] = {
         "Drops": "channel-drop-events",  # unused
         "CommunityPoints": "community-points-channel-v1",  # unused
         "StreamState": "video-playback-by-id",
-        # currently unused, can be used to receive updates regarding stream's title and tag changes
         "StreamUpdate": "broadcast-settings-update",
     },
 }
