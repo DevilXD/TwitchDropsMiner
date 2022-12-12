@@ -54,6 +54,7 @@ from utils import (
     ExponentialBackoff,
 )
 from constants import (
+    CALL,
     BASE_URL,
     CLIENT_ID,
     COOKIES_PATH,
@@ -1131,6 +1132,17 @@ class Twitch:
         if channel is None:
             logger.error(f"Broadcast settings update for a non-existing channel: {channel_id}")
             return
+        if message["old_status"] != message["status"]:
+            status_change = f"\n{message['old_status']} -> {message['status']}"
+        else:
+            status_change = ''
+        if message["old_game"] != message["game"]:
+            game_change = f"\n{message['old_game']} -> {message['game']}"
+        else:
+            game_change = ''
+        logger.log(
+            CALL, f"Channel update from websocket: {channel.name}{status_change}{game_change}"
+        )
         # There's no information about channel tags here, but this event is triggered
         # when the tags change. We can use this to just update the stream data after the change.
         # Use 'set_online' to introduce a delay, allowing for multiple title and tags
@@ -1230,6 +1242,15 @@ class Twitch:
                 self.change_state(State.INVENTORY_FETCH)
             return
         assert msg_type == "drop-progress"
+        if drop is not None:
+            drop_text = (
+                f"{drop.name}({drop.campaign.game}, "
+                f"{message['data']['current_progress_min']}/"
+                f"{message['data']['required_progress_min']})"
+            )
+        else:
+            drop_text = "<Unknown>"
+        logger.log(CALL, f"Drop update from websocket: {drop_text}")
         if self._drop_update is None:
             # we aren't actually waiting for a progress update right now, so we can just
             # ignore the event this time
