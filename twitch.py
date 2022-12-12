@@ -882,19 +882,20 @@ class Twitch:
                     else:
                         # we've removed a channel we were watching
                         self.stop_watching()
+                    del new_watching
                 # pre-display the active drop with a substracted minute
                 for channel in channels.values():
                     # check if there's any channels we can watch first
                     if self.can_watch(channel):
                         if (active_drop := self.get_active_drop(channel)) is not None:
                             active_drop.display(countdown=False, subone=True)
+                        del active_drop
                         break
                 self.change_state(State.CHANNEL_SWITCH)
                 del (
                     no_acl,
                     acl_channels,
                     new_channels,
-                    new_watching,
                     to_add_topics,
                     ordered_channels,
                     watching_channel,
@@ -917,6 +918,7 @@ class Twitch:
                         if self.can_watch(channel) and self.should_switch(channel):
                             new_watching = channel
                             break
+                watching_channel = self.watching_channel.get_with_default(None)
                 if new_watching is not None:
                     # if we have a better switch target - do so
                     self.watch(new_watching)
@@ -925,21 +927,18 @@ class Twitch:
                     )
                     # break the state change chain by clearing the flag
                     self._state_change.clear()
-                elif (
-                    (watching_channel := self.watching_channel.get_with_default(None)) is not None
-                ):
+                elif watching_channel is not None:
                     # otherwise, continue watching what we had before
                     self.gui.status.update(
                         _("gui", "status", "watching").format(channel=watching_channel.name)
                     )
                     # break the state change chain by clearing the flag
                     self._state_change.clear()
-                    del watching_channel
                 else:
                     # not watching anything and there isn't anything to watch either
                     self.print(_("status", "no_channel"))
                     self.change_state(State.IDLE)
-                del new_watching, selected_channel
+                del new_watching, selected_channel, watching_channel
             elif self._state is State.EXIT:
                 self.gui.status.update(_("gui", "status", "exiting"))
                 # we've been requested to exit the application
