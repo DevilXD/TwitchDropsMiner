@@ -29,7 +29,7 @@ if __name__ == "__main__":
     from utils import resource_path
     from version import __version__
     from exceptions import CaptchaRequired
-    from constants import SELF_PATH, FILE_FORMATTER, LOG_PATH, WINDOW_TITLE
+    from constants import CALL, SELF_PATH, FILE_FORMATTER, LOG_PATH, WINDOW_TITLE
 
     class Parser(argparse.ArgumentParser):
         def __init__(self, *args, **kwargs) -> None:
@@ -61,7 +61,8 @@ if __name__ == "__main__":
                 0: logging.ERROR,
                 1: logging.WARNING,
                 2: logging.INFO,
-                3: logging.DEBUG,
+                3: CALL,
+                4: logging.DEBUG,
             }[min(self._verbose, 3)]
 
         @property

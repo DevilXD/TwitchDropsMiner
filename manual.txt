@@ -7,7 +7,7 @@ Available command line arguments:
 • --tray
 	Start application as minimised into tray.
 • -v
-	Increase verbosity level. Can be stacked up to 3 times (-vv and -vvv) to show
+	Increase verbosity level. Can be stacked up several times (-vv, -vvv, etc.) to show
 	increasingly more information during application runtime.
 • --log
 	Enables logging of runtime information into a 'log.txt' file. Verbosity level of this logging

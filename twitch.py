@@ -1157,39 +1157,45 @@ class Twitch:
 
         NOTE: 'stream_before' gets dealocated once this function finishes.
         """
-        if stream_before is None and stream_after is not None:
-            # Channel going ONLINE
-            logger.info(f"{channel.name} goes ONLINE")
-            # continue to below
-        elif stream_before is not None and stream_after is None:
-            # Channel going OFFLINE
-            # Change the channel if we're currently watching it
-            watching_channel = self.watching_channel.get_with_default(None)
-            if watching_channel is not None and watching_channel == channel:
-                self.print(_("status", "goes_offline").format(channel=channel.name))
-                self.change_state(State.CHANNEL_SWITCH)
+        if stream_before is None:
+            if stream_after is not None:
+                # Channel going ONLINE
+                if (
+                    self.can_watch(channel)  # we can watch the channel
+                    and self.should_switch(channel)  # and we should!
+                ):
+                    self.watch(channel)
+                    self.print(_("status", "goes_online").format(channel=channel.name))
+                    self.gui.status.update(
+                        _("gui", "status", "watching").format(channel=channel.name)
+                    )
+                else:
+                    logger.info(f"{channel.name} goes ONLINE")
             else:
-                logger.info(f"{channel.name} goes OFFLINE")
-            channel.display()
-            return
-        elif stream_after is not None and stream_after is not None:
-            # Channel is and stays ONLINE, but has been updated
-            logger.info(f"{channel.name} status has been updated")
-            # continue to below
+                # Channel was OFFLINE and stays that way
+                # Nothing to do here for now
+                return
         else:
-            # Channel was OFFLINE and stays that way
-            # Nothing to do here for now
-            return
-
-        if (
-            self.can_watch(channel)  # we can watch the channel
-            and self.should_switch(channel)  # and we should!
-        ):
-            self.watch(channel)
-            self.print(_("status", "goes_online").format(channel=channel.name))
-            self.gui.status.update(
-                _("gui", "status", "watching").format(channel=channel.name)
-            )
+            watching_channel = self.watching_channel.get_with_default(None)
+            if (
+                watching_channel is not None
+                and watching_channel == channel
+                and not self.can_watch(channel)
+            ):
+                if stream_after is None:
+                    # Channel going OFFLINE
+                    self.print(_("status", "goes_offline").format(channel=channel.name))
+                # if the channel stays online, we silently trigger a switch
+                self.change_state(State.CHANNEL_SWITCH)
+            elif stream_after is None:
+                logger.info(f"{channel.name} goes OFFLINE")
+            else:
+                # Channel is and stays ONLINE, but has been updated
+                logger.info(
+                    f"{channel.name} status has been updated "
+                    f"(🎁: {stream_before.drops_enabled and '✔' or '❌'} -> "
+                    f"{stream_after.drops_enabled and '✔' or '❌'})"
+                )
         channel.display()
 
     @task_wrapper
