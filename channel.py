@@ -272,15 +272,20 @@ class Channel:
         """
         await asyncio.sleep(ONLINE_DELAY.total_seconds())
         self._pending_stream_up = None  # for 'display' to work properly
-        await self.update_stream(trigger_events=True)
+        await self.update_stream(trigger_events=True)  # triggers 'display' via the event
 
-    def set_online(self):
+    def check_online(self):
         """
-        Sets the channel status to PENDING_ONLINE, where after ONLINE_DELAY,
-        it's going to be set to ONLINE.
+        Sets up a task that will wait ONLINE_DELAY duration,
+        and then check for the stream being ONLINE OR OFFLINE.
 
-        This is called externally, if we receive an event about this happening.
-        This is also called when an already online channel needs a delayed status update.
+        If the channel is OFFLINE, it sets the channel's status to PENDING_ONLINE,
+        where after ONLINE_DELAY, it's going to be set to ONLINE.
+        If the channel is ONLINE already, after ONLINE_DELAY,
+        it's status is going to be double-checked to ensure it's actually ONLINE.
+
+        This is called externally, if we receive an event about the status possibly being ONLINE
+        or having to be updated.
         """
         if self._pending_stream_up is None:
             self._pending_stream_up = asyncio.create_task(self._online_delay())
@@ -290,7 +295,7 @@ class Channel:
         """
         Sets the channel status to OFFLINE. Cancels PENDING_ONLINE if applicable.
 
-        This is called externally, if we receive an event about this happening.
+        This is called externally, if we receive an event indicating the channel is now OFFLINE.
         """
         needs_display: bool = False
         if self._pending_stream_up is not None:

@@ -1099,7 +1099,7 @@ class Twitch:
         if msg_type == "viewcount":
             if not channel.online:
                 # if it's not online for some reason, set it so
-                channel.set_online()
+                channel.check_online()
             else:
                 viewers = message["viewers"]
                 channel.viewers = viewers
@@ -1108,7 +1108,7 @@ class Twitch:
         elif msg_type == "stream-down":
             channel.set_offline()
         elif msg_type == "stream-up":
-            channel.set_online()
+            channel.check_online()
         elif msg_type == "commercial":
             # skip these
             pass
@@ -1132,22 +1132,16 @@ class Twitch:
         if channel is None:
             logger.error(f"Broadcast settings update for a non-existing channel: {channel_id}")
             return
-        if message["old_status"] != message["status"]:
-            status_change = f"\n{message['old_status']} -> {message['status']}"
-        else:
-            status_change = ''
         if message["old_game"] != message["game"]:
-            game_change = f"\n{message['old_game']} -> {message['game']}"
+            game_change = f", game changed: {message['old_game']} -> {message['game']}"
         else:
             game_change = ''
-        logger.log(
-            CALL, f"Channel update from websocket: {channel.name}{status_change}{game_change}"
-        )
+        logger.log(CALL, f"Channel update from websocket: {channel.name}{game_change}")
         # There's no information about channel tags here, but this event is triggered
         # when the tags change. We can use this to just update the stream data after the change.
         # Use 'set_online' to introduce a delay, allowing for multiple title and tags
         # changes before we update. This eventually calls 'on_channel_update' below.
-        channel.set_online()
+        channel.check_online()
 
     def on_channel_update(
         self, channel: Channel, stream_before: Stream | None, stream_after: Stream | None
@@ -1173,20 +1167,27 @@ class Twitch:
                     logger.info(f"{channel.name} goes ONLINE")
             else:
                 # Channel was OFFLINE and stays that way
-                # Nothing to do here for now
-                return
+                logger.log(CALL, f"{channel.name} stays OFFLINE")
         else:
             watching_channel = self.watching_channel.get_with_default(None)
             if (
                 watching_channel is not None
-                and watching_channel == channel
-                and not self.can_watch(channel)
+                and watching_channel == channel  # the watching channel was the one updated
+                and not self.can_watch(channel)   # we can't watch it anymore
             ):
+                # NOTE: In these cases, channel was the watching channel
                 if stream_after is None:
                     # Channel going OFFLINE
                     self.print(_("status", "goes_offline").format(channel=channel.name))
-                # if the channel stays online, we silently trigger a switch
+                else:
+                    # Channel stays ONLINE, but we can't watch it anymore
+                    logger.info(
+                        f"{channel.name} status has been updated, switching... "
+                        f"(🎁: {stream_before.drops_enabled and '✔' or '❌'} -> "
+                        f"{stream_after.drops_enabled and '✔' or '❌'})"
+                    )
                 self.change_state(State.CHANNEL_SWITCH)
+            # NOTE: In these cases, it wasn't the watching channel
             elif stream_after is None:
                 logger.info(f"{channel.name} goes OFFLINE")
             else:
@@ -1250,7 +1251,7 @@ class Twitch:
         assert msg_type == "drop-progress"
         if drop is not None:
             drop_text = (
-                f"{drop.name}({drop.campaign.game}, "
+                f"{drop.name} ({drop.campaign.game}, "
                 f"{message['data']['current_progress_min']}/"
                 f"{message['data']['required_progress_min']})"
             )
