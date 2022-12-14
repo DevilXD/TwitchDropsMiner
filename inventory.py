@@ -240,7 +240,7 @@ class DropsCampaign:
         }
 
     def __repr__(self) -> str:
-        return f"Campaign({self.name}({self.game!s}), {self.claimed_drops}/{self.total_drops})"
+        return f"Campaign({self.game!s}, {self.name}, {self.claimed_drops}/{self.total_drops})"
 
     @property
     def drops(self) -> abc.Iterable[TimedDrop]:

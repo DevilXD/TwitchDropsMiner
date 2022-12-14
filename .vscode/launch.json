@@ -30,7 +30,7 @@
             "justMyCode": false
         },
         {
-            "name": "Run App (DEBUG)",
+            "name": "Run App (CALL)",
             "type": "python",
             "request": "launch",
             "program": "main.py",
