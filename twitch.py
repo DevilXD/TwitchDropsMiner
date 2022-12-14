@@ -954,10 +954,10 @@ class Twitch:
 
     @task_wrapper
     async def _watch_loop(self) -> NoReturn:
-        interval = WATCH_INTERVAL.total_seconds()
+        interval: float = WATCH_INTERVAL.total_seconds()
         while True:
-            channel = await self.watching_channel.get()
-            succeeded = await channel.send_watch()
+            channel: Channel = await self.watching_channel.get()
+            succeeded: bool = await channel.send_watch()
             if not succeeded:
                 # this usually means the campaign expired in the middle of mining
                 # NOTE: the maintenance task should switch the channel right after this happens
@@ -965,13 +965,14 @@ class Twitch:
                 continue
             last_watch = time()
             self._drop_update = asyncio.Future()
-            use_active = False
+            use_active: bool = False
             try:
-                handled = await asyncio.wait_for(self._drop_update, timeout=10)
+                handled: bool = await asyncio.wait_for(self._drop_update, timeout=10)
             except asyncio.TimeoutError:
                 # there was no websocket update within 10s
                 handled = False
                 use_active = True
+                logger.log(CALL, "No drop update from the websocket received")
             self._drop_update = None
             if not handled:
                 # websocket update timed out, or the update was for an unrelated drop
@@ -982,18 +983,31 @@ class Twitch:
                         context["data"]["currentUser"]["dropCurrentSession"]
                     )
                     if drop_data is not None:
-                        drop_id = drop_data["dropID"]
-                        drop = self._drops.get(drop_id)
+                        drop = self._drops.get(drop_data["dropID"])
                         if drop is None:
                             use_active = True
-                            logger.error(f"Missing drop: {drop_id}")
+                            # usually this means there was a campaign changed between reloads
+                            logger.info("Missing drop detected, reloading...")
+                            self.change_state(State.INVENTORY_FETCH)
                         elif not drop.can_earn(channel):
+                            # we can't earn this drop in the current watching channel
                             use_active = True
+                            drop_text = (
+                                f"{drop.name} ({drop.campaign.game}, "
+                                f"{drop.current_minutes}/{drop.required_minutes})"
+                            )
+                            logger.log(CALL, f"Current drop returned mismach: {drop_text}")
                         else:
                             drop.update_minutes(drop_data["currentMinutesWatched"])
                             drop.display()
+                            drop_text = (
+                                f"{drop.name} ({drop.campaign.game}, "
+                                f"{drop.current_minutes}/{drop.required_minutes})"
+                            )
+                            logger.log(CALL, f"Drop progress from GQL: {drop_text}")
                     else:
                         use_active = True
+                        logger.log(CALL, "Current drop returned as none")
                 if use_active:
                     # Sometimes, even GQL fails to give us the correct drop.
                     # In that case, we can use the locally cached inventory to try
@@ -1003,6 +1017,13 @@ class Twitch:
                     if (drop := self.get_active_drop()) is not None:
                         drop.bump_minutes()
                         drop.display()
+                        drop_text = (
+                            f"{drop.name} ({drop.campaign.game}, "
+                            f"{drop.current_minutes}/{drop.required_minutes})"
+                        )
+                        logger.log(CALL, f"Drop progress from active search: {drop_text}")
+                    else:
+                        logger.log(CALL, "No active drop could be determined")
             await self._watch_sleep(last_watch + interval - time())
 
     @task_wrapper
