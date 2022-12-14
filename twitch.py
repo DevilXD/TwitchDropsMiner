@@ -1415,12 +1415,10 @@ class Twitch:
             for response_json in response_list:
                 if "errors" in response_json:
                     for error_dict in response_json["errors"]:
-                        if (
-                            "message" in error_dict["errors"]
-                            and error_dict["errors"]["message"] == "service timeout"
-                        ):
+                        if "message" in error_dict and error_dict["message"] == "service timeout":
                             has_timeout = True
                             break
+                    else:
                         raise MinerException(f"GQL error: {response_json['errors']}")
                 if has_timeout:
                     break
