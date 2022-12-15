@@ -1043,7 +1043,7 @@ class Twitch:
             logger.log(
                 CALL,
                 (
-                    f"Maintenance task waiting until: {next_trigger.strftime('%X')} "
+                    f"Maintenance task waiting until: {next_trigger.astimezone().strftime('%X')} "
                     f"({'Cleanup' if trigger_cleanup else 'Reload'})"
                 )
             )
