@@ -1,6 +1,7 @@
 {
     "status": {
         "terminated": "\nAplikace byla ukončena.",
+        "watching": "Sledování kanálu: {channel}",
         "goes_online": "Kanál {channel} je online, přepínám...",
         "goes_offline": "Kanál {channel} je offline, přepínám na další...",
         "claimed_drop": "Drop vyzvednut: {drop}",
@@ -26,13 +27,12 @@
         "output": "Výstup",
         "status": {
             "name": "Status",
-              "idle": "Dokončeno načítání",
+            "idle": "Dokončeno načítání",
             "exiting": "Ukončování...",
             "terminated": "Aplikace ukončena",
             "cleanup": "Čištění...",
             "gathering": "Vyhledávání dostupného živého kanálu...",
             "switching": "Přepínám mezi kanály...",
-            "watching": "Sledování kanálu {channel}",
             "fetching_inventory": "Načítání inventáře...",
             "fetching_campaigns": "Načítání dropů...",
             "adding_campaigns": "Přidávám dropy... {counter}"

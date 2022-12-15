@@ -1,6 +1,7 @@
 {
     "status": {
         "terminated": "\nLa aplicación se ha detenido.\nPor favor, cierre la aplicación.",
+        "watching": "Mirando el canal: {channel}",
         "goes_online": "El canal {channel} se ha conectado, cambiando...",
         "goes_offline": "El canal {channel} se ha desconectado, cambiando...",
         "claimed_drop": "Drop reclamado: {drop}",
@@ -36,7 +37,6 @@
             "idle": "En espera...",
             "exiting": "Saliendo...",
             "terminated": "Aplicación suspendida.",
-            "watching": "Mirando el canal {channel}",
             "cleanup": "Limpiando canales...",
             "gathering": "Buscando canales en vivo...",
             "switching": "Cambiando de canal...",

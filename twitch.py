@@ -879,7 +879,7 @@ class Twitch:
                 if watching_channel is not None:
                     new_watching: Channel | None = channels.get(watching_channel.id)
                     if new_watching is not None and self.can_watch(new_watching):
-                        self.watch(new_watching)
+                        self.watch(new_watching, update_status=False)
                     else:
                         # we've removed a channel we were watching
                         self.stop_watching()
@@ -923,15 +923,12 @@ class Twitch:
                 if new_watching is not None:
                     # if we have a better switch target - do so
                     self.watch(new_watching)
-                    self.gui.status.update(
-                        _("gui", "status", "watching").format(channel=new_watching.name)
-                    )
                     # break the state change chain by clearing the flag
                     self._state_change.clear()
                 elif watching_channel is not None:
                     # otherwise, continue watching what we had before
                     self.gui.status.update(
-                        _("gui", "status", "watching").format(channel=watching_channel.name)
+                        _("status", "watching").format(channel=watching_channel.name)
                     )
                     # break the state change chain by clearing the flag
                     self._state_change.clear()
@@ -1097,9 +1094,13 @@ class Twitch:
             and channel.acl_based > watching_channel.acl_based
         )
 
-    def watch(self, channel: Channel):
+    def watch(self, channel: Channel, *, update_status: bool = True):
         self.gui.channels.set_watching(channel)
         self.watching_channel.set(channel)
+        if update_status:
+            status_text = _("status", "watching").format(channel=channel.name)
+            self.print(status_text)
+            self.gui.status.update(status_text)
 
     def stop_watching(self):
         self.gui.clear_drop()
@@ -1179,11 +1180,8 @@ class Twitch:
                     self.can_watch(channel)  # we can watch the channel
                     and self.should_switch(channel)  # and we should!
                 ):
-                    self.watch(channel)
                     self.print(_("status", "goes_online").format(channel=channel.name))
-                    self.gui.status.update(
-                        _("gui", "status", "watching").format(channel=channel.name)
-                    )
+                    self.watch(channel)
                 else:
                     logger.info(f"{channel.name} goes ONLINE")
             else:

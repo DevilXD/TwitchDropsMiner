@@ -1,6 +1,7 @@
 {
     "status": {
         "terminated": "\n应用程序已终止，请关闭窗口以退出应用程序。",
+        "watching": "正在观看: {channel}",
         "goes_online": "{channel} 该频道已上线, 正在切换...",
         "goes_offline": "{channel} 该频道已离线, 正在切换...",
         "claimed_drop": "领取的掉宝: {drop}",
@@ -39,7 +40,6 @@
             "cleanup": "清除频道中...",
             "gathering": "搜索直播频道...",
             "switching": "切换直播频道中...",
-            "watching": "正在观看 {channel}",
             "fetching_inventory": "获取库存中...",
             "fetching_campaigns": "获取掉宝活动...",
             "adding_campaigns": "将掉宝活动列表添加至库存... {counter}"

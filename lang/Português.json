@@ -1,6 +1,7 @@
 {
     "status": {
         "terminated": "\nAplicacao Finalizada.\nFeche a janela para sair do programa.",
+        "watching": "Assistindo o: {channel}",
         "goes_online": "{channel} esta ONLINE, Mudando...",
         "goes_offline": "{channel} ficou OFFLINE, Mudando...",
         "claimed_drop": "Coletou o drop: {drop}",
@@ -36,7 +37,6 @@
             "idle": "Em espera",
             "exiting": "Saindo",
             "terminated": "Finalizado",
-            "watching": "Assistindo o {channel}",
             "cleanup": "Limpando os Canais...",
             "gathering": "Coletando Canais...",
             "switching": "Mudando o canal...",

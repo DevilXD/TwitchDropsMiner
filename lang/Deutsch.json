@@ -1,6 +1,7 @@
 {
     "status": {
         "terminated": "\nAnwendung gestoppt.\nFenster schließen, um die Anwendung zu beenden",
+        "watching": "{channel} wid zugesehen",
         "goes_online": "{channel} ist ONLINE gegangen, wechseln...",
         "goes_offline": "{channel} ist OFFLINE gegangen, wechseln...",
         "claimed_drop": "Drop abgeholt: {drop}",
@@ -36,7 +37,6 @@
             "idle": "Im Leerlauf",
             "exiting": "Beenden...",
             "terminated": "Abgebrochen",
-            "watching": "{channel} wid zugesehen",
             "cleanup": "Kanäle aufräumen..",
             "gathering": "Kanäle sammeln...",
             "switching": "Wechsel des Kanals...",
