@@ -1040,11 +1040,17 @@ class Twitch:
                 trigger_cleanup = True
                 self._mnt_triggers.popleft()
                 next_trigger = switch_trigger
+            if next_trigger == next_period:
+                trigger_type: str = "Reload"
+            elif trigger_cleanup:
+                trigger_type = "Cleanup"
+            else:
+                trigger_type = "Points"
             logger.log(
                 CALL,
                 (
-                    f"Maintenance task waiting until: {next_trigger.astimezone().strftime('%X')} "
-                    f"({'Cleanup' if trigger_cleanup else 'Reload'})"
+                    "Maintenance task waiting until: "
+                    f"{next_trigger.astimezone().strftime('%X')} ({trigger_type})"
                 )
             )
             await asyncio.sleep((next_trigger - now).total_seconds())
@@ -1063,7 +1069,7 @@ class Twitch:
                 except Exception:
                     pass  # we intentionally silently skip anything else
         # this triggers this task restart every (up to) 60 minutes
-        logger.log(CALL, "Maintenance task requests reload")
+        logger.log(CALL, "Maintenance task requests a reload")
         self.change_state(State.INVENTORY_FETCH)
 
     def can_watch(self, channel: Channel) -> bool:
