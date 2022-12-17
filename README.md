@@ -68,5 +68,5 @@ if they aren't already there. Doing so ensures proper markdown rendering on Gith
 @Suz1e - For the entirety of the Chinese (简体中文) translation and revisions.  
 @wwj010 - For the Chinese (简体中文) translation corrections and revisions.  
 @nwvh - For the entirety of the Czech (Čeština) translation.  
-@ThisIsCyreX - For the entirety of the German (Deutsch) translation.
+@ThisIsCyreX - For the entirety of the German (Deutsch) translation.  
 @zarigata - For the entirety of the Portuguese (Português) translation.
