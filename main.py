@@ -12,6 +12,7 @@ if __name__ == "__main__":
     import asyncio
     import logging
     import argparse
+    import warnings
     import traceback
     import tkinter as tk
     from tkinter import messagebox
@@ -30,6 +31,8 @@ if __name__ == "__main__":
     from version import __version__
     from exceptions import CaptchaRequired
     from constants import CALL, SELF_PATH, FILE_FORMATTER, LOG_PATH, WINDOW_TITLE
+
+    warnings.simplefilter("default", ResourceWarning)
 
     class Parser(argparse.ArgumentParser):
         def __init__(self, *args, **kwargs) -> None:
