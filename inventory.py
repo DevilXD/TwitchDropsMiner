@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from itertools import chain
 from typing import TYPE_CHECKING
 from functools import cached_property
 from datetime import datetime, timezone
@@ -245,6 +246,15 @@ class DropsCampaign:
     @property
     def drops(self) -> abc.Iterable[TimedDrop]:
         return self.timed_drops.values()
+
+    @property
+    def time_triggers(self) -> set[datetime]:
+        return set(
+            chain(
+                (self.starts_at, self.ends_at),
+                *((d.starts_at, d.ends_at) for d in self.timed_drops.values()),
+            )
+        )
 
     @property
     def active(self) -> bool:

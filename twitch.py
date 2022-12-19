@@ -1554,8 +1554,7 @@ class Twitch:
             )
             self._drops.update({drop.id: drop for drop in campaign.drops})
             if campaign.can_earn_within(next_hour):
-                switch_triggers.add(campaign.starts_at)
-                switch_triggers.add(campaign.ends_at)
+                switch_triggers.update(campaign.time_triggers)
             # NOTE: this fetches pictures from the CDN, so might be slow without a cache
             await self.gui.inv.add_campaign(campaign)
             # this is needed here explicitly, because images aren't always fetched
