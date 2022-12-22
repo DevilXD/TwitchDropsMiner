@@ -56,14 +56,13 @@ from utils import (
 from constants import (
     CALL,
     BASE_URL,
-    CLIENT_ID,
     COOKIES_PATH,
     GQL_OPERATIONS,
     MAX_CHANNELS,
     WATCH_INTERVAL,
     DROPS_ENABLED_TAG,
-    ANDROID_USER_AGENT,
     State,
+    ClientType,
     WebsocketTopic,
 )
 
@@ -87,6 +86,7 @@ class SkipExtraJsonDecoder(json.JSONDecoder):
         return obj
 
 
+CLIENT_ID, USER_AGENT = ClientType.ANDROID
 SAFE_LOADS = lambda s: json.loads(s, cls=SkipExtraJsonDecoder)
 
 
@@ -276,6 +276,9 @@ class _AuthState:
         token_kind: str = ''
         use_chrome: bool = False
         payload: JsonType = {
+            # username and password are added later
+            # "username": str,
+            # "password": str,
             "client_id": CLIENT_ID,  # client ID to-be associated with the access token
             "undelete_user": False,  # purpose unknown
             "remember_me": True,  # persist the session via the cookie
@@ -310,7 +313,7 @@ class _AuthState:
                 "Client-Id": CLIENT_ID,
                 "Content-Type": "application/json; charset=UTF-8",
                 "Host": "passport.twitch.tv",
-                "User-Agent": ANDROID_USER_AGENT,
+                "User-Agent": USER_AGENT,
                 "X-Device-Id": self.device_id,
                 # "X-Device-Id": ''.join(random.choices('0123456789abcdef', k=32)),
             }
@@ -569,10 +572,7 @@ class Twitch:
                 chrome_agent = random.choice(agents[7:11])
         except Exception:
             # looks like we can't rely on 3rd parties too much
-            chrome_agent = (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"
-            )
+            chrome_agent = ClientType.WEB.USER_AGENT
         # load in cookies
         cookie_jar = aiohttp.CookieJar()
         if COOKIES_PATH.exists():

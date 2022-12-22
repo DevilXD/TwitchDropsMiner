@@ -6,6 +6,7 @@ from pathlib import Path
 from copy import deepcopy
 from enum import Enum, auto
 from datetime import timedelta
+from collections import namedtuple
 from typing import Any, Dict, Literal, NewType, TYPE_CHECKING
 
 from yarl import URL
@@ -69,12 +70,6 @@ MAX_CHANNELS = MAX_TOPICS // TOPICS_PER_CHANNEL
 # Misc
 DEFAULT_LANG = "English"
 BASE_URL = URL("https://twitch.tv")
-CLIENT_ID = "kd1unb4b3q4t58fwlpcbzcbnm76a8fp"
-# CLIENT_ID = "uo6dggojyb8d6soh92zknwmi5ej1q2"
-ANDROID_USER_AGENT = (
-    "Dalvik/2.1.0 (Linux; U; Android 7.1.2; SM-G977N Build/LMY48Z) "
-    "tv.twitch.android.app/14.3.2/1403020"
-)
 # Intervals and Delays
 PING_INTERVAL = timedelta(minutes=3)
 PING_TIMEOUT = timedelta(seconds=10)
@@ -90,6 +85,31 @@ FILE_FORMATTER = logging.Formatter(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 OUTPUT_FORMATTER = logging.Formatter("{levelname}: {message}", style='{', datefmt="%H:%M:%S")
+ClientInfo = namedtuple("ClientInfo", ["CLIENT_ID", "USER_AGENT"])
+
+
+class ClientType:
+    WEB = ClientInfo(
+        "kimne78kx3ncx6brgo4mv6wki5h1ko",
+        (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
+        ),
+    )
+    ANDROID = ClientInfo(
+        "kd1unb4b3q4t58fwlpcbzcbnm76a8fp",
+        (
+            "Dalvik/2.1.0 (Linux; U; Android 7.1.2; SM-G977N Build/LMY48Z) "
+            "tv.twitch.android.app/14.3.2/1403020"
+        ),
+    )
+    SMARTBOX = ClientInfo(
+        "ue6666qo983tsx6so1t0vnawi233wa",
+        (
+            "Mozilla/5.0 (Linux; Android 7.1; Smart Box C1) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
+        ),
+    )
 
 
 class State(Enum):
