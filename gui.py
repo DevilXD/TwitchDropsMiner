@@ -431,13 +431,14 @@ class LoginForm:
         ttk.Label(frame, text=_("gui", "login", "labels")).grid(column=0, row=0)
         ttk.Label(frame, textvariable=self._var, justify="center").grid(column=1, row=0)
         self._login_entry = PlaceholderEntry(frame, placeholder=_("gui", "login", "username"))
-        self._login_entry.grid(column=0, row=1, columnspan=2)
+        # self._login_entry.grid(column=0, row=1, columnspan=2)
         self._pass_entry = PlaceholderEntry(
             frame, placeholder=_("gui", "login", "password"), show='•'
         )
-        self._pass_entry.grid(column=0, row=2, columnspan=2)
+        # self._pass_entry.grid(column=0, row=2, columnspan=2)
         self._token_entry = PlaceholderEntry(frame, placeholder=_("gui", "login", "twofa_code"))
-        self._token_entry.grid(column=0, row=3, columnspan=2)
+        # self._token_entry.grid(column=0, row=3, columnspan=2)
+
         self._confirm = asyncio.Event()
         self._button = ttk.Button(
             frame, text=_("gui", "login", "button"), command=self._confirm.set, state="disabled"
@@ -488,6 +489,15 @@ class LoginForm:
                 self.clear(token=True)
                 continue
             return login_data
+
+    async def ask_enter_code(self, user_code: str) -> None:
+        self.update(_("gui", "login", "required"), None)
+        # ensure the window isn't hidden into tray when this runs
+        self._manager.tray.restore()
+        self._manager.print(_("gui", "login", "request"))
+        await self.wait_for_login_press()
+        self._manager.print(f"Enter this code on the Twitch's device activation page: {user_code}")
+        webbrowser.open_new_tab("https://www.twitch.tv/activate")
 
     def update(self, status: str, user_id: int | None):
         if user_id is not None:

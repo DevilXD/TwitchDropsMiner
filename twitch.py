@@ -86,7 +86,7 @@ class SkipExtraJsonDecoder(json.JSONDecoder):
         return obj
 
 
-CLIENT_ID, USER_AGENT = ClientType.ANDROID
+CLIENT_ID, USER_AGENT = ClientType.SMARTBOX
 SAFE_LOADS = lambda s: json.loads(s, cls=SkipExtraJsonDecoder)
 
 
@@ -267,6 +267,81 @@ class _AuthState:
                     driver.quit()
                     driver = None
             await coro_unless_closed(login_form.wait_for_login_press())
+
+    async def _oauth_login(self) -> str:
+        login_form: LoginForm = self._twitch.gui.login
+        headers = {
+            "Accept": "application/json",
+            "Accept-Encoding": "gzip",
+            "Accept-Language": "en-US",
+            "Cache-Control": "no-cache",
+            "Client-Id": CLIENT_ID,
+            "Host": "id.twitch.tv",
+            "Origin": "https://android.tv.twitch.tv",
+            "Pragma": "no-cache",
+            "Referer": "https://android.tv.twitch.tv/",
+            "User-Agent": USER_AGENT,
+            "X-Device-Id": self.device_id,
+        }
+        payload = {
+            "client_id": CLIENT_ID,
+            "scopes": (
+                "channel_read chat:read user_blocks_edit "
+                "user_blocks_read user_follows_edit user_read"
+            ),
+        }
+        while True:
+            try:
+                async with self._twitch.request(
+                    "POST", "https://id.twitch.tv/oauth2/device", headers=headers, data=payload
+                ) as response:
+                    # {
+                    #     "device_code": "40 chars [A-Za-z0-9]",
+                    #     "expires_in": 1800,
+                    #     "interval": 5,
+                    #     "user_code": "8 chars [A-Z]",
+                    #     "verification_uri": "https://www.twitch.tv/activate"
+                    # }
+                    now = datetime.now(timezone.utc)
+                    response_json: JsonType = await response.json()
+                    device_code: str = response_json["device_code"]
+                    user_code: str = response_json["user_code"]
+                    interval: int = response_json["interval"]
+                    expires_at = now + timedelta(seconds=response_json["expires_in"])
+
+                # Print the code to the user, open them the activate page so they can type it in
+                await login_form.ask_enter_code(user_code)
+
+                payload = {
+                    "client_id": CLIENT_ID,
+                    "device_code": device_code,
+                    "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                }
+                while True:
+                    # sleep first, not like the user is gonna enter the code *that* fast
+                    await asyncio.sleep(interval)
+                    async with self._twitch.request(
+                        "POST",
+                        "https://id.twitch.tv/oauth2/token",
+                        headers=headers,
+                        data=payload,
+                        invalidate_after=expires_at,
+                    ) as response:
+                        # 200 means success, 400 means the user haven't entered the code yet
+                        if response.status != 200:
+                            continue
+                        response_json = await response.json()
+                        # {
+                        #     "access_token": "40 chars [A-Za-z0-9]",
+                        #     "refresh_token": "40 chars [A-Za-z0-9]",
+                        #     "scope": [...],
+                        #     "token_type": "bearer"
+                        # }
+                        self.access_token = cast(str, response_json["access_token"])
+                        return self.access_token
+            except RequestInvalid:
+                # the device_code has expired, request a new code
+                continue
 
     async def _login(self) -> str:
         logger.info("Login flow started")
@@ -462,7 +537,7 @@ class _AuthState:
             for attempt in range(2):
                 cookie = jar.filter_cookies(BASE_URL)
                 if "auth-token" not in cookie:
-                    self.access_token = await self._login()
+                    self.access_token = await self._oauth_login()
                     cookie["auth-token"] = self.access_token
                 elif not hasattr(self, "access_token"):
                     logger.info("Restoring session from cookie")
