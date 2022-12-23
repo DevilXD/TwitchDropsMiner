@@ -444,7 +444,7 @@ class _AuthState:
             jar = cast(aiohttp.CookieJar, session.cookie_jar)
         if not self._hasattrs("client_version", "device_id"):
             async with self._twitch.request(
-                "GET", BASE_URL, headers=self.headers()  # (user_agent=ANDROID_USER_AGENT)
+                "GET", BASE_URL, headers=self.headers()
             ) as response:
                 page_html = await response.text("utf8")
                 match = re.search(r'twilightBuildID="([-a-z0-9]+)"', page_html)

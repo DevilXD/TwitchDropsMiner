@@ -11,7 +11,7 @@ __pycache__
 # Dev files
 /env
 /cache
+/*.jar
 log.txt
-cookies.jar
 settings.json
 /lang/English.json

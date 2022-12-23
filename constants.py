@@ -6,8 +6,7 @@ from pathlib import Path
 from copy import deepcopy
 from enum import Enum, auto
 from datetime import timedelta
-from collections import namedtuple
-from typing import Any, Dict, Literal, NewType, TYPE_CHECKING
+from typing import Any, Dict, Literal, NamedTuple, NewType, TYPE_CHECKING
 
 from yarl import URL
 
@@ -85,7 +84,11 @@ FILE_FORMATTER = logging.Formatter(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 OUTPUT_FORMATTER = logging.Formatter("{levelname}: {message}", style='{', datefmt="%H:%M:%S")
-ClientInfo = namedtuple("ClientInfo", ["CLIENT_ID", "USER_AGENT"])
+
+
+class ClientInfo(NamedTuple):
+    CLIENT_ID: str
+    USER_AGENT: str
 
 
 class ClientType:
