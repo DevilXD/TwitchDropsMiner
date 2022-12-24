@@ -560,6 +560,8 @@ class _AuthState:
                         break
             else:
                 raise RuntimeError("Login verification failure")
+            if validate_response["client_id"] != CLIENT_ID:
+                raise MinerException("You're using an old cookie file, please generate a new one.")
             self.user_id = int(validate_response["user_id"])
             cookie["persistent"] = str(self.user_id)
             logger.info(f"Login successful, user ID: {self.user_id}")
