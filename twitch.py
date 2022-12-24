@@ -1511,7 +1511,7 @@ class Twitch:
                     "POST",
                     "https://gql.twitch.tv/gql",
                     json=ops,
-                    headers=auth_state.headers(gql=True),
+                    headers=auth_state.headers(user_agent=USER_AGENT, gql=True),
                     invalidate_after=getattr(auth_state, "integrity_expires", None),
                 ) as response:
                     response_json: JsonType | list[JsonType] = await response.json()
