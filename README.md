@@ -42,7 +42,7 @@ Every ~60 seconds, the application sends a "minute watched" event to the channel
 <div align="center">
 
 [![Buy me a coffee](https://i.imgur.com/cL95gzE.png)](
-https://www.buymeacoffee.com/DevilXD
+    https://www.buymeacoffee.com/DevilXD
 )
 [![Support me on Patreon](https://i.imgur.com/Mdkb9jq.png)](
 https://www.patreon.com/bePatron?u=26937862
