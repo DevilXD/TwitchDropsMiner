@@ -42,10 +42,10 @@ Every ~60 seconds, the application sends a "minute watched" event to the channel
 <div align="center">
 
 [![Buy me a coffee](https://i.imgur.com/cL95gzE.png)](
-    https://www.buymeacoffee.com/DevilXD
+https://www.buymeacoffee.com/DevilXD
 )
 [![Support me on Patreon](https://i.imgur.com/Mdkb9jq.png)](
-    https://www.patreon.com/bePatron?u=26937862
+https://www.patreon.com/bePatron?u=26937862
 )
 
 </div>
@@ -69,4 +69,5 @@ if they aren't already there. Doing so ensures proper markdown rendering on Gith
 @wwj010 - For the Chinese (简体中文) translation corrections and revisions.  
 @nwvh - For the entirety of the Czech (Čeština) translation.  
 @ThisIsCyreX - For the entirety of the German (Deutsch) translation.  
-@zarigata - For the entirety of the Portuguese (Português) translation.
+@zarigata - For the entirety of the Portuguese (Português) translation.  
+@alikdb - For the entirety of the Turkish (Türkçe) translation.
