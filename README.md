@@ -45,7 +45,7 @@ Every ~60 seconds, the application sends a "minute watched" event to the channel
     https://www.buymeacoffee.com/DevilXD
 )
 [![Support me on Patreon](https://i.imgur.com/Mdkb9jq.png)](
-https://www.patreon.com/bePatron?u=26937862
+    https://www.patreon.com/bePatron?u=26937862
 )
 
 </div>
