@@ -69,4 +69,5 @@ if they aren't already there. Doing so ensures proper markdown rendering on Gith
 @wwj010 - For the Chinese (简体中文) translation corrections and revisions.  
 @nwvh - For the entirety of the Czech (Čeština) translation.  
 @ThisIsCyreX - For the entirety of the German (Deutsch) translation.  
-@zarigata - For the entirety of the Portuguese (Português) translation.
+@zarigata - For the entirety of the Portuguese (Português) translation.  
+@alikdb - For the entirety of the Turkish (Türkçe) translation.
