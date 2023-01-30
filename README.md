@@ -70,4 +70,6 @@ if they aren't already there. Doing so ensures proper markdown rendering on Gith
 @nwvh - For the entirety of the Czech (Čeština) translation.  
 @ThisIsCyreX - For the entirety of the German (Deutsch) translation.  
 @zarigata - For the entirety of the Portuguese (Português) translation.  
-@alikdb - For the entirety of the Turkish (Türkçe) translation.
+@alikdb - For the entirety of the Turkish (Türkçe) translation.  
+@roobini-gamer - For the entirety of the French (Français) translation.  
+
