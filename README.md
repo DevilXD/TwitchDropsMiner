@@ -73,4 +73,4 @@ if they aren't already there. Doing so ensures proper markdown rendering on Gith
 @zarigata - For the entirety of the Portuguese (Português) translation.  
 @alikdb - For the entirety of the Turkish (Türkçe) translation.  
 @roobini-gamer - For the entirety of the French (Français) translation.  
-
+@Sergo1217 - For the entirety of the Russian (Русский) translation.
