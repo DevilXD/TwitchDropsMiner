@@ -1042,6 +1042,9 @@ class TrayIcon:
     def notify(
         self, message: str, title: str | None = None, duration: float = 10
     ) -> asyncio.Task[None] | None:
+        # do nothing if the user disabled notifications
+        if not self._manager._twitch.settings.tray_notifications:
+            return None
         if self.icon is not None:
             icon = self.icon
 
@@ -1386,6 +1389,7 @@ class _SettingsVars(TypedDict):
     proxy: StringVar
     autostart: IntVar
     priority_only: IntVar
+    tray_notifications: IntVar
 
 
 class SettingsPanel:
@@ -1400,6 +1404,7 @@ class SettingsPanel:
             "tray": IntVar(master, self._settings.autostart_tray),
             "autostart": IntVar(master, self._settings.autostart),
             "priority_only": IntVar(master, self._settings.priority_only),
+            "tray_notifications": IntVar(master, self._settings.tray_notifications),
         }
         master.rowconfigure(0, weight=1)
         master.columnconfigure(0, weight=1)
@@ -1441,6 +1446,14 @@ class SettingsPanel:
         ).grid(column=0, row=(irow := irow + 1), sticky="e")
         ttk.Checkbutton(
             checkboxes_frame, variable=self._vars["tray"], command=self.update_autostart
+        ).grid(column=1, row=irow, sticky="w")
+        ttk.Label(
+            checkboxes_frame, text=_("gui", "settings", "general", "tray_notifications")
+        ).grid(column=0, row=(irow := irow + 1), sticky="e")
+        ttk.Checkbutton(
+            checkboxes_frame,
+            variable=self._vars["tray_notifications"],
+            command=self.update_notifications,
         ).grid(column=1, row=irow, sticky="w")
         ttk.Label(
             checkboxes_frame, text=_("gui", "settings", "general", "priority_only")
@@ -1547,6 +1560,9 @@ class SettingsPanel:
     def clear_selection(self) -> None:
         self._priority_list.selection_clear(0, "end")
         self._exclude_list.selection_clear(0, "end")
+
+    def update_notifications(self) -> None:
+        self._settings.tray_notifications = bool(self._vars["tray_notifications"])
 
     def update_autostart(self) -> None:
         enabled = bool(self._vars["autostart"].get())

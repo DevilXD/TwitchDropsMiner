@@ -19,6 +19,7 @@ class SettingsFile(TypedDict):
     priority: list[str]
     priority_only: bool
     autostart_tray: bool
+    tray_notifications: bool
 
 
 default_settings: SettingsFile = {
@@ -29,6 +30,7 @@ default_settings: SettingsFile = {
     "priority_only": True,
     "autostart_tray": False,
     "language": DEFAULT_LANG,
+    "tray_notifications": True,
 }
 
 
@@ -49,6 +51,7 @@ class Settings:
     priority: list[str]
     priority_only: bool
     autostart_tray: bool
+    tray_notifications: bool
 
     PASSTHROUGH = ("_settings", "_args", "_altered")
 

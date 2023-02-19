@@ -164,6 +164,7 @@ class GUISettingsGeneral(TypedDict):
     name: str
     autostart: str
     tray: str
+    tray_notifications: str
     priority_only: str
     proxy: str
 
@@ -358,6 +359,7 @@ default_translation: Translation = {
                 "name": "General",
                 "autostart": "Autostart: ",
                 "tray": "Autostart into tray: ",
+                "tray_notifications": "Tray notifications: ",
                 "priority_only": "Priority Only: ",
                 "proxy": "Proxy (requires restart):",
             },
