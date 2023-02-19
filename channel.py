@@ -55,14 +55,17 @@ class Stream:
 
     @classmethod
     def from_directory(cls, channel: Channel, data: JsonType) -> Stream:
-        return cls(
+        self = cls(
             channel,
             id=data["id"],
             game=data["game"],  # has to be there since we searched with it
             viewers=data["viewersCount"],
             title=data["title"],
-            tags=data["tags"],
+            tags=[],
         )
+        # HACK: we assume this is always the case for directory streams, since we search by the tag
+        self.drops_enabled = True
+        return self
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, self.__class__):
