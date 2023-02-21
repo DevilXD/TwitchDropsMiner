@@ -136,6 +136,7 @@
                 "name": "Ajustes generales",
                 "autostart": "Ejecutar al iniciar el sistema: ",
                 "tray": "Ejecutar en la bandeja del sistema: ",
+                "tray_notifications": "Mostrar notificaciones: ",
                 "priority_only": "Minar solo juegos preferidos: ",
                 "proxy": "Proxy (requiere reinicio):"
             },
