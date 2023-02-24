@@ -172,7 +172,7 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
     # can be used to claim a drop
     "ClaimDrop": GQLOperation(
         "DropsPage_ClaimDropRewards",
-        "2f884fa187b8fadb2a49db0adc033e636f7b6aaee6e76de1e2bba9a7baf0daf6",
+        "a455deea71bdc9015b78eb49f4acfbce8baa7ccbedd28e549bb025bd0f751930",
         variables={
             "input": {
                 "dropInstanceID": ...,  # drop claim_id
