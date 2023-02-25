@@ -95,9 +95,10 @@ if __name__ == "__main__":
     root = tk.Tk()
     root.overrideredirect(True)
     root.withdraw()
-    root.iconphoto(
-        True, PhotoImage(master=root, image=Image_module.open(resource_path("pickaxe.ico")))
-    )
+    with Image_module.open(resource_path("pickaxe.ico")) as image:
+        root.iconphoto(
+            True, PhotoImage(master=root, image=image)
+        )
     root.update()
     parser = Parser(
         SELF_PATH.name,

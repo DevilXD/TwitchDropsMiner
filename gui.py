@@ -1779,13 +1779,14 @@ class GUIManager:
         # withdraw immediately to prevent the window from flashing
         self._root.withdraw()
         # root.resizable(False, True)
-        root.iconphoto(  # window icon
-            True,
-            PhotoImage(
-                master=root,
-                image=Image_module.open(resource_path("pickaxe.ico")),
+        with Image_module.open(resource_path("pickaxe.ico")) as image:
+            root.iconphoto(  # window icon
+                True,
+                PhotoImage(
+                    master=root,
+                    image=image,
+                )
             )
-        )
         root.title(WINDOW_TITLE)  # window title
         root.bind_all("<KeyPress-Escape>", self.unfocus)  # pressing ESC unfocuses selection
         # Image cache for displaying images
