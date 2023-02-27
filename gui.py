@@ -1562,7 +1562,7 @@ class SettingsPanel:
         self._exclude_list.selection_clear(0, "end")
 
     def update_notifications(self) -> None:
-        self._settings.tray_notifications = bool(self._vars["tray_notifications"])
+        self._settings.tray_notifications = bool(self._vars["tray_notifications"].get())
 
     def update_autostart(self) -> None:
         enabled = bool(self._vars["autostart"].get())
