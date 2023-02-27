@@ -1523,16 +1523,19 @@ class Twitch:
                 response_list = response_json
             else:
                 response_list = [response_json]
-            has_timeout: bool = False
+            force_retry: bool = False
             for response_json in response_list:
                 if "errors" in response_json:
                     for error_dict in response_json["errors"]:
-                        if "message" in error_dict and error_dict["message"] == "service timeout":
-                            has_timeout = True
+                        if (
+                            "message" in error_dict
+                            and error_dict["message"] in ("service timeout", "service error")
+                        ):
+                            force_retry = True
                             break
                     else:
                         raise MinerException(f"GQL error: {response_json['errors']}")
-                if has_timeout:
+                if force_retry:
                     break
             else:
                 return orig_response
