@@ -1354,7 +1354,7 @@ class Twitch:
                 if drop_data is None or drop_data["dropID"] != drop.id:
                     break
                 await asyncio.sleep(2)
-            if campaign.remaining_drops:
+            if campaign.can_earn(self.watching_channel.get_with_default(None)):
                 self.restart_watching()
             else:
                 self.change_state(State.INVENTORY_FETCH)
