@@ -3,7 +3,6 @@ from __future__ import annotations
 # import an additional thing for proper PyInstaller freeze support
 from multiprocessing import freeze_support
 
-
 if __name__ == "__main__":
     freeze_support()
     import io
@@ -34,6 +33,7 @@ if __name__ == "__main__":
 
     warnings.simplefilter("default", ResourceWarning)
 
+
     class Parser(argparse.ArgumentParser):
         def __init__(self, *args, **kwargs) -> None:
             super().__init__(*args, **kwargs)
@@ -48,6 +48,7 @@ if __name__ == "__main__":
                 super().exit(status, message)  # sys.exit(2)
             finally:
                 messagebox.showerror("Argument Parser Error", self._message.getvalue())
+
 
     class ParsedArgs(argparse.Namespace):
         _verbose: int
@@ -89,16 +90,13 @@ if __name__ == "__main__":
                 return logging.INFO
             return logging.NOTSET
 
+
     # handle input parameters
     # NOTE: parser output is shown via message box
     # we also need a dummy invisible window for the parser
-    root = tk.Tk()
-    root.overrideredirect(True)
-    root.withdraw()
-    root.iconphoto(
-        True, PhotoImage(master=root, image=Image_module.open(resource_path("pickaxe.ico")))
-    )
-    root.update()
+    # TODO: To make it works with CLI mode, I have to move the parser to
+    # TODO: before creating the window temporarily. A better method is needed.
+    # TODO: Maybe direct the parser output to the console?
     parser = Parser(
         SELF_PATH.name,
         description="A program that allows you to mine timed drops on Twitch.",
@@ -107,6 +105,7 @@ if __name__ == "__main__":
     parser.add_argument("-v", dest="_verbose", action="count", default=0)
     parser.add_argument("--tray", action="store_true")
     parser.add_argument("--log", action="store_true")
+    parser.add_argument("--cli", action="store_true")
     # undocumented debug args
     parser.add_argument(
         "--no-run-check", dest="no_run_check", action="store_true", help=argparse.SUPPRESS
@@ -118,6 +117,16 @@ if __name__ == "__main__":
         "--debug-gql", dest="_debug_gql", action="store_true", help=argparse.SUPPRESS
     )
     args = parser.parse_args(namespace=ParsedArgs())
+
+    if not args.cli:
+        root = tk.Tk()
+        root.overrideredirect(True)
+        root.withdraw()
+        root.iconphoto(
+            True, PhotoImage(master=root, image=Image_module.open(resource_path("pickaxe.ico")))
+        )
+        root.update()
+
     # load settings
     try:
         settings = Settings(args)
@@ -127,10 +136,13 @@ if __name__ == "__main__":
             f"There was an error while loading the settings file:\n\n{traceback.format_exc()}"
         )
         sys.exit(4)
-    # dummy window isn't needed anymore
-    root.destroy()
+
+    if not args.cli:
+        # dummy window isn't needed anymore
+        root.destroy()
+        del root
     # get rid of unneeded objects
-    del root, parser
+    del parser
 
     # check if we're not already running
     if sys.platform == "win32":
@@ -168,7 +180,7 @@ if __name__ == "__main__":
     exit_status = 0
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    client = Twitch(settings)
+    client = Twitch(settings, args.cli)
     signal.signal(signal.SIGINT, lambda *_: client.gui.close())
     signal.signal(signal.SIGTERM, lambda *_: client.gui.close())
     try:

@@ -30,7 +30,6 @@ except ImportError as exc:
     ) from exc
 
 from translate import _
-from gui import GUIManager
 from channel import Channel
 from websocket import WebsocketPool
 from inventory import DropsCampaign
@@ -605,7 +604,7 @@ class _AuthState:
 
 
 class Twitch:
-    def __init__(self, settings: Settings):
+    def __init__(self, settings: Settings, cli: bool = False):
         self.settings: Settings = settings
         # State management
         self._state: State = State.IDLE
@@ -618,6 +617,10 @@ class Twitch:
         self._session: aiohttp.ClientSession | None = None
         self._auth_state: _AuthState = _AuthState(self)
         # GUI
+        if cli:
+            from cli import CLIManager as GUIManager
+        else:
+            from gui import GUIManager
         self.gui = GUIManager(self)
         # Storing and watching channels
         self.channels: OrderedDict[int, Channel] = OrderedDict()

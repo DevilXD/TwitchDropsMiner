@@ -14,6 +14,8 @@ Available command line arguments:
 	matches the level set by `-v`.
 • --version
 	Show application version information
+• --cli
+    Launch in Command Line Interface mode.
 
 Note: Additional settings are available within the application GUI.
 

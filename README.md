@@ -25,6 +25,12 @@ Every ~60 seconds, the application sends a "minute watched" event to the channel
 - Make sure to link your Twitch account to game accounts on the [campaigns page](https://www.twitch.tv/drops/campaigns), to enable more games to be mined.
 - Persistent cookies will be stored in the `cookies.jar` file, from which the authorization (login) information will be restored on each subsequent run.
 
+#### Running on server without GUI:
+
+- Add the argument `--cli` to launch in the Command Line Interface mode.
+- To log in, you should open a link shown in the message, and enter the shown code on the webpage.
+- Only necessary information is displayed, and all settings are configured in `settings.json`.
+
 ### Pictures:
 
 ![Main](https://user-images.githubusercontent.com/4180725/164298155-c0880ad7-6423-4419-8d73-f3c053730a1b.png)
