@@ -53,25 +53,90 @@ jobs:
 
       - name: Create release folder
         run: |
-          $FolderName = "Twitch Drops Miner"
-          if (!(Test-Path $FolderName)) {
-            New-Item $FolderName -ItemType Directory
-          }
-          Copy-Item dist\*.exe -Destination $FolderName
+          $FolderName = 'Twitch Drops Miner'
+          New-Item $FolderName -ItemType Directory
+          Copy-Item dist\*.exe $FolderName
           Copy-Item manual.txt $FolderName
-          Compress-Archive -Path $FolderName -DestinationPath Twitch.Drops.Miner.zip
+          Compress-Archive -Path $FolderName -DestinationPath Twitch.Drops.Miner.Windows.zip
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v3
         with:
           if-no-files-found: error
-          name: Twitch.Drops.Miner
-          path: Twitch.Drops.Miner.zip
+          name: Twitch.Drops.Miner.Windows
+          path: Twitch.Drops.Miner.Windows.zip
+
+  linux:
+    name: Linux
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up variables
+        id: vars
+        run: |
+          echo "sha_short=$(git rev-parse --short HEAD)" >> "${GITHUB_OUTPUT}"
+
+      - name: Append git revision to project version
+        run: |
+          sed -ri "s/^__version__\s*=\s*\"[^\"]+/\0.${{ steps.vars.outputs.sha_short }}/" version.py
+
+      # NOTE: We're only use a custom version of Python here because truststore requires at least Python 3.10, but Ubuntu 20.04 has Python 3.8.
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt update
+          sudo apt install gir1.2-appindicator3-0.1 libgirepository1.0-dev python3-tk
+
+      - name: Set up Python virtual environment
+        run: |
+          python3 -m venv env
+
+      - name: Install project dependencies
+        run: |
+          source ./env/bin/activate
+          python3 -m pip install wheel -r requirements.txt
+
+      - name: Install PyInstaller
+        run: |
+          source ./env/bin/activate
+          python3 -m pip install pyinstaller
+
+      - name: Create portable executable
+        run: |
+          source ./env/bin/activate
+          xvfb-run --auto-servernum pyinstaller build.spec
+
+      - name: Show PyInstaller warnings
+        run: |
+          cat build/build/warn-build.txt || true
+
+      - name: Create release folder
+        run: |
+          folder='Twitch Drops Miner'
+          mkdir "${folder}"
+          cp manual.txt dist/* "${folder}"
+          7z a Twitch.Drops.Miner.Linux.zip "${folder}"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v3
+        with:
+          if-no-files-found: error
+          name: Twitch.Drops.Miner.Linux
+          path: Twitch.Drops.Miner.Linux.zip
 
   update_releases_page:
-    name: Upload build to Releases
+    name: Upload builds to Releases
     if: github.event_name != 'pull_request'
-    needs: windows
+    needs:
+      - windows
+      - linux
     runs-on: ubuntu-22.04
     permissions:
       contents: write
@@ -87,7 +152,7 @@ jobs:
         with:
           path: artifacts
 
-      - name: Upload build to Releases
+      - name: Upload builds to Releases
         uses: ncipollo/release-action@v1
         with:
           allowUpdates: true
