@@ -47,7 +47,10 @@ if __name__ == "__main__":
             try:
                 super().exit(status, message)  # sys.exit(2)
             finally:
-                messagebox.showerror("Argument Parser Error", self._message.getvalue())
+                try:
+                    messagebox.showerror("Argument Parser Error", self._message.getvalue())
+                except Exception:  # dummy window doesn't exist
+                    print("Argument Parser Error", self._message.getvalue())
 
 
     class ParsedArgs(argparse.Namespace):
@@ -91,12 +94,20 @@ if __name__ == "__main__":
             return logging.NOTSET
 
 
+    try:
+        root = tk.Tk()
+        root.overrideredirect(True)
+        root.withdraw()
+        root.iconphoto(
+            True, PhotoImage(master=root, image=Image_module.open(resource_path("pickaxe.ico")))
+        )
+        root.update()
+    except Exception:  # root window doesn't created
+        pass
+
     # handle input parameters
     # NOTE: parser output is shown via message box
     # we also need a dummy invisible window for the parser
-    # TODO: To make it works with CLI mode, I have to move the parser to
-    # TODO: before creating the window temporarily. A better method is needed.
-    # TODO: Maybe direct the parser output to the console?
     parser = Parser(
         SELF_PATH.name,
         description="A program that allows you to mine timed drops on Twitch.",
@@ -118,15 +129,6 @@ if __name__ == "__main__":
     )
     args = parser.parse_args(namespace=ParsedArgs())
 
-    if not args.cli:
-        root = tk.Tk()
-        root.overrideredirect(True)
-        root.withdraw()
-        root.iconphoto(
-            True, PhotoImage(master=root, image=Image_module.open(resource_path("pickaxe.ico")))
-        )
-        root.update()
-
     # load settings
     try:
         settings = Settings(args)
@@ -137,10 +139,12 @@ if __name__ == "__main__":
         )
         sys.exit(4)
 
-    if not args.cli:
+    try:
         # dummy window isn't needed anymore
         root.destroy()
         del root
+    except NameError:  # root doesn't exist
+        pass
     # get rid of unneeded objects
     del parser
 
@@ -180,7 +184,7 @@ if __name__ == "__main__":
     exit_status = 0
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    client = Twitch(settings, args.cli)
+    client = Twitch(settings)
     signal.signal(signal.SIGINT, lambda *_: client.gui.close())
     signal.signal(signal.SIGTERM, lambda *_: client.gui.close())
     try:

@@ -4,27 +4,25 @@ import curses
 import asyncio
 import logging
 from collections import abc
-from math import log10, ceil
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, TYPE_CHECKING
 
 from translate import _
+from base_ui import BaseInterfaceManager, BaseSettingsPanel, BaseInventoryOverview, BaseCampaignProgress, \
+    BaseConsoleOutput, BaseChannelList, BaseTrayIcon, BaseLoginForm, BaseWebsocketStatus, BaseStatusBar
 from exceptions import ExitRequest
 from utils import Game, _T
 from constants import (
-    OUTPUT_FORMATTER, WS_TOPICS_LIMIT
+    OUTPUT_FORMATTER
 )
 
 if TYPE_CHECKING:
     from twitch import Twitch
     from channel import Channel
-    from settings import Settings
     from inventory import DropsCampaign, TimedDrop
 
-DIGITS = ceil(log10(WS_TOPICS_LIMIT))
-
-WINDOW_WIDTH = 100
+WINDOW_WIDTH = 80
 
 
 class _LoggingHandler(logging.Handler):
@@ -36,85 +34,34 @@ class _LoggingHandler(logging.Handler):
         self._output.print(self.format(record))
 
 
-class StatusBar:
+class StatusBar(BaseStatusBar):
     def __init__(self):
         self._window = curses.newwin(1, WINDOW_WIDTH, 1, 0)
         self.update("")
 
     def update(self, status: str):
         self._window.clear()
-        self._window.addstr(0, 0, f"{_('gui', 'status', 'name')}: ")
+        self._window.addstr(0, 0, f"{_('gui', 'status', 'name')}: ", curses.A_BOLD)
         self._window.addstr(status)
         self._window.refresh()
 
-
-@dataclass
-class _WSEntry:
-    status: str
-    topics: int
+    def clear(self):
+        self.update("")
 
 
-class WebsocketStatus:
+class WebsocketStatus(BaseWebsocketStatus):
     """
-    The websocket status display is removed from CLI mode
-    to reduce unnecessary display space use
+    The websocket status display is not implemented in CLI
     """
-
-    def __init__(self):
-        # self._window = curses.newwin(MAX_WEBSOCKETS, 30, 1, 0)
-        # self._label = '\n'.join(
-        #     _("gui", "websocket", "websocket").format(id=i)
-        #     for i in range(1, MAX_WEBSOCKETS + 1)
-        # )
-        #
-        # self._status: str = ""
-        # self._topics: str = ""
-        #
-        # self._items: dict[int, _WSEntry | None] = {i: None for i in range(MAX_WEBSOCKETS)}
-        # self._update()
-        pass
 
     def update(self, idx: int, status: str | None = None, topics: int | None = None):
-        # if status is None and topics is None:
-        #     raise TypeError("You need to provide at least one of: status, topics")
-        # entry = self._items.get(idx)
-        # if entry is None:
-        #     entry = self._items[idx] = _WSEntry(
-        #         status=_("gui", "websocket", "disconnected"), topics=0
-        #     )
-        # if status is not None:
-        #     entry.status = status
-        # if topics is not None:
-        #     entry.topics = topics
-        # self._update()
         pass
 
     def remove(self, idx: int):
-        # if idx in self._items:
-        #     del self._items[idx]
-        #     self._update()
         pass
 
-    # def _update(self):
-    #     self._window.clear()
-    #     self._window.addstr(0, 0, self._label)
-    #
-    #     for idx in range(MAX_WEBSOCKETS):
-    #         if (item := self._items.get(idx)) is not None:
-    #             self._window.addstr(idx, 15, item.status)
-    #             self._window.addstr(idx, 25, f"{item.topics:>{DIGITS}}/{WS_TOPICS_LIMIT}")
-    #
-    #     self._window.refresh()
 
-
-@dataclass
-class LoginData:
-    username: str
-    password: str
-    token: str
-
-
-class LoginHandler:
+class LoginHandler(BaseLoginForm):
     def __init__(self, manager: CLIManager):
         self._manager = manager
         self._window = curses.newwin(1, WINDOW_WIDTH, 0, 0)
@@ -123,6 +70,15 @@ class LoginHandler:
         self._label_user_id = labels[1] + ' '
 
         self.update(_("gui", "login", "logged_out"), None)
+
+    def clear(self, login, password, token):
+        pass
+
+    def wait_for_login_press(self):
+        pass
+
+    def ask_login(self):
+        pass
 
     async def ask_enter_code(self, user_code: str) -> None:
         self.update(_("gui", "login", "required"), None)
@@ -133,15 +89,50 @@ class LoginHandler:
 
     def update(self, status: str, user_id: int | None):
         self._window.clear()
-        self._window.addstr(0, 0, self._label_status)
+        self._window.addstr(0, 0, self._label_status, curses.A_BOLD)
         self._window.addstr(status)
-        self._window.addstr(0, 30, self._label_user_id)
+        self._window.addstr(0, 30, self._label_user_id, curses.A_BOLD)
         self._window.addstr(str(user_id) if user_id else "-")
         self._window.refresh()
 
 
+class TrayHandler(BaseTrayIcon):
+    """
+    Not implemented because not required in CLI
+    """
+
+    def is_tray(self) -> bool:
+        pass
+
+    def get_title(self, drop: TimedDrop | None) -> str:
+        pass
+
+    def start(self):
+        pass
+
+    def stop(self):
+        pass
+
+    def quit(self):
+        pass
+
+    def minimize(self):
+        pass
+
+    def restore(self):
+        pass
+
+    def notify(
+            self, message: str, title: str | None = None, duration: float = 10
+    ) -> asyncio.Task[None] | None:
+        pass
+
+    def update_title(self, drop: TimedDrop | None):
+        pass
+
+
 @dataclass
-class CampaignDisplay:
+class _CampaignDisplay:
     name: str
     status: str = ""
     starts_at: str = ""
@@ -152,134 +143,23 @@ class CampaignDisplay:
     visible: bool = True
 
 
-class DropDisplay:
+class _DropDisplay:
     benefits: list[str] = []
     progress: str = ""
 
 
-class InventoryHandler:
+class InventoryHandler(BaseInventoryOverview):
     """
-    The inventory display is removed from CLI mode
-    to reduce unnecessary display space use
+    The inventory display is not implemented in CLI
     """
-
-    def __init__(self, manager: CLIManager):
-        # self._settings: Settings = manager._twitch.settings
-        # self._filters: dict[str, bool] = {
-        #     "linked": True,
-        #     "upcoming": True,
-        #     "expired": False,
-        #     "excluded": False,
-        #     "finished": False,
-        # }
-        # # manager.tabs.add_view_event(self._on_tab_switched)
-        #
-        # # Inventory view
-        # self._campaigns: dict[DropsCampaign, CampaignDisplay] = {}
-        # self._drops: dict[str, DropDisplay] = {}
-        pass
-
-    def _update_visibility(self, campaign: DropsCampaign):
-        # True if the campaign is supposed to show, False makes it hidden.
-        # campaign_display = self._campaigns[campaign]
-        # linked = self._filters["linked"]
-        # expired = self._filters["expired"]
-        # excluded = self._filters["excluded"]
-        # upcoming = self._filters["upcoming"]
-        # finished = self._filters["finished"]
-        # priority_only = self._settings.priority_only
-        # campaign_display.visible = (
-        #         (not linked or campaign.linked)
-        #         and (campaign.active or upcoming and campaign.upcoming or expired and campaign.expired)
-        #         and (
-        #                 excluded
-        #                 or (
-        #                         campaign.game.name not in self._settings.exclude
-        #                         and not priority_only or campaign.game.name in self._settings.priority
-        #                 )
-        #         )
-        #         and (finished or not campaign.finished)
-        # )
-        pass
-
-    def _on_tab_switched(self) -> None:
-        # if self._manager.tabs.current_tab() == 1:
-        #     # refresh only if we're switching to the tab
-        #     self.refresh()
-        pass
 
     def refresh(self):
-        # for campaign in self._campaigns:
-        #     # status
-        #     status_label = self._campaigns[campaign]["status"]
-        #     status_text, status_color = self.get_status(campaign)
-        #     status_label.config(text=status_text, foreground=status_color)
-        #     # visibility
-        #     self._update_visibility(campaign)
-        # self._canvas_update()
-        pass
-
-    def _canvas_update(self):
         pass
 
     async def add_campaign(self, campaign: DropsCampaign) -> None:
-        # # Name
-        # campaign_display = CampaignDisplay(name=campaign.name)
-        #
-        # # Status
-        # status_text, status_color = self.get_status(campaign)
-        # campaign_display.status = status_text
-        #
-        # # Starts / Ends
-        # campaign_display.starts_at = _("gui", "inventory", "starts").format(
-        #     time=campaign.starts_at.astimezone().replace(microsecond=0, tzinfo=None))
-        # campaign_display.ends_at = _("gui", "inventory", "ends").format(
-        #     time=campaign.ends_at.astimezone().replace(microsecond=0, tzinfo=None))
-        #
-        # # Linking status
-        # if campaign.linked:
-        #     campaign_display.link = _("gui", "inventory", "status", "linked")
-        # else:
-        #     campaign_display.link = _("gui", "inventory", "status", "not_linked")
-        # campaign_display.link += campaign.link_url
-        #
-        # # ACL channels
-        # acl = campaign.allowed_channels
-        # if acl:
-        #     if len(acl) <= 5:
-        #         allowed_text: str = '\n'.join(ch.name for ch in acl)
-        #     else:
-        #         allowed_text = '\n'.join(ch.name for ch in acl[:4])
-        #     allowed_text += (
-        #         f"\n{_('gui', 'inventory', 'and_more').format(amount=len(acl) - 4)}"
-        #     )
-        # else:
-        #     allowed_text = _("gui", "inventory", "all_channels")
-        # campaign_display.allowed_channels = f"{_('gui', 'inventory', 'allowed_channels')}\n{allowed_text}"
-        #
-        # # Drops display
-        # for i, drop in enumerate(campaign.drops):
-        #     campaign_display.drops.append(drop.id)
-        #     drop_display = DropDisplay()
-        #
-        #     # Benefits
-        #     for benefit in drop.benefits:
-        #         drop_display.benefits.append(benefit.name)
-        #
-        #     # Progress
-        #     progress_text, progress_color = self.get_progress(drop)
-        #     drop_display.progress = progress_text
-        #
-        # self._campaigns[campaign] = campaign_display
-        #
-        # # if self._manager.tabs.current_tab() == 1:
-        # #     self._update_visibility(campaign)
-        # #     self._canvas_update()
         pass
 
     def clear(self) -> None:
-        # self._drops.clear()
-        # self._campaigns.clear()
         pass
 
     @staticmethod
@@ -316,42 +196,50 @@ class InventoryHandler:
         return progress_text, progress_color
 
     def update_drop(self, drop: TimedDrop) -> None:
-        # if drop.id not in self._drops:
-        #     return
-        #
-        # progress_text, progress_color = self.get_progress(drop)
-        # self._drops[drop.id].progress = progress_text
         pass
 
 
-class SettingsHandler:
+class SettingsHandler(BaseSettingsPanel):
     """
-    The setting panel has been removed from CLI mode
-    to reduce unnecessary display space use
+    The setting panel is not implemented in CLI
     Please edit settings.json manually
     """
 
-    def __init__(self, manager: CLIManager):
-        self._twitch = manager._twitch
-        self._settings: Settings = manager._twitch.settings
+    def clear_selection(self):
+        pass
 
-        self._exclude_list = []
-        self._priority_list = []
+    def update_notifications(self):
+        pass
+
+    def update_autostart(self):
+        pass
 
     def set_games(self, games: abc.Iterable[Game]) -> None:
-        games_list = sorted(map(str, games))
-        self._exclude_list = games_list
-        self._priority_list = games_list
+        pass
 
     def priorities(self) -> dict[str, int]:
-        # NOTE: we shift the indexes so that 0 can be used as the default one
-        size = len(self._priority_list)
-        return {
-            game_name: size - i for i, game_name in enumerate(self._priority_list)
-        }
+        return {}
+
+    def priority_add(self):
+        pass
+
+    def priority_move(self, up):
+        pass
+
+    def priority_delete(self):
+        pass
+
+    def priority_only(self):
+        pass
+
+    def exclude_add(self):
+        pass
+
+    def exclude_delete(self):
+        pass
 
 
-class ProgressHandler:
+class ProgressHandler(BaseCampaignProgress):
     def __init__(self):
         self._window = curses.newwin(9, WINDOW_WIDTH, 3, 0)
 
@@ -468,18 +356,18 @@ class ProgressHandler:
     def _update(self):
         self._window.clear()
 
-        self._window.addstr(0, 0, _("gui", "progress", "game") + ' ')
+        self._window.addstr(0, 0, _("gui", "progress", "game") + ' ', curses.A_BOLD)
         self._window.addstr(self._campaign_game)
-        self._window.addstr(1, 0, _("gui", "progress", "campaign") + ' ')
+        self._window.addstr(1, 0, _("gui", "progress", "campaign") + ' ', curses.A_BOLD)
         self._window.addstr(self._campaign_name)
-        self._window.addstr(2, 0, _("gui", "progress", "campaign_progress") + ' ')
+        self._window.addstr(2, 0, _("gui", "progress", "campaign_progress") + ' ', curses.A_BOLD)
         self._window.addstr(f"{self._campaign_percentage}")
         self._window.addstr(2, 30, _("gui", "progress", "remaining").format(time=self._campaign_remaining))
         self._window.addstr(3, 0, self._progress_bar(self._campaign_progress, WINDOW_WIDTH))
 
-        self._window.addstr(5, 0, _("gui", "progress", "drop") + ' ')
+        self._window.addstr(5, 0, _("gui", "progress", "drop") + ' ', curses.A_BOLD)
         self._window.addstr(self._drop_rewards)
-        self._window.addstr(6, 0, _("gui", "progress", "drop_progress") + ' ')
+        self._window.addstr(6, 0, _("gui", "progress", "drop_progress") + ' ', curses.A_BOLD)
         self._window.addstr(f"{self._drop_percentage}")
         self._window.addstr(6, 30, _("gui", "progress", "remaining").format(time=self._drop_remaining))
         self._window.addstr(7, 0, self._progress_bar(self._drop_progress, WINDOW_WIDTH))
@@ -487,7 +375,7 @@ class ProgressHandler:
         self._window.refresh()
 
 
-class ConsoleOutput:
+class ConsoleOutput(BaseConsoleOutput):
     _BUFFER_SIZE = 6
 
     def __init__(self):
@@ -514,101 +402,37 @@ class ConsoleOutput:
         self._window.refresh()
 
 
-class ChannelsHandler:
+class ChannelsHandler(BaseChannelList):
     """
-    The channel list is removed from CLI mode
-    to reduce unnecessary display space use
+    The channel list is not implemented in CLI
     """
 
-    def __init__(self):
-        # self._channels: dict[str, dict] = {}
-        # self._channel_map: dict[str, Channel] = {}
-        # self._selection = None
-        pass
-
-    def _set(self, iid: str, column: str, value: any):
-        # self._channels[iid][column] = value
-        pass
-
-    def _insert(self, iid: str, values: dict[str, any]):
-        # self._channels[iid] = values
+    def shrink(self):
         pass
 
     def clear(self):
-        # self._channels.clear()
         pass
 
     def set_watching(self, channel: Channel):
-        # self.clear_watching()
-        # iid = channel.iid
-        # self._channels[iid]["watching"] = True
         pass
 
     def clear_watching(self):
-        # for channel in self._channels.values():
-        #     channel["watching"] = False
         pass
 
     def get_selection(self) -> Channel | None:
-        # if not self._channel_map:
-        #     return None
-        # if not self._selection:
-        #     return None
-        # return self._channel_map[self._selection]
+        pass
+
+    def clear_selection(self):
         pass
 
     def display(self, channel: Channel, *, add: bool = False):
-        # iid = channel.iid
-        # if not add and iid not in self._channel_map:
-        #     # the channel isn't on the list and we're not supposed to add it
-        #     return
-        # # ACL-based
-        # acl_based = channel.acl_based
-        # # status
-        # if channel.online:
-        #     status = _("gui", "channels", "online")
-        # elif channel.pending_online:
-        #     status = _("gui", "channels", "pending")
-        # else:
-        #     status = _("gui", "channels", "offline")
-        # # game
-        # game = str(channel.game or '')
-        # # drops
-        # drops = channel.drops_enabled
-        # # viewers
-        # viewers = ''
-        # if channel.viewers is not None:
-        #     viewers = channel.viewers
-        # # points
-        # points = ''
-        # if channel.points is not None:
-        #     points = channel.points
-        # if iid in self._channel_map:
-        #     self._set(iid, "game", game)
-        #     self._set(iid, "drops", drops)
-        #     self._set(iid, "status", status)
-        #     self._set(iid, "viewers", viewers)
-        #     self._set(iid, "acl_base", acl_based)
-        #     if points != '':  # we still want to display 0
-        #         self._set(iid, "points", points)
-        # elif add:
-        #     self._channel_map[iid] = channel
-        #     self._insert(
-        #         iid,
-        #         {
-        #             "game": game,
-        #             "drops": drops,
-        #             "points": points,
-        #             "status": status,
-        #             "viewers": viewers,
-        #             "acl_base": acl_based,
-        #             "channel": channel.name,
-        #         },
-        #     )
+        pass
+
+    def remove(self, channel: Channel):
         pass
 
 
-class CLIManager:
+class CLIManager(BaseInterfaceManager):
     def __init__(self, twitch: Twitch):
         self._twitch: Twitch = twitch
         self._close_requested = asyncio.Event()
@@ -616,6 +440,7 @@ class CLIManager:
         # GUI
         self._stdscr = curses.initscr()
 
+        # Output
         self.output = ConsoleOutput()
         # register logging handler
         self._handler = _LoggingHandler(self)
@@ -625,13 +450,17 @@ class CLIManager:
         if (logging_level := logger.getEffectiveLevel()) < logging.ERROR:
             self.print(f"Logging level: {logging.getLevelName(logging_level)}")
 
+        self.tray = TrayHandler()
         self.status = StatusBar()
         self.websockets = WebsocketStatus()
-        self.inv = InventoryHandler(self)
+        self.inv = InventoryHandler()
         self.login = LoginHandler(self)
         self.progress = ProgressHandler()
         self.channels = ChannelsHandler()
-        self.settings = SettingsHandler(self)
+        self.settings = SettingsHandler()
+
+    def wnd_proc(self, hwnd, msg, w_param, l_param):
+        pass
 
     @property
     def close_requested(self) -> bool:
@@ -672,10 +501,6 @@ class CLIManager:
         self.progress.stop_timer()
 
     def close(self, *args) -> int:
-        """
-        Requests the GUI application to close.
-        The window itself will be closed in the closing sequence later.
-        """
         self._close_requested.set()
         # notify client we're supposed to close
         self._twitch.close()
@@ -687,6 +512,9 @@ class CLIManager:
         """
         logging.getLogger("TwitchDrops").removeHandler(self._handler)
 
+    def unfocus(self, event):
+        pass
+
     def save(self, *, force: bool = False):
         pass
 
@@ -694,8 +522,7 @@ class CLIManager:
         self.settings.set_games(games)
 
     def display_drop(self, drop: TimedDrop, *, countdown: bool = True, subone: bool = False) -> None:
-        self.progress.display(drop, countdown=countdown, subone=subone)  # main tab
-        # inventory overview is updated from within drops themselves via change events
+        self.progress.display(drop, countdown=countdown, subone=subone)
 
     def clear_drop(self):
         self.progress.display(None)

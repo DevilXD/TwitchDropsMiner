@@ -604,7 +604,7 @@ class _AuthState:
 
 
 class Twitch:
-    def __init__(self, settings: Settings, cli: bool = False):
+    def __init__(self, settings: Settings):
         self.settings: Settings = settings
         # State management
         self._state: State = State.IDLE
@@ -617,7 +617,7 @@ class Twitch:
         self._session: aiohttp.ClientSession | None = None
         self._auth_state: _AuthState = _AuthState(self)
         # GUI
-        if cli:
+        if self.settings.cli:
             from cli import CLIManager as GUIManager
         else:
             from gui import GUIManager
