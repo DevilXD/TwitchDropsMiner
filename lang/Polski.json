@@ -17,8 +17,8 @@
             "no_token": "Nie znaleziono tokena autoryzacyjnego.",
             "closed_window": "Okno przeglądarki Chrome zostało zamknięte przed zakończeniem procesu logowania."
         },
-        "error_code": "Kod błędu przy logowaniu: {error_code}",
-        "unexpected_content": "Nieoczekiwany błąd zawartości, zwykle z powodu przekierowania.\nJeśli do zapewnienia dostępu do Internetu wymagane jest logowanie.",
+        "error_code": "Kod błędu logowania: {error_code}",
+        "unexpected_content": "Nieoczekiwany błąd zawartości, zwykle z powodu przekierowania.\nUpewnij się że nie jest wymagane dodatkowe logowanie bądź potwierdzenie dostępu do internetu.",
         "incorrect_login_pass": "Nieprawidłowa nazwa użytkownika lub hasło.",
         "incorrect_email_code": "Nieprawidłowy kod e-mail.",
         "incorrect_twofa_code": "Nieprawidłowy kod 2FA.",
