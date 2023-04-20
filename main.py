@@ -38,19 +38,21 @@ if __name__ == "__main__":
         def __init__(self, *args, **kwargs) -> None:
             super().__init__(*args, **kwargs)
             self._message: io.StringIO = io.StringIO()
+            self.is_error: bool = False
+            self.status: int = 0
+            self.message: str = ""
 
         def _print_message(self, message: str, file: IO[str] | None = None) -> None:
             self._message.write(message)
             # print(message, file=self._message)
 
-        def exit(self, status: int = 0, message: str | None = None) -> NoReturn:
+        def exit(self, status: int = 0, message: str | None = None) -> None:
             try:
-                super().exit(status, message)  # sys.exit(2)
-            finally:
-                try:
-                    messagebox.showerror("Argument Parser Error", self._message.getvalue())
-                except Exception:  # dummy window doesn't exist
-                    print("Argument Parser Error", self._message.getvalue())
+                super().exit(status, message)
+            except SystemExit:  # don't exit, but store the error message and handle it afterwards
+                self.is_error = True
+                self.status = status
+                self.message = self._message.getvalue()
 
 
     class ParsedArgs(argparse.Namespace):
@@ -94,20 +96,19 @@ if __name__ == "__main__":
             return logging.NOTSET
 
 
-    try:
-        root = tk.Tk()
-        root.overrideredirect(True)
-        root.withdraw()
-        root.iconphoto(
-            True, PhotoImage(master=root, image=Image_module.open(resource_path("pickaxe.ico")))
-        )
-        root.update()
-    except Exception:  # root window doesn't created
-        pass
+    def show_error(title: str, message: str, cli: bool):
+        """
+        Show the error message to the console or a window, depending on whether CLI or GUI mode is specified.
+        """
+        if cli:  # for CLI mode
+            # Output the error message to the console
+            sys.stderr.write(f"{title}: {message}\n")
+        else:  # for GUI mode
+            # Show the error message in a window
+            messagebox.showerror(title, message)
+
 
     # handle input parameters
-    # NOTE: parser output is shown via message box
-    # we also need a dummy invisible window for the parser
     parser = Parser(
         SELF_PATH.name,
         description="A program that allows you to mine timed drops on Twitch.",
@@ -129,22 +130,35 @@ if __name__ == "__main__":
     )
     args = parser.parse_args(namespace=ParsedArgs())
 
+    # create the dummy window if in GUI mode
+    if not args.cli:
+        root = tk.Tk()
+        root.overrideredirect(True)
+        root.withdraw()
+        root.iconphoto(
+            True, PhotoImage(master=root, image=Image_module.open(resource_path("pickaxe.ico")))
+        )
+        root.update()
+
+    if parser.is_error:
+        show_error("Argument Parser Error", parser.message, args.cli)
+        sys.exit(parser.status)
+
     # load settings
     try:
         settings = Settings(args)
     except Exception:
-        messagebox.showerror(
+        show_error(
             "Settings error",
-            f"There was an error while loading the settings file:\n\n{traceback.format_exc()}"
+            f"There was an error while loading the settings file:\n\n{traceback.format_exc()}",
+            args.cli
         )
         sys.exit(4)
 
-    try:
+    if not args.cli:
         # dummy window isn't needed anymore
         root.destroy()
         del root
-    except NameError:  # root doesn't exist
-        pass
     # get rid of unneeded objects
     del parser
 

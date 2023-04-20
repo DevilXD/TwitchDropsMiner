@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import sys
 import curses
 import asyncio
 import logging
+import traceback
 from collections import abc
-from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, TYPE_CHECKING
 
@@ -23,6 +24,7 @@ if TYPE_CHECKING:
     from inventory import DropsCampaign, TimedDrop
 
 WINDOW_WIDTH = 80
+WINDOW_HEIGHT = 9
 
 
 class _LoggingHandler(logging.Handler):
@@ -131,23 +133,6 @@ class TrayHandler(BaseTrayIcon):
         pass
 
 
-@dataclass
-class _CampaignDisplay:
-    name: str
-    status: str = ""
-    starts_at: str = ""
-    ends_at: str = ""
-    link: str = ""
-    allowed_channels: str = ""
-    drops: list[str] = field(default_factory=list)
-    visible: bool = True
-
-
-class _DropDisplay:
-    benefits: list[str] = []
-    progress: str = ""
-
-
 class InventoryHandler(BaseInventoryOverview):
     """
     The inventory display is not implemented in CLI
@@ -241,7 +226,7 @@ class SettingsHandler(BaseSettingsPanel):
 
 class ProgressHandler(BaseCampaignProgress):
     def __init__(self):
-        self._window = curses.newwin(9, WINDOW_WIDTH, 3, 0)
+        self._window = curses.newwin(WINDOW_HEIGHT, WINDOW_WIDTH, 3, 0)
 
         self._drop: TimedDrop | None = None
         self._timer_task: asyncio.Task[None] | None = None
@@ -440,8 +425,29 @@ class CLIManager(BaseInterfaceManager):
         # GUI
         self._stdscr = curses.initscr()
 
-        # Output
-        self.output = ConsoleOutput()
+        try:
+            self.tray = TrayHandler()
+            self.status = StatusBar()
+            self.websockets = WebsocketStatus()
+            self.inv = InventoryHandler()
+            self.login = LoginHandler(self)
+            self.progress = ProgressHandler()
+            self.output = ConsoleOutput()
+            self.channels = ChannelsHandler()
+            self.settings = SettingsHandler()
+        except curses.error:
+            curses.nocbreak()
+            self._stdscr.keypad(False)
+            curses.echo()
+            curses.endwin()
+
+            sys.stderr.write(
+                f"An error occurred while creating the curses window, probably due to the window size being too "
+                f"small (minimum width = {WINDOW_WIDTH}, minimum height = {WINDOW_HEIGHT}).\n"
+            )
+            sys.stderr.write(traceback.format_exc())
+            sys.exit(1)
+
         # register logging handler
         self._handler = _LoggingHandler(self)
         self._handler.setFormatter(OUTPUT_FORMATTER)
@@ -449,15 +455,6 @@ class CLIManager(BaseInterfaceManager):
         logger.addHandler(self._handler)
         if (logging_level := logger.getEffectiveLevel()) < logging.ERROR:
             self.print(f"Logging level: {logging.getLevelName(logging_level)}")
-
-        self.tray = TrayHandler()
-        self.status = StatusBar()
-        self.websockets = WebsocketStatus()
-        self.inv = InventoryHandler()
-        self.login = LoginHandler(self)
-        self.progress = ProgressHandler()
-        self.channels = ChannelsHandler()
-        self.settings = SettingsHandler()
 
     def wnd_proc(self, hwnd, msg, w_param, l_param):
         pass
