@@ -73,8 +73,8 @@
             "name": "Status WebSocket",
             "websocket": "WebSocket #{id}:",
             "initializing": "Inicjalizacja...",
-            "connected": "Połączony",
-            "disconnected": "Rozłączony",
+            "connected": "Połączono",
+            "disconnected": "Rozłączono",
             "connecting": "Łączenie...",
             "disconnecting": "Rozłączanie...",
             "reconnecting": "Ponowne łączenie..."
