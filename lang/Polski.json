@@ -139,8 +139,8 @@
                 "priority_only": "Tylko priorytet: ",
                 "proxy": "Proxy (wymaga restartu):"
             },
-            "game_name": "Gra",
-            "priority": "Priorytet",
+            "game_name": "Nazwa gry",
+            "priority": "Priorytety",
             "exclude": "Wykluczone",
             "reload": "Przeładuj",
             "reload_text": "Większość zmian wymaga przeładowania, aby natychmiast je zastosować: "
