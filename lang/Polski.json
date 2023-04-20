@@ -136,7 +136,7 @@
                 "name": "Ogólne",
                 "autostart": "Autostart: ",
                 "tray": "Autostart w zasobniku systemowym: ",
-                "priority_only": "Tylko priorytet: ",
+                "priority_only": "Tylko priorytetowe: ",
                 "proxy": "Proxy (wymaga restartu):"
             },
             "game_name": "Nazwa gry",
