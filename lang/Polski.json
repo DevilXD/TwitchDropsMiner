@@ -115,13 +115,13 @@
                 "refresh": "Odśwież"
             },
             "status": {
-                "linked": "Połączona ✔",
-                "not_linked": "Niepołączona ❌",
+                "linked": "Połączono ✔",
+                "not_linked": "Niepołączono ❌",
                 "active": "Aktywna ✔",
-                "upcoming": "Najbliższa ⏳",
+                "upcoming": "Nadchodząca ⏳",
                 "expired": "Wygasła ❌",
-                "claimed": "Odebrana ✔",
-                "ready_to_claim": "Gotowa do odebrania ⏳"
+                "claimed": "Odebrano ✔",
+                "ready_to_claim": "Gotowe do odebrania ⏳"
             },
             "starts": "Rozpoczęcie: {time}",
             "ends": "Koniec: {time}",
