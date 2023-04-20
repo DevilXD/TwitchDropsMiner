@@ -2,8 +2,8 @@
     "status": {
         "terminated": "\nAplikacja zatrzymana.\nZamknij okno, aby wyjść z aplikacji.",
         "watching": "Oglądam kanał: {channel}",
-        "goes_online": "Zmieniono status kanału {channel} na ONLINE, zmiana...",
-        "goes_offline": "Zmieniono status kanału {channel} na OFFLINE, zmiana...",
+        "goes_online": "Nowy status kanału {channel}: ONLINE, zmieniam...",
+        "goes_offline": "Nowy status kanału {channel}: OFFLINE, zmieniam...",
         "claimed_drop": "Odebrany drop: {drop}",
         "claimed_points": "Odebrane punkty: {points}",
         "earned_points": "Zdobyte punkty za oglądanie: {points} | Łącznie: {balance}",
