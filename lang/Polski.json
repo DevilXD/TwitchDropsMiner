@@ -127,7 +127,7 @@
             "ends": "Koniec: {time}",
             "allowed_channels": "Dozwolone kanały:",
             "all_channels": "Wszystkie kanały",
-            "and_more": "{amount} i więcej...",
+            "and_more": "i {amount} więcej...",
             "percent_progress": "{percent} z {minutes} min.",
             "minutes_progress": "{minutes} min."
         },
