@@ -31,7 +31,7 @@
         "no_connection": "Nie można połączyć się z Twitchem. Spróbuj ponownie za {seconds} s...."
     },
     "gui": {
-        "output": "Status dropienia",
+        "output": "Dziennik zdarzeń",
         "status": {
             "name": "Status",
             "idle": "Bezczynność",
