@@ -4,11 +4,11 @@
         "watching": "Oglądam kanał: {channel}",
         "goes_online": "Nowy status kanału {channel}: ONLINE, zmieniam...",
         "goes_offline": "Nowy status kanału {channel}: OFFLINE, zmieniam...",
-        "claimed_drop": "Odebrany drop: {drop}",
-        "claimed_points": "Odebrane punkty: {points}",
-        "earned_points": "Zdobyte punkty za oglądanie: {points} | Łącznie: {balance}",
-        "no_channel": "Brak dostępnych aktywnych kanałów. Czekam na nową kampanię...",
-        "no_campaign": "Brak dostępnych aktywnych kampanii. Czekam na nową kampanię..."
+        "claimed_drop": "Odebrano drop: {drop}",
+        "claimed_points": "Odebrano punkty: {points}",
+        "earned_points": "Zdobyto punkty za oglądanie: {points} | Łącznie: {balance}",
+        "no_channel": "Brak możliwych kanałów do ogłądania. Oczekiwanie na nową kampanię...",
+        "no_campaign": "Brak dostępnych aktywnych kampanii. Oczekiwanie na nową kampanię..."
     },
     "login": {
         "chrome": {
