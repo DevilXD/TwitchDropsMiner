@@ -1,6 +1,6 @@
 {
     "status": {
-        "terminated": "\nAplikacja zatrzymana.\nZamknij okno, aby wyjść z aplikacji.",
+        "terminated": "\nAplikacja została zatrzymana.\nZamknij okno, aby wyjść z aplikacji.",
         "watching": "Oglądam kanał: {channel}",
         "goes_online": "Nowy status kanału {channel}: ONLINE, zmieniam...",
         "goes_offline": "Nowy status kanału {channel}: OFFLINE, zmieniam...",
