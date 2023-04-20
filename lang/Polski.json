@@ -40,8 +40,8 @@
             "cleanup": "Czyszczenie kanałów...",
             "gathering": "Szukanie kanałów...",
             "switching": "Zmiana kanałów...",
-            "fetching_inventory": "Pobieranie ekwipunku...",
-            "fetching_campaigns": "Pobieranie kampanii...",
+            "fetching_inventory": "Odświeżanie ekwipunku...",
+            "fetching_campaigns": "Odświeżanie kampanii...",
             "adding_campaigns": "Dodawanie kampanii do ekwipunku... {counter}"
         },
         "tabs": {
