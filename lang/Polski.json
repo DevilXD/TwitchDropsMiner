@@ -135,7 +135,7 @@
             "general": {
                 "name": "Ogólne",
                 "autostart": "Autostart: ",
-                "tray": "Autostart w zasobniku systemowym: ",
+                "tray": "Autostart z zasobnika: ",
                 "priority_only": "Tylko priorytetowe: ",
                 "proxy": "Proxy (wymaga restartu):"
             },
