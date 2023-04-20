@@ -36,7 +36,7 @@
             "name": "Status",
             "idle": "Bezczynność",
             "exiting": "Wychodzenie...",
-            "terminated": "Zatrzymanie",
+            "terminated": "Zatrzymano",
             "cleanup": "Czyszczenie kanałów...",
             "gathering": "Szukanie kanałów...",
             "switching": "Zmiana kanałów...",
