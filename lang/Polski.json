@@ -7,7 +7,7 @@
         "claimed_drop": "Odebrano drop: {drop}",
         "claimed_points": "Odebrano punkty: {points}",
         "earned_points": "Zdobyto punkty za oglądanie: {points} | Łącznie: {balance}",
-        "no_channel": "Brak możliwych kanałów do ogłądania. Oczekiwanie na nową kampanię...",
+        "no_channel": "Brak możliwych kanałów do oglądania. Oczekiwanie na nową kampanię...",
         "no_campaign": "Brak dostępnych aktywnych kampanii. Oczekiwanie na nową kampanię..."
     },
     "login": {
