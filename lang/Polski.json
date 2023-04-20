@@ -52,7 +52,7 @@
         },
         "tray": {
             "notification_title": "Drop odebrany",
-            "minimize": "Zminimalizuj do zasobnika systemowego",
+            "minimize": "Zminimalizuj",
             "show": "Pokaż",
             "quit": "Wyjdź"
         },
