@@ -23,11 +23,17 @@ try:
     from seleniumwire.request import Request
     from selenium.common.exceptions import WebDriverException
     from seleniumwire.undetected_chromedriver import Chrome, ChromeOptions
+except ModuleNotFoundError:
+    # the dependencies weren't installed, but they're not used either, so skip them
+    pass
 except ImportError as exc:
-    raise ImportError(
-        "You need to install Visual C++ Redist (x86 and x64): "
-        "https://support.microsoft.com/en-gb/help/2977003/the-latest-supported-visual-c-downloads"
-    ) from exc
+    if "_brotli" in exc.msg:
+        raise ImportError(
+            "You need to install Visual C++ Redist (x86 and x64): "
+            "https://support.microsoft.com/en-gb/help/2977003/"
+            "the-latest-supported-visual-c-downloads"
+        ) from exc
+    raise
 
 from translate import _
 from gui import GUIManager
@@ -162,8 +168,6 @@ class _AuthState:
                     options.add_argument("--disable-web-security")
                     options.add_argument("--allow-running-insecure-content")
                     options.add_argument("--lang=en")
-                    options.add_argument("--no-sandbox")
-                    options.add_argument("--test-type")
                     options.add_argument("--disable-gpu")
                     options.set_capability("pageLoadStrategy", "eager")
                     try:
@@ -174,6 +178,7 @@ class _AuthState:
                             None,
                             lambda: Chrome(
                                 options=options,
+                                no_sandbox=True,
                                 suppress_welcome=True,
                                 version_main=version_main,
                                 seleniumwire_options=wire_options,
