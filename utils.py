@@ -41,11 +41,12 @@ _JSON_T = TypeVar("_JSON_T", bound=Mapping[Any, Any])
 logger = logging.getLogger("TwitchDrops")
 
 
-def get_photo_image(master: tk.Misc, path: Path | str) -> PhotoImage:
-    image = Image_module.open(path)
-    photo = PhotoImage(master=master, image=image)
-    image.close()
-    return photo
+def set_root_icon(root: tk.Tk, image_path: Path | str) -> None:
+    with Image_module.open(image_path) as image:
+        icon_photo = PhotoImage(master=root, image=image)
+    root.iconphoto(True, icon_photo)
+    # keep a reference to the PhotoImage to avoid the ResourceWarning
+    root._icon_image = icon_photo  # type: ignore[attr-defined]
 
 
 async def first_to_complete(coros: abc.Iterable[abc.Coroutine[Any, Any, _T]]) -> _T:

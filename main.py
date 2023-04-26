@@ -26,7 +26,7 @@ if __name__ == "__main__":
     from settings import Settings
     from version import __version__
     from exceptions import CaptchaRequired
-    from utils import resource_path, get_photo_image
+    from utils import resource_path, set_root_icon
     from constants import CALL, SELF_PATH, FILE_FORMATTER, LOG_PATH, WINDOW_TITLE
 
     warnings.simplefilter("default", ResourceWarning)
@@ -92,10 +92,7 @@ if __name__ == "__main__":
     root = tk.Tk()
     root.overrideredirect(True)
     root.withdraw()
-    icon_photo = get_photo_image(root, resource_path("pickaxe.ico"))
-    root.iconphoto(True, icon_photo)
-    # keep a reference to the PhotoImage to avoid the ResourceWarning
-    root._icon_image = icon_photo  # type: ignore[attr-defined]
+    set_root_icon(root, resource_path("pickaxe.ico"))
     root.update()
     parser = Parser(
         SELF_PATH.name,

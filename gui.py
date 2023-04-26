@@ -29,7 +29,7 @@ if sys.platform == "win32":
 from translate import _
 from cache import ImageCache
 from exceptions import ExitRequest
-from utils import resource_path, get_photo_image, Game, _T
+from utils import resource_path, set_root_icon, Game, _T
 from constants import (
     SELF_PATH, OUTPUT_FORMATTER, WS_TOPICS_LIMIT, MAX_WEBSOCKETS, WINDOW_TITLE, State
 )
@@ -1778,10 +1778,7 @@ class GUIManager:
         # withdraw immediately to prevent the window from flashing
         self._root.withdraw()
         # root.resizable(False, True)
-        icon_photo = get_photo_image(root, resource_path("pickaxe.ico"))
-        root.iconphoto(True, icon_photo)  # window icon
-        # keep a reference to the PhotoImage to avoid the ResourceWarning
-        root._icon_image = icon_photo  # type: ignore[attr-defined]
+        set_root_icon(root, resource_path("pickaxe.ico"))
         root.title(WINDOW_TITLE)  # window title
         root.bind_all("<KeyPress-Escape>", self.unfocus)  # pressing ESC unfocuses selection
         # Image cache for displaying images
