@@ -29,7 +29,7 @@ if sys.platform == "win32":
 from translate import _
 from cache import ImageCache
 from exceptions import ExitRequest
-from utils import resource_path, Game, _T
+from utils import resource_path, get_photo_image, Game, _T
 from constants import (
     SELF_PATH, OUTPUT_FORMATTER, WS_TOPICS_LIMIT, MAX_WEBSOCKETS, WINDOW_TITLE, State
 )
@@ -982,8 +982,12 @@ class TrayIcon:
     def __init__(self, manager: GUIManager, master: ttk.Widget):
         self._manager = manager
         self.icon: pystray.Icon | None = None
+        self.icon_image = Image_module.open(resource_path("pickaxe.ico"))
         self._button = ttk.Button(master, command=self.minimize, text=_("gui", "tray", "minimize"))
         self._button.grid(column=0, row=0, sticky="ne")
+
+    def __del__(self) -> None:
+        self.icon_image.close()
 
     def is_tray(self) -> bool:
         return self.icon is not None
@@ -1013,12 +1017,7 @@ class TrayIcon:
                 pystray.Menu.SEPARATOR,
                 pystray.MenuItem(_("gui", "tray", "quit"), bridge(self.quit)),
             )
-            self.icon = pystray.Icon(
-                "twitch_miner",
-                Image_module.open(resource_path("pickaxe.ico")),
-                self.get_title(drop),
-                menu,
-            )
+            self.icon = pystray.Icon("twitch_miner", self.icon_image, self.get_title(drop), menu)
             self.icon.run_detached()
 
     def stop(self):
@@ -1779,13 +1778,10 @@ class GUIManager:
         # withdraw immediately to prevent the window from flashing
         self._root.withdraw()
         # root.resizable(False, True)
-        root.iconphoto(  # window icon
-            True,
-            PhotoImage(
-                master=root,
-                image=Image_module.open(resource_path("pickaxe.ico")),
-            )
-        )
+        icon_photo = get_photo_image(root, resource_path("pickaxe.ico"))
+        root.iconphoto(True, icon_photo)  # window icon
+        # keep a reference to the PhotoImage to avoid the ResourceWarning
+        root._icon_image = icon_photo  # type: ignore[attr-defined]
         root.title(WINDOW_TITLE)  # window title
         root.bind_all("<KeyPress-Escape>", self.unfocus)  # pressing ESC unfocuses selection
         # Image cache for displaying images
