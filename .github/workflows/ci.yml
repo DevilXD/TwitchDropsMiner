@@ -1,0 +1,106 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    name: Windows
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up variables
+        id: vars
+        run: |
+          Add-Content $env:GITHUB_OUTPUT "sha_short=$(git rev-parse --short HEAD)"
+
+      - name: Append git revision to project version
+        run: |
+          (Get-Content version.py) `
+          -Replace '^__version__\s*=\s*"[^"]+', "`$0.${{ steps.vars.outputs.sha_short }}" |`
+          Out-File version.py
+
+      - name: Set up Python virtual environment
+        run: |
+          python3 -m venv env
+
+      - name: Install project dependencies
+        run: |
+          .\env\Scripts\activate
+          python3 -m pip install wheel -r requirements.txt
+
+      - name: Install UPX
+        run: |
+          Invoke-WebRequest -Uri https://github.com/upx/upx/releases/download/v4.0.2/upx-4.0.2-win64.zip -OutFile (Join-Path $env:Temp upx.zip)
+          Expand-Archive -LiteralPath (Join-Path $env:Temp upx.zip) -DestinationPath $env:Temp
+          Move-Item -Path (Join-Path $env:Temp upx-*) -Destination (Join-Path $env:Temp upx)
+          Add-Content $env:GITHUB_PATH (Join-Path $env:Temp upx)
+
+      - name: Install PyInstaller
+        run: |
+          .\env\Scripts\activate
+          python3 -m pip install pyinstaller
+
+      - name: Create portable executable
+        run: |
+          .\env\Scripts\activate
+          pyinstaller build.spec
+
+      - name: Create release folder
+        run: |
+          $FolderName = "Twitch Drops Miner"
+          if (!(Test-Path $FolderName)) {
+            New-Item $FolderName -ItemType Directory
+          }
+          Copy-Item dist\*.exe -Destination $FolderName
+          Copy-Item manual.txt $FolderName
+          Compress-Archive -Path $FolderName -DestinationPath Twitch.Drops.Miner.zip
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v3
+        with:
+          if-no-files-found: error
+          name: Twitch.Drops.Miner
+          path: Twitch.Drops.Miner.zip
+
+  update_releases_page:
+    name: Upload build to Releases
+    if: github.event_name != 'pull_request'
+    needs: windows
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+
+    steps:
+      - name: Set up variables
+        id: vars
+        run: |
+          echo "date_now=$(date --rfc-3339=seconds)" >> "${GITHUB_OUTPUT}"
+
+      - name: Download build artifacts from previous jobs
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+
+      - name: Upload build to Releases
+        uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          artifactErrorsFailBuild: true
+          artifacts: artifacts/*/*
+          body: |
+            **This is an automatically generated in-development pre-release version of the application, that includes the latest master branch changes.**
+            **⚠️ This build is not stable and may end up terminating with a fatal error. ⚠️**
+            **Use at your own risk.**
+
+            - Last build date: `${{ steps.vars.outputs.date_now }}`
+            - Reference commit: ${{ github.sha }}
+          name: Development build
+          prerelease: true
+          removeArtifacts: true
+          tag: dev-build
