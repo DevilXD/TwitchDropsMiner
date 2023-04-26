@@ -22,6 +22,14 @@ IS_PACKAGED = hasattr(sys, "_MEIPASS")
 # logging special levels
 CALL = logging.INFO - 1
 logging.addLevelName(CALL, "CALL")
+# site-packages venv path changes depending on the system platform
+if sys.platform == "win32":
+    SYS_SITE_PACKAGES = "Lib/site-packages"
+else:
+    # On Linux, the site-packages path includes a versioned 'pythonX.Y' folder part
+    # The Lib folder is also spelled in lowercase: 'lib'
+    version_info = sys.version_info
+    SYS_SITE_PACKAGES = f"lib/python{version_info.major}.{version_info.minor}/site-packages"
 
 
 def _resource_path(relative_path: Path | str) -> Path:
@@ -46,6 +54,9 @@ SELF_PATH = Path(sys.argv[0]).absolute()
 if SELF_PATH.stem == "pyinstaller":
     SELF_PATH = Path(__file__).with_name("main.py").absolute()
 WORKING_DIR = SELF_PATH.absolute().parent
+# Development paths
+VENV_PATH = Path(WORKING_DIR, "env")
+SITE_PACKAGES_PATH = Path(VENV_PATH, SYS_SITE_PACKAGES)
 # Translations path
 # NOTE: These don't have to be available to the end-user, so the path points to the internal dir
 LANG_PATH = _resource_path("lang")
