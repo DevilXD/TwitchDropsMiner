@@ -58,31 +58,31 @@ If you'd be interested in running the latest master from source or building your
 
 Twitch Drops Miner (TDM for short) has been designed with a couple of simple goals in mind. These are, specifically:
 
-• Twitch Drops oriented - it's in the name. That's what I made it for.
-• Easy to use for an average person. Includes a nice looking GUI and is packaged as a ready-to-go executable, without requiring an existing Python installation to work.
-• Intended as a helper tool that starts together with your PC, runs in the background through out the day, and then closes together with your PC shutting down at the end of the day. If it can run continously for 24 hours at minimum, and not run into any errors, I'd call that good enough already.
-• Requiring a minimum amount of attention during operation - check it once or twice through out the day to see if everything's fine with it.
-• Underlying service friendly - the amount of interactions done with the Twitch site is kept to the minimum required for reliable operation, at a level achievable by a diligent site user.
+- Twitch Drops oriented - it's in the name. That's what I made it for.
+- Easy to use for an average person. Includes a nice looking GUI and is packaged as a ready-to-go executable, without requiring an existing Python installation to work.
+- Intended as a helper tool that starts together with your PC, runs in the background through out the day, and then closes together with your PC shutting down at the end of the day. If it can run continously for 24 hours at minimum, and not run into any errors, I'd call that good enough already.
+- Requiring a minimum amount of attention during operation - check it once or twice through out the day to see if everything's fine with it.
+- Underlying service friendly - the amount of interactions done with the Twitch site is kept to the minimum required for reliable operation, at a level achievable by a diligent site user.
 
 TDM is not intended for/as:
 
-• Mining channel points - again, it's about the drops: only. The current points you're getting are a byproduct of getting the drops, not the main goal of it.
-• Mining anything else besides Twitch drops - no, I won't be adding support for a random 3rd party site that also happens to rely on watching Twitch streams.
-• Unattended operation: worst case scenario, it'll stop working and you'll hopefully notice that at some point. Hopefully.
-• 100% uptime application, due to the underlaying nature of it, expect fatal errors to happen every so often.
-• Being hosted on a remote server as a 24/7 miner.
-• Being used with more than one managed account.
-• Mining campaigns the managed account isn't linked to.
+- Mining channel points - again, it's about the drops: only. The current points you're getting are a byproduct of getting the drops, not the main goal of it.
+- Mining anything else besides Twitch drops - no, I won't be adding support for a random 3rd party site that also happens to rely on watching Twitch streams.
+- Unattended operation: worst case scenario, it'll stop working and you'll hopefully notice that at some point. Hopefully.
+- 100% uptime application, due to the underlaying nature of it, expect fatal errors to happen every so often.
+- Being hosted on a remote server as a 24/7 miner.
+- Being used with more than one managed account.
+- Mining campaigns the managed account isn't linked to.
 
 This means that features such as:
 
-• It being possible to run it without a GUI, or with only a console attached.
-• Any form of automatic restart when an error happens.
-• Docker or any other form of remote deployment.
-• Using it with more than one managed account.
-• Making it possible to mine campaigns that the managed account isn't linked to.
-• Anything that increases the site processing load caused by the application.
-• Any form of additional notifications system (email, webhook, etc.), beyond what's already implemented.
+- It being possible to run it without a GUI, or with only a console attached.
+- Any form of automatic restart when an error happens.
+- Docker or any other form of remote deployment.
+- Using it with more than one managed account.
+- Making it possible to mine campaigns that the managed account isn't linked to.
+- Anything that increases the site processing load caused by the application.
+- Any form of additional notifications system (email, webhook, etc.), beyond what's already implemented.
 
 ..., are most likely not going to be a feature, ever. You're welcome to search through the existing issues to comment on your point of view on the relevant matters, where applicable. Otherwise, most of the new issues that go against these goals will be closed and the user will be pointed to this paragraph.
 
