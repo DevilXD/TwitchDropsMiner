@@ -4,7 +4,7 @@ __pycache__
 # Build and dist files
 /build
 /dist
-/7z.exe
+/*.exe
 /*.zip
 /*.tmp
 /Twitch Drops Miner
