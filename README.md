@@ -108,5 +108,5 @@ if they aren't already there. Doing so ensures proper markdown rendering on Gith
 @alikdb - For the entirety of the Turkish (Türkçe) translation.  
 @roobini-gamer - For the entirety of the French (Français) translation.  
 @Sergo1217 - For the entirety of the Russian (Русский) translation.  
-@Ricky103403 - For the entirety of the Traditional Chinese (繁體中文) translation.
+@Ricky103403 - For the entirety of the Traditional Chinese (繁體中文) translation.  
 @Patriot99 - For the Polish (Polski) translation (co-authored with @DevilXD).
