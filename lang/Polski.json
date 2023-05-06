@@ -22,7 +22,7 @@
         "incorrect_login_pass": "Nieprawidłowa nazwa użytkownika lub hasło.",
         "incorrect_email_code": "Nieprawidłowy kod z e-maila.",
         "incorrect_twofa_code": "Nieprawidłowy kod 2FA.",
-        "email_code_required": "Wymagany kod e-mail. Proszę sprawdzić e-mail.",
+        "email_code_required": "Wymagany kod z e-maila.",
         "twofa_code_required": "Wymagany token 2FA."
     },
     "error": {
