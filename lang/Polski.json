@@ -11,6 +11,7 @@
         "no_campaign": "Brak dostępnych aktywnych kampanii. Oczekiwanie na nową kampanię..."
     },
     "login": {
+        "unexpected_content": "Nieoczekiwany błąd zawartości, zwykle z powodu przekierowania.\nUpewnij się że nie jest wymagane dodatkowe logowanie bądź potwierdzenie dostępu do internetu.",
         "chrome": {
             "startup": "Uruchamianie Chrome...",
             "login_to_complete": "Naciśnij ponownie zaloguj, aby zakończyć proces ręcznego logowania...",
@@ -18,12 +19,11 @@
             "closed_window": "Okno przeglądarki Chrome zostało zamknięte przed zakończeniem procesu logowania."
         },
         "error_code": "Kod błędu logowania: {error_code}",
-        "unexpected_content": "Nieoczekiwany błąd zawartości, zwykle z powodu przekierowania.\nUpewnij się że nie jest wymagane dodatkowe logowanie bądź potwierdzenie dostępu do internetu.",
         "incorrect_login_pass": "Nieprawidłowa nazwa użytkownika lub hasło.",
-        "incorrect_email_code": "Nieprawidłowy kod e-mail.",
+        "incorrect_email_code": "Nieprawidłowy kod z e-maila.",
         "incorrect_twofa_code": "Nieprawidłowy kod 2FA.",
-        "email_code_required": "Wymagany kod e-mail. Proszę sprawdzić e-mail.",
-        "twofa_code_required": "Wymagany token 2FA. Proszę podać token 2FA."
+        "email_code_required": "Wymagany kod z e-maila.",
+        "twofa_code_required": "Wymagany token 2FA."
     },
     "error": {
         "captcha": "Próba logowania została odrzucona przez CAPTCHA.\nProszę spróbować ponownie za co najmniej 12 godzin.",
@@ -35,7 +35,7 @@
         "status": {
             "name": "Status",
             "idle": "Bezczynność",
-            "exiting": "Wychodzenie...",
+            "exiting": "Zamykanie...",
             "terminated": "Zatrzymano",
             "cleanup": "Czyszczenie kanałów...",
             "gathering": "Szukanie kanałów...",
@@ -136,6 +136,7 @@
                 "name": "Ogólne",
                 "autostart": "Autostart: ",
                 "tray": "Autostart z zasobnika: ",
+                "tray_notifications": "Powiadomienia z zasobnika: ",
                 "priority_only": "Tylko priorytetowe: ",
                 "proxy": "Proxy (wymaga restartu):"
             },
