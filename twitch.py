@@ -1167,7 +1167,7 @@ class Twitch:
             # there's no game or it's not one of the games we've selected
             or (game := channel.game) is None or game not in self.wanted_games
         ):
-            return False
+            return True
         # check if we can progress any campaign for the played game
         for campaign in self.inventory:
             if campaign.game == game and campaign.can_earn(channel):
