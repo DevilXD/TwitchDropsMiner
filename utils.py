@@ -6,6 +6,7 @@ import string
 import asyncio
 import logging
 import traceback
+import tkinter as tk
 from enum import Enum
 from pathlib import Path
 from functools import wraps
@@ -17,6 +18,8 @@ from typing import (
 )
 
 import yarl
+from PIL.ImageTk import PhotoImage
+from PIL import Image as Image_module
 
 from constants import JsonType
 from exceptions import ExitRequest, ReloadRequest
@@ -36,6 +39,14 @@ _D = TypeVar("_D")  # default
 _P = ParamSpec("_P")  # params
 _JSON_T = TypeVar("_JSON_T", bound=Mapping[Any, Any])
 logger = logging.getLogger("TwitchDrops")
+
+
+def set_root_icon(root: tk.Tk, image_path: Path | str) -> None:
+    with Image_module.open(image_path) as image:
+        icon_photo = PhotoImage(master=root, image=image)
+    root.iconphoto(True, icon_photo)
+    # keep a reference to the PhotoImage to avoid the ResourceWarning
+    root._icon_image = icon_photo  # type: ignore[attr-defined]
 
 
 async def first_to_complete(coros: abc.Iterable[abc.Coroutine[Any, Any, _T]]) -> _T:

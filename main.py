@@ -17,18 +17,15 @@ if __name__ == "__main__":
     from tkinter import messagebox
     from typing import IO, NoReturn
 
-    from PIL.ImageTk import PhotoImage
-    from PIL import Image as Image_module
-
     if sys.platform == "win32":
         import win32gui
 
     from translate import _
     from twitch import Twitch
     from settings import Settings
-    from utils import resource_path
     from version import __version__
     from exceptions import CaptchaRequired
+    from utils import resource_path, set_root_icon
     from constants import CALL, SELF_PATH, FILE_FORMATTER, LOG_PATH, WINDOW_TITLE
 
     warnings.simplefilter("default", ResourceWarning)
@@ -104,8 +101,18 @@ if __name__ == "__main__":
             # Output the error message to the console
             sys.stderr.write(f"{title}: {message}\n")
         else:  # for GUI mode
+            # NOTE: any errors from the parser or settings file loading is shown via message box,
+            # for which we need a dummy invisible window
+            root = tk.Tk()
+            root.overrideredirect(True)
+            root.withdraw()
+            set_root_icon(root, resource_path("pickaxe.ico"))
+            root.update()
             # Show the error message in a window
             messagebox.showerror(title, message)
+            # dummy window isn't needed anymore
+            root.destroy()
+            del root
 
 
     # handle input parameters
@@ -130,16 +137,6 @@ if __name__ == "__main__":
     )
     args = parser.parse_args(namespace=ParsedArgs())
 
-    # create the dummy window if in GUI mode
-    if not args.cli:
-        root = tk.Tk()
-        root.overrideredirect(True)
-        root.withdraw()
-        root.iconphoto(
-            True, PhotoImage(master=root, image=Image_module.open(resource_path("pickaxe.ico")))
-        )
-        root.update()
-
     if parser.is_error:
         show_error("Argument Parser Error", parser.message, args.cli)
         sys.exit(parser.status)
@@ -155,10 +152,6 @@ if __name__ == "__main__":
         )
         sys.exit(4)
 
-    if not args.cli:
-        # dummy window isn't needed anymore
-        root.destroy()
-        del root
     # get rid of unneeded objects
     del parser
 

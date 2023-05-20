@@ -9,22 +9,31 @@ SELF_PATH = str(Path(".").absolute())
 if SELF_PATH not in sys.path:
     sys.path.insert(0, SELF_PATH)
 
-from constants import WORKING_DIR, DEFAULT_LANG
+from constants import WORKING_DIR, SITE_PACKAGES_PATH, DEFAULT_LANG
 
 if TYPE_CHECKING:
     from PyInstaller.building.api import PYZ, EXE
     from PyInstaller.building.build_main import Analysis
 
-
-datas: list[tuple[str | Path, str]] = [
-    ("pickaxe.ico", '.'),  # icon file
+# (source_path, dest_path, required)
+to_add: list[tuple[Path, str, bool]] = [
+    (Path("pickaxe.ico"), '.', True),  # icon file
     # SeleniumWire HTTPS/SSL cert file and key
-    ("./env/Lib/site-packages/seleniumwire/ca.crt", "./seleniumwire"),
-    ("./env/Lib/site-packages/seleniumwire/ca.key", "./seleniumwire"),
+    (Path(SITE_PACKAGES_PATH, "seleniumwire/ca.crt"), "./seleniumwire", False),
+    (Path(SITE_PACKAGES_PATH, "seleniumwire/ca.key"), "./seleniumwire", False),
 ]
 for lang_filepath in WORKING_DIR.joinpath("lang").glob("*.json"):
     if lang_filepath.stem != DEFAULT_LANG:
-        datas.append((lang_filepath, "lang"))
+        to_add.append((lang_filepath, "lang", True))
+
+# ensure the required to-be-added data exists
+datas: list[tuple[Path, str]] = []
+for source_path, dest_path, required in to_add:
+    if source_path.exists():
+        datas.append((source_path, dest_path))
+    elif required:
+        raise FileNotFoundError(str(source_path))
+
 
 block_cipher = None
 a = Analysis(
@@ -41,6 +50,7 @@ a = Analysis(
         "setuptools._distutils.dir_util",
         "setuptools._distutils.file_util",
         "setuptools._distutils.archive_util",
+        "PIL._tkinter_finder",
     ],
     runtime_hooks=[],
     cipher=block_cipher,
