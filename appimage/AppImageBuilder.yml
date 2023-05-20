@@ -1,0 +1,144 @@
+# Useful links:
+# https://appimage-builder.readthedocs.io/en/latest/reference/recipe.html
+
+version: 1
+
+script:
+  # Clean up any previous builds.
+  - rm -rf "$BUILD_DIR" "$TARGET_APPDIR" || true
+  - mkdir -p "$BUILD_DIR" "$TARGET_APPDIR"
+  - cd "$BUILD_DIR"
+
+  # Build a recent version of libXft first. This fixes an issue where the app won't start with libXft 2.3.3 if an emoji font is installed on the system.
+  - curl -L https://xorg.freedesktop.org/releases/individual/lib/libXft-2.3.8.tar.xz -o libXft.tar.xz
+  - tar xvf libXft.tar.xz
+  - cd libXft-2.3.8
+  - ./configure --prefix="$TARGET_APPDIR/usr" --disable-static
+  - make -j$(nproc)
+  - make install-strip
+
+  # Package the app.
+  - mkdir -p "$TARGET_APPDIR"/usr/{src,share/icons/hicolor/128x128/apps}
+  - cp -r "$SOURCE_DIR/../lang" "$SOURCE_DIR/../pickaxe.ico" "$SOURCE_DIR"/../*.py "$TARGET_APPDIR/usr/src"
+  - cp "$SOURCE_DIR/pickaxe.png" "$TARGET_APPDIR/usr/share/icons/hicolor/128x128/apps/io.github.devilxd.twitchdropsminer.png"
+
+  # Remove certifi from the line below if using Python 3.10+.
+  - python3.8 -m pip install --ignore-installed --prefix=/usr --root="$TARGET_APPDIR" -r "$SOURCE_DIR/../requirements.txt" certifi
+
+AppDir:
+  app_info:
+    id: io.github.devilxd.twitchdropsminer
+    name: Twitch Drops Miner
+    icon: io.github.devilxd.twitchdropsminer
+    version: '{{APP_VERSION}}'
+    exec: usr/bin/python3.8
+    exec_args: '${APPDIR}/usr/src/main.py $@'
+
+  apt:
+    arch: amd64
+    sources:
+      - sourceline: deb http://archive.ubuntu.com/ubuntu/ focal main universe
+      - sourceline: deb http://archive.ubuntu.com/ubuntu/ focal-updates main universe
+      - sourceline: deb http://archive.ubuntu.com/ubuntu/ focal-backports main universe
+      - sourceline: deb http://archive.ubuntu.com/ubuntu/ focal-security main universe
+        key_url: http://keyserver.ubuntu.com/pks/lookup?op=get&search=0x3b4fe6acc0b21f32
+
+    include:
+      - gir1.2-appindicator3-0.1
+      - python3-tk
+
+    exclude:
+      - adwaita-icon-theme
+      - dconf-service
+      - glib-networking-services
+      - gsettings-desktop-schemas
+      - hicolor-icon-theme
+      - humanity-icon-theme
+      - libavahi-client3
+      - libavahi-common3
+      - libbrotli1
+      - libcolord2
+      - libcups2
+      - libdb5.3
+      - libdconf1
+      - libgmp10
+      - libgnutls30
+      - libgssapi-krb5-2
+      - libhogweed5
+      - libicu66
+      - libjson-glib-1.0-0
+      - libk5crypto3
+      - libkrb5-3
+      - libkrb5support0
+      - liblcms2-2
+      - libncursesw6
+      - libnettle7
+      - libp11-kit0
+      - libpangoxft-1.0-0
+      - libpsl5
+      - librest-0.7-0
+      - libsoup2.4-1
+      - libsoup-gnome2.4-1
+      - libsqlite3-0
+      - libtasn1-6
+      - libtiff5
+      - libtinfo6
+      - libunistring2
+      - libwebp6
+      - libxft2 # We'll ship our own, updated version of this library.
+      - libxml2
+      - mime-support
+      - readline-common
+      - tzdata
+      - xkb-data
+
+  files:
+    exclude:
+      - etc
+      - usr/bin/normalizer
+      - usr/bin/pdb3*
+      - usr/bin/py3*
+      - usr/bin/pydoc*
+      - usr/bin/pygettext3*
+      - usr/include
+      # The next 2 files come from our own build of libXft, and they can be removed.
+      - usr/lib/libXft.la
+      - usr/lib/pkgconfig
+      - usr/lib/python3.9
+      - usr/lib/valgrind
+      - usr/lib/*-linux-gnu/engines-1.1
+      - usr/lib/*-linux-gnu/glib-2.0
+      - usr/lib/*-linux-gnu/gtk-3.0
+      - usr/lib/*-linux-gnu/libgtk-3.0
+      - usr/share/applications
+      - usr/share/binfmts
+      - usr/share/bug
+      - usr/share/doc
+      - usr/share/doc-base
+      - usr/share/glib-2.0
+      - usr/share/lintian
+      - usr/share/man
+      - usr/share/pixmaps
+      - usr/share/python3
+      - usr/share/themes
+
+  runtime:
+    env:
+      PATH: '${APPDIR}/usr/bin:${PATH}'
+      PYTHONHOME: '${APPDIR}/usr'
+      PYTHONPATH: '${APPDIR}/usr/lib/python3.8/tkinter:${APPDIR}/usr/lib/python3.8/site-packages'
+      APPDIR_LIBRARY_PATH: '${APPDIR}/usr/lib:${APPDIR}/usr/lib/x86_64-linux-gnu:${APPDIR}/lib/x86_64-linux-gnu'
+      TCL_LIBRARY: '${APPDIR}/usr/share/tcltk/tcl8.6'
+      TK_LIBRARY: '${APPDIR}/usr/lib/tcltk/x86_64-linux-gnu/tk8.6'
+      TKPATH: '${APPDIR}/usr/lib/tcltk/x86_64-linux-gnu/tk8.6'
+      # Remove the line below if using Python 3.10+.
+      SSL_CERT_FILE: '${APPDIR}/usr/lib/python3.8/site-packages/certifi/cacert.pem'
+      # The app seems to have problems running on Wayland at the moment.
+      # See: https://github.com/DevilXD/TwitchDropsMiner/issues/321
+      GDK_BACKEND: x11
+
+AppImage:
+  arch: x86_64
+  file_name: Twitch.Drops.Miner-x86_64.AppImage
+  sign-key: None
+  update-information: guess

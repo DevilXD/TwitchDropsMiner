@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 import random
 import logging
@@ -18,8 +19,9 @@ if TYPE_CHECKING:
     from typing_extensions import TypeAlias
 
 
-# True if we're running from a built EXE, False inside a dev build
-IS_PACKAGED = hasattr(sys, "_MEIPASS")
+# True if we're running from a built EXE (or a Linux AppImage), False inside a dev build
+IS_APPIMAGE = "APPIMAGE" in os.environ and os.path.exists(os.environ["APPIMAGE"])
+IS_PACKAGED = hasattr(sys, "_MEIPASS") or IS_APPIMAGE
 # logging special levels
 CALL = logging.INFO - 1
 logging.addLevelName(CALL, "CALL")
@@ -39,7 +41,9 @@ def _resource_path(relative_path: Path | str) -> Path:
 
     Works for dev and for PyInstaller.
     """
-    if IS_PACKAGED:
+    if IS_APPIMAGE:
+         base_path = Path(sys.argv[0]).absolute().parent
+    elif IS_PACKAGED:
         # PyInstaller's folder where the one-file app is unpacked
         meipass: str = getattr(sys, "_MEIPASS")
         base_path = Path(meipass)
@@ -73,12 +77,15 @@ def _merge_vars(base_vars: JsonType, vars: JsonType) -> None:
 
 
 # Base Paths
-# NOTE: pyinstaller will set this to its own executable when building,
-# detect this to use __file__ and main.py redirection instead
-SELF_PATH = Path(sys.argv[0]).absolute()
-if SELF_PATH.stem == "pyinstaller":
-    SELF_PATH = Path(__file__).with_name("main.py").absolute()
-WORKING_DIR = SELF_PATH.absolute().parent
+if IS_APPIMAGE:
+    SELF_PATH = Path(os.environ["APPIMAGE"]).absolute()
+else:
+    # NOTE: pyinstaller will set sys.argv[0] to its own executable when building,
+    # detect this to use __file__ and main.py redirection instead
+    SELF_PATH = Path(sys.argv[0]).absolute()
+    if SELF_PATH.stem == "pyinstaller":
+        SELF_PATH = Path(__file__).with_name("main.py").absolute()
+WORKING_DIR = SELF_PATH.parent
 # Development paths
 VENV_PATH = Path(WORKING_DIR, "env")
 SITE_PACKAGES_PATH = Path(VENV_PATH, SYS_SITE_PACKAGES)

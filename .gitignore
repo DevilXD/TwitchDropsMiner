@@ -16,3 +16,9 @@ log.txt
 /lock.file
 settings.json
 /lang/English.json
+# AppImage
+/AppDir
+/appimage-builder
+/appimage-build
+/*.AppImage
+/*.AppImage.zsync
