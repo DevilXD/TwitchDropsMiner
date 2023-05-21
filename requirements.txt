@@ -7,3 +7,4 @@ PyGObject; sys_platform == "linux" # required for better system tray support on 
 # undetected-chromedriver
 # this is installed only on windows
 pywin32; sys_platform == "win32"
+truststore; sys_platform == "linux" and python_version >= "3.10"

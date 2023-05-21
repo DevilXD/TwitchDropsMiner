@@ -21,6 +21,10 @@ if __name__ == "__main__":
     if sys.platform == "win32":
         import win32gui
 
+    if sys.platform == "linux" and sys.version_info >= (3, 10):
+        import truststore
+        truststore.inject_into_ssl()
+
     from translate import _
     from twitch import Twitch
     from settings import Settings
