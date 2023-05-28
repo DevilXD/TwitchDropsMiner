@@ -1994,6 +1994,7 @@ class GUIManager:
             # ctypes.windll.user32.ShutdownBlockReasonDestroy(self._handle)
         else:
             # use old-style window closing protocol for non-windows platforms
+            root.protocol("WM_DELETE_WINDOW", self.close)
             root.protocol("WM_DESTROY_WINDOW", self.close)
         # stay hidden in tray if needed, otherwise show the window when everything's ready
         if self._twitch.settings.tray:
