@@ -6,7 +6,6 @@ import sys
 import ctypes
 import asyncio
 import logging
-import webbrowser
 import tkinter as tk
 from pathlib import Path
 from collections import abc
@@ -32,7 +31,7 @@ if sys.platform == "win32":
 from translate import _
 from cache import ImageCache
 from exceptions import ExitRequest
-from utils import resource_path, set_root_icon, Game, _T
+from utils import resource_path, set_root_icon, webopen, Game, _T
 from constants import (
     SELF_PATH, OUTPUT_FORMATTER, WS_TOPICS_LIMIT, MAX_WEBSOCKETS, WINDOW_TITLE, State
 )
@@ -344,10 +343,7 @@ class LinkLabel(ttk.Label):
             # W, N, E, S
             kwargs["padding"] = (0, 2, 0, 2)
         super().__init__(*args, **kwargs)
-        self.bind("<ButtonRelease-1>", self.webopen(self._link))
-
-    def webopen(self, url: str):
-        return lambda e: webbrowser.open_new_tab(url)
+        self.bind("<ButtonRelease-1>", lambda e: webopen(self._link))
 
 
 class SelectMenu(tk.Menubutton, Generic[_T]):
@@ -558,7 +554,7 @@ class LoginForm:
         self._manager.print(_("gui", "login", "request"))
         await self.wait_for_login_press()
         self._manager.print(f"Enter this code on the Twitch's device activation page: {user_code}")
-        webbrowser.open_new_tab("https://www.twitch.tv/activate")
+        webopen("https://www.twitch.tv/activate")
 
     def update(self, status: str, user_id: int | None):
         if user_id is not None:

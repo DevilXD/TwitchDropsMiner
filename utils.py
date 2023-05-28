@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import os
+import sys
 import json
 import random
 import string
 import asyncio
 import logging
 import traceback
+import webbrowser
 import tkinter as tk
 from enum import Enum
 from pathlib import Path
@@ -21,7 +24,7 @@ import yarl
 from PIL.ImageTk import PhotoImage
 from PIL import Image as Image_module
 
-from constants import JsonType
+from constants import JsonType, IS_PACKAGED
 from exceptions import ExitRequest, ReloadRequest
 from constants import _resource_path as resource_path  # noqa
 
@@ -211,6 +214,31 @@ def json_load(path: Path, defaults: _JSON_T, *, merge: bool = True) -> _JSON_T:
 def json_save(path: Path, contents: Mapping[Any, Any], *, sort: bool = False) -> None:
     with open(path, 'w', encoding="utf8") as file:
         json.dump(contents, file, default=_serialize, sort_keys=sort, indent=4)
+
+
+def webopen(url: str):
+    if IS_PACKAGED and sys.platform == "linux":
+        # https://pyinstaller.org/en/stable/
+        # runtime-information.html#ld-library-path-libpath-considerations
+        # NOTE: All 4 cases need to be handled here: either of the two values can be there or not.
+        ld_env = "LD_LIBRARY_PATH"
+        ld_path_curr = os.environ.get(ld_env)
+        ld_path_orig = os.environ.get(f"{ld_env}_ORIG")
+        if ld_path_orig is not None:
+            os.environ[ld_env] = ld_path_orig
+        elif ld_path_curr is not None:
+            # pop current
+            os.environ.pop(ld_env)
+
+        webbrowser.open_new_tab(url)
+
+        if ld_path_curr is not None:
+            os.environ[ld_env] = ld_path_curr
+        elif ld_path_orig is not None:
+            # pop original
+            os.environ.pop(ld_env)
+    else:
+        webbrowser.open_new_tab(url)
 
 
 class ExponentialBackoff:
