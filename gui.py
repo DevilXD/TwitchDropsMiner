@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 import sys
 import ctypes
@@ -7,7 +8,9 @@ import asyncio
 import logging
 import webbrowser
 import tkinter as tk
+from pathlib import Path
 from collections import abc
+from textwrap import dedent
 from math import log10, ceil
 from dataclasses import dataclass
 from tkinter.font import Font, nametofont
@@ -1635,6 +1638,12 @@ class SettingsPanel:
     def update_notifications(self) -> None:
         self._settings.tray_notifications = bool(self._vars["tray_notifications"].get())
 
+    def _get_autostart_path(self, tray: bool) -> str:
+        self_path = f'"{SELF_PATH.resolve()!s}"'
+        if tray:
+            self_path += " --tray"
+        return self_path
+
     def update_autostart(self) -> None:
         enabled = bool(self._vars["autostart"].get())
         tray = bool(self._vars["tray"].get())
@@ -1643,14 +1652,34 @@ class SettingsPanel:
         if sys.platform == "win32":
             if enabled:
                 # NOTE: we need double quotes in case the path contains spaces
-                self_path = f'"{SELF_PATH.resolve()!s}"'
-                if tray:
-                    self_path += " --tray"
+                autostart_path = self._get_autostart_path(tray)
                 with RegistryKey(self.AUTOSTART_KEY) as key:
-                    key.set(self.AUTOSTART_NAME, ValueType.REG_SZ, self_path)
+                    key.set(self.AUTOSTART_NAME, ValueType.REG_SZ, autostart_path)
             else:
                 with RegistryKey(self.AUTOSTART_KEY) as key:
                     key.delete(self.AUTOSTART_NAME, silent=True)
+        elif sys.platform == "linux":
+            autostart_folder: Path = Path("~/.config/autostart").expanduser()
+            if (config_home := os.environ.get("XDG_CONFIG_HOME")) is not None:
+                config_autostart: Path = Path(config_home, "autostart").expanduser()
+                if config_autostart.exists():
+                    autostart_folder = config_autostart
+            autostart_file: Path = autostart_folder / f"{self.AUTOSTART_NAME}.desktop"
+            if enabled:
+                autostart_path = self._get_autostart_path(tray)
+                file_contents = dedent(
+                    f"""
+                    [Desktop Entry]
+                    Type=Application
+                    Name=Twitch Drops Miner
+                    Description=Mine timed drops on Twitch
+                    Exec=sh -c '{autostart_path}'
+                    """
+                )
+                with autostart_file.open("w", encoding="utf8") as file:
+                    file.write(file_contents)
+            else:
+                autostart_file.unlink(missing_ok=True)
 
     def set_games(self, games: abc.Iterable[Game]) -> None:
         games_list = sorted(map(str, games))
