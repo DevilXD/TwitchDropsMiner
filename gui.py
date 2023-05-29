@@ -1079,7 +1079,8 @@ class TrayIcon:
                 pystray.MenuItem(_("gui", "tray", "quit"), bridge(self.quit)),
             )
             self.icon = pystray.Icon("twitch_miner", self.icon_image, self.get_title(drop), menu)
-            self.icon.run_detached()
+            # self.icon.run_detached()
+            loop.run_in_executor(None, self.icon.run)
 
     def stop(self):
         if self.icon is not None:
