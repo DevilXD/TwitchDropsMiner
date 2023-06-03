@@ -203,7 +203,7 @@ class PaddedListbox(tk.Listbox):
         return self._frame.grid_forget()
 
     def configure(self, *args: Any, **kwargs: Any) -> Any:
-        options = {}
+        options: dict[str, Any] = {}
         if args and args[0] is not None:
             options.update(args[0])
         if kwargs:
@@ -256,16 +256,74 @@ class PaddedListbox(tk.Listbox):
 
 class MouseOverLabel(ttk.Label):
     def __init__(self, *args, alt_text: str = '', reverse: bool = False, **kwargs) -> None:
-        self._org_text: str = kwargs.get("text", '')
+        text: str = kwargs.get("text", '')
+        self._org_text: str = text
         self._alt_text: str = alt_text
+        self._alt_reverse: bool = reverse
+        self._bind_enter: str | None = None
+        self._bind_leave: str | None = None
         super().__init__(*args, **kwargs)
-        if reverse:
-            self.bind("<Enter>", lambda e: self.config(text=self._org_text))
-            self.bind("<Leave>", lambda e: self.config(text=self._alt_text))
-            self.config(text=self._alt_text)
-        else:
-            self.bind("<Enter>", lambda e: self.config(text=self._alt_text))
-            self.bind("<Leave>", lambda e: self.config(text=self._org_text))
+        self.configure(text=text, alt_text=alt_text, reverse=reverse)
+
+    def configure(self, *args: Any, **kwargs: Any) -> Any:
+        options: dict[str, Any] = {}
+        if args and args[0] is not None:
+            options.update(args[0])
+        if kwargs:
+            options.update(kwargs)
+        applicable_options: set[str] = set((
+            "text",
+            "reverse",
+            "alt_text",
+        ))
+        if applicable_options.intersection(options.keys()):
+            # we need to pop some options, because they can't be passed down to the label,
+            # as that will result in an error later down the line
+            events_change: bool = False
+            if "text" in options:
+                if bool(self._org_text) != bool(options["text"]):
+                    events_change = True
+                self._org_text = options["text"]
+            if "alt_text" in options:
+                if bool(self._alt_text) != bool(options["alt_text"]):
+                    events_change = True
+                self._alt_text = options.pop("alt_text")
+            if "reverse" in options:
+                if bool(self._alt_reverse) != bool(options["reverse"]):
+                    events_change = True
+                self._alt_reverse = options.pop("reverse")
+            if self._org_text and not self._alt_text:
+                options["text"] = self._org_text
+            elif (not self._org_text or self._alt_reverse) and self._alt_text:
+                options["text"] = self._alt_text
+            if events_change:
+                if self._bind_enter is not None:
+                    self.unbind(self._bind_enter)
+                    self._bind_enter = None
+                if self._bind_leave is not None:
+                    self.unbind(self._bind_leave)
+                    self._bind_leave = None
+                if self._org_text and self._alt_text:
+                    orig_config = super().config
+                    if self._alt_reverse:
+                        self._bind_enter = self.bind(
+                            "<Enter>", lambda e: orig_config(text=self._org_text)
+                        )
+                        self._bind_leave = self.bind(
+                            "<Leave>", lambda e: orig_config(text=self._alt_text)
+                        )
+                    else:
+                        self._bind_enter = self.bind(
+                            "<Enter>", lambda e: orig_config(text=self._alt_text)
+                        )
+                        self._bind_leave = self.bind(
+                            "<Leave>", lambda e: orig_config(text=self._org_text)
+                        )
+        return super().configure(options)
+
+    def config(self, *args: Any, **kwargs: Any) -> Any:
+        # because 'config = configure' makes mypy complain
+        self.configure(*args, **kwargs)
 
 
 class LinkLabel(ttk.Label):
@@ -1171,7 +1229,7 @@ class InventoryOverview:
         self._canvas.bind("<Leave>", lambda e: self._canvas.unbind_all("<MouseWheel>"))
         self._canvas.create_window(0, 0, anchor="nw", window=self._main_frame)
         self._campaigns: dict[DropsCampaign, CampaignDisplay] = {}
-        self._drops: dict[str, ttk.Label] = {}
+        self._drops: dict[str, MouseOverLabel] = {}
 
     def _update_visibility(self, campaign: DropsCampaign):
         # True if the campaign is supposed to show, False makes it hidden.
@@ -1312,10 +1370,8 @@ class InventoryOverview:
                 ttk.Label(
                     benefits_frame, text=benefit.name, image=image, compound="bottom"
                 ).grid(column=i, row=0, padx=5)
-            progress_text, progress_color = self.get_progress(drop)
-            self._drops[drop.id] = label = ttk.Label(
-                drop_frame, text=progress_text, foreground=progress_color
-            )
+            self._drops[drop.id] = label = MouseOverLabel(drop_frame)
+            self.update_progress(drop, label)
             label.grid(column=0, row=1)
         self._campaigns[campaign] = {
             "frame": campaign_frame,
@@ -1343,8 +1399,11 @@ class InventoryOverview:
             status_color = "red"
         return (status_text, status_color)
 
-    def get_progress(self, drop: TimedDrop) -> tuple[str, tk._Color]:
+    def update_progress(self, drop: TimedDrop, label: MouseOverLabel) -> None:
+        # Returns: main text, alt text, text color
+        alt_text: str = ''
         progress_text: str
+        reverse: bool = False
         progress_color: tk._Color = ''
         if drop.is_claimed:
             progress_color = "green"
@@ -1361,14 +1420,27 @@ class InventoryOverview:
             progress_text = _("gui", "inventory", "minutes_progress").format(
                 minutes=drop.required_minutes
             )
-        return (progress_text, progress_color)
+            if datetime.now(timezone.utc) < drop.starts_at > drop.campaign.starts_at:
+                # this drop can only be earned later than the campaign start
+                alt_text = "Starts at: {}".format(
+                    drop.starts_at.astimezone().replace(microsecond=0, tzinfo=None)
+                )
+                reverse = True
+            elif drop.ends_at < drop.campaign.ends_at:
+                # this drop becomes unavailable earlier than the campaign ends
+                alt_text = "Starts at: {}".format(
+                    drop.ends_at.astimezone().replace(microsecond=0, tzinfo=None)
+                )
+                reverse = True
+        label.config(
+            text=progress_text, alt_text=alt_text, reverse=reverse, foreground=progress_color
+        )
 
     def update_drop(self, drop: TimedDrop) -> None:
         label = self._drops.get(drop.id)
         if label is None:
             return
-        progress_text, progress_color = self.get_progress(drop)
-        label.config(text=progress_text, foreground=progress_color)
+        self.update_progress(drop, label)
 
 
 def proxy_validate(entry: PlaceholderEntry, settings: Settings) -> bool:
