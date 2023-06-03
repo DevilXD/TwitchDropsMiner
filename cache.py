@@ -3,6 +3,7 @@ import asyncio
 from datetime import datetime, timedelta, timezone
 
 import io
+import json
 from typing import Dict, TypedDict, NewType, TYPE_CHECKING
 
 from utils import json_load, json_save
@@ -37,8 +38,15 @@ class ImageCache:
     def __init__(self, manager: GUIManager) -> None:
         self._root = manager._root
         self._twitch = manager._twitch
+        cleanup: bool = False
         CACHE_PATH.mkdir(parents=True, exist_ok=True)
-        self._hashes: Hashes = json_load(CACHE_DB, default_database, merge=False)
+        try:
+            self._hashes: Hashes = json_load(CACHE_DB, default_database, merge=False)
+        except json.JSONDecodeError:
+            # if we can't load the mapping file, delete all existing files,
+            # then reinitialize the image cache anew
+            cleanup = True
+            self._hashes = default_database.copy()
         self._images: dict[ImageHash, Image] = {}
         self._photos: dict[tuple[ImageHash, ImageSize], PhotoImage] = {}
         self._lock = asyncio.Lock()
@@ -60,12 +68,13 @@ class ImageCache:
                 # hashes come with an extension already
                 CACHE_PATH.joinpath(img_hash).unlink(missing_ok=True)
                 # NOTE: The hashes are deleted from self._hashes above
-        # NOTE: This cleanups the cache folder from unused PNG files
-        # orphans = [
-        #     file.name for file in CACHE_PATH.glob("*.png") if file.name not in hash_counts
-        # ]
-        # for filename in orphans:
-        #     CACHE_PATH.joinpath(filename).unlink(missing_ok=True)
+        if cleanup:
+            # This cleanups the cache folder from unused PNG files
+            orphans = [
+                file.name for file in CACHE_PATH.glob("*.png") if file.name not in hash_counts
+            ]
+            for filename in orphans:
+                CACHE_PATH.joinpath(filename).unlink(missing_ok=True)
 
     def save(self, *, force: bool = False) -> None:
         if self._altered or force:

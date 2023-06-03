@@ -657,8 +657,13 @@ class Twitch:
             chrome_agent = ClientType.WEB.USER_AGENT
         # load in cookies
         cookie_jar = aiohttp.CookieJar()
-        if COOKIES_PATH.exists():
-            cookie_jar.load(COOKIES_PATH)
+        try:
+            if COOKIES_PATH.exists():
+                cookie_jar.load(COOKIES_PATH)
+        except Exception:
+            # if loading in the cookies file ends up in an error, just ignore it
+            # clear the jar, just in case
+            cookie_jar.clear()
         # create session, limited to 50 connections at maximum
         connector = aiohttp.TCPConnector(limit=50)
         self._session = aiohttp.ClientSession(
