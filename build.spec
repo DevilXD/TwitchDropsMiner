@@ -34,28 +34,39 @@ for source_path, dest_path, required in to_add:
     elif required:
         raise FileNotFoundError(str(source_path))
 
+binaries: list[tuple[Path, str]] = []
+hiddenimports: list[str] = [
+    "PIL._tkinter_finder",
+    "setuptools._distutils.log",
+    "setuptools._distutils.dir_util",
+    "setuptools._distutils.file_util",
+    "setuptools._distutils.archive_util",
+]
+
+if sys.platform == "linux":
+    # Needed files for better system tray support on Linux via pystray (AppIndicator backend).
+    datas.append((Path("/usr/lib/girepository-1.0/AppIndicator3-0.1.typelib"), "gi_typelibs"))
+    binaries.append((Path("/lib/x86_64-linux-gnu/libappindicator3.so.1"), "."))
+    hiddenimports.extend([
+        "gi.repository.Gtk",
+        "gi.repository.GObject",
+    ])
 
 block_cipher = None
 a = Analysis(
     ["main.py"],
     pathex=[],
     datas=datas,
-    binaries=[],
     excludes=[],
     hookspath=[],
     hooksconfig={},
     noarchive=False,
-    hiddenimports=[
-        "setuptools._distutils.log",
-        "setuptools._distutils.dir_util",
-        "setuptools._distutils.file_util",
-        "setuptools._distutils.archive_util",
-        "PIL._tkinter_finder",
-    ],
     runtime_hooks=[],
+    binaries=binaries,
     cipher=block_cipher,
-    win_no_prefer_redirects=False,
+    hiddenimports=hiddenimports,
     win_private_assemblies=False,
+    win_no_prefer_redirects=False,
 )
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 exe = EXE(
