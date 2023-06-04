@@ -1048,10 +1048,8 @@ class TrayIcon:
         self._button.grid(column=0, row=0, sticky="ne")
 
     def __del__(self) -> None:
+        self.stop()
         self.icon_image.close()
-
-    def is_tray(self) -> bool:
-        return self.icon is not None
 
     def get_title(self, drop: TimedDrop | None) -> str:
         if drop is None:
@@ -1064,23 +1062,22 @@ class TrayIcon:
             f"{drop.progress:.1%} ({campaign.claimed_drops}/{campaign.total_drops})"
         )
 
-    def start(self):
-        if self.icon is None:
-            loop = asyncio.get_running_loop()
-            drop = self._manager.progress._drop
+    def _start(self):
+        loop = asyncio.get_running_loop()
+        drop = self._manager.progress._drop
 
-            # we need this because tray icon lives in a separate thread
-            def bridge(func):
-                return lambda: loop.call_soon_threadsafe(func)
+        # we need this because tray icon lives in a separate thread
+        def bridge(func):
+            return lambda: loop.call_soon_threadsafe(func)
 
-            menu = pystray.Menu(
-                pystray.MenuItem(_("gui", "tray", "show"), bridge(self.restore), default=True),
-                pystray.Menu.SEPARATOR,
-                pystray.MenuItem(_("gui", "tray", "quit"), bridge(self.quit)),
-            )
-            self.icon = pystray.Icon("twitch_miner", self.icon_image, self.get_title(drop), menu)
-            # self.icon.run_detached()
-            loop.run_in_executor(None, self.icon.run)
+        menu = pystray.Menu(
+            pystray.MenuItem(_("gui", "tray", "show"), bridge(self.restore), default=True),
+            pystray.Menu.SEPARATOR,
+            pystray.MenuItem(_("gui", "tray", "quit"), bridge(self.quit)),
+        )
+        self.icon = pystray.Icon("twitch_miner", self.icon_image, self.get_title(drop), menu)
+        # self.icon.run_detached()
+        loop.run_in_executor(None, self.icon.run)
 
     def stop(self):
         if self.icon is not None:
@@ -1091,13 +1088,16 @@ class TrayIcon:
         self._manager.close()
 
     def minimize(self):
-        if not self.is_tray():
-            self.start()
-            self._manager._root.withdraw()
+        if self.icon is None:
+            self._start()
+        else:
+            self.icon.visible = True
+        self._manager._root.withdraw()
 
     def restore(self):
-        if self.is_tray():
-            self.stop()
+        if self.icon is not None:
+            # self.stop()
+            self.icon.visible = False
         self._manager._root.deiconify()
 
     def notify(
@@ -1107,7 +1107,7 @@ class TrayIcon:
         if not self._manager._twitch.settings.tray_notifications:
             return None
         if self.icon is not None:
-            icon = self.icon
+            icon = self.icon  # nonlocal scope bind
 
             async def notifier():
                 icon.notify(message, title)
