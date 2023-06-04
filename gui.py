@@ -1876,7 +1876,7 @@ class GUIManager:
         self._twitch: Twitch = twitch
         self._poll_task: asyncio.Task[NoReturn] | None = None
         self._close_requested = asyncio.Event()
-        self._root = root = Tk()
+        self._root = root = Tk(className=WINDOW_TITLE)
         # withdraw immediately to prevent the window from flashing
         self._root.withdraw()
         # root.resizable(False, True)
