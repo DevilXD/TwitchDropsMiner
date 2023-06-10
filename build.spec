@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 SELF_PATH = str(Path(".").absolute())
 if SELF_PATH not in sys.path:
@@ -34,6 +34,7 @@ for source_path, dest_path, required in to_add:
     elif required:
         raise FileNotFoundError(str(source_path))
 
+hooksconfig: dict[str, Any] = {}
 binaries: list[tuple[Path, str]] = []
 hiddenimports: list[str] = [
     "PIL._tkinter_finder",
@@ -51,6 +52,13 @@ if sys.platform == "linux":
         "gi.repository.Gtk",
         "gi.repository.GObject",
     ])
+    hooksconfig = {
+        "gi": {
+            "icons": [],
+            "themes": [],
+            "languages": ["en_US"]
+        }
+    }
 
 block_cipher = None
 a = Analysis(
@@ -59,11 +67,11 @@ a = Analysis(
     datas=datas,
     excludes=[],
     hookspath=[],
-    hooksconfig={},
     noarchive=False,
     runtime_hooks=[],
     binaries=binaries,
     cipher=block_cipher,
+    hooksconfig=hooksconfig,
     hiddenimports=hiddenimports,
     win_private_assemblies=False,
     win_no_prefer_redirects=False,
