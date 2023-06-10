@@ -37,6 +37,12 @@ Every ~60 seconds, the application sends a "minute watched" event to the channel
 - Successfully logging into your Twitch account in the application, may cause Twitch to send you a "New Login" notification email. This is normal - you can verify that it comes from your own IP address. The application uses the Twitch's SmartTV account linking process, so the detected browser during the login should signify that as well.
 - The time remaining timer always countdowns a single minute and then stops - it is then restarted only after the application redetermines the remaining time. This "redetermination" can happen as early as at 10 seconds in a minute remaining, and as late as 20 seconds after the timer reaches zero (especially when finishing mining a drop), but is generally only an approximation and does not represent nor affect actual mining speed. The time variations are due to Twitch sometimes not reporting drop progress at all, or reporting progress for the wrong drop - these cases have all been accounted for in the application though.
 
+### Notes about the Windows build:
+
+- To achieve a portable-executable format, the application is packaged with PyInstaller into an `EXE`. Some non-mainstream antivirus engines might report the packaged executable as a trojan, because PyInstaller has been used by others to package malicious Python code in the past. These reports can be safely ignored. If you absolutely do not trust the executable, you'll have to install Python yourself and run everything from source.
+- The executable uses the `%TEMP%` directory for temporary runtime storage of files, that don't need to be exposed to the user (like compiled code and translation files). For persistent storage, the directory the executable resides in is used instead.
+- The autostart feature is implemented as a registry entry to the current user's (`HKCU`) autostart key. It is only altered when toggling the respective option. If you relocate the app to a different directory, the autostart feature will stop working, until you toggle the option off and back on again
+
 ### Notes about the Linux build:
 
 - The Linux app is built and distributed in a portable-executable format (similar to [AppImages](https://appimage.org/)).
