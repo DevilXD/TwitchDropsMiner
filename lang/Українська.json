@@ -80,13 +80,13 @@
       "reconnecting": "Перепідключення..."
     },
     "progress": {
-      "name": "Прогрес кампанії",
+      "name": "Поступ кампанії",
       "drop": "Дроп:",
       "game": "Гра:",
       "campaign": "Кампанія:",
       "remaining": "{time} залишилося",
-      "drop_progress": "Прогрес:",
-      "campaign_progress": "Прогрес:"
+      "drop_progress": "Поступ:",
+      "campaign_progress": "Поступ:"
     },
     "channels": {
       "name": "Канали",
@@ -117,7 +117,7 @@
       "status": {
         "linked": "Зв'язано \u2714",
         "not_linked": "Не зв'язано \u274c",
-        "active": "Діюче \u2714",
+        "active": "Діюча \u2714",
         "upcoming": "Наближається \u23f3",
         "expired": "Прострочено \u274c",
         "claimed": "Отримано \u2714",
