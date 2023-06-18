@@ -66,7 +66,6 @@ from constants import (
     GQL_OPERATIONS,
     MAX_CHANNELS,
     WATCH_INTERVAL,
-    DROPS_ENABLED_TAG,
     State,
     ClientType,
     WebsocketTopic,
@@ -1693,7 +1692,7 @@ class Twitch:
                 "name": game.name,
                 "options": {
                     "includeRestricted": ["SUB_ONLY_LIVE"],
-                    "tags": [DROPS_ENABLED_TAG],
+                    # "tags": [DROPS_ENABLED_TAG],
                 },
             })
         )
