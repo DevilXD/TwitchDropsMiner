@@ -124,4 +124,5 @@ if they aren't already there. Doing so ensures proper markdown rendering on Gith
 @Sergo1217 - For the entirety of the Russian (Русский) translation.  
 @Ricky103403 - For the entirety of the Traditional Chinese (繁體中文) translation.  
 @Patriot99 - For the Polish (Polski) translation (co-authored with @DevilXD).  
-@Nollasko - For the entirety of the Ukrainian (Українська) translation.
+@Nollasko - For the entirety of the Ukrainian (Українська) translation.  
+@casungo - For the entirety of the Italian (Italiano) translation.
