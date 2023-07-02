@@ -12,7 +12,7 @@ if not exist "%dirpath%\env" (
 )
 echo:
 echo Installing requirements.txt...
-"%dirpath%\env\scripts\python" install -U pip
+"%dirpath%\env\scripts\python" -m pip install -U pip
 "%dirpath%\env\scripts\pip" install wheel
 "%dirpath%\env\scripts\pip" install -r "%dirpath%\requirements.txt"
 goto DONE
