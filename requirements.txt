@@ -1,5 +1,5 @@
 aiohttp>2.0,<4.0
-Pillow
+Pillow<10.0
 # TODO: switch back to a stable pystray release when a version newer than v0.19.4 is out
 pystray@git+https://github.com/moses-palmer/pystray.git@903836104f8b1a2979f4fa5a333870ef7b075992
 PyGObject; sys_platform == "linux" # required for better system tray support on Linux
