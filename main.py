@@ -164,38 +164,40 @@ if __name__ == "__main__":
     logging.getLogger("TwitchDrops.websocket").setLevel(settings.debug_ws)
 
     # client run
-    exit_status = 0
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    client = Twitch(settings)
-    signal.signal(signal.SIGINT, lambda *_: client.gui.close())
-    signal.signal(signal.SIGTERM, lambda *_: client.gui.close())
-    try:
-        loop.run_until_complete(client.run())
-    except CaptchaRequired:
-        exit_status = 1
-        client.prevent_close()
-        client.print(_("error", "captcha"))
-    except Exception:
-        exit_status = 1
-        client.prevent_close()
-        client.print("Fatal error encountered:\n")
-        client.print(traceback.format_exc())
-    finally:
-        signal.signal(signal.SIGINT, signal.SIG_DFL)
-        signal.signal(signal.SIGTERM, signal.SIG_DFL)
-        client.print(_("gui", "status", "exiting"))
-        loop.run_until_complete(client.shutdown())
-    if not client.gui.close_requested:
-        client.print(_("status", "terminated"))
-        client.gui.status.update(_("gui", "status", "terminated"))
-    loop.run_until_complete(client.gui.wait_until_closed())
-    # save the application state
-    # NOTE: we have to do it after wait_until_closed,
-    # because the user can alter some settings between app termination and closing the window
-    client.save(force=True)
-    client.gui.stop()
-    client.gui.close_window()
-    loop.run_until_complete(loop.shutdown_asyncgens())
-    loop.close()
-    sys.exit(exit_status)
+    async def main():
+        exit_status = 0
+        client = Twitch(settings)
+        loop = asyncio.get_running_loop()
+        if sys.platform == "linux":
+            loop.add_signal_handler(signal.SIGINT, lambda *_: client.gui.close())
+            loop.add_signal_handler(signal.SIGTERM, lambda *_: client.gui.close())
+        try:
+            await client.run()
+        except CaptchaRequired:
+            exit_status = 1
+            client.prevent_close()
+            client.print(_("error", "captcha"))
+        except Exception:
+            exit_status = 1
+            client.prevent_close()
+            client.print("Fatal error encountered:\n")
+            client.print(traceback.format_exc())
+        finally:
+            if sys.platform == "linux":
+                loop.remove_signal_handler(signal.SIGINT)
+                loop.remove_signal_handler(signal.SIGTERM)
+            client.print(_("gui", "status", "exiting"))
+            await client.shutdown()
+        if not client.gui.close_requested:
+            client.print(_("status", "terminated"))
+            client.gui.status.update(_("gui", "status", "terminated"))
+        await client.gui.wait_until_closed()
+        # save the application state
+        # NOTE: we have to do it after wait_until_closed,
+        # because the user can alter some settings between app termination and closing the window
+        client.save(force=True)
+        client.gui.stop()
+        client.gui.close_window()
+        sys.exit(exit_status)
+
+    asyncio.run(main())
