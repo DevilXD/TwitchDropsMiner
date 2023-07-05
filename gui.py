@@ -356,7 +356,7 @@ class SelectMenu(tk.Menubutton, Generic[_T]):
         command: abc.Callable[[_T], Any] | None = None,
         default: str | None = None,
         relief: tk._Relief = "solid",
-        background: tk._Color = "white",
+        background: str = "white",
         **kwargs: Any,
     ):
         width = max((len(k) for k in options.keys()), default=20)
@@ -1387,10 +1387,10 @@ class InventoryOverview:
         self._drops.clear()
         self._campaigns.clear()
 
-    def get_status(self, campaign: DropsCampaign) -> tuple[str, tk._Color]:
+    def get_status(self, campaign: DropsCampaign) -> tuple[str, str]:
         if campaign.active:
             status_text: str = _("gui", "inventory", "status", "active")
-            status_color: tk._Color = "green"
+            status_color: str = "green"
         elif campaign.upcoming:
             status_text = _("gui", "inventory", "status", "upcoming")
             status_color = "goldenrod"
@@ -1404,7 +1404,7 @@ class InventoryOverview:
         alt_text: str = ''
         progress_text: str
         reverse: bool = False
-        progress_color: tk._Color = ''
+        progress_color: str = ''
         if drop.is_claimed:
             progress_color = "green"
             progress_text = _("gui", "inventory", "status", "claimed")
