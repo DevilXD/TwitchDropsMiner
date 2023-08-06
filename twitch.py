@@ -1513,7 +1513,8 @@ class Twitch:
         self, ops: GQLOperation | list[GQLOperation]
     ) -> JsonType | list[JsonType]:
         gql_logger.debug(f"GQL Request: {ops}")
-        while True:
+        backoff = ExponentialBackoff(maximum=60)
+        for delay in backoff:
             try:
                 auth_state = await self.get_auth()
                 async with self.request(
@@ -1552,7 +1553,8 @@ class Twitch:
                     break
             else:
                 return orig_response
-            await asyncio.sleep(1)
+            await asyncio.sleep(delay)
+        raise MinerException()
 
     def _merge_data(self, primary_data: JsonType, secondary_data: JsonType) -> JsonType:
         merged = {}
