@@ -1538,7 +1538,11 @@ class Twitch:
                     for error_dict in response_json["errors"]:
                         if (
                             "message" in error_dict
-                            and error_dict["message"] in ("service timeout", "service error")
+                            and error_dict["message"] in (
+                                "service error",
+                                "service unavailable",
+                                "service timeout",
+                            )
                         ):
                             force_retry = True
                             break
