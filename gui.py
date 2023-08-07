@@ -1422,14 +1422,14 @@ class InventoryOverview:
             )
             if datetime.now(timezone.utc) < drop.starts_at > drop.campaign.starts_at:
                 # this drop can only be earned later than the campaign start
-                alt_text = "Starts at: {}".format(
-                    drop.starts_at.astimezone().replace(microsecond=0, tzinfo=None)
+                alt_text = _("gui", "inventory", "starts").format(
+                    time=drop.starts_at.astimezone().replace(microsecond=0, tzinfo=None)
                 )
                 reverse = True
             elif drop.ends_at < drop.campaign.ends_at:
                 # this drop becomes unavailable earlier than the campaign ends
-                alt_text = "Starts at: {}".format(
-                    drop.ends_at.astimezone().replace(microsecond=0, tzinfo=None)
+                alt_text = _("gui", "inventory", "ends").format(
+                    time=drop.ends_at.astimezone().replace(microsecond=0, tzinfo=None)
                 )
                 reverse = True
         label.config(
