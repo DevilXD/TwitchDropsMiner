@@ -19,7 +19,7 @@
         },
         "error_code": "Código de erro do login: {error_code}",
         "unexpected_content": "Ocorreu um erro inesperado, geralmente causado por redirecionamento de internet. Você precisa se autenticar para ter acesso à internet?",
-        "incorrect_login_pass": "Senha ou usuário incorreto",
+        "incorrect_login_pass": "Usuário e/ou senha incorreto(s)",
         "incorrect_email_code": "Codigo de email incorreto",
         "incorrect_twofa_code": "Codigo F2A incorreto",
         "email_code_required": "Código no email necessário. Verifique sua caixa de entrada",
