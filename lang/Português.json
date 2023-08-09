@@ -27,7 +27,7 @@
     },
     "error": {
         "captcha": "Seu login foi negado pelo CAPTCHA.\nPor favor tente em aproximadamente 12+ horas.",
-        "site_down": "Twitch está fora do ar, tentando em {seconds} segundos...",
+        "site_down": "Twitch está fora do ar, tentando novamente em {seconds} segundos...",
         "no_connection": "Sem conexão com a TWITCH, reconectando em {seconds} segundos..."
     },
     "gui": {
