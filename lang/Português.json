@@ -116,7 +116,7 @@
             },
             "status": {
                 "linked": "Conectado \u2714",
-                "not_linked": "Não conectado \u274c",
+                "not_linked": "Desconectado \u274c",
                 "active": "Ativo \u2714",
                 "upcoming": "Se aproximando \u23f3",
                 "expired": "Expirado \u274c",
