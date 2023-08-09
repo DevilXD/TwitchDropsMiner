@@ -137,7 +137,7 @@
                 "autostart": "Auto-Início: ",
                 "tray": "Auto-iniciar na bandeja de tarefas: ",
                 "priority_only": "Apenas com prioridade: ",
-                "proxy": "Proxy (Necessita Reinício do App):"
+                "proxy": "Proxy (requer o reinício do app):"
             },
             "game_name": "Nome do jogo",
             "priority": "Prioridade",
