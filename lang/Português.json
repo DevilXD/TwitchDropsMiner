@@ -15,7 +15,7 @@
             "startup": "Abrindo Google Chrome",
             "login_to_complete": "Por Favor complete o login pela pagina web manualmente pressionando o botão Login novamente.",
             "no_token": "Seu Token de autorização Twitch não foi encontrado",
-            "closed_window": "O aplicativo Goggle Chrome foi fechado, portanto, o login não foi efetuado com sucesso ."
+            "closed_window": "O Google Chrome foi fechado antes da autenticação ser concluída."
         },
         "error_code": "Código de erro do login: {error_code}",
         "unexpected_content": "Algum erro inesperado aconteceu, geralmente por redirecionamento de internet. você precisa logar em algum site de internet para ter acesso?",
