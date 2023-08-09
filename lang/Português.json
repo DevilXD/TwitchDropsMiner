@@ -135,7 +135,7 @@
             "general": {
                 "name": "Geral",
                 "autostart": "Auto-Início: ",
-                "tray": "Auto-iniciar na bandeja de tarefas: ",
+                "tray": "Auto-iniciar na área de notificação: ",
                 "priority_only": "Apenas com prioridade: ",
                 "proxy": "Proxy (requer o reinício do app):"
             },
