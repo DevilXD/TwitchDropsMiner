@@ -51,7 +51,7 @@
             "help": "Ajuda"
         },
         "tray": {
-            "notification_title": "Drop Mineirado",
+            "notification_title": "Drop coletado",
             "minimize": "Minimizar para barra de tarefas",
             "show": "Mostrar",
             "quit": "Sair"
