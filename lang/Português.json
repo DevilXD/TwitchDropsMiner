@@ -66,7 +66,7 @@
             "request": "Por favor, entre para continuar.",
             "username": "Usuário",
             "password": "Senha",
-            "twofa_code": "Codigo 2FA (opcional)",
+            "twofa_code": "Código 2FA (opcional)",
             "button": "Entrar"
         },
         "websocket": {
