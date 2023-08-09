@@ -143,7 +143,7 @@
             "priority": "Prioridade",
             "exclude": "Excluir",
             "reload": "Recarregar",
-            "reload_text": "A Maioria das mudanças requer o reinício para que as mudanças sejam aplicadas: "
+            "reload_text": "A maioria das mudanças requer o reinício do app para serem efetivadas: "
         },
         "help": {
             "links": {
