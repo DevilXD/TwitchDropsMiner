@@ -23,7 +23,7 @@
         "incorrect_email_code": "Codigo de email incorreto",
         "incorrect_twofa_code": "Codigo F2A incorreto",
         "email_code_required": "Código no email necessário. Verifique sua caixa de entrada",
-        "twofa_code_required": "Token F2A Necessário."
+        "twofa_code_required": "Token 2FA necessário."
     },
     "error": {
         "captcha": "Seu login foi negado pelo CAPTCHA.\nPor favor tente em aproximadamente 12+ horas.",
