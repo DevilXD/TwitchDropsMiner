@@ -18,7 +18,7 @@
             "closed_window": "O Google Chrome foi fechado antes da autenticação ser concluída."
         },
         "error_code": "Código de erro do login: {error_code}",
-        "unexpected_content": "Algum erro inesperado aconteceu, geralmente por redirecionamento de internet. você precisa logar em algum site de internet para ter acesso?",
+        "unexpected_content": "Ocorreu um erro inesperado, geralmente causado por redirecionamento de internet. Você precisa se autenticar para ter acesso à internet?",
         "incorrect_login_pass": "Senha ou usuário incorreto",
         "incorrect_email_code": "Codigo de email incorreto",
         "incorrect_twofa_code": "Codigo F2A incorreto",
