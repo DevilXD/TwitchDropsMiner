@@ -134,7 +134,7 @@
         "settings": {
             "general": {
                 "name": "Geral",
-                "autostart": "Auto-Início: ",
+                "autostart": "Auto-início: ",
                 "tray": "Auto-iniciar na área de notificação: ",
                 "priority_only": "Apenas com prioridade: ",
                 "proxy": "Proxy (requer o reinício do app):"
