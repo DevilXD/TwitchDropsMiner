@@ -22,7 +22,7 @@
         "incorrect_login_pass": "Senha ou usuário incorreto",
         "incorrect_email_code": "Codigo de email incorreto",
         "incorrect_twofa_code": "Codigo F2A incorreto",
-        "email_code_required": "Codigo no email necessário. Checar sua caixa de entrada",
+        "email_code_required": "Código no email necessário. Verifique sua caixa de entrada",
         "twofa_code_required": "Token F2A Necessário."
     },
     "error": {
