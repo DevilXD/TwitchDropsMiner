@@ -41,7 +41,7 @@
             "gathering": "...جمع القنوات",
             "switching": "...تبديل القناة",
             "fetching_inventory": "...جلب محتويات الحقيبة",
-            "fetching_campaigns": "...الحملات جلب",
+            "fetching_campaigns": "...جلب الحملات",
             "adding_campaigns": "{counter} ...إضافة الحملات إلى الحقيبة"
         },
         "tabs": {
