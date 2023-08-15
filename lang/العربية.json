@@ -84,7 +84,7 @@
             "drop": ":الإسقاط",
             "game": ":اللعبة",
             "campaign": ":الحملة",
-            "remaining": "{time} المتبقي",
+            "remaining": "{time} متبقي",
             "drop_progress": ":التقدم",
             "campaign_progress": ":التقدم"
         },
