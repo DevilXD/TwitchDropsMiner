@@ -125,4 +125,5 @@ if they aren't already there. Doing so ensures proper markdown rendering on Gith
 @Ricky103403 - For the entirety of the Traditional Chinese (繁體中文) translation.  
 @Patriot99 - For the Polish (Polski) translation (co-authored with @DevilXD).  
 @Nollasko - For the entirety of the Ukrainian (Українська) translation.  
-@casungo - For the entirety of the Italian (Italiano) translation.
+@casungo - For the entirety of the Italian (Italiano) translation.  
+@Bamboozul - For the entirety of the Arabic (العربية) translation.
