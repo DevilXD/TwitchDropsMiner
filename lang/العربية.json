@@ -85,8 +85,8 @@
             "game": ":اللعبة",
             "campaign": ":الحملة",
             "remaining": "{time} متبقي",
-            "drop_progress": ":التقدم",
-            "campaign_progress": ":التقدم"
+            "drop_progress": "التقدم \u279C",
+            "campaign_progress": "التقدم \u279C"
         },
         "channels": {
             "name": "القنوات",
