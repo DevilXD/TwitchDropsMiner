@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import sys
+import random
 import logging
 from pathlib import Path
 from copy import deepcopy
 from enum import Enum, auto
 from datetime import timedelta
-from typing import Any, Dict, Literal, NamedTuple, NewType, TYPE_CHECKING
+from typing import Any, Dict, Literal, NewType, TYPE_CHECKING
 
 from yarl import URL
 
@@ -97,9 +98,17 @@ FILE_FORMATTER = logging.Formatter(
 OUTPUT_FORMATTER = logging.Formatter("{levelname}: {message}", style='{', datefmt="%H:%M:%S")
 
 
-class ClientInfo(NamedTuple):
-    CLIENT_ID: str
-    USER_AGENT: str
+class ClientInfo:
+    def __init__(self, client_id: str, user_agents: str | list[str]) -> None:
+        self.CLIENT_ID: str = client_id
+        self.USER_AGENT: str
+        if isinstance(user_agents, list):
+            self.USER_AGENT = random.choice(user_agents)
+        else:
+            self.USER_AGENT = user_agents
+
+    def __iter__(self):
+        return iter((self.CLIENT_ID, self.USER_AGENT))
 
 
 class ClientType:
@@ -110,7 +119,40 @@ class ClientType:
             "(KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
         ),
     )
-    ANDROID = ClientInfo(
+    MOBILE_WEB = ClientInfo(
+        "r8s4dac0uhzifbpu9sjdiwzctle17ff",
+        [
+            (
+                "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/115.0.5790.166 Mobile Safari/537.36"
+            ),
+            (
+                "Mozilla/5.0 (Linux; Android 13; SM-A205U) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/115.0.5790.166 Mobile Safari/537.36"
+            ),
+            (
+                "Mozilla/5.0 (Linux; Android 13; SM-A102U) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/115.0.5790.166 Mobile Safari/537.36"
+            ),
+            (
+                "Mozilla/5.0 (Linux; Android 13; SM-G960U) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/115.0.5790.166 Mobile Safari/537.36"
+            ),
+            (
+                "Mozilla/5.0 (Linux; Android 13; SM-N960U) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/115.0.5790.166 Mobile Safari/537.36"
+            ),
+            (
+                "Mozilla/5.0 (Linux; Android 13; LM-Q720) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/115.0.5790.166 Mobile Safari/537.36"
+            ),
+            (
+                "Mozilla/5.0 (Linux; Android 13; LM-X420) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/115.0.5790.166 Mobile Safari/537.36"
+            ),
+        ]
+    )
+    ANDROID_APP = ClientInfo(
         "kd1unb4b3q4t58fwlpcbzcbnm76a8fp",
         (
             "Dalvik/2.1.0 (Linux; U; Android 7.1.2; SM-G977N Build/LMY48Z) "

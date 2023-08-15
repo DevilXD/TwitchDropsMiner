@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 import sys
 import json
-import random
 import asyncio
 import logging
 from time import time
@@ -91,7 +90,7 @@ class SkipExtraJsonDecoder(json.JSONDecoder):
         return obj
 
 
-CLIENT_ID, USER_AGENT = ClientType.SMARTBOX
+CLIENT_ID, USER_AGENT = ClientType.MOBILE_WEB
 SAFE_LOADS = lambda s: json.loads(s, cls=SkipExtraJsonDecoder)
 
 
@@ -499,8 +498,8 @@ class _AuthState:
             headers["User-Agent"] = user_agent
         if hasattr(self, "session_id"):
             headers["Client-Session-Id"] = self.session_id
-        if hasattr(self, "client_version"):
-            headers["Client-Version"] = self.client_version
+        # if hasattr(self, "client_version"):
+            # headers["Client-Version"] = self.client_version
         if hasattr(self, "device_id"):
             headers["X-Device-Id"] = self.device_id
         if gql:
@@ -526,10 +525,11 @@ class _AuthState:
                 "GET", BASE_URL, headers=self.headers()
             ) as response:
                 page_html = await response.text("utf8")
-                match = re.search(r'twilightBuildID="([-a-z0-9]+)"', page_html)
-            if match is None:
-                raise MinerException("Unable to extract client_version")
-            self.client_version = match.group(1)
+                assert page_html is not None
+            #     match = re.search(r'twilightBuildID="([-a-z0-9]+)"', page_html)
+            # if match is None:
+            #     raise MinerException("Unable to extract client_version")
+            # self.client_version = match.group(1)
             # doing the request ends up setting the "unique_id" value in the cookie
             cookie = jar.filter_cookies(BASE_URL)
             self.device_id = cookie["unique_id"].value
@@ -639,21 +639,6 @@ class Twitch:
             if session.closed:
                 raise RuntimeError("Session is closed")
             return session
-        # try to obtain the latest Chrome user agent from a Github project
-        try:
-            async with aiohttp.request(
-                "GET",
-                "https://jnrbsn.github.io/user-agents/user-agents.json",
-                proxy=self.settings.proxy or None,
-            ) as response:
-                agents = await response.json()
-            if sys.platform == "win32":
-                chrome_agent = random.choice(agents[:3])
-            elif sys.platform == "linux":
-                chrome_agent = random.choice(agents[7:11])
-        except Exception:
-            # looks like we can't rely on 3rd parties too much
-            chrome_agent = ClientType.WEB.USER_AGENT
         # load in cookies
         cookie_jar = aiohttp.CookieJar()
         try:
@@ -668,7 +653,7 @@ class Twitch:
         self._session = aiohttp.ClientSession(
             connector=connector,
             cookie_jar=cookie_jar,
-            headers={"User-Agent": chrome_agent},
+            headers={"User-Agent": USER_AGENT},
             timeout=aiohttp.ClientTimeout(connect=5, total=10),
         )
         return self._session
