@@ -219,24 +219,28 @@ class Channel:
         """
         To get this monstrous thing, you have to walk a chain of requests.
         Streamer page (HTML) --parse-> Streamer Settings (JavaScript) --parse-> Spade URL
+
+        For mobile view, spade_url is available immediately from the page, skipping step #2.
         """
+        SETTINGS_PATTERN: str = (
+            r'src="(https://static\.twitchcdn\.net/config/settings\.[0-9a-f]{32}\.js)"'
+        )
+        SPADE_PATTERN: str = (
+            r'"spade_?url": ?"(https://video-edge-[.\w\-/]+\.ts(?:\?allow_stream=true)?)"'
+        )
         async with self._twitch.request("GET", self.url) as response:
             streamer_html: str = await response.text(encoding="utf8")
-        match = re.search(
-            r'src="(https://static\.twitchcdn\.net/config/settings\.[0-9a-f]{32}\.js)"',
-            streamer_html,
-            re.I,
-        )
+        match = re.search(SPADE_PATTERN, streamer_html, re.I)
         if not match:
-            raise MinerException("Error while spade_url extraction: step #1")
-        streamer_settings = match.group(1)
-        async with self._twitch.request("GET", streamer_settings) as response:
-            settings_js: str = await response.text(encoding="utf8")
-        match = re.search(
-            r'"spade_url": ?"(https://video-edge-[.\w\-/]+\.ts)"', settings_js, re.I
-        )
-        if not match:
-            raise MinerException("Error while spade_url extraction: step #2")
+            match = re.search(SETTINGS_PATTERN, streamer_html, re.I)
+            if not match:
+                raise MinerException("Error while spade_url extraction: step #1")
+            streamer_settings = match.group(1)
+            async with self._twitch.request("GET", streamer_settings) as response:
+                settings_js: str = await response.text(encoding="utf8")
+            match = re.search(SPADE_PATTERN, settings_js, re.I)
+            if not match:
+                raise MinerException("Error while spade_url extraction: step #2")
         return URLType(match.group(1))
 
     async def get_stream(self) -> Stream | None:
