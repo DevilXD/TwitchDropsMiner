@@ -648,13 +648,24 @@ class Twitch:
             # if loading in the cookies file ends up in an error, just ignore it
             # clear the jar, just in case
             cookie_jar.clear()
+        # create timeouts
+        # connection quality mulitiplier determines the magnitude of timeouts
+        connection_quality = self.settings.connection_quality
+        if connection_quality < 1:
+            connection_quality = self.settings.connection_quality = 1
+        elif connection_quality > 6:
+            connection_quality = self.settings.connection_quality = 6
+        timeout = aiohttp.ClientTimeout(
+            sock_connect=5*connection_quality,
+            total=10*connection_quality,
+        )
         # create session, limited to 50 connections at maximum
         connector = aiohttp.TCPConnector(limit=50)
         self._session = aiohttp.ClientSession(
+            timeout=timeout,
             connector=connector,
             cookie_jar=cookie_jar,
             headers={"User-Agent": USER_AGENT},
-            timeout=aiohttp.ClientTimeout(connect=5, total=10),
         )
         return self._session
 
