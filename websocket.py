@@ -130,7 +130,7 @@ class Websocket:
                 aiohttp.ClientConnectionError,
             ):
                 ws_logger.info(
-                    f"Websocket[{self._idx}] connection problem (sleep: {delay:.3}s)",
+                    f"Websocket[{self._idx}] connection problem (sleep: {round(delay)}s)",
                     exc_info=True,
                 )
                 await asyncio.sleep(delay)
