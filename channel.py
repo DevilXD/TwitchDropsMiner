@@ -64,7 +64,7 @@ class Stream:
             tags=[],
         )
         # HACK: we assume this is always the case for directory streams, since we search by the tag
-        self.drops_enabled = True
+        # self.drops_enabled = True
         return self
 
     def __eq__(self, other: object) -> bool:

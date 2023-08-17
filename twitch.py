@@ -65,6 +65,7 @@ from constants import (
     GQL_OPERATIONS,
     MAX_CHANNELS,
     WATCH_INTERVAL,
+    # DROPS_ENABLED_TAG,
     State,
     ClientType,
     WebsocketTopic,
