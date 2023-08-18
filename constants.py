@@ -80,7 +80,7 @@ MAX_TOPICS = (MAX_WEBSOCKETS * WS_TOPICS_LIMIT) - BASE_TOPICS
 MAX_CHANNELS = MAX_TOPICS // TOPICS_PER_CHANNEL
 # Misc
 DEFAULT_LANG = "English"
-BASE_URL = URL("https://twitch.tv")
+BASE_URL = URL("https://www.twitch.tv")
 # Intervals and Delays
 PING_INTERVAL = timedelta(minutes=3)
 PING_TIMEOUT = timedelta(seconds=10)
@@ -99,7 +99,8 @@ OUTPUT_FORMATTER = logging.Formatter("{levelname}: {message}", style='{', datefm
 
 
 class ClientInfo:
-    def __init__(self, client_id: str, user_agents: str | list[str]) -> None:
+    def __init__(self, client_url: URL, client_id: str, user_agents: str | list[str]) -> None:
+        self.CLIENT_URL: URL = client_url
         self.CLIENT_ID: str = client_id
         self.USER_AGENT: str
         if isinstance(user_agents, list):
@@ -108,11 +109,12 @@ class ClientInfo:
             self.USER_AGENT = user_agents
 
     def __iter__(self):
-        return iter((self.CLIENT_ID, self.USER_AGENT))
+        return iter((self.CLIENT_URL, self.CLIENT_ID, self.USER_AGENT))
 
 
 class ClientType:
     WEB = ClientInfo(
+        BASE_URL,
         "kimne78kx3ncx6brgo4mv6wki5h1ko",
         (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -120,6 +122,7 @@ class ClientType:
         ),
     )
     MOBILE_WEB = ClientInfo(
+        URL("https://m.twitch.tv"),
         "r8s4dac0uhzifbpu9sjdiwzctle17ff",
         [
             (
@@ -153,6 +156,7 @@ class ClientType:
         ]
     )
     ANDROID_APP = ClientInfo(
+        BASE_URL,
         "kd1unb4b3q4t58fwlpcbzcbnm76a8fp",
         (
             "Dalvik/2.1.0 (Linux; U; Android 7.1.2; SM-G977N Build/LMY48Z) "
@@ -160,6 +164,7 @@ class ClientType:
         ),
     )
     SMARTBOX = ClientInfo(
+        URL("https://android.tv.twitch.tv"),
         "ue6666qo983tsx6so1t0vnawi233wa",
         (
             "Mozilla/5.0 (Linux; Android 7.1; Smart Box C1) AppleWebKit/537.36 "
