@@ -50,7 +50,7 @@ class Stream:
             game=settings["game"],
             viewers=stream["viewersCount"],
             title=settings["title"],
-            tags=stream["tags"],
+            tags=stream["tags"] or [],
         )
 
     @classmethod
