@@ -258,14 +258,19 @@ class PaddedListbox(tk.Listbox):
 
 class MouseOverLabel(ttk.Label):
     def __init__(self, *args, alt_text: str = '', reverse: bool = False, **kwargs) -> None:
-        text: str = kwargs.get("text", '')
-        self._org_text: str = text
-        self._alt_text: str = alt_text
+        self._org_text: str = ''
+        self._alt_text: str = ''
         self._alt_reverse: bool = reverse
         self._bind_enter: str | None = None
         self._bind_leave: str | None = None
         super().__init__(*args, **kwargs)
-        self.configure(text=text, alt_text=alt_text, reverse=reverse)
+        self.configure(text=kwargs.get("text", ''), alt_text=alt_text, reverse=reverse)
+
+    def _set_org(self, event: tk.Event[MouseOverLabel]):
+        super().config(text=self._org_text)
+
+    def _set_alt(self, event: tk.Event[MouseOverLabel]):
+        super().config(text=self._alt_text)
 
     def configure(self, *args: Any, **kwargs: Any) -> Any:
         options: dict[str, Any] = {}
@@ -306,21 +311,12 @@ class MouseOverLabel(ttk.Label):
                     self.unbind(self._bind_leave)
                     self._bind_leave = None
                 if self._org_text and self._alt_text:
-                    orig_config = super().config
                     if self._alt_reverse:
-                        self._bind_enter = self.bind(
-                            "<Enter>", lambda e: orig_config(text=self._org_text)
-                        )
-                        self._bind_leave = self.bind(
-                            "<Leave>", lambda e: orig_config(text=self._alt_text)
-                        )
+                        self._bind_enter = self.bind("<Enter>", self._set_org)
+                        self._bind_leave = self.bind("<Leave>", self._set_alt)
                     else:
-                        self._bind_enter = self.bind(
-                            "<Enter>", lambda e: orig_config(text=self._alt_text)
-                        )
-                        self._bind_leave = self.bind(
-                            "<Leave>", lambda e: orig_config(text=self._org_text)
-                        )
+                        self._bind_enter = self.bind("<Enter>", self._set_alt)
+                        self._bind_leave = self.bind("<Leave>", self._set_org)
         return super().configure(options)
 
     def config(self, *args: Any, **kwargs: Any) -> Any:
