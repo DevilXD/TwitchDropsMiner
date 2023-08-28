@@ -13,5 +13,6 @@ __pycache__
 /cache
 /*.jar
 log.txt
+/lock.file
 settings.json
 /lang/English.json

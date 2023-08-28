@@ -18,9 +18,6 @@ if __name__ == "__main__":
     from tkinter import messagebox
     from typing import IO, NoReturn
 
-    if sys.platform == "win32":
-        import win32gui
-
     if sys.platform == "linux" and sys.version_info >= (3, 10):
         import truststore
         truststore.inject_into_ssl()
@@ -30,8 +27,8 @@ if __name__ == "__main__":
     from settings import Settings
     from version import __version__
     from exceptions import CaptchaRequired
-    from utils import resource_path, set_root_icon
-    from constants import CALL, SELF_PATH, FILE_FORMATTER, LOG_PATH, WINDOW_TITLE
+    from utils import lock_file, resource_path, set_root_icon
+    from constants import CALL, SELF_PATH, FILE_FORMATTER, LOG_PATH, LOCK_PATH
 
     warnings.simplefilter("default", ResourceWarning)
 
@@ -108,9 +105,6 @@ if __name__ == "__main__":
     parser.add_argument("--log", action="store_true")
     # undocumented debug args
     parser.add_argument(
-        "--no-run-check", dest="no_run_check", action="store_true", help=argparse.SUPPRESS
-    )
-    parser.add_argument(
         "--debug-ws", dest="_debug_ws", action="store_true", help=argparse.SUPPRESS
     )
     parser.add_argument(
@@ -131,40 +125,29 @@ if __name__ == "__main__":
     # get rid of unneeded objects
     del root, parser
 
-    # check if we're not already running
-    if sys.platform == "win32":
-        try:
-            exists = win32gui.FindWindow(None, WINDOW_TITLE)
-        except AttributeError:
-            # we're not on Windows - continue
-            exists = False
-        if exists and not settings.no_run_check:
-            # already running - exit
-            sys.exit(3)
-
-    # set language
-    try:
-        _.set_language(settings.language)
-    except ValueError:
-        # this language doesn't exist - stick to English
-        pass
-
-    # handle logging stuff
-    if settings.logging_level > logging.DEBUG:
-        # redirect the root logger into a NullHandler, effectively ignoring all logging calls
-        # that aren't ours. This always runs, unless the main logging level is DEBUG or lower.
-        logging.getLogger().addHandler(logging.NullHandler())
-    logger = logging.getLogger("TwitchDrops")
-    logger.setLevel(settings.logging_level)
-    if settings.log:
-        handler = logging.FileHandler(LOG_PATH)
-        handler.setFormatter(FILE_FORMATTER)
-        logger.addHandler(handler)
-    logging.getLogger("TwitchDrops.gql").setLevel(settings.debug_gql)
-    logging.getLogger("TwitchDrops.websocket").setLevel(settings.debug_ws)
-
     # client run
     async def main():
+        # set language
+        try:
+            _.set_language(settings.language)
+        except ValueError:
+            # this language doesn't exist - stick to English
+            pass
+
+        # handle logging stuff
+        if settings.logging_level > logging.DEBUG:
+            # redirect the root logger into a NullHandler, effectively ignoring all logging calls
+            # that aren't ours. This always runs, unless the main logging level is DEBUG or lower.
+            logging.getLogger().addHandler(logging.NullHandler())
+        logger = logging.getLogger("TwitchDrops")
+        logger.setLevel(settings.logging_level)
+        if settings.log:
+            handler = logging.FileHandler(LOG_PATH)
+            handler.setFormatter(FILE_FORMATTER)
+            logger.addHandler(handler)
+        logging.getLogger("TwitchDrops.gql").setLevel(settings.debug_gql)
+        logging.getLogger("TwitchDrops.websocket").setLevel(settings.debug_ws)
+
         exit_status = 0
         client = Twitch(settings)
         loop = asyncio.get_running_loop()
@@ -200,4 +183,13 @@ if __name__ == "__main__":
         client.gui.close_window()
         sys.exit(exit_status)
 
-    asyncio.run(main())
+    try:
+        # use lock_file to check if we're not already running
+        success, file = lock_file(LOCK_PATH)
+        if not success:
+            # already running - exit
+            sys.exit(3)
+
+        asyncio.run(main())
+    finally:
+        file.close()

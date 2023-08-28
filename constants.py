@@ -64,6 +64,7 @@ LANG_PATH = _resource_path("lang")
 # Other Paths
 LOG_PATH = Path(WORKING_DIR, "log.txt")
 CACHE_PATH = Path(WORKING_DIR, "cache")
+LOCK_PATH = Path(WORKING_DIR, "lock.file")
 CACHE_DB = Path(CACHE_PATH, "mapping.json")
 COOKIES_PATH = Path(WORKING_DIR, "cookies.jar")
 SETTINGS_PATH = Path(WORKING_DIR, "settings.json")
