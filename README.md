@@ -4,7 +4,7 @@ This application allows you to AFK mine timed Twitch drops, without having to wo
 
 ### How It Works:
 
-Every ~60 seconds, the application sends a "minute watched" event to the channel that's currently being watched - this is enough to advance the drops. Note that this completely bypasses the need to download any actual stream video and sound. To keep the status (ONLINE or OFFLINE) of the channels up-to-date, there's a websocket connection estabilished that receives events about streams going up or down, or updates regarding the current amount of viewers.
+Every ~60 seconds, the application sends a "minute watched" event to the channel that's currently being watched - this is enough to advance the drops. Note that this completely bypasses the need to download any actual stream video and sound. To keep the status (ONLINE or OFFLINE) of the channels up-to-date, there's a websocket connection established that receives events about streams going up or down, or updates regarding the current amount of viewers.
 
 ### Features:
 
@@ -19,7 +19,7 @@ Every ~60 seconds, the application sends a "minute watched" event to the channel
 
 ### Usage:
 
-- Download and unzip [the lastest release](https://github.com/DevilXD/TwitchDropsMiner/releases) - it's recommended to keep it in the folder it comes in.
+- Download and unzip [the latest release](https://github.com/DevilXD/TwitchDropsMiner/releases) - it's recommended to keep it in the folder it comes in.
 - Run it and login into your Twitch account using your username and password, and a 2FA key if you have one setup. It's recommended to avoid having to double-take this step, as you can run into CAPTCHA that will prevent you from trying to log in again for the next 12+ hours. You can retry afterwards though.
 - After a successful login, the app should fetch a list of all available campaigns and games you can mine drops for - you can then select and add games of choice to the Priority List available on the Settings tab, and then press on the `Reload` button to start processing. It will fetch a list of all applicable streams it can watch, and start mining right away. You can also manually switch to a different channel as needed.
 - Make sure to link your Twitch account to game accounts on the [campaigns page](https://www.twitch.tv/drops/campaigns), to enable more games to be mined.
@@ -74,7 +74,7 @@ Twitch Drops Miner (TDM for short) has been designed with a couple of simple goa
 
 - Twitch Drops oriented - it's in the name. That's what I made it for.
 - Easy to use for an average person. Includes a nice looking GUI and is packaged as a ready-to-go executable, without requiring an existing Python installation to work.
-- Intended as a helper tool that starts together with your PC, runs in the background through out the day, and then closes together with your PC shutting down at the end of the day. If it can run continously for 24 hours at minimum, and not run into any errors, I'd call that good enough already.
+- Intended as a helper tool that starts together with your PC, runs in the background through out the day, and then closes together with your PC shutting down at the end of the day. If it can run continuously for 24 hours at minimum, and not run into any errors, I'd call that good enough already.
 - Requiring a minimum amount of attention during operation - check it once or twice through out the day to see if everything's fine with it.
 - Underlying service friendly - the amount of interactions done with the Twitch site is kept to the minimum required for reliable operation, at a level achievable by a diligent site user.
 
@@ -83,7 +83,7 @@ TDM is not intended for/as:
 - Mining channel points - again, it's about the drops: only. The current points you're getting are a byproduct of getting the drops, not the main goal of it.
 - Mining anything else besides Twitch drops - no, I won't be adding support for a random 3rd party site that also happens to rely on watching Twitch streams.
 - Unattended operation: worst case scenario, it'll stop working and you'll hopefully notice that at some point. Hopefully.
-- 100% uptime application, due to the underlaying nature of it, expect fatal errors to happen every so often.
+- 100% uptime application, due to the underlying nature of it, expect fatal errors to happen every so often.
 - Being hosted on a remote server as a 24/7 miner.
 - Being used with more than one managed account.
 - Mining campaigns the managed account isn't linked to.
