@@ -1164,7 +1164,7 @@ class Twitch:
         # exit early if
         if (
             not channel.online  # stream is offline
-            # or not channel.drops_enabled  # drops aren't enabled
+            or not channel.drops_enabled  # drops aren't enabled
             # there's no game or it's not one of the games we've selected
             or (game := channel.game) is None or game not in self.wanted_games
         ):
@@ -1700,7 +1700,7 @@ class Twitch:
             })
         )
         return [
-            Channel.from_directory(self, stream_channel_data["node"])
+            await Channel.from_directory(self, stream_channel_data["node"])
             for stream_channel_data in response["data"]["game"]["streams"]["edges"]
         ]
 

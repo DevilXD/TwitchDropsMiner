@@ -109,12 +109,14 @@ class Channel:
         )
 
     @classmethod
-    def from_directory(cls, twitch: Twitch, data: JsonType) -> Channel:
+    async def from_directory(cls, twitch: Twitch, data: JsonType) -> Channel:
         channel = data["broadcaster"]
         self = cls(
             twitch, id=channel["id"], login=channel["login"], display_name=channel["displayName"]
         )
+        drops_ebable = await self.is_drops_enable(str(channel["id"]))
         self._stream = Stream.from_directory(self, data)
+        self._stream.drops_enabled = drops_ebable
         return self
 
     @classmethod
@@ -215,6 +217,19 @@ class Channel:
             self._pending_stream_up = None
         self._gui_channels.remove(self)
 
+    async def is_drops_enable(self,broadcast_id: str) -> bool:
+        response: JsonType = await self._twitch.gql_request(
+            GQL_OPERATIONS["ChannelDrops"].with_variables({"channelID": broadcast_id})
+        )
+        try:
+            available_drops: list | None = response["data"]["channel"]["viewerDropCampaigns"]
+        except Exception:
+            return False
+        if available_drops and len(available_drops) > 0:
+            return True
+        return False
+
+
     async def get_spade_url(self) -> URLType:
         """
         To get this monstrous thing, you have to walk a chain of requests.
@@ -267,6 +282,8 @@ class Channel:
         """
         old_stream = self._stream
         self._stream = await self.get_stream()
+        if self._stream:
+            self._stream.drops_enabled = await self.is_drops_enable(str(self._stream.channel.iid))
         invalidate_cache(self, "_payload")
         if trigger_events:
             self._twitch.on_channel_update(self, old_stream, self._stream)

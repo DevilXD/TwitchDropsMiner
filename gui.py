@@ -1052,7 +1052,7 @@ class TrayIcon:
             f"{campaign.game.name}\n"
             f"{drop.rewards_text()} "
             f"{drop.progress:.1%} ({campaign.claimed_drops}/{campaign.total_drops})"
-        )
+        )[:128] # string too long Err (maximum length 128)
 
     def _start(self):
         loop = asyncio.get_running_loop()
