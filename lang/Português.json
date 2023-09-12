@@ -1,6 +1,6 @@
 {
     "status": {
-        "terminated": "\nAplicacao Finalizada.\nFeche a janela para sair do programa.",
+        "terminated": "\nAplicação Finalizada.\nFeche a janela para sair do programa.",
         "watching": "Assistindo o: {channel}",
         "goes_online": "{channel} esta ONLINE, Mudando...",
         "goes_offline": "{channel} ficou OFFLINE, Mudando...",
@@ -15,23 +15,23 @@
             "startup": "Abrindo Google Chrome",
             "login_to_complete": "Por Favor complete o login pela pagina web manualmente pressionando o botão Login novamente.",
             "no_token": "Seu Token de autorização Twitch não foi encontrado",
-            "closed_window": "O aplicativo Goggle Chrome foi fechado , portanto o login não foi efetuado com sucesso ."
+            "closed_window": "O Google Chrome foi fechado antes da autenticação ser concluída."
         },
-        "error_code": "Login error code: {error_code}",
-        "unexpected_content": "Algum erro inexperado aconteceu, geralmente por rediricionamento de internet. Voce precissa logar em algum site de internet para ter acesso?",
-        "incorrect_login_pass": "Senha ou usuario incorreto",
+        "error_code": "Código de erro do login: {error_code}",
+        "unexpected_content": "Ocorreu um erro inesperado, geralmente causado por redirecionamento de internet. Você precisa se autenticar para ter acesso à internet?",
+        "incorrect_login_pass": "Usuário e/ou senha incorreto(s)",
         "incorrect_email_code": "Codigo de email incorreto",
         "incorrect_twofa_code": "Codigo F2A incorreto",
-        "email_code_required": "Codigo no email requerido. Checar sua caixa de entrada",
-        "twofa_code_required": "Token F2A Requerido."
+        "email_code_required": "Código no email necessário. Verifique sua caixa de entrada",
+        "twofa_code_required": "Token 2FA necessário."
     },
     "error": {
-        "captcha": "Seu login foi negado pelo CAPTCHA.\nPor favor tente em aproximadamente 12+ houras.",
-        "site_down": "Twitch esta fora do ar, tentando em {seconds} segundos...",
-        "no_connection": "Sem conecao com a TWITCH, reconectando em {seconds} segundos..."
+        "captcha": "Seu login foi negado pelo CAPTCHA.\nPor favor tente em aproximadamente 12+ horas.",
+        "site_down": "Twitch está fora do ar, tentando novamente em {seconds} segundos...",
+        "no_connection": "Sem conexão com a TWITCH, reconectando em {seconds} segundos..."
     },
     "gui": {
-        "output": "Saida",
+        "output": "Saída",
         "status": {
             "name": "Status",
             "idle": "Em espera",
@@ -40,19 +40,19 @@
             "cleanup": "Limpando os Canais...",
             "gathering": "Coletando Canais...",
             "switching": "Mudando o canal...",
-            "fetching_inventory": "Coletando Inventario...",
+            "fetching_inventory": "Coletando inventário...",
             "fetching_campaigns": "Coletando campanhas...",
             "adding_campaigns": "Adicionando as campanhas para o sistema... {counter}"
         },
         "tabs": {
             "main": "Tela Principal",
             "inventory": "Inventario",
-            "settings": "Configuracoes",
+            "settings": "Configurações",
             "help": "Ajuda"
         },
         "tray": {
-            "notification_title": "Mined Drop",
-            "minimize": "Minimize to Tray",
+            "notification_title": "Drop coletado",
+            "minimize": "Minimizar para barra de tarefas",
             "show": "Mostrar",
             "quit": "Sair"
         },
@@ -61,22 +61,22 @@
             "labels": "Status:\nUser ID:",
             "logged_in": "Entrou",
             "logged_out": "Saiu",
-            "logging_in": "Penetrando...",
-            "required": "Login Requerido",
+            "logging_in": "Entrando...",
+            "required": "Login necessário",
             "request": "Por favor, entre para continuar.",
-            "username": "Usuario",
+            "username": "Usuário",
             "password": "Senha",
-            "twofa_code": "Codigo 2FA (optional)",
+            "twofa_code": "Código 2FA (opcional)",
             "button": "Entrar"
         },
         "websocket": {
             "name": "Status Websocket",
             "websocket": "Websocket #{id}:",
-            "initializing": "Inizializando...",
+            "initializing": "Inicializando...",
             "connected": "Conectado",
-            "disconnected": "Disconectafo",
+            "disconnected": "Disconectado",
             "connecting": "Conectando...",
-            "disconnecting": "Disconectando...",
+            "disconnecting": "Desconectando...",
             "reconnecting": "Reconectando..."
         },
         "progress": {
@@ -90,7 +90,7 @@
         },
         "channels": {
             "name": "Canais",
-            "switch": "Switch",
+            "switch": "Trocar",
             "load_points": "Carregar pontos",
             "online": "ONLINE  \u2714",
             "pending": "OFFLINE \u23f3",
@@ -116,14 +116,14 @@
             },
             "status": {
                 "linked": "Conectado \u2714",
-                "not_linked": "Nao conectado \u274c",
+                "not_linked": "Desconectado \u274c",
                 "active": "Ativo \u2714",
                 "upcoming": "Se aproximando \u23f3",
                 "expired": "Expirado \u274c",
                 "claimed": "Coletado \u2714",
                 "ready_to_claim": "Pronto para coleta \u23f3"
             },
-            "starts": "Comeca em: {time}",
+            "starts": "Começa em: {time}",
             "ends": "Termina em: {time}",
             "allowed_channels": "Canais Autorizados:",
             "all_channels": "Todos",
@@ -134,27 +134,27 @@
         "settings": {
             "general": {
                 "name": "Geral",
-                "autostart": "Auto-Inicio: ",
-                "tray": "Auto-iniciar na bandeija de tarefas: ",
-                "priority_only": "Apenas com Prioridade: ",
-                "proxy": "Proxy (Nessesita Reinicio do App):"
+                "autostart": "Auto-início: ",
+                "tray": "Auto-iniciar na área de notificação: ",
+                "priority_only": "Apenas com prioridade: ",
+                "proxy": "Proxy (requer o reinício do app):"
             },
             "game_name": "Nome do jogo",
             "priority": "Prioridade",
             "exclude": "Excluir",
             "reload": "Recarregar",
-            "reload_text": "Maioria das mudancas requer o reinicio para que as mudancas sejam aplicadas: "
+            "reload_text": "A maioria das mudanças requer o reinício do app para serem efetivadas: "
         },
         "help": {
             "links": {
                 "name": "Links Uteis",
                 "inventory": "Ver inventario da Twitch",
-                "campaigns": "Veja todas campanhas e gerencie conecoes da sua conta"
+                "campaigns": "Veja todas campanhas e gerencie conexões da sua conta"
             },
             "how_it_works": "Como funciona",
-            "how_it_works_text": "Cada apriximadamente 60 segundos, a aplicacao mandaum \"minute watched\" ao canal com o evento quie esta sendo assistido - isso e o bastante para o sistema registrar os drops. Note que esse modo circula o modo de precissar carregar a stream e som. para deixar o status: (ONLINE or OFFLINE) dos canais atualizados, existe uma conecao estilo websocket estabelecida que coordena quando a stream esta no ar ou fora do ar,ou atualiza o numero de visualizadores ao vivo.",
+            "how_it_works_text": "A cada 60 segundos, o app envia um event \"minute watched\" ao canal que está sendo assistido no momento - Isso é o suficiente para avançar o progresso dos drops. Note que esse modo evita a necessidade de baixar o áudio e vídeo da stream, como é feito tradicionalmente quando se utiliza um navegador web. Para manter atualizado o status do canal (ONLINE ou OFFLINE), é estabelecida uma conexão websocket, que recebe diversos eventos relacionados a stream atual, como: se ela está ligada ou desligada, ou número total de espectadores.",
             "getting_started": "Iniciando",
-            "getting_started_text": "1. Insira as informacoes da Twitch.\n2. Certifiquise que todas campanhas estao conectadas com as contas dos respectivos aplicativos.\n3. se quer minerar tudo clique em, descelecionar \"Priority only\" e clique em \"Reload\".\n4. Se voce quer minerar certos jogos antes, use a lista \"Priority\" para configurar a lista de jogos que voce quer minerar. A lista segue em ordem de primeri ao ultimo, sendo assim, a mineracao continuara para os jogos seguentes depois que o de cima esteja completo.\n5. Apenas deixe a opcao \"Priority only\" ativa, para evitar que minere jogos que nao sejam da sua vontade. Ou nao - voce quem manda.\n6 .Use a funcao  \"Exclude\" para excluir jogos que NUNCA sejam minerados.\n7. qualquer mudanca das listas peuqena ou grande, ou mudar a lista de \"Priority only\", requer que voce pressione \"Reload\" para que as mudancas tenham efeito."
+            "getting_started_text": "1. Autentique-se no app com a sua conta da Twitch.\n2. Certifique-se que todas campanhas estão conectadas com as contas dos respectivos aplicativos.\n3. Se quiser coletar tudo, desmarque \"Apenas com Prioridade\" e clique em \"Recarregar\".\n4. Se quiser coletar apenas de certos jogos, use a lista \"Prioridade\" para configurar a lista de jogos que você quer coletar. A lista segue a ordem que é apresentada, do primeiro ao último, sendo assim, a coleta continuará para os jogos seguintes assim que o jogo anterior esteja completo.\n5. Mantenha a opção \"Priority only\" ativa, para evitar que a coleta ocorra em jogos que não estão na lista de prioridades. Ou não - você quem manda.\n6. Use a lista \"Excluir\" para jogos que NUNCA devam ser coletados.\n7. Qualquer mudança feita nas listas requer que você clique no botão \"Recarregar\" para que as mudanças tenham efeito."
         }
     }
 }
