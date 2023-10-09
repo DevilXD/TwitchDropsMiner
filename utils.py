@@ -115,7 +115,7 @@ def timestamp(string: str) -> datetime:
     try:
       return datetime.strptime(string, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
     except ValueError:
-      return None
+      return
 
 
 
