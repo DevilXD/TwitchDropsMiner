@@ -109,7 +109,14 @@ def json_minify(data: JsonType | list[JsonType]) -> str:
 
 
 def timestamp(string: str) -> datetime:
-    return datetime.strptime(string, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+  try:
+    return datetime.strptime(string, "%Y-%m-%dT%H:%M:%SZ")
+  except ValueError:
+    try:
+      return datetime.strptime(string, "%Y-%m-%dT%H:%M:%S.%fZ")
+    except ValueError:
+      return None
+
 
 
 CHARS_ASCII = string.ascii_letters + string.digits
