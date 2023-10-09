@@ -258,18 +258,15 @@ class DropsCampaign:
 
     @property
     def active(self) -> bool:
-        now = datetime.now(timezone.utc)
-        return self.starts_at <= now < self.ends_at
+        return self.starts_at <= datetime.now(timezone.utc) < self.ends_at
 
     @property
     def upcoming(self) -> bool:
-        now = datetime.now(timezone.utc)
-        return self.starts_at <= now < self.ends_at
+        return datetime.now(timezone.utc) < self.starts_at
 
     @property
     def expired(self) -> bool:
-        now = datetime.now(timezone.utc)
-        return self.starts_at <= now < self.ends_at
+        return self.ends_at <= datetime.now(timezone.utc)
 
     @property
     def total_drops(self) -> int:
