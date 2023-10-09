@@ -110,10 +110,10 @@ def json_minify(data: JsonType | list[JsonType]) -> str:
 
 def timestamp(string: str) -> datetime:
   try:
-    return datetime.strptime(string, "%Y-%m-%dT%H:%M:%SZ")
+    return datetime.strptime(string, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
   except ValueError:
     try:
-      return datetime.strptime(string, "%Y-%m-%dT%H:%M:%S.%fZ")
+      return datetime.strptime(string, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
     except ValueError:
       return None
 
