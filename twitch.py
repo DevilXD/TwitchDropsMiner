@@ -1540,6 +1540,7 @@ class Twitch:
                                 "service error",
                                 "service unavailable",
                                 "service timeout",
+                                "context deadline exceeded",
                             )
                         ):
                             force_retry = True
