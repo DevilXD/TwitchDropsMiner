@@ -1,5 +1,5 @@
 aiohttp>2.0,<4.0
-Pillow<10.0
+Pillow
 pystray
 PyGObject; sys_platform == "linux" # required for better system tray support on Linux
 # selenium-wire
