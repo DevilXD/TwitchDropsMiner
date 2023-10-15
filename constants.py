@@ -48,6 +48,30 @@ def _resource_path(relative_path: Path | str) -> Path:
     return base_path.joinpath(relative_path)
 
 
+def _merge_vars(base_vars: JsonType, vars: JsonType) -> None:
+    # NOTE: This modifies base in place
+    for k, v in vars.items():
+        if k not in base_vars:
+            base_vars[k] = v
+        elif isinstance(v, dict):
+            if isinstance(base_vars[k], dict):
+                _merge_vars(base_vars[k], v)
+            elif base_vars[k] is Ellipsis:
+                # unspecified base, use the passed in var
+                base_vars[k] = v
+            else:
+                raise RuntimeError(f"Var is a dict, base is not: '{k}'")
+        elif isinstance(base_vars[k], dict):
+            raise RuntimeError(f"Base is a dict, var is not: '{k}'")
+        else:
+            # simple overwrite
+            base_vars[k] = v
+    # ensure none of the vars are ellipsis (unset value)
+    for k, v in base_vars.items():
+        if v is Ellipsis:
+            raise RuntimeError(f"Unspecified variable: '{k}'")
+
+
 # Base Paths
 # NOTE: pyinstaller will set this to its own executable when building,
 # detect this to use __file__ and main.py redirection instead
@@ -88,7 +112,6 @@ PING_TIMEOUT = timedelta(seconds=10)
 ONLINE_DELAY = timedelta(seconds=120)
 WATCH_INTERVAL = timedelta(seconds=59)
 # Strings
-DROPS_ENABLED_TAG = "c2542d6d-cd10-4532-919b-3d19f30a768b"
 WINDOW_TITLE = f"Twitch Drops Miner v{__version__} (by DevilXD)"
 # Logging
 FILE_FORMATTER = logging.Formatter(
@@ -202,7 +225,7 @@ class GQLOperation(JsonType):
         modified = deepcopy(self)
         if "variables" in self:
             existing_variables: JsonType = modified["variables"]
-            existing_variables.update(variables)
+            _merge_vars(existing_variables, variables)
         else:
             modified["variables"] = variables
         return modified
@@ -284,15 +307,18 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
     # returns live channels for a particular game
     "GameDirectory": GQLOperation(
         "DirectoryPage_Game",
-        "df4bb6cc45055237bfaf3ead608bbafb79815c7100b6ee126719fac3762ddf8b",
+        "3c9a94ee095c735e43ed3ad6ce6d4cbd03c4c6f754b31de54993e0d48fd54e30",
         variables={
             "limit": ...,  # limit of channels returned
-            "name": ...,  # game name
+            "slug": ...,  # game slug
+            "imageWidth": 50,
             "options": {
+                "broadcasterLanguages": [],
+                "freeformTags": None,
                 "includeRestricted": ["SUB_ONLY_LIVE"],
                 "recommendationsContext": {"platform": "web"},
                 "sort": "RELEVANCE",
-                "tags": [],  # list of tag IDs
+                "tags": [],
                 "requestID": "JIRA-VXP-2397",
             },
             "sortTypeIsRecency": False,

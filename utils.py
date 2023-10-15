@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import os
+import re
 import sys
 import json
 import random
@@ -402,3 +403,10 @@ class Game:
 
     def __hash__(self) -> int:
         return self.id
+
+    @property
+    def slug(self) -> str:
+        """
+        Converts the game name into a slug, useable for the GQL API.
+        """
+        return re.sub(r'(?![- ])\W', '', self.name.lower().replace(' ', '-'))
