@@ -261,7 +261,7 @@ class Channel:
         )
         stream.drops_enabled = any(
             bool(c["timeBasedDrops"])
-            for c in available_drops["data"]["channel"]["viewerDropCampaigns"]
+            for c in (available_drops["data"]["channel"]["viewerDropCampaigns"] or [])
         )
         return stream
 
