@@ -409,4 +409,10 @@ class Game:
         """
         Converts the game name into a slug, useable for the GQL API.
         """
-        return re.sub(r'(?![- ])\W', '', self.name.lower().replace(' ', '-'))
+        # remove specific characters
+        slug_text = re.sub(r'\'', '', self.name.lower())
+        # remove non alpha-numeric characters
+        slug_text = re.sub(r'\W+', '-', slug_text)
+        # strip and collapse dashes
+        slug_text = re.sub(r'-{2,}', '-', slug_text.strip('-'))
+        return slug_text

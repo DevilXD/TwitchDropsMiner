@@ -1698,10 +1698,12 @@ class Twitch:
                 },
             })
         )
-        return [
-            Channel.from_directory(self, stream_channel_data["node"], drops_enabled=True)
-            for stream_channel_data in response["data"]["game"]["streams"]["edges"]
-        ]
+        if "game" in response["data"]:
+            return [
+                Channel.from_directory(self, stream_channel_data["node"], drops_enabled=True)
+                for stream_channel_data in response["data"]["game"]["streams"]["edges"]
+            ]
+        return []
 
     async def claim_points(self, channel_id: str | int, claim_id: str) -> None:
         await self.gql_request(
