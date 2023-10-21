@@ -353,8 +353,14 @@ class Channel:
             {
                 "event": "minute-watched",
                 "properties": {
-                    "channel_id": self.id,
-                    "broadcast_id": self._stream.broadcast_id,
+                    "broadcast_id": str(self._stream.broadcast_id),
+                    "channel_id": str(self.id),
+                    "channel": self._login,
+                    "hidden": False,
+                    "live": True,
+                    "location": "channel",
+                    "logged_in": True,
+                    "muted": False,
                     "player": "site",
                     "user_id": self._twitch._auth_state.user_id,
                 }
