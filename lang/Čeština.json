@@ -1,4 +1,5 @@
 {
+    "english_name": "Czech",
     "status": {
         "terminated": "\nAplikace byla ukončena.",
         "watching": "Sledování kanálu: {channel}",

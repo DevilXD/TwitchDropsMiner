@@ -1,4 +1,5 @@
 {
+    "english_name": "Arabic",
     "status": {
         "terminated": "تم إنهاء التطبيق. \n أغلق النافذة للخروج من التطبيق.",
         "watching": "{channel} :يتم حالياَ مشاهدة",

@@ -1,4 +1,5 @@
 {
+    "english_name": "Traditional Chinese",
     "status": {
         "terminated": "\n應用程式已結束運行，請關閉窗口已退出應用程式。",
         "watching": "正在觀看: {channel}",

@@ -1,4 +1,5 @@
 {
+    "english_name": "Turkish",
     "status": {
         "terminated": "\nUygulama durduruldu.\nUygulamadan çıkmak için pencereyi kapatın",
         "watching": "{channel} izleniyor",

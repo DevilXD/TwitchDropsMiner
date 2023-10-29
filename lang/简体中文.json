@@ -1,4 +1,5 @@
 {
+    "english_name": "Simplified Chinese",
     "status": {
         "terminated": "\n应用程序已终止，请关闭窗口以退出应用程序。",
         "watching": "正在观看: {channel}",

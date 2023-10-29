@@ -1,4 +1,5 @@
 {
+    "english_name": "Portuguese",
     "status": {
         "terminated": "\nAplicação Finalizada.\nFeche a janela para sair do programa.",
         "watching": "Assistindo o: {channel}",

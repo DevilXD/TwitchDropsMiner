@@ -1,4 +1,5 @@
 {
+    "english_name": "German",
     "status": {
         "terminated": "\nAnwendung gestoppt.\nFenster schließen, um die Anwendung zu beenden",
         "watching": "{channel} wird zugesehen",

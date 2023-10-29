@@ -1,4 +1,5 @@
 {
+    "english_name": "Ukrainian",
     "status": {
         "terminated": "\nЗастосунок зупинено.\nЗакрийте вікно для виходу з програми.",
         "watching": "Переглядає: {channel}",

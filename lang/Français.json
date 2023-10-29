@@ -1,4 +1,5 @@
 {
+    "english_name": "French",
     "status": {
         "terminated": "\nL'application a été arrêtée.\nVeuillez fermer l'application.",
         "watching": "En train de regarder : {channel}",

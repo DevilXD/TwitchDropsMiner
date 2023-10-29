@@ -1,4 +1,5 @@
 {
+    "english_name": "Russian",
     "status": {
         "terminated": "\nПриложение остановлено.\nЗакройте окно, чтобы выйти из приложения.",
         "watching": "Просмотр канала: {channel}",

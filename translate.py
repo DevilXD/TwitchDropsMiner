@@ -208,6 +208,7 @@ class GUIMessages(TypedDict):
 
 class Translation(TypedDict):
     language_name: NotRequired[str]
+    english_name: str
     status: StatusMessages
     login: LoginMessages
     error: ErrorMessages
@@ -215,6 +216,7 @@ class Translation(TypedDict):
 
 
 default_translation: Translation = {
+    "english_name": "English",
     "status": {
         "terminated": "\nApplication Terminated.\nClose the window to exit the application.",
         "watching": "Watching: {channel}",
