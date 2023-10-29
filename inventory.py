@@ -80,13 +80,24 @@ class BaseDrop:
         return f"Drop({self.rewards_text()}{additional})"
 
     @cached_property
-    def preconditions(self) -> bool:
+    def preconditions_met(self) -> bool:
         campaign = self.campaign
         return all(campaign.timed_drops[pid].is_claimed for pid in self._precondition_drops)
 
+    @cached_property
+    def _all_preconditions(self) -> set[str]:
+        campaign = self.campaign
+        preconditions: set[str] = set(self._precondition_drops)
+        return preconditions.union(
+            *(
+                campaign.timed_drops[pid]._all_preconditions
+                for pid in self._precondition_drops
+            )
+        )
+
     def _base_can_earn(self) -> bool:
         return (
-            self.preconditions  # preconditions are met
+            self.preconditions_met  # preconditions are met
             and not self.is_claimed  # isn't already claimed
             # is within the timeframe
             and self.starts_at <= datetime.now(timezone.utc) < self.ends_at
@@ -97,7 +108,7 @@ class BaseDrop:
 
     def can_earn_within(self, stamp: datetime) -> bool:
         return (
-            self.preconditions  # preconditions are met
+            self.preconditions_met  # preconditions are met
             and not self.is_claimed  # isn't already claimed
             and self.ends_at > datetime.now(timezone.utc)
             and self.starts_at < stamp
@@ -108,7 +119,7 @@ class BaseDrop:
         return self.claim_id is not None
 
     def _on_claim(self) -> None:
-        invalidate_cache(self, "preconditions")
+        invalidate_cache(self, "preconditions_met")
 
     def update_claim(self, claim_id: str):
         self.claim_id = claim_id
@@ -183,6 +194,18 @@ class TimedDrop(BaseDrop):
     @cached_property
     def remaining_minutes(self) -> int:
         return self.required_minutes - self.current_minutes
+
+    @property
+    def total_remaining_minutes(self) -> int:
+        return (
+            sum(
+                (
+                    self.campaign.timed_drops[pid].remaining_minutes
+                    for pid in self._all_preconditions
+                ),
+                start=self.remaining_minutes,
+            )
+        )
 
     @cached_property
     def progress(self) -> float:
@@ -286,7 +309,7 @@ class DropsCampaign:
 
     @cached_property
     def remaining_minutes(self) -> int:
-        return sum(d.remaining_minutes for d in self.drops)
+        return max(d.total_remaining_minutes for d in self.drops)
 
     @cached_property
     def progress(self) -> float:
