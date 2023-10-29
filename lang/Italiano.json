@@ -107,7 +107,7 @@
             "filter": {
                 "name": "Filtro",
                 "show": "Mostra:",
-                "linked": "Solo collegati",
+                "not_linked": "Non collegato",
                 "upcoming": "In arrivo",
                 "expired": "Scaduti",
                 "excluded": "Esclusi",

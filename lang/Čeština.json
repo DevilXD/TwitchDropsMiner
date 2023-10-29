@@ -100,7 +100,7 @@
             "filter": {
                 "name": "Filtr",
                 "show": "Drop:",
-                "linked": "Pouze živě",
+                "not_linked": "Nepropojeno",
                 "expired": "Ukončeno",
                 "excluded": "Vynecháno",
                 "upcoming": "Nadcházející",

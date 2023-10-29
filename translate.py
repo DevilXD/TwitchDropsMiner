@@ -130,7 +130,7 @@ class GUIChannels(TypedDict):
 class GUIInvFilter(TypedDict):
     name: str
     show: str
-    linked: str
+    not_linked: str
     upcoming: str
     expired: str
     excluded: str
@@ -330,7 +330,7 @@ default_translation: Translation = {
             "filter": {
                 "name": "Filter",
                 "show": "Show:",
-                "linked": "Linked only",
+                "not_linked": "Not linked",
                 "upcoming": "Upcoming",
                 "expired": "Expired",
                 "excluded": "Excluded",

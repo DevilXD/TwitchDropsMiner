@@ -107,7 +107,7 @@
             "filter": {
                 "name": "تصفية",
                 "show": "عرض \u279C",
-                "linked": "المرتبطة فقط",
+                "not_linked": "غير مرتبط",
                 "upcoming": "القادمة",
                 "expired": "المنتهية",
                 "excluded": "المستبعدة",

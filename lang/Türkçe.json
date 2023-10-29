@@ -107,7 +107,7 @@
       "filter": {
         "name": "Filtre",
         "show": "Dava etmek:",
-        "linked": "Yalnızca bağlantılı",
+        "not_linked": "Bağlantılı değil",
         "upcoming": "Gelecek",
         "expired": "Süresi doldu",
         "excluded": "Hariç tutuldu",

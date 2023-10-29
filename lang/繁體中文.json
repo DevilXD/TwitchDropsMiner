@@ -107,7 +107,7 @@
             "filter": {
                 "name": "篩選",
                 "show": "掉寶活動:",
-                "linked": "僅顯示關聯帳號的遊戲掉寶",
+                "not_linked": "未連結",
                 "expired": "已結束",
                 "excluded": "未添加的掉寶活動",
                 "upcoming": "即將開啟",

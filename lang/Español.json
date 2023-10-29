@@ -107,7 +107,7 @@
             "filter": {
                 "name": "Filtro de campañas",
                 "show": "Mostrar:",
-                "linked": "Vinculadas",
+                "not_linked": "No enlazado",
                 "upcoming": "Próximas",
                 "expired": "Expiradas",
                 "excluded": "Excluidas",
