@@ -33,12 +33,12 @@
     "gui": {
         "output": "Protokoll",
         "status": {
-            "isim": "Durum",
-            "boşta": "Boşta",
-            "çıkış": "Çıkış...",
-            "sonlandırıldı": "Sonlandırıldı",
+            "name": "Durum",
+            "idle": "Boşta",
+            "exiting": "Çıkış...",
+            "terminated": "Sonlandırıldı",
             "cleanup": "Kanalları temizle..",
-            "toplama": "Kanalları toplama...",
+            "gathering": "Kanalları toplama...",
             "switching": "Kanal değiştiriliyor...",
             "fetching_inventory": "Envanter getiriliyor...",
             "fetching_campaigns": "Kampanyalar getiriliyor...",
