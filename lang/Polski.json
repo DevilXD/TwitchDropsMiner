@@ -116,7 +116,7 @@
             },
             "status": {
                 "linked": "Połączono ✔",
-                "not_linked": "Niepołączono ❌",
+                "not_linked": "Nie połączono ❌",
                 "active": "Aktywna ✔",
                 "upcoming": "Nadchodząca ⏳",
                 "expired": "Wygasła ❌",
