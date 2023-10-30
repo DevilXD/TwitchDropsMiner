@@ -108,7 +108,7 @@
             "filter": {
                 "name": "筛选",
                 "show": "掉宝活动:",
-                "not_linked": "未链接",
+                "not_linked": "未关联账户的游戏掉宝",
                 "expired": "已结束",
                 "excluded": "未添加的掉宝活动",
                 "upcoming": "即将上线",
