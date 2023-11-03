@@ -142,7 +142,7 @@ class ClientType:
         "kimne78kx3ncx6brgo4mv6wki5h1ko",
         (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-            "(KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
+            "(KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
         ),
     )
     MOBILE_WEB = ClientInfo(
@@ -151,31 +151,31 @@ class ClientType:
         [
             (
                 "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/115.0.5790.166 Mobile Safari/537.36"
+                "(KHTML, like Gecko) Chrome/119.0.6045.66 Mobile Safari/537.36"
             ),
             (
                 "Mozilla/5.0 (Linux; Android 13; SM-A205U) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/115.0.5790.166 Mobile Safari/537.36"
+                "(KHTML, like Gecko) Chrome/119.0.6045.66 Mobile Safari/537.36"
             ),
             (
                 "Mozilla/5.0 (Linux; Android 13; SM-A102U) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/115.0.5790.166 Mobile Safari/537.36"
+                "(KHTML, like Gecko) Chrome/119.0.6045.66 Mobile Safari/537.36"
             ),
             (
                 "Mozilla/5.0 (Linux; Android 13; SM-G960U) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/115.0.5790.166 Mobile Safari/537.36"
+                "(KHTML, like Gecko) Chrome/119.0.6045.66 Mobile Safari/537.36"
             ),
             (
                 "Mozilla/5.0 (Linux; Android 13; SM-N960U) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/115.0.5790.166 Mobile Safari/537.36"
+                "(KHTML, like Gecko) Chrome/119.0.6045.66 Mobile Safari/537.36"
             ),
             (
                 "Mozilla/5.0 (Linux; Android 13; LM-Q720) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/115.0.5790.166 Mobile Safari/537.36"
+                "(KHTML, like Gecko) Chrome/119.0.6045.66 Mobile Safari/537.36"
             ),
             (
                 "Mozilla/5.0 (Linux; Android 13; LM-X420) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/115.0.5790.166 Mobile Safari/537.36"
+                "(KHTML, like Gecko) Chrome/119.0.6045.66 Mobile Safari/537.36"
             ),
         ]
     )
@@ -184,7 +184,7 @@ class ClientType:
         "kd1unb4b3q4t58fwlpcbzcbnm76a8fp",
         (
             "Dalvik/2.1.0 (Linux; U; Android 7.1.2; SM-G977N Build/LMY48Z) "
-            "tv.twitch.android.app/14.3.2/1403020"
+            "tv.twitch.android.app/16.8.1/1608010"
         ),
     )
     SMARTBOX = ClientInfo(
@@ -192,7 +192,7 @@ class ClientType:
         "ue6666qo983tsx6so1t0vnawi233wa",
         (
             "Mozilla/5.0 (Linux; Android 7.1; Smart Box C1) AppleWebKit/537.36 "
-            "(KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
+            "(KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
         ),
     )
 
