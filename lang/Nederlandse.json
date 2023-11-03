@@ -1,0 +1,161 @@
+{
+    "english_name": "Dutch",
+    "status": {
+        "terminated": "\nToepassing gestopt.\nSLuit het venster om de toepassing af te sluiten",
+        "watching": "{channel} wordt gekeken",
+        "goes_online": "{channel} is ONLINE gegaan, wijzig...",
+        "goes_offline": "{channel} is OFFLINE gegaan, wijzig...",
+        "claimed_drop": "Drop verkregen: {drop}",
+        "claimed_points": "Kanaal punten verdient: {points}",
+        "earned_points": "Verdiende kanaalpunten voor het kijken: {points} | Totaal: {balance}",
+        "no_channel": "Geen deelnemende kanalen online. Wachten op steamers...",
+        "no_campaign": "Geen actieve campagnes beschikbaar. Wachten op nieuwe campagne..."
+    },
+    "login": {
+        "chrome": {
+            "startup": "Chrome starten...",
+            "login_to_complete": "Druk nogmaals op Aanmelden om het aanmeldingsproces handmatig te voltooien.",
+            "no_token": "Er is geen autorisatietoken gevonden.",
+            "closed_window": "Het Chrome-venster werd gesloten voordat het inlogproces voltooid kon worden."
+        },
+        "error_code": "Login Foutcode: {error_code}",
+        "unexpected_content": "Onverwacht inhoudstype geretourneerd, meestal als gevolg van een omleiding.\nIs inloggen vereist voor toegang tot internet?",
+        "incorrect_login_pass": "Verkeerde gebruikersnaam of wachtwoord.",
+        "incorrect_email_code": "Onjuiste e-mailcode.",
+        "incorrect_twofa_code": "Onjuiste 2FA Code.",
+        "email_code_required": "E-mailcode vereist. Controleer de e-mail.",
+        "twofa_code_required": "2FA Token vereist."
+    },
+    "error": {
+        "captcha": "De inlogpoging is geweigerd door CAPTCHA.\nProbeer het over minimaal 12 uur opnieuw.",
+        "site_down": "Twitch is niet beschikbaar. Probeer het over {seconds} seconden opnieuw...",
+        "no_connection": "Kan geen verbinding maken met Twitch. Probeer het over {seconds} seconden opnieuw..."
+    },
+    "gui": {
+        "output": "Protocol",
+        "status": {
+            "name": "Status",
+            "idle": "Inactief",
+            "exiting": "Beëindigd...",
+            "terminated": "Geannuleerd",
+            "cleanup": "Kanalen opruimen..",
+            "gathering": "Kanalen verzamelen...",
+            "switching": "Het kanaal wijzigen...",
+            "fetching_inventory": "Ophalen van inventaris...",
+            "fetching_campaigns": "Ophalen van de campagne...",
+            "adding_campaigns": "De campagnelijst toevoegen aan de inventaris... {counter}"
+        },
+        "tabs": {
+            "main": "Algemeen",
+            "inventory": "Inventaris",
+            "settings": "Instellingen",
+            "help": "Help"
+        },
+        "tray": {
+            "notification_title": "Drop verkregen",
+            "minimize": "Minimaliseren naar taakbalk",
+            "show": "Weergeven",
+            "quit": "Verlaten"
+        },
+        "login": {
+            "name": "Login",
+            "labels": "Status:\nGebruiker ID:",
+            "logged_in": "Geregistreerd",
+            "logged_out": "Uitgelogd",
+            "logging_in": "Aanmelden...",
+            "required": "Aanmelden vereist",
+            "request": "Log in om door te gaan.",
+            "username": "Gebruikersnaam",
+            "password": "Wachtwoord",
+            "twofa_code": "2FA Code (optioneel)",
+            "button": "Aanmelden"
+        },
+        "websocket": {
+            "name": "WebSocket Status",
+            "websocket": "WebSocket #{id}:",
+            "initializing": "Initialiseren...",
+            "connected": "Verbonden",
+            "disconnected": "Verbinding verloren",
+            "connecting": "Verbinden...",
+            "disconnecting": "Verbinding verbroken...",
+            "reconnecting": "Opnieuw verbinden..."
+        },
+        "progress": {
+            "name": "Voortgang van de campagne",
+            "drop": "Drop:",
+            "game": "Spel:",
+            "campaign": "Campagne:",
+            "remaining": "{time} resterend",
+            "drop_progress": "Voortgang:",
+            "campaign_progress": "Voortgang:"
+        },
+        "channels": {
+            "name": "Kanaal",
+            "switch": "Wisselen",
+            "load_points": "Laad Punten",
+            "online": "ONLINE ✔",
+            "pending": "OFFLINE ⏳",
+            "offline": "OFFLINE ❌",
+            "headings": {
+                "channel": "Kanaal",
+                "status": "Status",
+                "game": "Spel",
+                "viewers": "Kijkers",
+                "points": "Punten"
+            }
+        },
+        "inventory": {
+            "filter": {
+                "name": "Filter",
+                "show": "Weergeven:",
+                "linked": "Alleen gekoppelde",
+                "upcoming": "Verwacht",
+                "expired": "Verlopen",
+                "excluded": "Uitgesloten",
+                "finished": "Beëindigd",
+                "refresh": "Vernieuwen"
+            },
+            "status": {
+                "linked": "Gekoppeld ✔",
+                "not_linked": "Niet gekoppeld ❌",
+                "active": "Actief ✔",
+                "upcoming": "Verwacht ⏳",
+                "expired": "Verlopen ❌",
+                "claimed": "Verkregen ✔",
+                "ready_to_claim": "Klaar om te verkrijgen ⏳"
+            },
+            "starts": "Begint: {time}",
+            "ends": "Eindigt: {time}",
+            "allowed_channels": "Toegestane kanalen:",
+            "all_channels": "Alle",
+            "and_more": "en {amount} verdere...",
+            "percent_progress": "{percent} van {minutes} Minuten",
+            "minutes_progress": "{minutes} Minuten"
+        },
+        "settings": {
+            "general": {
+                "name": "Algemeen",
+                "autostart": "Autostart: ",
+                "tray": "Automatisch starten in het taakbalk: ",
+                "priority_only": "Alleen prioriteit: ",
+                "proxy": "Proxy (Vereist opnieuw opstarten):"
+            },
+            "game_name": "Spel",
+            "priority": "Prioriteit",
+            "exclude": "Uitsluiten",
+            "reload": "Herladen",
+            "reload_text": "Voor de meeste wijzigingen is een herlaadbeurt vereist om onmiddellijk van kracht te worden: "
+        },
+        "help": {
+            "links": {
+                "name": "Handige Links",
+                "inventory": "Bekijk Twitch-inventaris",
+                "campaigns": "Bekijk alle Twitch-campagnes"
+            },
+            "how_it_works": "Dit is hoe het werkt",
+            "how_it_works_text": "Elke ~60 seconden verzendt de applicatie een \"minuut gekeken\" gebeurtenis naar het kanaal waar deze momenteel naar kijkt.\nDit is voldoende om voortgang te boeken voor drops. Opmerking: op deze manier is het niet nodig om de stream te downloaden en wordt er bandbreedte bespaard. \nOm de online of offline status van de kanalen up-to-date te houden, wordt er een websocket verbinding opgezet\ndie de kanalen controleert op hun status.",
+            "getting_started": "Eerste stappen",
+            "getting_started_text": "• Meld je aan bij de applicatie.\n• Zorg ervoor dat het Twitch-account is gekoppeld aan alle campagnes waarin je geïnteresseerd bent.\n• ls je alle drops wilt verwerken, verwijder je het vinkje bij \"Alleen prioriteit\" en druk je op \"Herladen\" .\n• Als je alleen bepaalde games wilt overwegen, gebruik dan de lijst \"Prioriteit\" om de keuze per game te verfijnen.\n• De lijst geeft prioriteit van boven naar beneden.\n• De optie \"Alleen prioriteit\" verhindert dat games die niet op de prioriteitenlijst staan, worden verwerkt.\n• Met de lijst \"Uitsluiten\" is het mogelijk om games te filteren die nooit in overweging mogen worden genomen.\n• Als lijsten of opties zijn aangepast, moet je op \"Herladen\" drukken zodat de wijzigingen van kracht worden."
+        }
+    }
+}
