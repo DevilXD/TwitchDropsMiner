@@ -97,7 +97,7 @@ JsonType = Dict[str, Any]
 URLType = NewType("URLType", str)
 TopicProcess: TypeAlias = "abc.Callable[[int, JsonType], Any]"
 # Values
-BASE_TOPICS = 2
+BASE_TOPICS = 3
 MAX_WEBSOCKETS = 8
 WS_TOPICS_LIMIT = 50
 TOPICS_PER_CHANNEL = 2
@@ -324,6 +324,33 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
             "sortTypeIsRecency": False,
         },
     ),
+    "NotificationsView": GQLOperation(  # unused, triggers notifications "update-summary"
+        "OnsiteNotifications_View",
+        "f6bdb1298f376539487f28b7f8a6b5d7434ec04ba4d7dc5c232b258410ae04d6",
+        variables={
+            "input": {},
+        },
+    ),
+    "NotificationsList": GQLOperation(  # unused
+        "OnsiteNotifications_ListNotifications",
+        "e709b905ddb963d7cf4a8f6760148926ecbd0eee0f2edc48d1cf17f3e87f6490",
+        variables={
+            "cursor": "",
+            "displayType": "VIEWER",
+            "language": "en",
+            "limit": 10,
+            "shouldLoadLastBroadcast": False,
+        },
+    ),
+    "NotificationsDelete": GQLOperation(
+        "OnsiteNotifications_DeleteNotification",
+        "13d463c831f28ffe17dccf55b3148ed8b3edbbd0ebadd56352f1ff0160616816",
+        variables={
+            "input": {
+                "id": "",  # ID of the notification to delete
+            }
+        },
+    ),
 }
 
 
@@ -368,15 +395,15 @@ class WebsocketTopic:
 
 WEBSOCKET_TOPICS: dict[str, dict[str, str]] = {
     "User": {  # Using user_id
-        "Drops": "user-drop-events",
-        "CommunityPoints": "community-points-user-v1",
         "Presence": "presence",  # unused
-        "Notifications": "onsite-notifications",  # unused
+        "Drops": "user-drop-events",
+        "Notifications": "onsite-notifications",
+        "CommunityPoints": "community-points-user-v1",
     },
     "Channel": {  # Using channel_id
         "Drops": "channel-drop-events",  # unused
-        "CommunityPoints": "community-points-channel-v1",  # unused
         "StreamState": "video-playback-by-id",
         "StreamUpdate": "broadcast-settings-update",
+        "CommunityPoints": "community-points-channel-v1",  # unused
     },
 }

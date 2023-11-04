@@ -790,6 +790,9 @@ class Twitch:
         self.websocket.add_topics([
             WebsocketTopic("User", "Drops", auth_state.user_id, self.process_drops),
             WebsocketTopic("User", "CommunityPoints", auth_state.user_id, self.process_points),
+            WebsocketTopic(
+                "User", "Notifications", auth_state.user_id, self.process_notifications
+            ),
         ])
         full_cleanup: bool = False
         channels: Final[OrderedDict[int, Channel]] = self.channels
@@ -1390,6 +1393,18 @@ class Twitch:
             # to get the current drop progress instead.
             self._drop_update.set_result(False)
         self._drop_update = None
+
+    @task_wrapper
+    async def process_notifications(self, user_id: int, message: JsonType):
+        if message["type"] == "create-notification":
+            data: JsonType = message["data"]["notification"]
+            if data["type"] == "user_drop_reward_reminder_notification":
+                self.change_state(State.INVENTORY_FETCH)
+                await self.gql_request(
+                    GQL_OPERATIONS["NotificationsDelete"].with_variables(
+                        {"input": {"id": data["id"]}}
+                    )
+                )
 
     @task_wrapper
     async def process_points(self, user_id: int, message: JsonType):
