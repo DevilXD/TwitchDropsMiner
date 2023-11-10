@@ -16,6 +16,7 @@ from enum import Enum
 from pathlib import Path
 from functools import wraps
 from contextlib import suppress
+from functools import cached_property
 from datetime import datetime, timezone
 from collections import abc, OrderedDict
 from typing import (
@@ -388,7 +389,9 @@ class AwaitableValue(Generic[_T]):
 class Game:
     def __init__(self, data: JsonType):
         self.id: int = int(data["id"])
-        self.name: str = data["name"]
+        self.name: str = data.get("displayName") or data["name"]
+        if "slug" in data:
+            self.slug = data["slug"]
 
     def __str__(self) -> str:
         return self.name
@@ -404,7 +407,7 @@ class Game:
     def __hash__(self) -> int:
         return self.id
 
-    @property
+    @cached_property
     def slug(self) -> str:
         """
         Converts the game name into a slug, useable for the GQL API.
