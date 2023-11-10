@@ -64,7 +64,7 @@ if __name__ == "__main__":
                 2: logging.INFO,
                 3: CALL,
                 4: logging.DEBUG,
-            }[min(self._verbose, 3)]
+            }[min(self._verbose, 4)]
 
         @property
         def debug_ws(self) -> int:
@@ -75,7 +75,7 @@ if __name__ == "__main__":
             """
             if self._debug_ws:
                 return logging.DEBUG
-            elif self._verbose >= 3:
+            elif self._verbose >= 4:
                 return logging.INFO
             return logging.NOTSET
 
@@ -83,7 +83,7 @@ if __name__ == "__main__":
         def debug_gql(self) -> int:
             if self._debug_gql:
                 return logging.DEBUG
-            elif self._verbose >= 3:
+            elif self._verbose >= 4:
                 return logging.INFO
             return logging.NOTSET
 
