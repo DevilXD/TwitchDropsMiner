@@ -68,8 +68,8 @@ jobs:
           name: Twitch.Drops.Miner.Windows
           path: Twitch.Drops.Miner.Windows.zip
 
-  linux:
-    name: Linux
+  linux-pyinstaller:
+    name: Linux (PyInstaller)
     runs-on: ubuntu-20.04
 
     steps:
@@ -136,21 +136,71 @@ jobs:
           folder='Twitch Drops Miner'
           mkdir "${folder}"
           cp manual.txt dist/* "${folder}"
-          7z a Twitch.Drops.Miner.Linux.zip "${folder}"
+          7z a Twitch.Drops.Miner.Linux.PyInstaller.zip "${folder}"
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v3
         with:
           if-no-files-found: error
-          name: Twitch.Drops.Miner.Linux
-          path: Twitch.Drops.Miner.Linux.zip
+          name: Twitch.Drops.Miner.Linux.PyInstaller
+          path: Twitch.Drops.Miner.Linux.PyInstaller.zip
+
+  linux-appimage:
+    name: Linux (AppImage)
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up variables
+        id: vars
+        run: |
+          echo "app_version=$(python3 -c 'from version import __version__ as v; print(v)')" >> "${GITHUB_OUTPUT}"
+          echo "sha_short=$(git rev-parse --short HEAD)" >> "${GITHUB_OUTPUT}"
+
+      - name: Append git revision to project version
+        run: |
+          sed -ri "s/^__version__\s*=\s*\"[^\"]+/\0.${{ steps.vars.outputs.sha_short }}/" version.py
+
+      - name: Install system dependencies
+        run: |
+          sudo apt update
+          sudo apt install libgirepository1.0-dev python3-testresources
+
+      - name: Download AppImage Builder
+        run: |
+          curl -L https://github.com/AppImageCrafters/appimage-builder/releases/download/v1.1.0/appimage-builder-1.1.0-x86_64.AppImage -o appimage-builder
+          chmod +x appimage-builder
+
+      - name: Create AppImage
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: 1
+          APP_VERSION: ${{ steps.vars.outputs.app_version }}.${{ steps.vars.outputs.sha_short }}
+        run: |
+          ./appimage-builder --recipe appimage/AppImageBuilder.yml
+
+      - name: Create release folder
+        run: |
+          folder='Twitch Drops Miner'
+          mkdir "${folder}"
+          cp *.AppImage manual.txt "${folder}"
+          7z a Twitch.Drops.Miner.Linux.AppImage.zip "${folder}"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v3
+        with:
+          if-no-files-found: error
+          name: Twitch.Drops.Miner.Linux.AppImage
+          path: Twitch.Drops.Miner.Linux.AppImage.zip
 
   update_releases_page:
     name: Upload builds to Releases
     if: github.event_name != 'pull_request'
     needs:
       - windows
-      - linux
+      - linux-pyinstaller
+      - linux-appimage
     runs-on: ubuntu-22.04
     permissions:
       contents: write
