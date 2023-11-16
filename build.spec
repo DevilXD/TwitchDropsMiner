@@ -76,6 +76,15 @@ a = Analysis(
     win_private_assemblies=False,
     win_no_prefer_redirects=False,
 )
+
+# Exclude unneeded Linux libraries
+excluded_binaries = [
+    "libicudata.so.66",
+    "libicuuc.so.66",
+    "librsvg-2.so.2"
+]
+a.binaries = [b for b in a.binaries if b[0] not in excluded_binaries]
+
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 exe = EXE(
     pyz,
