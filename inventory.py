@@ -4,7 +4,7 @@ import re
 from itertools import chain
 from typing import TYPE_CHECKING
 from functools import cached_property
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from channel import Channel
 from constants import GQL_OPERATIONS, URLType
@@ -116,7 +116,14 @@ class BaseDrop:
 
     @property
     def can_claim(self) -> bool:
-        return self.claim_id is not None
+        # https://help.twitch.tv/s/article/mission-based-drops?language=en_US#claiming
+        # "If you are unable to claim the Drop in time, you will be able to claim it
+        # from the Drops Inventory page until 24 hours after the Drops campaign has ended."
+        return (
+            self.claim_id is not None
+            and not self.is_claimed
+            and datetime.now(timezone.utc) < self.campaign.ends_at + timedelta(hours=24)
+        )
 
     def _on_claim(self) -> None:
         invalidate_cache(self, "preconditions_met")
