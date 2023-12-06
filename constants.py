@@ -42,7 +42,7 @@ def _resource_path(relative_path: Path | str) -> Path:
     Works for dev and for PyInstaller.
     """
     if IS_APPIMAGE:
-         base_path = Path(sys.argv[0]).absolute().parent
+        base_path = Path(sys.argv[0]).absolute().parent
     elif IS_PACKAGED:
         # PyInstaller's folder where the one-file app is unpacked
         meipass: str = getattr(sys, "_MEIPASS")
