@@ -58,13 +58,13 @@
             "quit": "Wyjdź"
         },
         "login": {
-            "name": "Zalogowany",
-            "labels": "Status:\nID:",
-            "logged_in": "Zalogowany",
-            "logged_out": "Wylogowany",
+            "name": "Logowanie",
+            "labels": "Status:\nIdentyfikator:",
+            "logged_in": "Zalogowano",
+            "logged_out": "Wylogowano",
             "logging_in": "Logowanie...",
             "required": "Wymagane zalogowanie",
-            "request": "Zaloguj się, aby kontynuować.",
+            "request": "Zaloguj się, by kontynuować.",
             "username": "Nazwa użytkownika",
             "password": "Hasło",
             "twofa_code": "Kod 2FA (opcjonalnie)",
