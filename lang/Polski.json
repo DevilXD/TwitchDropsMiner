@@ -108,7 +108,7 @@
             "filter": {
                 "name": "Filtr",
                 "show": "Pokaż:",
-                "not_linked": "Nie połączone",
+                "not_linked": "Niepołączone",
                 "upcoming": "Nadchodzące",
                 "expired": "Wygasłe",
                 "excluded": "Wykluczone",
