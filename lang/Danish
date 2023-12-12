@@ -1,0 +1,162 @@
+{
+    "english_name": "Danish",
+    "status": {
+        "terminated": "\nProgram Afsluttet.\nLuk vinduet for at afslutte programmet.",
+        "watching": "Ser på: {channel}",
+        "goes_online": "{channel} går ONLINE, skifter...",
+        "goes_offline": "{channel} går OFFLINE, skifter...",
+        "claimed_drop": "Hentet belønning: {drop}",
+        "claimed_points": "Hentet ekstra points: {points}",
+        "earned_points": "Optjente point for at se: {points}, Total: {balance}",
+        "no_channel": "Ingen tilgængelige kanaler at se. Venter på en ONLINE kanal...",
+        "no_campaign": "Der er ingen aktive kampagner at hente. Venter på en aktiv kampagne..."
+    },
+    "login": {
+        "unexpected_content": "Uventet indholdstype returneres, normalt på grund af at blive omdirigeret. Skal du logge ind for internetadgang?"
+        "chrome": {
+            "startup": "Åbner Chrome...",
+            "login_to_complete": "Fuldfør login-proceduren manuelt ved at trykke på Login-knappen igen.",
+            "no_token": "Der blev ikke fundet noget autorisationstoken.",
+            "closed_window": "Chrome-vinduet blev lukket, før login-proceduren kunne fuldføres."
+        },
+        "error_code": "Login fejlkode: {error_code}",
+        "incorrect_login_pass": "Forkert brugernavn eller kodeord.",
+        "incorrect_email_code": "Forkert email kode.",
+        "incorrect_twofa_code": "Forkert 2FA-kode.",
+        "email_code_required": "Email kode påkrævet. Tjek din email.",
+        "twofa_code_required": "2FA token påkrævet."
+    },
+    "error": {
+        "captcha": "Dit loginforsøg blev afvist af CAPTCHA.\nPrøv venligst igen om 12+ timer",
+        "site_down": "Twitch er nede, prøver igen om {seconds} sekunder...",
+        "no_connection": "Kan ikke oprette forbindelse til Twitch, prøver igen om {seconds} sekunder..."
+    },
+    "gui": {
+        "output": "Resultat",
+        "status": {
+            "name": "Status",
+            "idle": "Ledig",
+            "exiting": "Afslutter...",
+            "terminated": "Afsluttet",
+            "cleanup": "Oprydning af kanaler...",
+            "gathering": "Indsamling af kanaler...",
+            "switching": "Skifter kanal...",
+            "fetching_inventory": "Henter beholdning...",
+            "fetching_campaigns": "Henter kampagner...",
+            "adding_campaigns": "Tilføjer kampagner til beholdning... {counter}"
+        },
+        "tabs": {
+            "main": "Main",
+            "inventory": "Beholdning",
+            "settings": "Indstillinger",
+            "help": "Hjælp"
+        },
+        "tray": {
+            "notification_title": "Mined Belønning",
+            "minimize": "Minimer til systembakken",
+            "show": "Vis",
+            "quit": "Afslut"
+        },
+        "login": {
+            "name": "Login formular",
+            "labels": "Status:\nBruger ID:",
+            "logged_in": "Logget ind",
+            "logged_out": "Logget ud",
+            "logging_in": "Logger ind...",
+            "required": "Login påkrævet",
+            "request": "Log venligst ind for at fortsætte.",
+            "username": "Brugernavn",
+            "password": "Kodeord",
+            "twofa_code": "2FA code (valgfrit)",
+            "button": "Login"
+        },
+        "websocket": {
+            "name": "Websocket Status",
+            "websocket": "Websocket #{id}:",
+            "initializing": "Initialiserer...",
+            "connected": "Forbundet",
+            "disconnected": "Afbrudt",
+            "connecting": "Tilslutning...",
+            "disconnecting": "Afbryder forbindelsen...",
+            "reconnecting": "Genopretter forbindelse..."
+        },
+        "progress": {
+            "name": "Kampagnefremskridt",
+            "drop": "Belønning:",
+            "game": "Spil:",
+            "campaign": "Kampagne:",
+            "remaining": "{time} tilbage",
+            "drop_progress": "Fremskridt:",
+            "campaign_progress": "Fremskridt:"
+        },
+        "channels": {
+            "name": "Kanaler",
+            "switch": "Skift",
+            "load_points": "Indlæs Points",
+            "online": "ONLINE  \u2714",
+            "pending": "OFFLINE \u23f3",
+            "offline": "OFFLINE \u274c",
+            "headings": {
+                "channel": "Kanal",
+                "status": "Status",
+                "game": "Spil",
+                "viewers": "Seere",
+                "points": "Points"
+            }
+        },
+        "inventory": {
+            "filter": {
+                "name": "Filter",
+                "show": "Vis:",
+                "not_linked": "Ikke forbundet",
+                "upcoming": "Kommende",
+                "expired": "Udløbet",
+                "excluded": "Udelukket",
+                "finished": "Færdig",
+                "refresh": "Opdater"
+            },
+            "status": {
+                "linked": "Forbundet \u2714",
+                "not_linked": "Ikke forbundet \u274c",
+                "active": "Aktiv \u2714",
+                "upcoming": "Kommende \u23f3",
+                "expired": "Udløbet \u274c",
+                "claimed": "Hentet \u2714",
+                "ready_to_claim": "Klar til at hente \u23f3"
+            },
+            "starts": "Starter: {time}",
+            "ends": "Slutter: {time}",
+            "allowed_channels": "Tilladte kanaler:",
+            "all_channels": "Alle",
+            "and_more": "og {amount} mere...",
+            "percent_progress": "{percent} af {minutes} minutter",
+            "minutes_progress": "{minutes} minutter"
+        },
+        "settings": {
+            "general": {
+                "name": "General",
+                "autostart": "Automatisk start: ",
+                "tray": "Automatisk start i systembakken: ",
+                "tray_notifications": "Bakkemeddelelser: ",
+                "priority_only": "Kun prioritet: ",
+                "proxy": "Proxy (kræver genstart):"
+            },
+            "game_name": "Spilnavn",
+            "priority": "Prioritet",
+            "exclude": "Udelukke",
+            "reload": "Genindlæs",
+            "reload_text": "De fleste ændringer kræver en genindlæsning for at få en øjeblikkelig virkning: "
+        },
+        "help": {
+            "links": {
+                "name": "Nyttige Links",
+                "inventory": "Se Twitch belønninger",
+                "campaigns": "Se alle kampagner og administrer kontolinks"
+            },
+            "how_it_works": "Hvordan virker det?",
+            "how_it_works_text": "Hvert ~60. sekund sender applikationen en \"set minut\"-begivenhed til den kanal, der i øjeblikket bliver set - dette er nok til at øge faldet. Bemærk, at dette helt omgår behovet for at downloade enhver faktisk stream video og lyd. For at holde status (ONLINE eller OFFLINE) for kanalerne opdateret, er der etableret en websocket-forbindelse, der modtager begivenheder om streams, der går op eller ned, eller opdateringer vedrørende det aktuelle antal seere.",
+            "getting_started": "Kom igang",
+            "getting_started_text": "1. Log ind på applikationen.\n2. Sørg for, at din Twitch-konto er linket til alle kampagner, du er interesseret i at mine.\n3. Hvis du bare er interesseret i at mine alt, skal du fjerne markeringen i \"Kun prioritet\" og trykke på \"Genindlæs\".\n4. Hvis du ønsker at mine specifikke spil først, skal du bruge listen \"Prioritet\" til at opsætte en ordnet liste over spil efter eget valg. Spil fra toppen af ​​listen vil blive forsøgt at blive minet først, før dem nederst på listen.\n5. Hold indstillingen \"Kun prioritet\" markeret for at undgå at mine spil, der ikke er på prioritetslisten. Eller ej - det er op til dig.\n6. Brug listen \"Ekskluder\" til at fortælle applikationen, hvilke spil der aldrig bør mines.\n7. Ændring af indholdet af en af ​​listerne eller ændring af tilstanden for \"Kun prioritet\"-indstillingen kræver, at du trykker på \"Genindlæs\" for at ændringerne træder i kraft."
+        }
+    }
+}
