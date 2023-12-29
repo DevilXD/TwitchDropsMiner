@@ -1,0 +1,162 @@
+{
+    "english_name": "Indonesian",
+    "status": {
+        "terminated": "\nAplikasi telah dihentikan. \nSilakan tutup aplikasi.",
+        "watching": "Menonton : {channel}",
+        "goes_online": "{channel} Tiket masuk ONLINE, ganti...",
+        "goes_offline": "{channel} menjadi OFF-LINE, ubah...",
+        "claimed_drop": "Drop dipulihkan : {drop}",
+        "claimed_points": "Poin bonus yang dipulihkan: {points}",
+        "earned_points": "Poin yang diperoleh dari menonton : {points}, jumlah : {balance}",
+        "no_channel": "Tidak ada saluran yang tersedia untuk ditonton. Menunggu saluran secara ONLINE...",
+        "no_campaign": "Tidak ada kampanye aktif yang bisa ditambang. Menunggu kampanye aktif..."
+    },
+    "login": {
+        "chrome": {
+            "startup": "Membuka Chrome",
+            "login_to_complete": "Selesaikan prosedur koneksi secara manual dengan menekan tombol Connection (Koneksi) sekali lagi..",
+            "no_token": "Token otorisasi tidak dapat ditemukan.",
+            "closed_window": "Jendela Chrome ditutup sebelum prosedur koneksi selesai."
+        },
+        "error_code": "Kode kesalahan koneksi: {error_code}",
+        "unexpected_content": "Jenis konten yang tidak diharapkan yang dikembalikan, biasanya karena pengalihan. Apakah Anda perlu tersambung untuk mengakses Internet ?",
+        "incorrect_login_pass": "Nama pengguna atau kata sandi yang dimasukkan salah.",
+        "incorrect_email_code": "Kode verifikasi email salah.",
+        "incorrect_twofa_code": "Kode verifikasi 2FA salah.",
+        "email_code_required": "Diperlukan kode verifikasi email. Silakan periksa email Anda.",
+        "twofa_code_required": "Diperlukan kode 2FA."
+    },
+    "error": {
+        "captcha": "Sambungan ditolak oleh CAPTCHA. Silakan coba lagi dalam waktu sekitar 12 jam.",
+        "site_down": "Twitch tidak tersedia. Silakan coba lagi dalam {seconds} detik....",
+        "no_connection": "Tidak dapat tersambung ke Twitch. Silakan coba lagi dalam {detik} detik...."
+    },
+    "gui": {
+        "output": "Keluaran",
+        "status": {
+            "name": "Status",
+            "idle": "Tidak aktif",
+            "exiting": "Keluar...",
+            "terminated": "Diakhiri",
+            "cleanup": "Membersihkan saluran...",
+            "gathering": "Pencarian saluran langsung...",
+            "switching": "Koleksi saluran yang sedang berlangsung...",
+            "fetching_inventory": "Mmengambil inventaris...",
+            "fetching_campaigns": "Mengambil kampanye...",
+            "adding_campaigns": "Menambahkan daftar kampanye ke inventaris... {counter}"
+        },
+        "tabs": {
+            "main": "Umum",
+            "inventory": "Inventaris",
+            "settings": "Parameter",
+            "help": "Bantuan"
+        },
+        "tray": {
+            "notification_title": "Tambang drop",
+            "minimize": "Meminimalkan di bilah tugas",
+            "show": "Lihat",
+            "quit": "Keluar"
+        },
+        "login": {
+            "name": "Formulir masuk",
+            "labels": "Status :\nID Pengguna :",
+            "logged_in": "Online",
+            "logged_out": "Terputus",
+            "logging_in": "Koneksi dalam proses...",
+            "required": "Diperlukan sambungan",
+            "request": "Silakan masuk untuk melanjutkan.",
+            "username": "Nama pengguna",
+            "password": "Kata sandi",
+            "twofa_code": "Kode 2FA (opsional)",
+            "button": "Masuk"
+        },
+        "websocket": {
+            "name": "Status soket web",
+            "websocket": "Soket web #{id}:",
+            "initializing": "Menginisialisasi...",
+            "connected": "Tersambung",
+            "disconnected": "Terputus",
+            "connecting": "Menyambungkan...",
+            "disconnecting": "Memutusan sambungan...",
+            "reconnecting": "Menyambungkan kembali..."
+        },
+        "progress": {
+            "name": "Perkembangan kampanye",
+            "drop": "Drop :",
+            "game": "Game",
+            "campaign": "Kampanye :",
+            "remaining": "{time} tersisa",
+            "drop_progress": "Perkembangan :",
+            "campaign_progress": "Perkembangan :"
+        },
+        "channels": {
+            "name": "Saluran",
+            "switch": "Beralih",
+            "load_points": "Poin Pemuatan",
+            "online": "ONLINE  ✔",
+            "pending": "DITUNDA ⏳",
+            "offline": "OFFLINE ❌",
+            "headings": {
+                "channel": "Saluran",
+                "status": "Status",
+                "game": "Game",
+                "viewers": "Penonton",
+                "points": "Poin"
+            }
+        },
+        "inventory": {
+            "filter": {
+                "name": "Saring",
+                "show": "Tampilkan :",
+                "not_linked": "Non lié",
+                "upcoming": "Segera haidr",
+                "expired": "Kadaluarsa",
+                "excluded": "Dikecualikan",
+                "finished": "Selesai",
+                "refresh": "Muat ulang"
+            },
+            "status": {
+                "linked": "Ditautkan ✔",
+                "not_linked": "Tidak Ditautkan ❌",
+                "active": "Aktif ✔",
+                "upcoming": "Segera hadir ⏳",
+                "expired": "Kedaluarsa ❌",
+                "claimed": "Diklaim ✔",
+                "ready_to_claim": "Siap untuk diklaim ⏳"
+            },
+            "starts": "Mulai : {time}",
+            "ends": "Akhir : {time}",
+            "allowed_channels": "Saluran yang diperbolehkan :",
+            "all_channels": "Semua",
+            "and_more": "dan {amount} yang lainnya...",
+            "percent_progress": "{percent} dari {minutes} menit",
+            "minutes_progress": "{minutes} menit"
+        },
+        "settings": {
+            "general": {
+                "name": "Umum",
+                "autostart": "Mulai secara otomatis :",
+                "tray": "Mulai otomatis di bilah tugas :",
+                "tray_notifications": "Pemberitahuan bilah tugas :",
+                "priority_only": "Prioritas saja :",
+                "proxy": "Proksi (harus dimulai ulang) :"
+            },
+            "game_name": "Nama game",
+            "priority": "Prioritas",
+            "exclude": "Kecualikan",
+            "reload": "Muat Ulang",
+            "reload_text": "Sebagian besar perubahan memerlukan pemuatan ulang untuk segera diterapkan : "
+        },
+        "help": {
+            "links": {
+                "name": "Tautan berguna",
+                "inventory": "Lihat inventaris Twitch",
+                "campaigns": "Lihat semua kampanye dan kelola akun terkait"
+            },
+            "how_it_works": "Cara kerja",
+            "how_it_works_text": "Kira-kira setiap ~60 detik, aplikasi ini mengirimkan \"menit ditonton\" ke saluran yang sedang ditonton - yang cukup untuk membuat drop terus bergerak. Perhatikan bahwa hal ini sepenuhnya mengabaikan kebutuhan untuk mengunduh video dan audio dari streaming yang sebenarnya. Untuk menjaga agar status (ONLINE atau OFFLINE) saluran tetap terbaru, koneksi websocket dibuat untuk menerima peristiwa tentang streaming yang naik atau turun, atau pembaruan tentang jumlah penonton saat ini",
+            "getting_started": "Mulai",
+            "getting_started_text": "1. Masuk ke aplikasi.\n2. Pastikan akun Twitch Anda ditautkan ke semua kampanye yang Anda minati.\n3. Jika Anda hanya ingin menambang semuanya, hapus centang pada \"Hanya Prioritas\" dan tekan \"Muat Ulang\".\n4. Jika Anda ingin menambang game tertentu terlebih dahulu, gunakan daftar \"Prioritas\" untuk menentukan daftar game pilihan Anda. Game yang berada di bagian atas daftar akan tergoda untuk ditambang terlebih dahulu, sebelum game yang berada di bagian bawah daftar.\n5. Biarkan opsi \"Prioritas saja\" dicentang untuk menghindari menambang game yang tidak ada dalam daftar prioritas. Atau tidak - terserah Anda.\n6. Gunakan daftar \"Kecualikan\" untuk memberi tahu aplikasi game mana yang tidak boleh ditambang.\n7. Untuk memodifikasi konten dari salah satu daftar atau mengubah status opsi \"Hanya Prioritas\", Anda perlu menekan \"Muat Ulang\" agar perubahan dapat diterapkan."
+        }
+    }
+}
