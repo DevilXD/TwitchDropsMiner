@@ -12,7 +12,7 @@
         "no_campaign": "Der er ingen aktive kampagner at hente. Venter på en aktiv kampagne..."
     },
     "login": {
-        "unexpected_content": "Uventet indholdstype returneres, normalt på grund af at blive omdirigeret. Skal du logge ind for internetadgang?"
+        "unexpected_content": "Uventet indholdstype returneres, normalt på grund af at blive omdirigeret. Skal du logge ind for internetadgang?",
         "chrome": {
             "startup": "Åbner Chrome...",
             "login_to_complete": "Fuldfør login-proceduren manuelt ved at trykke på Login-knappen igen.",
