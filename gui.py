@@ -2111,7 +2111,8 @@ class GUIManager:
     def grab_attention(self, *, sound: bool = True):
         self.tray.restore()
         self._root.focus_force()
-        self._root.bell()
+        if sound:
+            self._root.bell()
 
     def set_games(self, games: abc.Iterable[Game]) -> None:
         self.settings.set_games(games)
