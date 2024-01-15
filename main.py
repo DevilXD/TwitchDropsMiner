@@ -18,7 +18,7 @@ if __name__ == "__main__":
     from tkinter import messagebox
     from typing import IO, NoReturn
 
-    if sys.platform == "linux" and sys.version_info >= (3, 10):
+    if sys.version_info >= (3, 10):
         import truststore
         truststore.inject_into_ssl()
 
