@@ -172,8 +172,11 @@ if __name__ == "__main__":
             client.print(_("gui", "status", "exiting"))
             await client.shutdown()
         if not client.gui.close_requested:
+            # user didn't request the closure
             client.print(_("status", "terminated"))
             client.gui.status.update(_("gui", "status", "terminated"))
+            # notify the user about the closure
+            client.gui.grab_attention(sound=True)
         await client.gui.wait_until_closed()
         # save the application state
         # NOTE: we have to do it after wait_until_closed,

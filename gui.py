@@ -519,7 +519,7 @@ class LoginForm:
     async def ask_login(self) -> LoginData:
         self.update(_("gui", "login", "required"), None)
         # ensure the window isn't hidden into tray when this runs
-        self._manager.tray.restore()
+        self._manager.grab_attention(sound=False)
         while True:
             self._manager.print(_("gui", "login", "request"))
             await self.wait_for_login_press()
@@ -546,7 +546,7 @@ class LoginForm:
     async def ask_enter_code(self, user_code: str) -> None:
         self.update(_("gui", "login", "required"), None)
         # ensure the window isn't hidden into tray when this runs
-        self._manager.tray.restore()
+        self._manager.grab_attention(sound=False)
         self._manager.print(_("gui", "login", "request"))
         await self.wait_for_login_press()
         self._manager.print(f"Enter this code on the Twitch's device activation page: {user_code}")
@@ -2107,6 +2107,11 @@ class GUIManager:
     # these are here to interface with underlaying GUI components
     def save(self, *, force: bool = False) -> None:
         self._cache.save(force=force)
+
+    def grab_attention(self, *, sound: bool = True):
+        self.tray.restore()
+        self._root.focus_force()
+        self._root.bell()
 
     def set_games(self, games: abc.Iterable[Game]) -> None:
         self.settings.set_games(games)
