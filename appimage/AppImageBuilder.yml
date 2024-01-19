@@ -23,7 +23,7 @@ script:
   - cp "$SOURCE_DIR/pickaxe.png" "$TARGET_APPDIR/usr/share/icons/hicolor/128x128/apps/io.github.devilxd.twitchdropsminer.png"
 
   # Remove certifi from the line below if using Python 3.10+.
-  - python3.8 -m pip install --ignore-installed --prefix=/usr --root="$TARGET_APPDIR" -r "$SOURCE_DIR/../requirements.txt" certifi
+  - python3 -m pip install --ignore-installed --prefix=/usr --root="$TARGET_APPDIR" -r "$SOURCE_DIR/../requirements.txt"
 
 AppDir:
   app_info:
@@ -31,7 +31,7 @@ AppDir:
     name: Twitch Drops Miner
     icon: io.github.devilxd.twitchdropsminer
     version: '{{APP_VERSION}}'
-    exec: usr/bin/python3.8
+    exec: usr/bin/python3
     exec_args: '${APPDIR}/usr/src/main.py $@'
 
   apt:
@@ -126,13 +126,11 @@ AppDir:
     env:
       PATH: '${APPDIR}/usr/bin:${PATH}'
       PYTHONHOME: '${APPDIR}/usr'
-      PYTHONPATH: '${APPDIR}/usr/lib/python3.8/tkinter:${APPDIR}/usr/lib/python3.8/site-packages'
+      PYTHONPATH: '${APPDIR}/usr/lib/python${{env.PYTHON_VERSION}}/tkinter:${APPDIR}/usr/lib/python${{env.PYTHON_VERSION}}/site-packages'
       APPDIR_LIBRARY_PATH: '${APPDIR}/usr/lib:${APPDIR}/usr/lib/x86_64-linux-gnu:${APPDIR}/lib/x86_64-linux-gnu'
       TCL_LIBRARY: '${APPDIR}/usr/share/tcltk/tcl8.6'
       TK_LIBRARY: '${APPDIR}/usr/lib/tcltk/x86_64-linux-gnu/tk8.6'
       TKPATH: '${APPDIR}/usr/lib/tcltk/x86_64-linux-gnu/tk8.6'
-      # Remove the line below if using Python 3.10+.
-      SSL_CERT_FILE: '${APPDIR}/usr/lib/python3.8/site-packages/certifi/cacert.pem'
       # The app seems to have problems running on Wayland at the moment.
       # See: https://github.com/DevilXD/TwitchDropsMiner/issues/321
       GDK_BACKEND: x11
