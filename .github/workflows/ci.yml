@@ -7,10 +7,13 @@ on:
   pull_request:
   workflow_dispatch:
 
+env:
+  PYTHON_VERSION: '3.10'
+
 jobs:
   windows:
     name: Windows
-    runs-on: windows-2022
+    runs-on: windows-latest
 
     steps:
       - name: Checkout code
@@ -26,6 +29,11 @@ jobs:
           (Get-Content version.py) `
           -Replace '^__version__\s*=\s*"[^"]+', "`$0.${{ steps.vars.outputs.sha_short }}" |`
           Out-File version.py
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: $PYTHON_VERSION
 
       - name: Set up Python virtual environment
         run: |
@@ -70,7 +78,7 @@ jobs:
 
   linux-pyinstaller:
     name: Linux (PyInstaller)
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -89,7 +97,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: $PYTHON_VERSION
 
       - name: Install system dependencies
         run: |
@@ -147,7 +155,7 @@ jobs:
 
   linux-appimage:
     name: Linux (AppImage)
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -201,7 +209,7 @@ jobs:
       - windows
       - linux-pyinstaller
       - linux-appimage
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     permissions:
       contents: write
 
