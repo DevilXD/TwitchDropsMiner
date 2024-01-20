@@ -231,8 +231,8 @@ jobs:
             **⚠️ This build is not stable and may end up terminating with a fatal error. ⚠️**
             **Use at your own risk.**
 
-            - Last build date: `${{ steps.vars.outputs.date_now }}`
-            - Reference commit: ${{ github.sha }}
+            - Last build date: `${{steps.vars.outputs.date_now}}`
+            - Reference commit: ${{github.sha}}
           name: Development build
           prerelease: true
           removeArtifacts: true
