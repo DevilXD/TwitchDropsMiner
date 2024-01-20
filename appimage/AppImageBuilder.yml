@@ -23,7 +23,7 @@ script:
   - cp "$SOURCE_DIR/pickaxe.png" "$TARGET_APPDIR/usr/share/icons/hicolor/128x128/apps/io.github.devilxd.twitchdropsminer.png"
 
   # Install requirements.
-  - python3 -m pip install --ignore-installed --prefix=/usr --root="$TARGET_APPDIR" -r "$SOURCE_DIR/../requirements.txt"
+  - python{{PYTHON_VERSION}} -m pip install --ignore-installed --prefix=/usr --root="$TARGET_APPDIR" -r "$SOURCE_DIR/../requirements.txt"
 
 AppDir:
   app_info:
