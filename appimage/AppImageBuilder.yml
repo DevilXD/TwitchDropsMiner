@@ -22,7 +22,7 @@ script:
   - cp -r "$SOURCE_DIR/../lang" "$SOURCE_DIR/../pickaxe.ico" "$SOURCE_DIR"/../*.py "$TARGET_APPDIR/usr/src"
   - cp "$SOURCE_DIR/pickaxe.png" "$TARGET_APPDIR/usr/share/icons/hicolor/128x128/apps/io.github.devilxd.twitchdropsminer.png"
 
-  # Remove certifi from the line below if using Python 3.10+.
+  # Install requirements.
   - python3 -m pip install --ignore-installed --prefix=/usr --root="$TARGET_APPDIR" -r "$SOURCE_DIR/../requirements.txt"
 
 AppDir:
@@ -31,7 +31,7 @@ AppDir:
     name: Twitch Drops Miner
     icon: io.github.devilxd.twitchdropsminer
     version: '{{APP_VERSION}}'
-    exec: usr/bin/python3
+    exec: usr/bin/python${{env.PYTHON_VERSION}}
     exec_args: '${APPDIR}/usr/src/main.py $@'
 
   apt:
