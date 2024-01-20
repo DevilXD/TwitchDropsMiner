@@ -157,10 +157,10 @@ jobs:
           echo "sha_short=$(git rev-parse --short HEAD)" >> "${GITHUB_OUTPUT}"
 
       # Ensure Python version
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{env.PYTHON_VERSION}}
+      # - name: Set up Python
+      #   uses: actions/setup-python@v4
+      #   with:
+      #     python-version: ${{env.PYTHON_VERSION}}
 
       - name: Append git revision to project version
         run: |
