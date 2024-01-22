@@ -144,7 +144,7 @@ jobs:
 
   linux-appimage:
     name: Linux (AppImage)
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout code
@@ -155,12 +155,6 @@ jobs:
         run: |
           echo "app_version=$(python3 -c 'from version import __version__ as v; print(v)')" >> "${GITHUB_OUTPUT}"
           echo "sha_short=$(git rev-parse --short HEAD)" >> "${GITHUB_OUTPUT}"
-
-      # Ensure Python version
-      # - name: Set up Python
-      #   uses: actions/setup-python@v4
-      #   with:
-      #     python-version: ${{env.PYTHON_VERSION}}
 
       - name: Append git revision to project version
         run: |
