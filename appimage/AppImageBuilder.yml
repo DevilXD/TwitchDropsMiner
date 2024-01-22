@@ -24,6 +24,8 @@ script:
 
   # Install requirements.
   - python3 -m pip install --ignore-installed --prefix=/usr --root="$TARGET_APPDIR" -r "$SOURCE_DIR/../requirements.txt" certifi
+  # Generate byte-code files beforehand, for slightly faster app startup.
+  - python3 -m compileall "$TARGET_APPDIR/usr/src/"*.py
 
 AppDir:
   app_info:
