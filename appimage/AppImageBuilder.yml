@@ -39,11 +39,11 @@ AppDir:
   apt:
     arch: amd64
     sources:
-      - sourceline: deb http://archive.ubuntu.com/ubuntu/ focal main universe
-      - sourceline: deb http://archive.ubuntu.com/ubuntu/ focal-updates main universe
-      - sourceline: deb http://archive.ubuntu.com/ubuntu/ focal-backports main universe
-      - sourceline: deb http://archive.ubuntu.com/ubuntu/ focal-security main universe
-        key_url: http://keyserver.ubuntu.com/pks/lookup?op=get&search=0x3b4fe6acc0b21f32
+      - sourceline: deb http://archive.ubuntu.com/ubuntu/ jammy main universe
+      - sourceline: deb http://archive.ubuntu.com/ubuntu/ jammy-updates main universe
+      - sourceline: deb http://archive.ubuntu.com/ubuntu/ jammy-backports main universe
+      - sourceline: deb http://archive.ubuntu.com/ubuntu/ jammy-security main universe
+        key_url: http://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C
 
     include:
       - gir1.2-appindicator3-0.1
@@ -128,13 +128,11 @@ AppDir:
     env:
       PATH: '${APPDIR}/usr/bin:${PATH}'
       PYTHONHOME: '${APPDIR}/usr'
-      PYTHONPATH: '${APPDIR}/usr/lib/python3.8/tkinter:${APPDIR}/usr/lib/python3.8/site-packages'
+      PYTHONPATH: '${APPDIR}/usr/lib/python3.10/tkinter:${APPDIR}/usr/lib/python3.10/site-packages'
       APPDIR_LIBRARY_PATH: '${APPDIR}/usr/lib:${APPDIR}/usr/lib/x86_64-linux-gnu:${APPDIR}/lib/x86_64-linux-gnu'
       TCL_LIBRARY: '${APPDIR}/usr/share/tcltk/tcl8.6'
       TK_LIBRARY: '${APPDIR}/usr/lib/tcltk/x86_64-linux-gnu/tk8.6'
       TKPATH: '${APPDIR}/usr/lib/tcltk/x86_64-linux-gnu/tk8.6'
-      # Remove the line below if using Python 3.10+.
-      SSL_CERT_FILE: '${APPDIR}/usr/lib/python3.8/site-packages/certifi/cacert.pem'
       # The app seems to have problems running on Wayland at the moment.
       # See: https://github.com/DevilXD/TwitchDropsMiner/issues/321
       GDK_BACKEND: x11
