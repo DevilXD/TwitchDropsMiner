@@ -824,19 +824,40 @@ class Twitch:
                 exclude = self.settings.exclude
                 priority = self.settings.priority
                 priority_only = self.settings.priority_only
+                priority_by_time = self.settings.priority_by_time
                 next_hour = datetime.now(timezone.utc) + timedelta(hours=1)
-                for campaign in self.inventory:
+                campaigns = self.inventory
+                campaigns.sort(key=lambda c: c.ends_at, reverse=False) # lets us give priority to campaigns ending soonest later on
+                max_priority = len(campaigns)
+                max_wanted_priority = max_priority + len(priorities)
+                for campaign in campaigns:
                     game = campaign.game
                     if (
-                        game not in self.wanted_games  # isn't already there
-                        and game.name not in exclude  # and isn't excluded
+                        game not in self.wanted_games # isn't already there
+                        and game.name not in exclude # and isn't excluded
                         # and isn't excluded by priority_only
                         and (not priority_only or game.name in priority)
                         # and can be progressed within the next hour
                         and campaign.can_earn_within(next_hour)
                     ):
-                        # non-excluded games with no priority are placed last, below priority ones
-                        self.wanted_games[game] = priorities.get(game.name, 0)
+                        # get users priority preference
+                        game_priority = priorities.get(game.name, 0)
+
+                        if (game_priority):
+                            if (not priority_by_time):
+                                # keep games ordered by priority list
+                                #    max_wanted_priority does not change in this case, consider it "0"
+                                self.wanted_games[game] = game_priority + max_wanted_priority
+                            else:
+                                # sort priority games by time ending soonest
+                                #    games are already sorted by ends_at, max_wanted_priority only goes down for each added to the wanted_games list
+                                self.wanted_games[game] = max_wanted_priority
+                                max_wanted_priority -= 1
+                        else:
+                           # non-excluded games with no priority are placed last, below priority ones
+                           #    but sorted by end time to maximize amount of potential drops
+                           self.wanted_games[game] = max_priority
+                           max_priority -= 1
                 full_cleanup = True
                 self.restart_watching()
                 self.change_state(State.CHANNELS_CLEANUP)
