@@ -112,7 +112,6 @@ MAX_TOPICS = (MAX_WEBSOCKETS * WS_TOPICS_LIMIT) - BASE_TOPICS
 MAX_CHANNELS = MAX_TOPICS // TOPICS_PER_CHANNEL
 # Misc
 DEFAULT_LANG = "English"
-BASE_URL = URL("https://www.twitch.tv")
 # Intervals and Delays
 PING_INTERVAL = timedelta(minutes=3)
 PING_TIMEOUT = timedelta(seconds=10)
@@ -145,7 +144,7 @@ class ClientInfo:
 
 class ClientType:
     WEB = ClientInfo(
-        BASE_URL,
+        URL("https://www.twitch.tv"),
         "kimne78kx3ncx6brgo4mv6wki5h1ko",
         (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -187,7 +186,7 @@ class ClientType:
         ]
     )
     ANDROID_APP = ClientInfo(
-        BASE_URL,
+        URL("https://www.twitch.tv"),
         "kd1unb4b3q4t58fwlpcbzcbnm76a8fp",
         (
             "Dalvik/2.1.0 (Linux; U; Android 7.1.2; SM-G977N Build/LMY48Z) "
