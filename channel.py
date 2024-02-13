@@ -9,7 +9,7 @@ from typing import Any, SupportsInt, TYPE_CHECKING
 
 from utils import invalidate_cache, json_minify, Game
 from exceptions import MinerException, RequestException
-from constants import BASE_URL, GQL_OPERATIONS, ONLINE_DELAY, URLType
+from constants import GQL_OPERATIONS, ONLINE_DELAY, URLType
 
 if TYPE_CHECKING:
     from twitch import Twitch
@@ -151,7 +151,7 @@ class Channel:
 
     @property
     def url(self) -> URLType:
-        return URLType(f"{BASE_URL}/{self._login}")
+        return URLType(f"{self._twitch._client_type.CLIENT_URL}/{self._login}")
 
     @property
     def iid(self) -> str:
