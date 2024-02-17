@@ -259,9 +259,13 @@ class Channel:
         if not stream_data["stream"]:
             return None
         stream = Stream.from_get_stream(self, stream_data)
-        available_drops: JsonType = await self._twitch.gql_request(
-            GQL_OPERATIONS["AvailableDrops"].with_variables({"channelID": str(self.id)})
-        )
+        try:
+            available_drops: JsonType = await self._twitch.gql_request(
+                GQL_OPERATIONS["AvailableDrops"].with_variables({"channelID": str(self.id)})
+            )
+        except MinerException as exc:
+            logger.info("Channel caused an error. Skipping channel: {self._login}")
+            return None
         stream.drops_enabled = any(
             bool(c["timeBasedDrops"])
             for c in (available_drops["data"]["channel"]["viewerDropCampaigns"] or [])
