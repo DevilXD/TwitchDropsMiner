@@ -244,9 +244,12 @@ class Channel:
         return URLType(match.group(1))
 
     async def get_stream(self) -> Stream | None:
-        response: JsonType = await self._twitch.gql_request(
-            GQL_OPERATIONS["GetStreamInfo"].with_variables({"channel": self._login})
-        )
+        try:
+            response: JsonType = await self._twitch.gql_request(
+                GQL_OPERATIONS["GetStreamInfo"].with_variables({"channel": self._login})
+            )
+        except MinerException as exc:
+            raise MinerException(f"Channel: {self._login}") from exc
         stream_data: JsonType | None = response["data"]["user"]
         if not stream_data:
             return None

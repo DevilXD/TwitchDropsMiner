@@ -1710,16 +1710,19 @@ class Twitch:
         return None
 
     async def get_live_streams(self, game: Game, *, limit: int = 30) -> list[Channel]:
-        response = await self.gql_request(
-            GQL_OPERATIONS["GameDirectory"].with_variables({
-                "limit": limit,
-                "slug": game.slug,
-                "options": {
-                    "includeRestricted": ["SUB_ONLY_LIVE"],
-                    "systemFilters": ["DROPS_ENABLED"],
-                },
-            })
-        )
+        try:
+            response = await self.gql_request(
+                GQL_OPERATIONS["GameDirectory"].with_variables({
+                    "limit": limit,
+                    "slug": game.slug,
+                    "options": {
+                        "includeRestricted": ["SUB_ONLY_LIVE"],
+                        "systemFilters": ["DROPS_ENABLED"],
+                    },
+                })
+            )
+        except MinerException as exc:
+            raise MinerException(f"Game: {game.slug}") from exc
         if "game" in response["data"]:
             return [
                 Channel.from_directory(self, stream_channel_data["node"], drops_enabled=True)
