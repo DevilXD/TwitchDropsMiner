@@ -60,7 +60,6 @@ from utils import (
 )
 from constants import (
     CALL,
-    BASE_URL,
     COOKIES_PATH,
     GQL_OPERATIONS,
     MAX_CHANNELS,
@@ -76,7 +75,7 @@ if TYPE_CHECKING:
     from channel import Stream
     from settings import Settings
     from inventory import TimedDrop
-    from constants import JsonType, GQLOperation
+    from constants import ClientInfo, JsonType, GQLOperation
 
 
 logger = logging.getLogger("TwitchDrops")
@@ -90,7 +89,7 @@ class SkipExtraJsonDecoder(json.JSONDecoder):
         return obj
 
 
-CLIENT_URL, CLIENT_ID, USER_AGENT = ClientType.MOBILE_WEB
+# CLIENT_URL, CLIENT_ID, USER_AGENT = ClientType.MOBILE_WEB
 SAFE_LOADS = lambda s: json.loads(s, cls=SkipExtraJsonDecoder)
 
 
@@ -134,15 +133,14 @@ class _AuthState:
         )
         self._logged_in.clear()
 
-    @staticmethod
-    def interceptor(request: Request) -> None:
+    def interceptor(self, request: Request) -> None:
         if (
             request.method == "POST"
             and request.url == "https://passport.twitch.tv/protected_login"
         ):
             body = request.body.decode("utf-8")
             data = json.loads(body)
-            data["client_id"] = CLIENT_ID
+            data["client_id"] = self._twitch._client_type.CLIENT_ID
             request.body = json.dumps(data).encode("utf-8")
             del request.headers["Content-Length"]
             request.headers["Content-Length"] = str(len(request.body))
@@ -273,21 +271,22 @@ class _AuthState:
 
     async def _oauth_login(self) -> str:
         login_form: LoginForm = self._twitch.gui.login
+        client_info: ClientInfo = self._twitch._client_type
         headers = {
             "Accept": "application/json",
             "Accept-Encoding": "gzip",
             "Accept-Language": "en-US",
             "Cache-Control": "no-cache",
-            "Client-Id": CLIENT_ID,
+            "Client-Id": client_info.CLIENT_ID,
             "Host": "id.twitch.tv",
-            "Origin": str(CLIENT_URL),
+            "Origin": str(client_info.CLIENT_URL),
             "Pragma": "no-cache",
-            "Referer": str(CLIENT_URL),
-            "User-Agent": USER_AGENT,
+            "Referer": str(client_info.CLIENT_URL),
+            "User-Agent": client_info.USER_AGENT,
             "X-Device-Id": self.device_id,
         }
         payload = {
-            "client_id": CLIENT_ID,
+            "client_id": client_info.CLIENT_ID,
             "scopes": (
                 "channel_read chat:read user_blocks_edit "
                 "user_blocks_read user_follows_edit user_read"
@@ -316,7 +315,7 @@ class _AuthState:
                 await login_form.ask_enter_code(user_code)
 
                 payload = {
-                    "client_id": CLIENT_ID,
+                    "client_id": self._twitch._client_type.CLIENT_ID,
                     "device_code": device_code,
                     "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
                 }
@@ -350,6 +349,7 @@ class _AuthState:
         logger.info("Login flow started")
         gui_print = self._twitch.gui.print
         login_form: LoginForm = self._twitch.gui.login
+        client_info: ClientInfo = self._twitch._client_type
 
         token_kind: str = ''
         use_chrome: bool = False
@@ -357,7 +357,8 @@ class _AuthState:
             # username and password are added later
             # "username": str,
             # "password": str,
-            "client_id": CLIENT_ID,  # client ID to-be associated with the access token
+            # client ID to-be associated with the access token
+            "client_id": client_info.CLIENT_ID,
             "undelete_user": False,  # purpose unknown
             "remember_me": True,  # persist the session via the cookie
             # "authy_token": str,  # 2FA token
@@ -388,10 +389,10 @@ class _AuthState:
                 "Accept": "application/vnd.twitchtv.v3+json",
                 "Accept-Encoding": "gzip",
                 "Accept-Language": "en-US",
-                "Client-Id": CLIENT_ID,
+                "Client-Id": client_info.CLIENT_ID,
                 "Content-Type": "application/json; charset=UTF-8",
                 "Host": "passport.twitch.tv",
-                "User-Agent": USER_AGENT,
+                "User-Agent": client_info.USER_AGENT,
                 "X-Device-Id": self.device_id,
                 # "X-Device-Id": ''.join(random.choices('0123456789abcdef', k=32)),
             }
@@ -486,13 +487,14 @@ class _AuthState:
     def headers(
         self, *, user_agent: str = '', gql: bool = False, integrity: bool = False
     ) -> JsonType:
+        client_info: ClientInfo = self._twitch._client_type
         headers = {
             "Accept": "*/*",
             "Accept-Encoding": "gzip",
             "Accept-Language": "en-US",
             "Pragma": "no-cache",
             "Cache-Control": "no-cache",
-            "Client-Id": CLIENT_ID,
+            "Client-Id": client_info.CLIENT_ID,
         }
         if user_agent:
             headers["User-Agent"] = user_agent
@@ -503,8 +505,8 @@ class _AuthState:
         if hasattr(self, "device_id"):
             headers["X-Device-Id"] = self.device_id
         if gql:
-            headers["Origin"] = str(BASE_URL)
-            headers["Referer"] = str(BASE_URL)
+            headers["Origin"] = str(client_info.CLIENT_URL)
+            headers["Referer"] = str(client_info.CLIENT_URL)
             headers["Authorization"] = f"OAuth {self.access_token}"
         if integrity:
             headers["Client-Integrity"] = self.integrity_token
@@ -520,9 +522,10 @@ class _AuthState:
         if not self._hasattrs("device_id", "access_token", "user_id"):
             session = await self._twitch.get_session()
             jar = cast(aiohttp.CookieJar, session.cookie_jar)
+            client_info: ClientInfo = self._twitch._client_type
         if not self._hasattrs("device_id"):
             async with self._twitch.request(
-                "GET", CLIENT_URL, headers=self.headers()
+                "GET", client_info.CLIENT_URL, headers=self.headers()
             ) as response:
                 page_html = await response.text("utf8")
                 assert page_html is not None
@@ -531,7 +534,7 @@ class _AuthState:
             #     raise MinerException("Unable to extract client_version")
             # self.client_version = match.group(1)
             # doing the request ends up setting the "unique_id" value in the cookie
-            cookie = jar.filter_cookies(CLIENT_URL)
+            cookie = jar.filter_cookies(client_info.CLIENT_URL)
             self.device_id = cookie["unique_id"].value
         if not self._hasattrs("access_token", "user_id"):
             # looks like we're missing something
@@ -539,7 +542,7 @@ class _AuthState:
             logger.info("Checking login")
             login_form.update(_("gui", "login", "logging_in"), None)
             for attempt in range(2):
-                cookie = jar.filter_cookies(CLIENT_URL)
+                cookie = jar.filter_cookies(client_info.CLIENT_URL)
                 if "auth-token" not in cookie:
                     self.access_token = await self._oauth_login()
                     cookie["auth-token"] = self.access_token
@@ -556,22 +559,22 @@ class _AuthState:
                     if status == 401:
                         # the access token we have is invalid - clear the cookie and reauth
                         logger.info("Restored session is invalid")
-                        assert CLIENT_URL.host is not None
-                        jar.clear_domain(CLIENT_URL.host)
+                        assert client_info.CLIENT_URL.host is not None
+                        jar.clear_domain(client_info.CLIENT_URL.host)
                         continue
                     elif status == 200:
                         validate_response = await response.json()
                         break
             else:
                 raise RuntimeError("Login verification failure")
-            if validate_response["client_id"] != CLIENT_ID:
+            if validate_response["client_id"] != client_info.CLIENT_ID:
                 raise MinerException("You're using an old cookie file, please generate a new one.")
             self.user_id = int(validate_response["user_id"])
             cookie["persistent"] = str(self.user_id)
             logger.info(f"Login successful, user ID: {self.user_id}")
             login_form.update(_("gui", "login", "logged_in"), self.user_id)
             # update our cookie and save it
-            jar.update_cookies(cookie, CLIENT_URL)
+            jar.update_cookies(cookie, client_info.CLIENT_URL)
             jar.save(COOKIES_PATH)
         # if not self._hasattrs("integrity_token") or self.integrity_expired:
         #     async with self._twitch.request(
@@ -618,7 +621,8 @@ class Twitch:
         self.inventory: list[DropsCampaign] = []
         self._drops: dict[str, TimedDrop] = {}
         self._mnt_triggers: deque[datetime] = deque()
-        # Session and auth
+        # Client type, session and auth
+        self._client_type: ClientInfo = ClientType.MOBILE_WEB
         self._session: aiohttp.ClientSession | None = None
         self._auth_state: _AuthState = _AuthState(self)
         # GUI
@@ -665,7 +669,7 @@ class Twitch:
             timeout=timeout,
             connector=connector,
             cookie_jar=cookie_jar,
-            headers={"User-Agent": USER_AGENT},
+            headers={"User-Agent": self._client_type.USER_AGENT},
         )
         return self._session
 
@@ -1556,7 +1560,7 @@ class Twitch:
                     "POST",
                     "https://gql.twitch.tv/gql",
                     json=ops,
-                    headers=auth_state.headers(user_agent=USER_AGENT, gql=True),
+                    headers=auth_state.headers(user_agent=self._client_type.USER_AGENT, gql=True),
                     invalidate_after=getattr(auth_state, "integrity_expires", None),
                 ) as response:
                     response_json: JsonType | list[JsonType] = await response.json()
@@ -1727,16 +1731,19 @@ class Twitch:
         return None
 
     async def get_live_streams(self, game: Game, *, limit: int = 30) -> list[Channel]:
-        response = await self.gql_request(
-            GQL_OPERATIONS["GameDirectory"].with_variables({
-                "limit": limit,
-                "slug": game.slug,
-                "options": {
-                    "includeRestricted": ["SUB_ONLY_LIVE"],
-                    "systemFilters": ["DROPS_ENABLED"],
-                },
-            })
-        )
+        try:
+            response = await self.gql_request(
+                GQL_OPERATIONS["GameDirectory"].with_variables({
+                    "limit": limit,
+                    "slug": game.slug,
+                    "options": {
+                        "includeRestricted": ["SUB_ONLY_LIVE"],
+                        "systemFilters": ["DROPS_ENABLED"],
+                    },
+                })
+            )
+        except MinerException as exc:
+            raise MinerException(f"Game: {game.slug}") from exc
         if "game" in response["data"]:
             return [
                 Channel.from_directory(self, stream_channel_data["node"], drops_enabled=True)
