@@ -9,7 +9,7 @@ from typing import Any, SupportsInt, TYPE_CHECKING
 
 from utils import invalidate_cache, json_minify, Game
 from exceptions import MinerException, RequestException
-from constants import GQL_OPERATIONS, ONLINE_DELAY, URLType
+from constants import CALL, GQL_OPERATIONS, ONLINE_DELAY, URLType
 
 if TYPE_CHECKING:
     from twitch import Twitch
@@ -259,13 +259,18 @@ class Channel:
         if not stream_data["stream"]:
             return None
         stream = Stream.from_get_stream(self, stream_data)
-        available_drops: JsonType = await self._twitch.gql_request(
-            GQL_OPERATIONS["AvailableDrops"].with_variables({"channelID": str(self.id)})
-        )
-        stream.drops_enabled = any(
-            bool(c["timeBasedDrops"])
-            for c in (available_drops["data"]["channel"]["viewerDropCampaigns"] or [])
-        )
+        if not stream.drops_enabled:
+            try:
+                available_drops: JsonType = await self._twitch.gql_request(
+                    GQL_OPERATIONS["AvailableDrops"].with_variables({"channelID": str(self.id)})
+                )
+            except MinerException:
+                logger.log(CALL, f"AvailableDrops GQL call failed for channel: {self._login}")
+            else:
+                stream.drops_enabled = any(
+                    bool(c["timeBasedDrops"])
+                    for c in (available_drops["data"]["channel"]["viewerDropCampaigns"] or [])
+                )
         return stream
 
     async def update_stream(self, *, trigger_events: bool) -> bool:
