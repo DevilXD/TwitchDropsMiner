@@ -103,7 +103,7 @@ if __name__ == "__main__":
     parser.add_argument("-v", dest="_verbose", action="count", default=0)
     parser.add_argument("--tray", action="store_true")
     parser.add_argument("--log", action="store_true")
-    # undocumented debug args
+    # debug options
     parser.add_argument(
         "--debug-ws", dest="_debug_ws", action="store_true"
     )
