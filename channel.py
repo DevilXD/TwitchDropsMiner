@@ -377,7 +377,7 @@ class Channel:
         return {"data": (b64encode(json_minify(payload).encode("utf8"))).decode("utf8")}
 
     async def send_watch(self) -> bool:
-         # Start of fix for 2024/5 API Change
+        # Start of fix for 2024/5 API Change
         try:
             response: JsonType = await self._twitch.gql_request(        # Gets signature and value
                 GQL_OPERATIONS["PlaybackAccessToken"].with_variables({"login": self._login})
