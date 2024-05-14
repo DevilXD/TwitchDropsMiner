@@ -14,13 +14,13 @@ Available command line arguments:
 	matches the level set by `-v`.
 
 • --version
-	Show application version information and exits
+	Show application version information and exit
 • --debug-gql 
 	Show GQL debug info
 • --debug-ws
 	Show WS debug info
 • --help, -h
-	Shows help prompt and exits
+	Show help prompt and exit
 
 Note: Additional settings are available within the application GUI.
 
