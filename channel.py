@@ -382,7 +382,7 @@ class Channel:
         #  |
         #  v
         try:
-            response: JsonType = await self._twitch.gql_request(
+            response: JsonType = await self._twitch.gql_request(        # Gets signature and value
                 GQL_OPERATIONS["PlaybackAccessToken"].with_variables({"login": self._login})
                 )
         except MinerException as exc:
@@ -402,22 +402,17 @@ class Channel:
         except RequestException:
             return False
         
-        LowestQualityBroadcastURL = BroadcastQualities.split("\n")[-1] # Just takes the last line, this should probably be handled better in the future
-        print(f"\n \n url_broadcast:{LowestQualityBroadcastURL} \n")
+        LowestQualityBroadcastURL = BroadcastQualities.split("\n")[-1]  # Just takes the last line, this should probably be handled better in the future
 
         try:
             async with self._twitch.request(                            # Gets actual streams
                 "GET", LowestQualityBroadcastURL
             ) as response2:
                 StreamURLList = await response2.text()
-                print(f"StreamURLList: {StreamURLList}")
-                print(f"response status 200 {response2.status == 200}")
         except RequestException:
             return False
-        splitURL = StreamURLList.split("\n")
-        print(f" \n \n StreamURLList.split: \n {splitURL} \n")
+
         StreamLowestQualityURL = StreamURLList.split("\n")[-2] # For whatever reason this includes a blank line at the end, this should probably be handled better in the future
-        print(f" \n \n url_stream: {StreamLowestQualityURL} \n")
 
         try:
             async with self._twitch.request(                            # Downloads the stream
