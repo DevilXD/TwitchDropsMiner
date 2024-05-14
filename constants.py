@@ -238,6 +238,18 @@ class GQLOperation(JsonType):
 
 
 GQL_OPERATIONS: dict[str, GQLOperation] = {
+    # retuns PlaybackAccessToken_Template, for fix 2024/5
+    "PlaybackAccessToken": GQLOperation(
+        "PlaybackAccessToken",
+        "3093517e37e4f4cb48906155bcd894150aef92617939236d2508f3375ab732ce", #no idea what this does, was: a5f2e34d626a9f4f5c0204f910bab2194948a9502089be558bb6e779a9e1b3d2
+        variables={
+            "isLive": True,
+            "login": "carbinecarlito",
+            "isVod": False,
+            "vodID": "",
+            "playerType": "site"
+        },
+    ),
     # returns stream information for a particular channel
     "GetStreamInfo": GQLOperation(
         "VideoPlayerStreamInfoOverlayChannel",

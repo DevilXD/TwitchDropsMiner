@@ -105,10 +105,10 @@ if __name__ == "__main__":
     parser.add_argument("--log", action="store_true")
     # undocumented debug args
     parser.add_argument(
-        "--debug-ws", dest="_debug_ws", action="store_true", help=argparse.SUPPRESS
+        "--debug-ws", dest="_debug_ws", action="store_true"
     )
     parser.add_argument(
-        "--debug-gql", dest="_debug_gql", action="store_true", help=argparse.SUPPRESS
+        "--debug-gql", dest="_debug_gql", action="store_true"
     )
     args = parser.parse_args(namespace=ParsedArgs())
     # load settings

@@ -377,6 +377,58 @@ class Channel:
         return {"data": (b64encode(json_minify(payload).encode("utf8"))).decode("utf8")}
 
     async def send_watch(self) -> bool:
+        #-------------------------------------------------
+        # FIX 2024/5
+        #  |
+        #  v
+        try:
+            response: JsonType = await self._twitch.gql_request(
+                GQL_OPERATIONS["PlaybackAccessToken"].with_variables({"login": self._login})
+                )
+        except MinerException as exc:
+            raise MinerException(f"Channel: {self._login}") from exc
+        signature: JsonType | None = response["data"]['streamPlaybackAccessToken']["signature"]
+        value: JsonType | None = response["data"]['streamPlaybackAccessToken']["value"]
+        if not signature or not value:
+            return None
+
+        RequestBroadcastQualitiesURL = f"https://usher.ttvnw.net/api/channel/hls/{self._login}.m3u8?sig={signature}&token={value}"
+
+        try:
+            async with self._twitch.request(                            # Gets list of streams
+                "GET", RequestBroadcastQualitiesURL
+            ) as response1:
+                BroadcastQualities = await response1.text()
+        except RequestException:
+            return False
+        
+        LowestQualityBroadcastURL = BroadcastQualities.split("\n")[-1] # Just takes the last line, this should probably be handled better in the future
+        print(f"\n \n url_broadcast:{LowestQualityBroadcastURL} \n")
+
+        try:
+            async with self._twitch.request(                            # Gets actual streams
+                "GET", LowestQualityBroadcastURL
+            ) as response2:
+                StreamURLList = await response2.text()
+                print(f"StreamURLList: {StreamURLList}")
+                print(f"response status 200 {response2.status == 200}")
+        except RequestException:
+            return False
+        splitURL = StreamURLList.split("\n")
+        print(f" \n \n StreamURLList.split: \n {splitURL} \n")
+        StreamLowestQualityURL = StreamURLList.split("\n")[-2] # For whatever reason this includes a blank line at the end, this should probably be handled better in the future
+        print(f" \n \n url_stream: {StreamLowestQualityURL} \n")
+
+        try:
+            async with self._twitch.request(                            # Downloads the stream
+                "GET", StreamLowestQualityURL
+            ) as response3:                                             # I lied, well idk, but this code doesn't listen for the actual video data
+                return response3.status == 200
+        except RequestException:
+            return False
+
+        # FIX 2024/5 END
+        #-------------------------------------------------
         """
         This uses the encoded payload on spade url to simulate watching the stream.
         Optimally, send every 60 seconds to advance drops.

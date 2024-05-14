@@ -12,8 +12,15 @@ Available command line arguments:
 • --log
 	Enables logging of runtime information into a 'log.txt' file. Verbosity level of this logging
 	matches the level set by `-v`.
+
 • --version
-	Show application version information
+	Show application version information and exits
+• --debug-gql 
+	Show GQL debug info
+• --debug-ws
+	Show WS debug info
+• --help, -h
+	Shows help prompt and exits
 
 Note: Additional settings are available within the application GUI.
 
