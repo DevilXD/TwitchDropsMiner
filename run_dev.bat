@@ -8,7 +8,8 @@ if "%choice%"=="y" (
 ) else (
     if "%choice%"=="" (
         set "exepath=%dirpath%\env\scripts\python"
+    ) else (
+        set "exepath=%dirpath%\env\scripts\pythonw"
     )
-    set "exepath=%dirpath%\env\scripts\pythonw"
 )
 start "TwitchDropsMiner" "%exepath%" "%dirpath%\main.py"
