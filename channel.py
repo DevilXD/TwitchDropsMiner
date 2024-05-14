@@ -413,7 +413,7 @@ class Channel:
 
         try:
             async with self._twitch.request(                            # Downloads the stream
-                "GET", StreamLowestQualityURL
+                "HEAD", StreamLowestQualityURL
             ) as response3:                                             # I lied, well idk, but this code doesn't listen for the actual video data
                 return response3.status == 200
         except RequestException:
