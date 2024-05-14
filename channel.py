@@ -390,7 +390,7 @@ class Channel:
         signature: JsonType | None = response["data"]['streamPlaybackAccessToken']["signature"]
         value: JsonType | None = response["data"]['streamPlaybackAccessToken']["value"]
         if not signature or not value:
-            return None
+            return False
 
         RequestBroadcastQualitiesURL = f"https://usher.ttvnw.net/api/channel/hls/{self._login}.m3u8?sig={signature}&token={value}"
 
