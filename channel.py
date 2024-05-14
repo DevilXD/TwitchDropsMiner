@@ -377,10 +377,7 @@ class Channel:
         return {"data": (b64encode(json_minify(payload).encode("utf8"))).decode("utf8")}
 
     async def send_watch(self) -> bool:
-        #-------------------------------------------------
-        # FIX 2024/5
-        #  |
-        #  v
+         # Start of fix for 2024/5 API Change
         try:
             response: JsonType = await self._twitch.gql_request(        # Gets signature and value
                 GQL_OPERATIONS["PlaybackAccessToken"].with_variables({"login": self._login})
@@ -422,8 +419,7 @@ class Channel:
         except RequestException:
             return False
 
-        # FIX 2024/5 END
-        #-------------------------------------------------
+        # End of fix for 2024/5 API Change
         """
         This uses the encoded payload on spade url to simulate watching the stream.
         Optimally, send every 60 seconds to advance drops.
