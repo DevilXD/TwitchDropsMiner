@@ -28,6 +28,7 @@ if sys.platform == "win32":
     import win32con
     import win32gui
 
+from cache import CurrentSeconds
 from translate import _
 from cache import ImageCache
 from exceptions import ExitRequest
@@ -667,6 +668,7 @@ class CampaignProgress:
         drop_vars: _DropVars = self._vars["drop"]
         campaign_vars: _CampaignVars = self._vars["campaign"]
         dseconds = seconds % 60
+        CurrentSeconds.set_current_seconds(dseconds)
         hours, minutes = self._divmod(drop_minutes, seconds)
         drop_vars["remaining"].set(
             _("gui", "progress", "remaining").format(time=f"{hours:>2}:{minutes:02}:{dseconds:02}")

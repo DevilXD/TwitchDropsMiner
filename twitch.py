@@ -34,6 +34,7 @@ except ImportError as exc:
         ) from exc
     raise
 
+from cache import CurrentSeconds
 from translate import _
 from gui import GUIManager
 from channel import Channel
@@ -1101,12 +1102,14 @@ class Twitch:
                     # NOTE: get_active_drop uses the watching channel by default,
                     # so there's no point to pass it here
                     if (drop := self.get_active_drop()) is not None:
-                        drop.bump_minutes()
-                        drop.display()
-                        drop_text = (
-                            f"{drop.name} ({drop.campaign.game}, "
-                            f"{drop.current_minutes}/{drop.required_minutes})"
-                        )
+                        current_seconds = CurrentSeconds.get_current_seconds()
+                        if current_seconds < 1:
+                            drop.bump_minutes()
+                            drop.display()
+                            drop_text = (
+                                f"{drop.name} ({drop.campaign.game}, "
+                                f"{drop.current_minutes}/{drop.required_minutes})"
+                            )
                         logger.log(CALL, f"Drop progress from active search: {drop_text}")
                     else:
                         logger.log(CALL, "No active drop could be determined")
