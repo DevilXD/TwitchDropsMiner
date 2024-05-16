@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 import asyncio
 import logging
+import validators
 from base64 import b64encode
 from functools import cached_property
 from typing import Any, SupportsInt, TYPE_CHECKING
@@ -401,17 +402,21 @@ class Channel:
         except RequestException:
             return False
         
-        LowestQualityBroadcastURL = BroadcastQualities.split("\n")[-1]  # Just takes the last line, this should probably be handled better in the future
+        BroadcastLowestQualityURL = BroadcastQualities.split("\n")[-1]  # Just takes the last line, this could probably be handled better in the future
+        if not validators.url(BroadcastLowestQualityURL):
+            return False
 
         try:
             async with self._twitch.request(                            # Gets actual streams
-                "GET", LowestQualityBroadcastURL
+                "GET", BroadcastLowestQualityURL
             ) as response2:
                 StreamURLList = await response2.text()
         except RequestException:
             return False
 
         StreamLowestQualityURL = StreamURLList.split("\n")[-2] # For whatever reason this includes a blank line at the end, this should probably be handled better in the future
+        if not validators.url(StreamLowestQualityURL):
+            return False
 
         try:
             async with self._twitch.request(                            # Downloads the stream

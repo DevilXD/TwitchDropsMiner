@@ -1048,7 +1048,7 @@ class Twitch:
             if not succeeded:
                 # this usually means the campaign expired in the middle of mining
                 # NOTE: the maintenance task should switch the channel right after this happens
-                await self._watch_sleep(60)
+                await self._watch_sleep(interval)
                 continue
             last_watch = time()
             self._drop_update = asyncio.Future()
