@@ -4,7 +4,7 @@ This application allows you to AFK mine timed Twitch drops, without having to wo
 
 ### How It Works:
 
-Every ~20 seconds, the application asks Twitch for a URL to the raw stream data of the channel currently being watched. It then fetches the metadata of this stream - this is enough to advance the drops. Note that this completely bypasses the need to download any actual stream video and sound. To keep the status (ONLINE or OFFLINE) of the channels up-to-date, there's a websocket connection established that receives events about streams going up or down, or updates regarding the current amount of viewers.
+Every ~20 seconds, the application asks Twitch for a URL to the raw stream data of the channel currently being watched. It then fetches the metadata of this data stream - this is enough to advance the drops. Note that this completely bypasses the need to download any actual stream video and sound. To keep the status (ONLINE or OFFLINE) of the channels up-to-date, there's a websocket connection established that receives events about streams going up or down, or updates regarding the current amount of viewers.
 
 ### Features:
 
