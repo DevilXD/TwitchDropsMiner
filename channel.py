@@ -425,7 +425,6 @@ class Channel:
                 return response3.status == 200
         except RequestException:
             return False
-
         """
         End of fix for 2024/5 API Change.
         Old code below.
