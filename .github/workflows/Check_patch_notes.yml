@@ -1,0 +1,23 @@
+name: Check patch notes
+
+on:
+  pull_request:
+    branches:
+      - main  # Adjust to match your main branch name
+
+jobs:
+  check_documentation:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for patch notes changes
+        run: |
+          if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q '^patch_notes.txt$'; then
+            echo "Patch notes updated."
+          else
+            echo "Update patch notes!"
+            exit 1
+          fi
