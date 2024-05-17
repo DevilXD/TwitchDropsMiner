@@ -214,6 +214,9 @@ jobs:
         with:
           path: artifacts
       
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
       - name: Read patch notes from file
         uses: juliangruber/read-file-action@v1.1.7
         with:
