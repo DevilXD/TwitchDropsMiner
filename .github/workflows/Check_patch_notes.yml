@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main  # Adjust to match your main branch name
+  workflow_dispatch:
 
 jobs:
   check_documentation:
