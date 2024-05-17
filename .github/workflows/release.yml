@@ -204,6 +204,9 @@ jobs:
       contents: write
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
       - name: Set up variables
         id: vars
         run: |
