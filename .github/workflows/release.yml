@@ -213,12 +213,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-
+      
       - name: Read patch notes from file
-        id: read_patch_notes
-        run: |
-          PATCH_NOTES=$(cat patch_notes.txt)
-          echo "patch_notes=$PATCH_NOTES" >> $GITHUB_ENV
+        uses: juliangruber/read-file-action@v1.1.7
+        with:
+          path: ./patch_notes.txt
 
       - name: Upload builds to Releases
         uses: ncipollo/release-action@v1
@@ -238,7 +237,7 @@ jobs:
             
             ***
             ## Patch notes:
-            ${{ env.patch_notes }}
+            ${{ steps.package.outputs.content }}
 
           name: Updated build
           prerelease: false
