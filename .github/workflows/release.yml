@@ -194,7 +194,7 @@ jobs:
 
   update_releases_page:
     name: Upload builds to Releases
-    if: github.event.pull_request.merged == true
+    #NOTEif: github.event.pull_request.merged == true
     needs:
       - windows
       - linux-pyinstaller

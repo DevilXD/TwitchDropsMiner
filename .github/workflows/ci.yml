@@ -195,7 +195,7 @@ jobs:
           path: Twitch.Drops.Miner.Linux.AppImage.zip
 
   update_releases_page:
-    if: github.event.pull_request.merged == true || github.event_name == 'push'
+    #NOTEif: github.event.pull_request.merged == true || github.event_name == 'push'
     name: Upload builds to Releases
     needs:
       - windows
