@@ -214,10 +214,8 @@ jobs:
         with:
           path: artifacts
       
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        
       - name: Read patch notes from file
+        id: patch_notes
         uses: juliangruber/read-file-action@v1.1.7
         with:
           path: ./patch_notes.txt
@@ -240,7 +238,7 @@ jobs:
             
             ***
             ## Patch notes:
-            ${{ steps.package.outputs.content }}
+            ${{ steps.patch_notes.outputs.content }}
 
           name: Updated build
           prerelease: false
