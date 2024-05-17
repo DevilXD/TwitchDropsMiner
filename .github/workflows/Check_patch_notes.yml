@@ -3,7 +3,7 @@ name: Check patch notes
 on:
   pull_request:
     branches:
-      - main  # Adjust to match your main branch name
+      - main
   workflow_dispatch:
 
 jobs:
