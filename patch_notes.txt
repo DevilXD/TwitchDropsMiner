@@ -1,0 +1,3 @@
+### 17.5.2024
+- Updated Italian, Simplified Chineese and Spanish translation as well as corresponding credits
+- Various changes to github workflows
