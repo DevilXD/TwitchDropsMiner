@@ -195,8 +195,8 @@ jobs:
           path: Twitch.Drops.Miner.Linux.AppImage.zip
 
   update_releases_page:
+    if: github.event.pull_request.merged == true || github.event_name == 'push'
     name: Upload builds to Releases
-    if: github.event_name != 'pull_request'
     needs:
       - windows
       - linux-pyinstaller

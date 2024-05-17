@@ -3,22 +3,35 @@ name: Check patch notes
 on:
   pull_request:
     branches:
-      - main
+      - in-dev
   workflow_dispatch:
 
 jobs:
-  check_documentation:
-    runs-on: ubuntu-latest
+  check_patch_notes:
+    runs-on: 'ubuntu-20.04'
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Check for patch notes changes
+        uses: actions/checkout@v2
+        with:
+          # Checkout as many commits as needed for the diff
+          fetch-depth: 2
+      - shell: pwsh
+        # Give an id to the step, so we can reference it later
+        id: check_file_changed
         run: |
-          if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q '^patch_notes.txt$'; then
-            echo "Patch notes updated."
-          else
-            echo "Update patch notes!"
-            exit 1
-          fi
+          # Diff HEAD with the previous commit
+          $diff = git diff --name-only HEAD^ HEAD
+    
+          # Check if a file under docs/ or with the .md extension has changed (added, modified, deleted)
+          $SourceDiff = $diff | Where-Object { $_ -match 'patch_notes.txt' }
+          $HasDiff = $SourceDiff.Length -gt 0
+    
+          # Set the output named "docs_changed"
+          Write-Host "::set-output name=docs_changed::$HasDiff"
+    
+      # Run the step only with "docs_changed" equals "False"
+      - shell: pwsh
+        # steps.<step_id>.outputs.<output name>
+        if: steps.check_file_changed.outputs.docs_changed == 'False'
+        run: exit 1
