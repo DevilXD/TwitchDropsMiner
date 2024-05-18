@@ -250,7 +250,7 @@ jobs:
             ## Patch notes:
             ${{ steps.patch_notes.outputs.content }}
 
-          name: Updated build
+          name: Updated tested build - ${{ steps.version.outputs.v-version }}
           prerelease: false
           removeArtifacts: true
           tag: ${{ steps.version.outputs.v-version }}
