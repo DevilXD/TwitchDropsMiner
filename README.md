@@ -123,11 +123,11 @@ if they aren't already there. Doing so ensures proper markdown rendering on Gith
 @alikdb - For the entirety of the Turkish (Türkçe) translation.  
 @roobini-gamer - For the entirety of the French (Français) translation.  
 @Sergo1217 - For the entirety of the Russian (Русский) translation.  
-@Ricky103403 @zelda0079- For the entirety of the Traditional Chinese (繁體中文) translation.  
+@Ricky103403 - For the entirety of the Traditional Chinese (繁體中文) translation.  
 @Patriot99 - For the Polish (Polski) translation (co-authored with @DevilXD).  
 @Nollasko - For the entirety of the Ukrainian (Українська) translation.  
 @casungo - For the entirety of the Italian (Italiano) translation.  
 @Bamboozul - For the entirety of the Arabic (العربية) translation.  
 @Kjerne - For the entirety of the Danish (Dansk) translation.
 
-@Kuddus73, @VSeryi, @Windows200000, @BreakshadowCN, @kilroy98 - For updating Translations.
+@Kuddus73, @VSeryi, @Windows200000, @BreakshadowCN, @kilroy98, @zelda0079 - For updating Translations.
