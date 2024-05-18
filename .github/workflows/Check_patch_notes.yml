@@ -8,30 +8,17 @@ on:
 
 jobs:
   check_patch_notes:
-    runs-on: 'ubuntu-20.04'
-
+    runs-on: ubuntu-latest  # windows-latest | macos-latest
+    name: Test changed-files
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v2
         with:
-          # Checkout as many commits as needed for the diff
-          fetch-depth: 2
-      - shell: pwsh
-        # Give an id to the step, so we can reference it later
-        id: check_file_changed
-        run: |
-          # Diff HEAD with the previous commit
-          $diff = git diff --name-only HEAD^ HEAD
-    
-          # Check if a file under docs/ or with the .md extension has changed (added, modified, deleted)
-          $SourceDiff = $diff | Where-Object { $_ -match 'patch_notes.txt' }
-          $HasDiff = $SourceDiff.Length -gt 0
-    
-          # Set the output named "docs_changed"
-          Write-Host "::set-output name=docs_changed::$HasDiff"
-    
-      # Run the step only with "docs_changed" equals "False"
-      - shell: pwsh
-        # steps.<step_id>.outputs.<output name>
-        if: steps.check_file_changed.outputs.docs_changed == 'False'
+          fetch-depth: 2  # "0" OR "2" -> To retrieve the preceding commit.
+      
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v9.2
+      
+      - name: Run when patch noted don't change
+        if: ${{ !contains(steps.changed-files.outputs.modified_files, 'patch_notes.txt') }} 
         run: exit 1
