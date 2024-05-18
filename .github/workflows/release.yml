@@ -206,7 +206,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-        
+
+      - name: Get next version
+        uses: reecetech/version-increment@2024.4.3
+        id: version
+        with:
+          scheme: semver
+          increment: minor
+
       - name: Set up variables
         id: vars
         run: |
@@ -246,4 +253,4 @@ jobs:
           name: Updated build
           prerelease: false
           removeArtifacts: true
-          tag: v15
+          tag: ${{ steps.version.outputs.v-version }}
