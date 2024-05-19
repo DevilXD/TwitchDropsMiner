@@ -1,3 +1,6 @@
+### 19.5.2024
+- Updated French translation as well as corresponding credits
+
 ### 18.5.2024
 - Updated Russian, Ukrainian and Traditional Chinese translation as well as corresponding credits
 - Various changes to github workflows
