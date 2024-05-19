@@ -218,7 +218,7 @@ jobs:
         id: vars
         run: |
           echo "date_now=$(date --rfc-3339=seconds)" >> "${GITHUB_OUTPUT}"
-          Add-Content $env:GITHUB_OUTPUT "sha_short=$(git rev-parse --short HEAD)"
+          echo "sha_short=$(git rev-parse --short HEAD)" >> "${GITHUB_OUTPUT}"
 
       - name: Download build artifacts from previous jobs
         uses: actions/download-artifact@v4
