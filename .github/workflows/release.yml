@@ -218,6 +218,7 @@ jobs:
         id: vars
         run: |
           echo "date_now=$(date --rfc-3339=seconds)" >> "${GITHUB_OUTPUT}"
+          Add-Content $env:GITHUB_OUTPUT "sha_short=$(git rev-parse --short HEAD)"
 
       - name: Download build artifacts from previous jobs
         uses: actions/download-artifact@v4
@@ -250,7 +251,7 @@ jobs:
             ## Patch notes:
             ${{ steps.patch_notes.outputs.content }}
 
-          name: Updated tested build - ${{ steps.version.outputs.v-version }}
+          name: Updated tested build - ${{ steps.version.outputs.v-version }} (${{ steps.vars.outputs.sha_short }})
           prerelease: false
           removeArtifacts: true
           tag: ${{ steps.version.outputs.v-version }}
