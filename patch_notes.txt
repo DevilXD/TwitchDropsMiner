@@ -1,3 +1,10 @@
-### 17.5.2024
-- Updated Italian, Simplified Chineese and Spanish translation as well as corresponding credits
+### 19.5.2024
+- Updated French translation as well as corresponding credits
+
+### 18.5.2024
+- Updated Russian, Ukrainian and Traditional Chinese translation as well as corresponding credits
 - Various changes to github workflows
+
+### 17.5.2024
+- Updated Italian, Simplified Chinese and Spanish translation as well as corresponding credits
+- Various changes to github workflows  
