@@ -130,4 +130,4 @@ if they aren't already there. Doing so ensures proper markdown rendering on Gith
 @Bamboozul - For the entirety of the Arabic (العربية) translation.  
 @Kjerne - For the entirety of the Danish (Dansk) translation.
 
-@Kuddus73, @VSeryi, @Windows200000, @BreakshadowCN, @kilroy98, @zelda0079, @Calvineries - For updating Translations.
+@Kuddus73, @VSeryi, @Windows200000, @BreakshadowCN, @kilroy98, @zelda0079, @Calvineries, @VSeryi - For updating Translations.
