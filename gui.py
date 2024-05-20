@@ -1456,6 +1456,7 @@ def proxy_validate(entry: PlaceholderEntry, settings: Settings) -> bool:
 class _SettingsVars(TypedDict):
     tray: IntVar
     proxy: StringVar
+    dark_theme: IntVar
     autostart: IntVar
     priority_only: IntVar
     tray_notifications: IntVar
@@ -1465,12 +1466,14 @@ class SettingsPanel:
     AUTOSTART_NAME: str = "TwitchDropsMiner"
     AUTOSTART_KEY: str = "HKCU/Software/Microsoft/Windows/CurrentVersion/Run"
 
-    def __init__(self, manager: GUIManager, master: ttk.Widget):
+    def __init__(self, manager: GUIManager, master: ttk.Widget, root: tk.Tk):
+        self._root = root
         self._twitch = manager._twitch
         self._settings: Settings = manager._twitch.settings
         self._vars: _SettingsVars = {
             "proxy": StringVar(master, str(self._settings.proxy)),
             "tray": IntVar(master, self._settings.autostart_tray),
+            "dark_theme": IntVar(master, self._settings.dark_theme),
             "autostart": IntVar(master, self._settings.autostart),
             "priority_only": IntVar(master, self._settings.priority_only),
             "tray_notifications": IntVar(master, self._settings.tray_notifications),
@@ -1505,8 +1508,14 @@ class SettingsPanel:
         checkboxes_frame = ttk.Frame(center_frame2)
         checkboxes_frame.grid(column=0, row=1)
         ttk.Label(
-            checkboxes_frame, text=_("gui", "settings", "general", "autostart")
+            checkboxes_frame, text=_("gui", "settings", "general", "dark_theme")
         ).grid(column=0, row=(irow := 0), sticky="e")
+        ttk.Checkbutton(
+            checkboxes_frame, variable=self._vars["dark_theme"], command=self.change_theme
+        ).grid(column=1, row=irow, sticky="w")
+        ttk.Label(
+            checkboxes_frame, text=_("gui", "settings", "general", "autostart")
+        ).grid(column=0, row=(irow := irow + 1), sticky="e")
         ttk.Checkbutton(
             checkboxes_frame, variable=self._vars["autostart"], command=self.update_autostart
         ).grid(column=1, row=irow, sticky="w")
@@ -1638,6 +1647,13 @@ class SettingsPanel:
         if tray:
             self_path += " --tray"
         return self_path
+
+    def change_theme(self):
+        self._settings.dark_theme = bool(self._vars["dark_theme"].get())
+        if self._settings.dark_theme:
+            set_theme(self._root, "dark")
+        else:
+            set_theme(self._root, "light")
 
     def update_autostart(self) -> None:
         enabled = bool(self._vars["autostart"].get())
@@ -1880,14 +1896,14 @@ class GUIManager:
         # Image cache for displaying images
         self._cache = ImageCache(self)
 
-        # style adjustements
+        # style adjustments
         self._style = style = ttk.Style(root)
         default_font = nametofont("TkDefaultFont")
         # theme
         theme = ''
         # theme = style.theme_names()[6]
         # style.theme_use(theme)
-        # fix treeview's background color from tags not working (also see '_fixed_map')
+        # Fix treeview's background color from tags not working (also see '_fixed_map')
         style.map(
             "Treeview",
             foreground=self._fixed_map("foreground"),
@@ -1927,6 +1943,11 @@ class GUIManager:
         style.configure("Link.TLabel", font=link_font, foreground="blue")
         # end of style changes
 
+        if self._twitch.settings.dark_theme:
+            set_theme(root, "dark")
+        else:
+            set_theme(root, "light")
+
         root_frame = ttk.Frame(root, padding=8)
         root_frame.grid(column=0, row=0, sticky="nsew")
         root.rowconfigure(0, weight=1)
@@ -1950,7 +1971,7 @@ class GUIManager:
         self.tabs.add_tab(inv_frame, name=_("gui", "tabs", "inventory"))
         # Settings tab
         settings_frame = ttk.Frame(root_frame, padding=8)
-        self.settings = SettingsPanel(self, settings_frame)
+        self.settings = SettingsPanel(self, settings_frame, root)
         self.tabs.add_tab(settings_frame, name=_("gui", "tabs", "settings"))
         # Help tab
         help_frame = ttk.Frame(root_frame, padding=8)
@@ -2135,6 +2156,15 @@ class GUIManager:
         self.output.print(message)
 
 
+def set_theme(root, name):
+    style = ttk.Style(root)
+    # Style options
+    match name:
+        case "dark":
+            style.configure('.', background='#2b2b2b', foreground='#ffffff')
+        case "light" | "default" | _ :
+            style.configure('.', background='#ffffff', foreground='#000000')
+
 ###################
 # GUI MANAGER END #
 ###################
@@ -2256,11 +2286,13 @@ if __name__ == "__main__":
                 tray=False,
                 priority=[],
                 proxy=URL(),
+                dark_theme=False,
                 autostart=False,
                 language="English",
                 priority_only=False,
                 autostart_tray=False,
                 exclude={"Lit Game"},
+                tray_notifications=True
             )
         )
         mock.change_state = lambda state: mock.gui.print(f"State change: {state.value}")
