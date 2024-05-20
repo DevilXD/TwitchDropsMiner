@@ -1,6 +1,6 @@
 ## v15.3.0
-### DATE
-- notes here
+### 20.5.2024
+- Added incomplete dark mode
 
 ## v15.2.0
 ### 19.5.2024
