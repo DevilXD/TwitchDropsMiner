@@ -238,7 +238,7 @@ jobs:
           artifactErrorsFailBuild: true
           artifacts: artifacts/*/*
           body: |
-            # ⚠️ Please help with translation as tracked in #2 !
+            # ⚠️ Please help with translation as tracked in #2 and channel points as tracked in #23 !
 
             ***
             **This is an automatically generated updated version of the application, that includes the latest master branch changes.**
