@@ -15,7 +15,7 @@ __pycache__
 log.txt
 /lock.file
 settings.json
-/lang/English.json
+#/lang/English.json
 # AppImage
 /AppDir
 /appimage-builder
