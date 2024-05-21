@@ -1465,6 +1465,7 @@ class SettingsPanel:
     AUTOSTART_KEY: str = "HKCU/Software/Microsoft/Windows/CurrentVersion/Run"
 
     def __init__(self, manager: GUIManager, master: ttk.Widget, root: tk.Tk):
+        self._manager = manager
         self._root = root
         self._twitch = manager._twitch
         self._settings: Settings = manager._twitch.settings
@@ -1649,9 +1650,9 @@ class SettingsPanel:
     def change_theme(self):
         self._settings.dark_theme = bool(self._vars["dark_theme"].get())
         if self._settings.dark_theme:
-            set_theme(self._root, "dark")
+            set_theme(self._root, self._manager, "dark")
         else:
-            set_theme(self._root, "light")
+            set_theme(self._root, self._manager,  "light")
 
     def update_autostart(self) -> None:
         enabled = bool(self._vars["autostart"].get())
@@ -1941,11 +1942,6 @@ class GUIManager:
         style.configure("Link.TLabel", font=link_font, foreground="blue")
         # end of style changes
 
-        if self._twitch.settings.dark_theme:
-            set_theme(root, "dark")
-        else:
-            set_theme(root, "light")
-
         root_frame = ttk.Frame(root, padding=8)
         root_frame.grid(column=0, row=0, sticky="nsew")
         root.rowconfigure(0, weight=1)
@@ -2015,6 +2011,11 @@ class GUIManager:
             self._root.after_idle(self.tray.minimize)
         else:
             self._root.after_idle(self._root.deiconify)
+
+        if self._twitch.settings.dark_theme:
+            set_theme(root, self, "dark")
+        else:
+            set_theme(root, self, "light")
 
     # https://stackoverflow.com/questions/56329342/tkinter-treeview-background-tag-not-working
     def _fixed_map(self, option):
@@ -2154,14 +2155,48 @@ class GUIManager:
         self.output.print(message)
 
 
-def set_theme(root, name):
+def set_theme(root, manager, name):
     style = ttk.Style(root)
     # Style options
     match name:
         case "dark":
-            style.configure('.', background='#2b2b2b', foreground='#ffffff')
-        case "light" | "default" | _ :
-            style.configure('.', background='#ffffff', foreground='#000000')
+            style.theme_use('alt')
+            style.configure('.', background="#181818", foreground="#ffffff")
+            style.configure("TButton", background="#181818")
+            style.map("TButton",
+                      background=[("active", "#2b2b2b")],
+                      foreground=[("pressed", "black")])
+            style.configure("TNotebook.Tab", background="#181818")
+            style.map("TNotebook.Tab",
+                      background=[("selected", "#2b2b2b")])
+            style.configure("TCheckbutton", foreground="black")
+            style.map("TCheckbutton",
+                      background=[('active', '#2b2b2b')])
+            style.configure("TLabelFrame", background="#181818")
+            manager.output._text.configure(bg="#181818")
+            manager.settings._exclude_list.configure(bg="#181818", fg="#ffffff")
+            manager.settings._priority_list.configure(bg="#181818", fg="#ffffff")
+
+            
+            
+        case "light" | "default" | _ : # TEMP RETURN VALUES
+            style.theme_use('vista')
+            style.configure('.', background="#ffffff", foreground="#000000")
+            style.configure("TButton", background="#ffffff")
+            style.map("TButton",
+                      background=[("active", "#e0e0e0")],
+                      foreground=[("pressed", "black")])
+            style.configure("TNotebook.Tab", background="#ffffff")
+            style.map("TNotebook.Tab",
+                      background=[("selected", "#e0e0e0")])
+            style.configure("TCheckbutton", foreground="black")
+            style.map("TCheckbutton",
+                      background=[('active', '#e0e0e0')])
+            style.configure("TLabelFrame", background="#ffffff")
+            manager.output._text.configure(bg="#ffffff")
+            manager.settings._exclude_list.configure(bg="#ffffff", fg="#000000")
+            manager.settings._priority_list.configure(bg="#ffffff", fg="#000000")
+
 
 ###################
 # GUI MANAGER END #
