@@ -1,4 +1,7 @@
 ## v15.3.0
+### 22.5.2024
+- Completed dark mode 🎉
+
 ### 20.5.2024
 - Added incomplete dark mode
 
