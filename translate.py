@@ -364,6 +364,7 @@ default_translation: Translation = {
                 "tray": "Autostart into tray: ",
                 "tray_notifications": "Tray notifications: ",
                 "priority_only": "Priority Only: ",
+                "prioritze_end": "Prioritize campaigns by end date: ",
                 "proxy": "Proxy (requires restart):",
             },
             "game_name": "Game name",
