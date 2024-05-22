@@ -17,7 +17,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up variables
         id: vars
@@ -32,7 +32,7 @@ jobs:
 
       # Ensure Python version
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{env.PYTHON_VERSION}}
 
@@ -65,7 +65,7 @@ jobs:
           Compress-Archive -Path $FolderName -DestinationPath Twitch.Drops.Miner.Windows.zip
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           if-no-files-found: error
           name: Twitch.Drops.Miner.Windows
@@ -77,7 +77,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up variables
         id: vars
@@ -90,7 +90,7 @@ jobs:
 
       # NOTE: We're only use a custom version of Python here because truststore requires at least Python 3.10, but Ubuntu 20.04 has Python 3.8.
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{env.PYTHON_VERSION}}
 
@@ -136,7 +136,7 @@ jobs:
           7z a Twitch.Drops.Miner.Linux.PyInstaller.zip "${folder}"
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           if-no-files-found: error
           name: Twitch.Drops.Miner.Linux.PyInstaller
@@ -148,7 +148,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up variables
         id: vars
@@ -186,7 +186,7 @@ jobs:
           7z a Twitch.Drops.Miner.Linux.AppImage.zip "${folder}"
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           if-no-files-found: error
           name: Twitch.Drops.Miner.Linux.AppImage
@@ -210,7 +210,7 @@ jobs:
           echo "date_now=$(date --rfc-3339=seconds)" >> "${GITHUB_OUTPUT}"
 
       - name: Download build artifacts from previous jobs
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: artifacts
 
