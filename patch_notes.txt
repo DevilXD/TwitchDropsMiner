@@ -1,8 +1,12 @@
-## v15.3.0
+## v15.4.0
 
 ### 23.5.2024
 - Fixed crash on Linux
-- Updated English, German, Czech, Spanish and Russian translation as well as corresponding credits for dark themes and potential future Campaign prioritization by end date.
+- Updated English, German, Czech, Spanish and Russian translation as well as corresponding credits for dark themes and potential future Campaign prioritization by end date
+
+
+
+## v15.3.0
 
 ### 22.5.2024
 - Completed dark mode 🎉
@@ -10,7 +14,10 @@
 ### 20.5.2024
 - Added incomplete dark mode
 
+
+
 ## v15.2.0
+
 ### 19.5.2024
 - Updated French translation as well as corresponding credits
 
@@ -18,7 +25,10 @@
 - Updated Russian, Ukrainian and Traditional Chinese translation as well as corresponding credits
 - Various changes to github workflows
 
+
+
 ## v15.1.0
+
 ### 17.5.2024
 - Updated Italian, Simplified Chinese and Spanish translation as well as corresponding credits
 - Various changes to github workflows
