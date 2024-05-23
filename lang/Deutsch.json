@@ -1,161 +1,164 @@
 {
-    "english_name": "German",
+  "english_name": "German",
+  "status": {
+    "terminated": "\nAnwendung gestoppt.\nFenster schließen, um die Anwendung zu beenden",
+    "watching": "{channel} wird zugesehen",
+    "goes_online": "{channel} ist ONLINE gegangen, wechseln...",
+    "goes_offline": "{channel} ist OFFLINE gegangen, wechseln...",
+    "claimed_drop": "Drop abgeholt: {drop}",
+    "claimed_points": "Kanal-Punkte verdient: {points}",
+    "earned_points": "Verdiente Kanal-Punkte fürs zuschauen: {points} | Summe: {balance}",
+    "no_channel": "Keine teilnehmenden Kanäle online. Warten auf Kanäle...",
+    "no_campaign": "Keine aktiven Kampagnen verfügbar. Warten auf neue Kampagne..."
+  },
+  "login": {
+    "unexpected_content": "Unerwarteter Inhaltstyp zurückgegeben, normalerweise aufgrund einer Weiterleitung.\nIst ein Login für den Internetzugang erforderlich?",
+    "chrome": {
+      "startup": "Starte Chrome...",
+      "login_to_complete": "Erneut auf Anmelden drücken, um den Anmeldevorgang manuell abzuschließen.",
+      "no_token": "Es wurde kein Autorisierungs-Token gefunden.",
+      "closed_window": "Das Chrome-Fenster wurde geschlossen, bevor der Anmeldevorgang abgeschlossen werden konnte."
+    },
+    "error_code": "Login-Fehlercode: {error_code}",
+    "incorrect_login_pass": "Falscher Benutzername oder Passwort.",
+    "incorrect_email_code": "Falscher E-Mail Code.",
+    "incorrect_twofa_code": "Falscher 2FA Code.",
+    "email_code_required": "E-Mail Code erforderlich. Bitte E-Mail prüfen.",
+    "twofa_code_required": "2FA Token erforderlich."
+  },
+  "error": {
+    "captcha": "Der Anmeldeversuch wurde durch CAPTCHA verweigert.\nBitte versuche es in mindestens 12 Stunden erneut.",
+    "site_down": "Twitch ist nicht erreichbar. Erneuter Versuch in {seconds} Sekunden...",
+    "no_connection": "Keine Verbindung zu Twitch möglich. Erneuter Versuch in {seconds} Sekunden..."
+  },
+  "gui": {
+    "output": "Protokoll",
     "status": {
-        "terminated": "\nAnwendung gestoppt.\nFenster schließen, um die Anwendung zu beenden",
-        "watching": "{channel} wird zugesehen",
-        "goes_online": "{channel} ist ONLINE gegangen, wechseln...",
-        "goes_offline": "{channel} ist OFFLINE gegangen, wechseln...",
-        "claimed_drop": "Drop abgeholt: {drop}",
-        "claimed_points": "Kanal-Punkte verdient: {points}",
-        "earned_points": "Verdiente Kanal-Punkte fürs zuschauen: {points} | Summe: {balance}",
-        "no_channel": "Keine teilnehmenden Kanäle online. Warten auf Kanäle...",
-        "no_campaign": "Keine aktiven Kampagnen verfügbar. Warten auf neue Kampagne..."
+      "name": "Status",
+      "idle": "Im Leerlauf",
+      "exiting": "Beenden...",
+      "terminated": "Abgebrochen",
+      "cleanup": "Kanäle aufräumen..",
+      "gathering": "Kanäle sammeln...",
+      "switching": "Wechsel des Kanals...",
+      "fetching_inventory": "Lade Inventar...",
+      "fetching_campaigns": "Lade Kampagnen...",
+      "adding_campaigns": "Kampagnen dem Inventar hinzufügen... {counter}"
+    },
+    "tabs": {
+      "main": "Hauptseite",
+      "inventory": "Inventar",
+      "settings": "Einstellungen",
+      "help": "Hilfe"
+    },
+    "tray": {
+      "notification_title": "Drop abgeholt",
+      "minimize": "Minimiere ins System Tray",
+      "show": "Anzeigen",
+      "quit": "Beenden"
     },
     "login": {
-        "chrome": {
-            "startup": "Starte Chrome...",
-            "login_to_complete": "Erneut auf Anmelden drücken, um den Anmeldevorgang manuell abzuschließen.",
-            "no_token": "Es wurde kein Autorisierungs-Token gefunden.",
-            "closed_window": "Das Chrome-Fenster wurde geschlossen, bevor der Anmeldevorgang abgeschlossen werden konnte."
-        },
-        "error_code": "Login-Fehlercode: {error_code}",
-        "unexpected_content": "Unerwarteter Inhaltstyp zurückgegeben, normalerweise aufgrund einer Weiterleitung.\nIst ein Login für den Internetzugang erforderlich?",
-        "incorrect_login_pass": "Falscher Benutzername oder Passwort.",
-        "incorrect_email_code": "Falscher E-Mail Code.",
-        "incorrect_twofa_code": "Falscher 2FA Code.",
-        "email_code_required": "E-Mail Code erforderlich. Bitte E-Mail prüfen.",
-        "twofa_code_required": "2FA Token erforderlich."
+      "name": "Login",
+      "labels": "Status:\nBenutzer ID:",
+      "logged_in": "Angemeldet",
+      "logged_out": "Abgemeldet",
+      "logging_in": "Anmelden...",
+      "required": "Anmeldung erforderlich",
+      "request": "Bitte einloggen um fortzufahren.",
+      "username": "Benutzername",
+      "password": "Passwort",
+      "twofa_code": "2FA Code (optional)",
+      "button": "Anmelden"
     },
-    "error": {
-        "captcha": "Der Anmeldeversuch wurde durch CAPTCHA verweigert.\nBitte versuche es in mindestens 12 Stunden erneut.",
-        "site_down": "Twitch ist nicht erreichbar. Erneuter Versuch in {seconds} Sekunden...",
-        "no_connection": "Keine Verbindung zu Twitch möglich. Erneuter Versuch in {seconds} Sekunden..."
+    "websocket": {
+      "name": "WebSocket Status",
+      "websocket": "WebSocket #{id}:",
+      "initializing": "Initialisieren...",
+      "connected": "Verbunden",
+      "disconnected": "Verbindung verloren",
+      "connecting": "Verbinden...",
+      "disconnecting": "Verbindung trennen...",
+      "reconnecting": "Neu verbinden..."
     },
-    "gui": {
-        "output": "Protokoll",
-        "status": {
-            "name": "Status",
-            "idle": "Im Leerlauf",
-            "exiting": "Beenden...",
-            "terminated": "Abgebrochen",
-            "cleanup": "Kanäle aufräumen..",
-            "gathering": "Kanäle sammeln...",
-            "switching": "Wechsel des Kanals...",
-            "fetching_inventory": "Lade Inventar...",
-            "fetching_campaigns": "Lade Kampagnen...",
-            "adding_campaigns": "Kampagnen dem Inventar hinzufügen... {counter}"
-        },
-        "tabs": {
-            "main": "Hauptseite",
-            "inventory": "Inventar",
-            "settings": "Einstellungen",
-            "help": "Hilfe"
-        },
-        "tray": {
-            "notification_title": "Drop abgeholt",
-            "minimize": "Minimiere ins System Tray",
-            "show": "Anzeigen",
-            "quit": "Beenden"
-        },
-        "login": {
-            "name": "Login",
-            "labels": "Status:\nBenutzer ID:",
-            "logged_in": "Angemeldet",
-            "logged_out": "Abgemeldet",
-            "logging_in": "Anmelden...",
-            "required": "Anmeldung erforderlich",
-            "request": "Bitte einloggen um fortzufahren.",
-            "username": "Benutzername",
-            "password": "Passwort",
-            "twofa_code": "2FA Code (optional)",
-            "button": "Anmelden"
-        },
-        "websocket": {
-            "name": "WebSocket Status",
-            "websocket": "WebSocket #{id}:",
-            "initializing": "Initialisieren...",
-            "connected": "Verbunden",
-            "disconnected": "Verbindung verloren",
-            "connecting": "Verbinden...",
-            "disconnecting": "Verbindung trennen...",
-            "reconnecting": "Neu verbinden..."
-        },
-        "progress": {
-            "name": "Kampagnen-Fortschritt",
-            "drop": "Drop:",
-            "game": "Spiel:",
-            "campaign": "Kampagne:",
-            "remaining": "{time} verbleibend",
-            "drop_progress": "Fortschritt:",
-            "campaign_progress": "Fortschritt:"
-        },
-        "channels": {
-            "name": "Kanäle",
-            "switch": "Wechseln",
-            "load_points": "Lade Punkte",
-            "online": "ONLINE ✔",
-            "pending": "OFFLINE ⏳",
-            "offline": "OFFLINE ❌",
-            "headings": {
-                "channel": "Kanal",
-                "status": "Status",
-                "game": "Spiel",
-                "viewers": "Zuschauer",
-                "points": "Punkte"
-            }
-        },
-        "inventory": {
-            "filter": {
-                "name": "Filter",
-                "show": "Anzeigen:",
-                "not_linked": "Nicht verbunden",
-                "upcoming": "Zukünftig",
-                "expired": "Abgelaufen",
-                "excluded": "Ausgeschlossen",
-                "finished": "Abgeholt",
-                "refresh": "Aktualisieren"
-            },
-            "status": {
-                "linked": "Verknüpft ✔",
-                "not_linked": "Nicht verknüpft ❌",
-                "active": "Aktiv ✔",
-                "upcoming": "Zukünftig ⏳",
-                "expired": "Abgelaufen ❌",
-                "claimed": "Abgeholt ✔",
-                "ready_to_claim": "Bereit zum abholen ⏳"
-            },
-            "starts": "Beginnt: {time}",
-            "ends": "Endet: {time}",
-            "allowed_channels": "Teilnehmende Kanäle:",
-            "all_channels": "Alle",
-            "and_more": "und {amount} weitere...",
-            "percent_progress": "{percent} von {minutes} Minuten",
-            "minutes_progress": "{minutes} Minuten"
-        },
-        "settings": {
-            "general": {
-                "name": "Allgemein",
-                "autostart": "Autostart: ",
-                "tray": "Autostart ins System Tray: ",
-                "priority_only": "Nur Priorität: ",
-                "proxy": "Proxy (Erfordert Neustart):"
-            },
-            "game_name": "Spiel",
-            "priority": "Priorität",
-            "exclude": "Ausschließen",
-            "reload": "Neu laden",
-            "reload_text": "Die meisten Änderungen erfordern ein neu laden, um sofort wirksam zu werden: "
-        },
-        "help": {
-            "links": {
-                "name": "Hilfreiche Links",
-                "inventory": "Twitch Inventar ansehen",
-                "campaigns": "Alle Twitch-Kampagnen ansehen"
-            },
-            "how_it_works": "So funktioniert's",
-            "how_it_works_text": "Alle ~20 Sekunden fragt die Anwendung Twitch nach einer URL für die Rohdaten des Streams von dem Kanal, dem gerade zugesehen wird. Dann fordert sie die Metadaten dieses Datenstroms an. Dies reicht aus, um den Drop voranzutreiben. Auf diese Weise ist es nicht nötig den Stream herunterzuladen und spart Bandbreite.\nUm den Online- oder Offline-Status der Kanäle aktuell zu halten, wird eine Websocket-Verbindung eingerichtet,\ndie die Kanäle auf ihren Status überprüft.",
-            "getting_started": "Erste Schritte",
-            "getting_started_text": "• In der Anwendung anmelden.\n• Stelle sicher, dass das Twitch-Konto mit allen Kampagnen verknüpft ist, an denen Interesse besteht.\n• Sollen alle Drops bearbeitet werden, entferne den Haken bei \"Nur Priorität\" und drücke \"Neu laden\".\n• Sollen nur bestimmte Spiele in betracht gezogen werden, verwende die \"Priorität\" Liste um die Wahl nach Spielen einzugrenzen.\n• Die Liste priorisiert von oben nach unten.\n• Die Option \"Nur Priorität\" verhindert, dass Spiele, die nicht auf der Prioritätenliste stehen, bearbeitet werden.\n• Mit der Liste \"Ausschließen\", ist es möglich Spiele zu filtern, die niemals in betracht gezogen werden sollen.\n• Wenn Listen oder Optionen angepasst wurden, muss \"Neu laden\" gedrückt werden, damit die Änderungen übernommen werden."
-        }
+    "progress": {
+      "name": "Kampagnen-Fortschritt",
+      "drop": "Drop:",
+      "game": "Spiel:",
+      "campaign": "Kampagne:",
+      "remaining": "{time} verbleibend",
+      "drop_progress": "Fortschritt:",
+      "campaign_progress": "Fortschritt:"
+    },
+    "channels": {
+      "name": "Kanäle",
+      "switch": "Wechseln",
+      "load_points": "Lade Punkte",
+      "online": "ONLINE ✔",
+      "pending": "OFFLINE ⏳",
+      "offline": "OFFLINE ❌",
+      "headings": {
+        "channel": "Kanal",
+        "status": "Status",
+        "game": "Spiel",
+        "viewers": "Zuschauer",
+        "points": "Punkte"
+      }
+    },
+    "inventory": {
+      "filter": {
+        "name": "Filter",
+        "show": "Anzeigen:",
+        "not_linked": "Nicht verbunden",
+        "upcoming": "Zukünftig",
+        "expired": "Abgelaufen",
+        "excluded": "Ausgeschlossen",
+        "finished": "Abgeholt",
+        "refresh": "Aktualisieren"
+      },
+      "status": {
+        "linked": "Verknüpft ✔",
+        "not_linked": "Nicht verknüpft ❌",
+        "active": "Aktiv ✔",
+        "upcoming": "Zukünftig ⏳",
+        "expired": "Abgelaufen ❌",
+        "claimed": "Abgeholt ✔",
+        "ready_to_claim": "Bereit zum abholen ⏳"
+      },
+      "starts": "Beginnt: {time}",
+      "ends": "Endet: {time}",
+      "allowed_channels": "Teilnehmende Kanäle:",
+      "all_channels": "Alle",
+      "and_more": "und {amount} weitere...",
+      "percent_progress": "{percent} von {minutes} Minuten",
+      "minutes_progress": "{minutes} Minuten"
+    },
+    "settings": {
+      "general": {
+        "name": "Allgemein",
+        "dark_theme": "Dunkler Design: ",
+        "autostart": "Autostart: ",
+        "tray": "Autostart ins System Tray: ",
+        "tray_notifications": "System Tray Benachrichtigungen:",
+        "priority_only": "Nur Priorität: ",
+        "prioritze_end": "Kampagnen nach Ende priorisieren: ",
+        "proxy": "Proxy (Erfordert Neustart):"
+      },
+      "game_name": "Spiel",
+      "priority": "Priorität",
+      "exclude": "Ausschließen",
+      "reload": "Neu laden",
+      "reload_text": "Die meisten Änderungen erfordern ein neu laden, um sofort wirksam zu werden: "
+    },
+    "help": {
+      "links": {
+        "name": "Hilfreiche Links",
+        "inventory": "Twitch Inventar ansehen",
+        "campaigns": "Alle Twitch-Kampagnen ansehen"
+      },
+      "how_it_works": "So funktioniert's",
+      "how_it_works_text": "Alle ~20 Sekunden fragt die Anwendung Twitch nach einer URL für die Rohdaten des Streams von dem Kanal, dem gerade zugesehen wird. Dann fordert sie die Metadaten dieses Datenstroms an. Dies reicht aus, um den Drop voranzutreiben. Auf diese Weise ist es nicht nötig den Stream herunterzuladen und spart Bandbreite.\nUm den Online- oder Offline-Status der Kanäle aktuell zu halten, wird eine Websocket-Verbindung eingerichtet,\ndie die Kanäle auf ihren Status überprüft.",
+      "getting_started": "Erste Schritte",
+      "getting_started_text": "• In der Anwendung anmelden.\n• Stelle sicher, dass das Twitch-Konto mit allen Kampagnen verknüpft ist, an denen Interesse besteht.\n• Sollen alle Drops bearbeitet werden, entferne den Haken bei \"Nur Priorität\" und drücke \"Neu laden\".\n• Sollen nur bestimmte Spiele in betracht gezogen werden, verwende die \"Priorität\" Liste um die Wahl nach Spielen einzugrenzen.\n• Die Liste priorisiert von oben nach unten.\n• Die Option \"Nur Priorität\" verhindert, dass Spiele, die nicht auf der Prioritätenliste stehen, bearbeitet werden.\n• Mit der Liste \"Ausschließen\", ist es möglich Spiele zu filtern, die niemals in betracht gezogen werden sollen.\n• Wenn Listen oder Optionen angepasst wurden, muss \"Neu laden\" gedrückt werden, damit die Änderungen übernommen werden."
     }
+  }
 }
