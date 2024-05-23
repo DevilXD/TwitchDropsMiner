@@ -1,162 +1,164 @@
 {
-    "english_name": "Spanish",
+  "english_name": "Spanish",
+  "status": {
+    "terminated": "\nLa aplicación se ha detenido.\nPor favor, cierre la aplicación.",
+    "watching": "Viendo el canal: {channel}",
+    "goes_online": "El canal {channel} se ha conectado, cambiando...",
+    "goes_offline": "El canal {channel} se ha desconectado, cambiando...",
+    "claimed_drop": "Drop reclamado: {drop}",
+    "claimed_points": "Recompensa de puntos reclamados: {points}",
+    "earned_points": "Puntos obtenidos por ver el stream: {points} | Total: {balance}",
+    "no_channel": "No se ha encontrado un canal en directo para ver. \nEsperando un canal en directo...",
+    "no_campaign": "No se ha encontrado una campaña activa. \nEsperando una nueva campaña..."
+  },
+  "login": {
+    "unexpected_content": "Se produjo un error inesperado, \ngeneralmente debido a una redirección.\n¿Necesitas un VPN o iniciar sesión para acceder a internet?",
+    "chrome": {
+      "startup": "Iniciando Chrome...",
+      "login_to_complete": "Por favor, presione Iniciar sesión nuevamente para \ncompletar el inicio de sesión.",
+      "no_token": "No se pudo obtener un token de autorización.",
+      "closed_window": "La ventana de Chrome se cerró antes de que \nse completara el inicio de sesión."
+    },
+    "error_code": "Error de inicio de sesión: {error_code}",
+    "incorrect_login_pass": "El usuario o contraseña ingresada es incorrecto.",
+    "incorrect_email_code": "El código de verificación de email es incorrecto.",
+    "incorrect_twofa_code": "El código 2FA es incorrecto.",
+    "email_code_required": "Código de verificación de email requerido. \nPor favor, revise su email.",
+    "twofa_code_required": "Token 2FA requerido."
+  },
+  "error": {
+    "captcha": "El inicio de sesión fue rechazado por CAPTCHA.\nPor favor, intente nuevamente en aprox. 12 horas.",
+    "site_down": "Twitch no está disponible. \nIntente de nuevo en {seconds} segundos...",
+    "no_connection": "No se ha podido conectar a Twitch. \nIntente de nuevo en {seconds} segundos..."
+  },
+  "gui": {
+    "output": "Registros",
     "status": {
-        "terminated": "\nLa aplicación se ha detenido.\nPor favor, cierre la aplicación.",
-        "watching": "Viendo el canal: {channel}",
-        "goes_online": "El canal {channel} se ha conectado, cambiando...",
-        "goes_offline": "El canal {channel} se ha desconectado, cambiando...",
-        "claimed_drop": "Drop reclamado: {drop}",
-        "claimed_points": "Recompensa de puntos reclamados: {points}",
-        "earned_points": "Puntos obtenidos por ver el stream: {points} | Total: {balance}",
-        "no_channel": "No se ha encontrado un canal en directo para ver. \nEsperando un canal en directo...",
-        "no_campaign": "No se ha encontrado una campaña activa. \nEsperando una nueva campaña..."
+      "name": "Estado",
+      "idle": "En espera...",
+      "exiting": "Saliendo...",
+      "terminated": "Aplicación suspendida.",
+      "cleanup": "Limpiando canales...",
+      "gathering": "Buscando canales en directo...",
+      "switching": "Cambiando de canal...",
+      "fetching_inventory": "Obteniendo inventario...",
+      "fetching_campaigns": "Obteniendo campañas...",
+      "adding_campaigns": "Agregando lista de campañas al inventario... {counter}"
+    },
+    "tabs": {
+      "main": "General",
+      "inventory": "Inventario",
+      "settings": "Configuración",
+      "help": "Ayuda"
+    },
+    "tray": {
+      "notification_title": "Drop minado",
+      "minimize": "Minimizar a la bandeja",
+      "show": "Mostrar",
+      "quit": "Salir"
     },
     "login": {
-        "chrome": {
-            "startup": "Iniciando Chrome...",
-            "login_to_complete": "Por favor, presione Iniciar sesión nuevamente para \ncompletar el inicio de sesión.",
-            "no_token": "No se pudo obtener un token de autorización.",
-            "closed_window": "La ventana de Chrome se cerró antes de que \nse completara el inicio de sesión."
-        },
-        "error_code": "Error de inicio de sesión: {error_code}",
-        "unexpected_content": "Se produjo un error inesperado, \ngeneralmente debido a una redirección.\n¿Necesitas un VPN o iniciar sesión para acceder a internet?",
-        "incorrect_login_pass": "El usuario o contraseña ingresada es incorrecto.",
-        "incorrect_email_code": "El código de verificación de email es incorrecto.",
-        "incorrect_twofa_code": "El código 2FA es incorrecto.",
-        "email_code_required": "Código de verificación de email requerido. \nPor favor, revise su email.",
-        "twofa_code_required": "Token 2FA requerido."
+      "name": "Inicio de sesión",
+      "labels": "Estado:\nUsuario:",
+      "logged_in": "Conectado",
+      "logged_out": "Desconectado",
+      "logging_in": "Iniciando sesión...",
+      "required": "Se requiere inicio de sesión",
+      "request": "Por favor, inicie sesión para continuar.",
+      "username": "Usuario",
+      "password": "Contraseña",
+      "twofa_code": "Token 2FA (opcional)",
+      "button": "Iniciar sesión"
     },
-    "error": {
-        "captcha": "El inicio de sesión fue rechazado por CAPTCHA.\nPor favor, intente nuevamente en aprox. 12 horas.",
-        "site_down": "Twitch no está disponible. \nIntente de nuevo en {seconds} segundos...",
-        "no_connection": "No se ha podido conectar a Twitch. \nIntente de nuevo en {seconds} segundos..."
+    "websocket": {
+      "name": "Estado del Websocket",
+      "websocket": "Websocket #{id}:",
+      "initializing": "Iniciando...",
+      "connected": "Conectado",
+      "disconnected": "Desconectado",
+      "connecting": "Conectando...",
+      "disconnecting": "Desconectando...",
+      "reconnecting": "Reconectando..."
     },
-    "gui": {
-        "output": "Registros",
-        "status": {
-            "name": "Estado",
-            "idle": "En espera...",
-            "exiting": "Saliendo...",
-            "terminated": "Aplicación suspendida.",
-            "cleanup": "Limpiando canales...",
-            "gathering": "Buscando canales en directo...",
-            "switching": "Cambiando de canal...",
-            "fetching_inventory": "Obteniendo inventario...",
-            "fetching_campaigns": "Obteniendo campañas...",
-            "adding_campaigns": "Agregando lista de campañas al inventario... {counter}"
-        },
-        "tabs": {
-            "main": "General",
-            "inventory": "Inventario",
-            "settings": "Configuración",
-            "help": "Ayuda"
-        },
-        "tray": {
-            "notification_title": "Drop minado",
-            "minimize": "Minimizar a la bandeja",
-            "show": "Mostrar",
-            "quit": "Salir"
-        },
-        "login": {
-            "name": "Inicio de sesión",
-            "labels": "Estado:\nUsuario:",
-            "logged_in": "Conectado",
-            "logged_out": "Desconectado",
-            "logging_in": "Iniciando sesión...",
-            "required": "Se requiere inicio de sesión",
-            "request": "Por favor, inicie sesión para continuar.",
-            "username": "Usuario",
-            "password": "Contraseña",
-            "twofa_code": "Token 2FA (opcional)",
-            "button": "Iniciar sesión"
-        },
-        "websocket": {
-            "name": "Estado del Websocket",
-            "websocket": "Websocket #{id}:",
-            "initializing": "Iniciando...",
-            "connected": "Conectado",
-            "disconnected": "Desconectado",
-            "connecting": "Conectando...",
-            "disconnecting": "Desconectando...",
-            "reconnecting": "Reconectando..."
-        },
-        "progress": {
-            "name": "Progreso de la Campaña",
-            "drop": "Drop:",
-            "game": "Juego:",
-            "campaign": "Campaña:",
-            "remaining": "{time} restante",
-            "drop_progress": "Progreso:",
-            "campaign_progress": "Progreso:"
-        },
-        "channels": {
-            "name": "Canales",
-            "switch": "Cambiar",
-            "load_points": "Cargar Puntos",
-            "online": "ONLINE  ✔",
-            "pending": "OFFLINE ⏳",
-            "offline": "OFFLINE ❌",
-            "headings": {
-                "channel": "Canal",
-                "status": "Estado",
-                "game": "Juego",
-                "viewers": "Espectadores",
-                "points": "Puntos"
-            }
-        },
-        "inventory": {
-            "filter": {
-                "name": "Filtro de campañas",
-                "show": "Mostrar:",
-                "not_linked": "No enlazado",
-                "upcoming": "Próximas",
-                "expired": "Expiradas",
-                "excluded": "Excluidas",
-                "finished": "Completadas",
-                "refresh": "Actualizar"
-            },
-            "status": {
-                "linked": "Vinculado ✔",
-                "not_linked": "Sin vincular ❌",
-                "active": "Activo ✔",
-                "upcoming": "Próximamente ⏳",
-                "expired": "Expirado ❌",
-                "claimed": "Reclamado ✔",
-                "ready_to_claim": "Listo para reclamar ⏳"
-            },
-            "starts": "Comienza: {time}",
-            "ends": "Termina: {time}",
-            "allowed_channels": "Canales permitidos:",
-            "all_channels": "Todos",
-            "and_more": "y {amount} más...",
-            "percent_progress": "{percent} de {minutes} minutos",
-            "minutes_progress": "{minutes} minutos"
-        },
-        "settings": {
-            "general": {
-                "name": "Ajustes generales",
-                "autostart": "Ejecutar al iniciar el sistema: ",
-                "tray": "Ejecutar en la bandeja del sistema: ",
-                "tray_notifications": "Mostrar notificaciones: ",
-                "priority_only": "Minar solo juegos preferidos: ",
-                "proxy": "Proxy (requiere reinicio):"
-            },
-            "game_name": "Nombre del juego",
-            "priority": "Lista de juegos preferidos",
-            "exclude": "Lista de juegos excluidos",
-            "reload": "Recargar",
-            "reload_text": "La mayoría de los cambios requieren recargar o reiniciar la aplicación para que sean aplicados: "
-        },
-        "help": {
-            "links": {
-                "name": "Enlaces útiles",
-                "inventory": "Ver inventario de Twitch",
-                "campaigns": "Ver todas las campañas y administrar cuentas vinculadas"
-            },
-            "how_it_works": "Cómo funciona",
-            "how_it_works_text": "Aproximadamente cada 20 segundos, la aplicación solicita a Twitch la URL de los datos del canal que estamos viendo. \nDe esta forma, obtenemos sus metadatos, lo que nos permite ahorrar en la descarga de video o audio del stream. \nPara mantener actualizados los estados (ONLINE o OFFLINE) de los canales, así como el número de espectadores, \nse establece una conexión WebSocket mediante de la cual recibimos la información actualizada de los streams.",
-            "getting_started": "Primeros pasos",
-            "getting_started_text": "1. Inicie sesión en la aplicación. \n2. Verifique que su cuenta de Twitch esté vinculada a todas las campañas deseadas a minar. \n3. Si desea minar todas las campañas, desmarque la opción \"Minar solo juegos preferidos\" y presione \"Recargar\". \n4. Si desea darle prioridad a una campaña específica, utilice la \"Lista de juegos preferidos\" para crear una lista de prioridad. \nLos juegos en la parte superior de la lista se intentarán minar antes de los que estén más abajo. \n5. Utilice la opción \"Minar solo juegos preferidos\" si desea evitar minar juegos que no estén en la lista de juegos preferidos. \n6. Utilice la \"Lista de juegos excluidos\" si desea evitar minar juegos que no estén en la lista de juegos excluidos. \n7. Al utilizar la opción \"Minar solo juegos preferidos\" o al cambiar el contenido de las listas, \nserá necesario presionar el botón \"Recargar\" para que los cambios sean aplicados."
-        }
+    "progress": {
+      "name": "Progreso de la Campaña",
+      "drop": "Drop:",
+      "game": "Juego:",
+      "campaign": "Campaña:",
+      "remaining": "{time} restante",
+      "drop_progress": "Progreso:",
+      "campaign_progress": "Progreso:"
+    },
+    "channels": {
+      "name": "Canales",
+      "switch": "Cambiar",
+      "load_points": "Cargar Puntos",
+      "online": "ONLINE  ✔",
+      "pending": "OFFLINE ⏳",
+      "offline": "OFFLINE ❌",
+      "headings": {
+        "channel": "Canal",
+        "status": "Estado",
+        "game": "Juego",
+        "viewers": "Espectadores",
+        "points": "Puntos"
+      }
+    },
+    "inventory": {
+      "filter": {
+        "name": "Filtro de campañas",
+        "show": "Mostrar:",
+        "not_linked": "No enlazado",
+        "upcoming": "Próximas",
+        "expired": "Expiradas",
+        "excluded": "Excluidas",
+        "finished": "Completadas",
+        "refresh": "Actualizar"
+      },
+      "status": {
+        "linked": "Vinculado ✔",
+        "not_linked": "Sin vincular ❌",
+        "active": "Activo ✔",
+        "upcoming": "Próximamente ⏳",
+        "expired": "Expirado ❌",
+        "claimed": "Reclamado ✔",
+        "ready_to_claim": "Listo para reclamar ⏳"
+      },
+      "starts": "Comienza: {time}",
+      "ends": "Termina: {time}",
+      "allowed_channels": "Canales permitidos:",
+      "all_channels": "Todos",
+      "and_more": "y {amount} más...",
+      "percent_progress": "{percent} de {minutes} minutos",
+      "minutes_progress": "{minutes} minutos"
+    },
+    "settings": {
+      "general": {
+        "name": "Ajustes generales",
+        "dark_theme": "Tema oscuro: ",
+        "autostart": "Ejecutar al iniciar el sistema: ",
+        "tray": "Ejecutar en la bandeja del sistema: ",
+        "tray_notifications": "Mostrar notificaciones: ",
+        "priority_only": "Minar solo juegos preferidos: ",
+        "prioritze_end": "Priorizar campañas por fecha de finalización: ",
+        "proxy": "Proxy (requiere reinicio):"
+      },
+      "game_name": "Nombre del juego",
+      "priority": "Lista de juegos preferidos",
+      "exclude": "Lista de juegos excluidos",
+      "reload": "Recargar",
+      "reload_text": "La mayoría de los cambios requieren recargar o reiniciar la aplicación para que sean aplicados: "
+    },
+    "help": {
+      "links": {
+        "name": "Enlaces útiles",
+        "inventory": "Ver inventario de Twitch",
+        "campaigns": "Ver todas las campañas y administrar cuentas vinculadas"
+      },
+      "how_it_works": "Cómo funciona",
+      "how_it_works_text": "Aproximadamente cada 20 segundos, la aplicación solicita a Twitch la URL de los datos del canal que estamos viendo. \nDe esta forma, obtenemos sus metadatos, lo que nos permite ahorrar en la descarga de video o audio del stream. \nPara mantener actualizados los estados (ONLINE o OFFLINE) de los canales, así como el número de espectadores, \nse establece una conexión WebSocket mediante de la cual recibimos la información actualizada de los streams.",
+      "getting_started": "Primeros pasos",
+      "getting_started_text": "1. Inicie sesión en la aplicación. \n2. Verifique que su cuenta de Twitch esté vinculada a todas las campañas deseadas a minar. \n3. Si desea minar todas las campañas, desmarque la opción \"Minar solo juegos preferidos\" y presione \"Recargar\". \n4. Si desea darle prioridad a una campaña específica, utilice la \"Lista de juegos preferidos\" para crear una lista de prioridad. \nLos juegos en la parte superior de la lista se intentarán minar antes de los que estén más abajo. \n5. Utilice la opción \"Minar solo juegos preferidos\" si desea evitar minar juegos que no estén en la lista de juegos preferidos. \n6. Utilice la \"Lista de juegos excluidos\" si desea evitar minar juegos que no estén en la lista de juegos excluidos. \n7. Al utilizar la opción \"Minar solo juegos preferidos\" o al cambiar el contenido de las listas, \nserá necesario presionar el botón \"Recargar\" para que los cambios sean aplicados."
     }
+  }
 }
