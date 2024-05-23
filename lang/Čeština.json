@@ -1,154 +1,164 @@
 {
-    "english_name": "Czech",
+  "english_name": "Czech",
+  "status": {
+    "terminated": "\nAplikace byla ukončena.",
+    "watching": "Sledování kanálu: {channel}",
+    "goes_online": "Kanál {channel} je online, přepínám...",
+    "goes_offline": "Kanál {channel} je offline, přepínám na další...",
+    "claimed_drop": "Drop vyzvednut: {drop}",
+    "claimed_points": "Vyzvednuto {points} bodů",
+    "earned_points": "Získáno {points} bodů za sledování. Celkem: {balance}",
+    "no_channel": "Žádný kanál není dostupný, čekání na další...",
+    "no_campaign": "Žádné dropy k dispozici, čekání na další dostupné dropy..."
+  },
+  "login": {
+    "unexpected_content": "Chyba při přesměrování. Nepoužíváte VPN?",
+    "chrome": {
+      "startup": "Otevírá se Chrome...",
+      "login_to_complete": "Automaticky dokončete proces přihlášení opětovným kliknutím na tlačítko přihlásit.",
+      "no_token": "Nebyl nalezen žádný autorizační token.",
+      "closed_window": "Okno Chrome bylo zavřeno před dokončním procesu přihlášení."
+    },
+    "error_code": "Chyba přihlášení: {error_code}",
+    "incorrect_login_pass": "Nesprávné uživatelské jméno nebo heslo.",
+    "incorrect_email_code": "Nesprávný E-Mail kód.",
+    "incorrect_twofa_code": "Nesprávný dvoufaktorový token",
+    "email_code_required": "K přihlášení je vyžadován kód který byl zaslán na váš E-Mail.",
+    "twofa_code_required": "K přihlášení je vyžadován dvoufaktorový kód."
+  },
+  "error": {
+    "captcha": "Vaše připojení bylo zamítnuto systémem přihlásit.CAPTCHA, zkuste to znovu za 12 hodin.",
+    "site_down": "Služba Twitch je nedostupná，zkuste to znovu za {seconds} sekund...",
+    "no_connection": "Nelze se připojit k službe Twitch, zkuste to znovu za {seconds}..."
+  },
+  "gui": {
+    "output": "Výstup",
     "status": {
-        "terminated": "\nAplikace byla ukončena.",
-        "watching": "Sledování kanálu: {channel}",
-        "goes_online": "Kanál {channel} je online, přepínám...",
-        "goes_offline": "Kanál {channel} je offline, přepínám na další...",
-        "claimed_drop": "Drop vyzvednut: {drop}",
-        "claimed_points": "Vyzvednuto {points} bodů",
-        "earned_points": "Získáno {points} bodů za sledování. Celkem: {balance}",
-        "no_channel": "Žádný kanál není dostupný, čekání na další...",
-        "no_campaign": "Žádné dropy k dispozici, čekání na další dostupné dropy..."
+      "name": "Status",
+      "idle": "Dokončeno načítání",
+      "exiting": "Ukončování...",
+      "terminated": "Aplikace ukončena",
+      "cleanup": "Čištění...",
+      "gathering": "Vyhledávání dostupného živého kanálu...",
+      "switching": "Přepínám mezi kanály...",
+      "fetching_inventory": "Načítání inventáře...",
+      "fetching_campaigns": "Načítání dropů...",
+      "adding_campaigns": "Přidávám dropy... {counter}"
+    },
+    "tabs": {
+      "main": "Hlavní Panel",
+      "inventory": "Inventář",
+      "settings": "Nastavení",
+      "help": "Nápověda"
+    },
+    "tray": {
+      "notification_title": "Začít sbírat dropy",
+      "minimize": "Minimalizovat",
+      "show": "Zobrazit",
+      "quit": "Ukončit"
     },
     "login": {
-        "unexpected_content": "Chyba při přesměrování. Nepoužíváte VPN?",
-        "incorrect_login_pass": "Nesprávné přihlašení.",
-        "incorrect_email_code": "Nesprávný E-Mail kód.",
-        "incorrect_twofa_code": "Nesprávný dvoufaktorový token",
-        "email_code_required": "K přihlášení je vyžadován kód který byl zaslán na váš E-Mail.",
-        "twofa_code_required": "K přihlášení je vyžadován dvoufaktorový kód."
+      "name": "Přihlášení k službě Twitch",
+      "labels": "Uživatelské ID:",
+      "logged_in": "Přihlášeno",
+      "logged_out": "Odhlášeno",
+      "logging_in": "Přihlašování...",
+      "required": "Potřebujete se nejdříve přihlásit",
+      "request": "Pro přístup je potřeba přihlášení",
+      "username": "Uživatelské Jméno",
+      "password": "Heslo",
+      "twofa_code": "2FA Kód",
+      "button": "Přihlásit se"
     },
-    "error": {
-        "captcha": "Vaše připojení bylo zamítnuto službou Twitch, zkuste to znovu za 12 hodin.",
-        "site_down": "Služba Twitch je nedostupná，zkuste to znovu za {seconds} sekund...",
-        "no_connection": "Nelze se připojit k službe Twitch, zkuste to znovu za {seconds}..."
+    "websocket": {
+      "name": "Status Připojení Síťového Protokolu",
+      "websocket": "Websocket #{id}:",
+      "initializing": "Načítání",
+      "connected": "Připojeno",
+      "disconnected": "Odpojeno",
+      "connecting": "Připojování...",
+      "disconnecting": "Odpojování...",
+      "reconnecting": "Přepojování..."
     },
-    "gui": {
-        "output": "Výstup",
-        "status": {
-            "name": "Status",
-            "idle": "Dokončeno načítání",
-            "exiting": "Ukončování...",
-            "terminated": "Aplikace ukončena",
-            "cleanup": "Čištění...",
-            "gathering": "Vyhledávání dostupného živého kanálu...",
-            "switching": "Přepínám mezi kanály...",
-            "fetching_inventory": "Načítání inventáře...",
-            "fetching_campaigns": "Načítání dropů...",
-            "adding_campaigns": "Přidávám dropy... {counter}"
-        },
-        "tabs": {
-            "main": "Hlavní Panel",
-            "inventory": "Inventář",
-            "settings": "Nastavení",
-            "help": "Nápověda"
-        },
-        "tray": {
-            "notification_title": "Začít sbírat dropy",
-            "minimize": "Minimalizovat",
-            "show": "Zobrazit",
-            "quit": "Ukončit"
-        },
-        "login": {
-            "name": "Přihlášení k službě Twitch",
-            "labels": "Uživatelské ID:",
-            "logged_in": "Přihlášeno",
-            "logged_out": "Odhlášeno",
-            "logging_in": "Přihlašování...",
-            "required": "Potřebujete se nejdříve přihlásit",
-            "request": "Pro přístup je potřeba přihlášení",
-            "username": "Uživatelské Jméno",
-            "password": "Heslo",
-            "twofa_code": "2FA Kód",
-            "button": "Přihlásit se"
-        },
-        "websocket": {
-            "name": "Status Připojení Síťového Protokolu",
-            "websocket": "Websocket #{id}:",
-            "initializing": "Načítání",
-            "connected": "Připojeno",
-            "disconnected": "Odpojeno",
-            "connecting": "Připojování...",
-            "disconnecting": "Odpojování...",
-            "reconnecting": "Přepojování..."
-        },
-        "progress": {
-            "name": "Průběh Dropu",
-            "drop": "Drop Odměny:",
-            "game": "Hra:",
-            "campaign": "Kampaň:",
-            "remaining": "Zbývá {time}",
-            "drop_progress": "Průběh dropu:",
-            "campaign_progress": "Průběh kampaňe:"
-        },
-        "channels": {
-            "name": "Název",
-            "switch": "Přepnout",
-            "load_points": "Načíst body",
-            "online": "ONLINE  \u2714",
-            "pending": "PRŮBĚH \u23f3",
-            "offline": "OFFLINE \u274c",
-            "headings": {
-                "channel": "Kanál",
-                "game": "Hra",
-                "points": "Body",
-                "status": "Status",
-                "viewers": "Diváci"
-            }
-        },
-        "inventory": {
-            "filter": {
-                "name": "Filtr",
-                "show": "Drop:",
-                "not_linked": "Nepropojeno",
-                "expired": "Ukončeno",
-                "excluded": "Vynecháno",
-                "upcoming": "Nadcházející",
-                "finished": "Dokončeno",
-                "refresh": "Obnovit"
-            },
-            "status": {
-                "linked": "ŽIVĚ \u2714",
-                "not_linked": "Zatím nejsou dostupné žádné kanály \u274c",
-                "active": "ŽIVĚ \u2714",
-                "upcoming": "Nadcházející \u23f3",
-                "expired": "Ukončeno \u274c",
-                "claimed": "Vyzvednuto \u2714",
-                "ready_to_claim": "Připraveno k vyzvednutí \u23f3"
-            },
-            "starts": "Začíná: {time}",
-            "ends": "Začíná: {time}",
-            "allowed_channels": "Povolené kanály:",
-            "all_channels": "Všechny kanály",
-            "and_more": "Je tu {amount} ...",
-            "percent_progress": "{minutes} minut {percent}",
-            "minutes_progress": "{minutes} minut"
-        },
-        "settings": {
-            "general": {
-                "name": "Nastavení",
-                "autostart": "Automatické spuštění: ",
-                "tray": "Automaticky spusti minimalizovaně: ",
-                "priority_only": "Pouze prioritní: ",
-                "proxy": "Proxy:"
-            },
-            "game_name": "Název Hry",
-            "priority": "Priorita",
-            "exclude": "Vynechat",
-            "reload": "Obnovit",
-            "reload_text": "Většina změn vyžaduje restart aplikace nebo obnovení: "
-        },
-        "help": {
-            "links": {
-                "name": "Nápověda",
-                "inventory": "Zobrazit Twitch Inventář",
-                "campaigns": "Zobrazit všechny kampaňe a spravovat propojené účty"
-            },
-            "how_it_works": "Jak to funguje",
-            "how_it_works_text": "Každých ~20 sekund aplikace požádá Twitch o adresu k čistým datám streamu od kanálu, který je v současnosti sledován. Poté stáhne dodatkové informace těchto dat streamu - to stačí k posunu umístění. Všimněte si, že tímto způsobem zcela odpadá nutnost stahovat skutečné streamované video a zvuk. Aby byl stav kanálu (online nebo offline) stále aktuální, je navázáno spojení přes websocket, které přijímá události o spuštění nebo vypnutí streamů nebo aktualizace o aktuálním počtu diváků.",
-            "getting_started": "Jak začít",
-            "getting_started_text": "1. Přihlaste se do aplikace. \n2. Ujistěte se, že je váš účet Twitch spojen se všemi reklamními sériemi, které chcete těžit. \n3. Pokud chcete klepnout pouze na veškerý obsah, zrušte zaškrtnutí políčka 'Pouze prioritní' a stiskněte tlačítko 'Obnovit'. \n4. Pokud se chcete nejprve věnovat konkrétním hrám, použijte seznam 'Prioritní' a nastavte si pořadí vybraných her. Nejprve se vyzkouší hry na začátku seznamu a poté hry na konci seznamu. \n5. Ponechte zaškrtnutou možnost 'Pouze prioritní', abyste se vyhnuli vyhledávání her, které nejsou na seznamu priorit. Nebo ne - záleží na vás. \n6. Pomocí seznamu 'vyloučit' můžete aplikaci sdělit, které hry by neměly být vytěženy. \n7. Změna obsahu obou seznamů nebo stavu možnosti Pouze prioritní vyžaduje stisknutí tlačítka Znovu načíst, aby se změna projevila."
-        }
+    "progress": {
+      "name": "Průběh Dropu",
+      "drop": "Drop Odměny:",
+      "game": "Hra:",
+      "campaign": "Kampaň:",
+      "remaining": "Zbývá {time}",
+      "drop_progress": "Průběh dropu:",
+      "campaign_progress": "Průběh kampaňe:"
+    },
+    "channels": {
+      "name": "Název",
+      "switch": "Přepnout",
+      "load_points": "Načíst body",
+      "online": "ONLINE  ✔",
+      "pending": "PRŮBĚH ⏳",
+      "offline": "OFFLINE ❌",
+      "headings": {
+        "channel": "Kanál",
+        "status": "Status",
+        "game": "Hra",
+        "viewers": "Diváci",
+        "points": "Body"
+      }
+    },
+    "inventory": {
+      "filter": {
+        "name": "Filtr",
+        "show": "Drop:",
+        "not_linked": "Nepropojeno",
+        "upcoming": "Nadcházející",
+        "expired": "Ukončeno",
+        "excluded": "Vynecháno",
+        "finished": "Dokončeno",
+        "refresh": "Obnovit"
+      },
+      "status": {
+        "linked": "ŽIVĚ ✔",
+        "not_linked": "Zatím nejsou dostupné žádné kanály ❌",
+        "active": "ŽIVĚ ✔",
+        "upcoming": "Nadcházející ⏳",
+        "expired": "Ukončeno ❌",
+        "claimed": "Vyzvednuto ✔",
+        "ready_to_claim": "Připraveno k vyzvednutí ⏳"
+      },
+      "starts": "Začíná: {time}",
+      "ends": "Začíná: {time}",
+      "allowed_channels": "Povolené kanály:",
+      "all_channels": "Všechny kanály",
+      "and_more": "Je tu {amount} ...",
+      "percent_progress": "{minutes} minut {percent}",
+      "minutes_progress": "{minutes} minut"
+    },
+    "settings": {
+      "general": {
+        "name": "Nastavení",
+        "dark_theme": "Tmavý vzhled: ",
+        "autostart": "Automatické spuštění: ",
+        "tray": "Automaticky spusti minimalizovaně: ",
+        "tray_notifications": "Oznámení v systémové liště:",
+        "priority_only": "Pouze prioritní: ",
+        "prioritze_end": "Upřednostnit kampaně podle data ukončení:",
+        "proxy": "Proxy:"
+      },
+      "game_name": "Název Hry",
+      "priority": "Priorita",
+      "exclude": "Vynechat",
+      "reload": "Obnovit",
+      "reload_text": "Většina změn vyžaduje restart aplikace nebo obnovení: "
+    },
+    "help": {
+      "links": {
+        "name": "Nápověda",
+        "inventory": "Zobrazit Twitch Inventář",
+        "campaigns": "Zobrazit všechny kampaňe a spravovat propojené účty"
+      },
+      "how_it_works": "Jak to funguje",
+      "how_it_works_text": "Každých ~20 sekund aplikace požádá Twitch o adresu k čistým datám streamu od kanálu, který je v současnosti sledován. Poté stáhne dodatkové informace těchto dat streamu - to stačí k posunu umístění. Všimněte si, že tímto způsobem zcela odpadá nutnost stahovat skutečné streamované video a zvuk. Aby byl stav kanálu (online nebo offline) stále aktuální, je navázáno spojení přes websocket, které přijímá události o spuštění nebo vypnutí streamů nebo aktualizace o aktuálním počtu diváků.",
+      "getting_started": "Jak začít",
+      "getting_started_text": "1. Přihlaste se do aplikace. \n2. Ujistěte se, že je váš účet Twitch spojen se všemi reklamními sériemi, které chcete těžit. \n3. Pokud chcete klepnout pouze na veškerý obsah, zrušte zaškrtnutí políčka 'Pouze prioritní' a stiskněte tlačítko 'Obnovit'. \n4. Pokud se chcete nejprve věnovat konkrétním hrám, použijte seznam 'Prioritní' a nastavte si pořadí vybraných her. Nejprve se vyzkouší hry na začátku seznamu a poté hry na konci seznamu. \n5. Ponechte zaškrtnutou možnost 'Pouze prioritní', abyste se vyhnuli vyhledávání her, které nejsou na seznamu priorit. Nebo ne - záleží na vás. \n6. Pomocí seznamu 'vyloučit' můžete aplikaci sdělit, které hry by neměly být vytěženy. \n7. Změna obsahu obou seznamů nebo stavu možnosti Pouze prioritní vyžaduje stisknutí tlačítka Znovu načíst, aby se změna projevila."
     }
+  }
 }
