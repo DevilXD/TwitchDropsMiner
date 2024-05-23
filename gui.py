@@ -2159,6 +2159,9 @@ class GUIManager:
 
 def set_theme(root, manager, name):
     style = ttk.Style(root)
+    if not hasattr(set_theme, "default_style"):
+        set_theme.default_style = style.theme_use()         # "Themes" is more fitting for the recolour and "Style" for the button style.
+
     default_font = nametofont("TkDefaultFont")
     large_font = default_font.copy()
     large_font.config(size=12)
@@ -2225,7 +2228,7 @@ def set_theme(root, manager, name):
         
         case "light" | "default" | _ : # When creating a new theme, additional values might need to be set, so the default theme remains consistent
             # General
-            style.theme_use('vista')
+            style.theme_use(set_theme.default_style)
             style.configure('.', background="#f0f0f0", foreground="#000000")
             # Buttons
             style.map("TButton",
