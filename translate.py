@@ -382,10 +382,10 @@ default_translation: Translation = {
                 "Every ~60 seconds, the application sends a \"minute watched\" event "
                 "to the channel that's currently being watched - this is enough "
                 "to advance the drops. Note that this completely bypasses the need to download "
-                "any actual stream video and sound. "
+                "any actual stream of video and sound. "
                 "To keep the status (ONLINE or OFFLINE) of the channels up-to-date, "
-                "there's a websocket connection estabilished that receives events about streams "
-                "going up or down, or updates regarding the current amount of viewers."
+                "there's a websocket connection established that receives events about streams "
+                "going up or down, or updates regarding the current number of viewers."
             ),
             "getting_started": "Getting Started",
             "getting_started_text": (
