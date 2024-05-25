@@ -2,7 +2,7 @@
 
 25.5.2024
 - Added ability to sort by Campaign end date (made by @jaredkotoff)
-- Updated **Simplified and Traditional Chinese**, **Turkish** and **Ukrainian* translation as well as corresponding credits
+- Updated **Simplified and Traditional Chinese**, **Turkish** and **Ukrainian** translation as well as corresponding credits
 
 
 
