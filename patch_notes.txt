@@ -1,8 +1,16 @@
 ## v15.4.0
 
+### 25.5.2024
+- Added ability to sort by Campaign end date (made by @jaredkotoff)
+- Updated English, German, Czech, Spanish and Russian translation as well as corresponding credits for dark themes and potential future Campaign prioritization by end date
+
+
+
+## v15.4.0
+
 ### 23.5.2024
 - Fixed crash on Linux caused by trying to apply a Windows-exclusive Tkinter theme
-- Updated English, German, Czech, Spanish and Russian translation as well as corresponding credits for dark themes and potential future Campaign prioritization by end date
+- Updated **English**, **German**, **Czech**, **Spanish** and **Russian** translation as well as corresponding credits for dark themes and potential future Campaign prioritization by end date
 
 
 
@@ -19,10 +27,10 @@
 ## v15.2.0
 
 ### 19.5.2024
-- Updated French translation as well as corresponding credits
+- Updated **French** translation as well as corresponding credits
 
 ### 18.5.2024
-- Updated Russian, Ukrainian and Traditional Chinese translation as well as corresponding credits
+- Updated **Russian**, **Ukrainian** and **Traditional Chinese** translation as well as corresponding credits
 - Various changes to github workflows
 
 
@@ -30,5 +38,5 @@
 ## v15.1.0
 
 ### 17.5.2024
-- Updated Italian, Simplified Chinese and Spanish translation as well as corresponding credits
+- Updated **Italian**, **Simplified Chinese** and **Spanish** translation as well as corresponding credits
 - Various changes to github workflows
