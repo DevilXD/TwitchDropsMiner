@@ -19,6 +19,7 @@ class SettingsFile(TypedDict):
     exclude: set[str]
     priority: list[str]
     priority_only: bool
+    prioritze_end: bool
     autostart_tray: bool
     connection_quality: int
     tray_notifications: bool
@@ -31,6 +32,7 @@ default_settings: SettingsFile = {
     "dark_theme": False,
     "autostart": False,
     "priority_only": True,
+    "prioritze_end": False,
     "autostart_tray": False,
     "connection_quality": 1,
     "language": DEFAULT_LANG,
@@ -55,6 +57,7 @@ class Settings:
     exclude: set[str]
     priority: list[str]
     priority_only: bool
+    prioritze_end: bool
     autostart_tray: bool
     connection_quality: int
     tray_notifications: bool

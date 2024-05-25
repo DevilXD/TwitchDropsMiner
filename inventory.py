@@ -354,3 +354,7 @@ class DropsCampaign:
             and self.starts_at < stamp
             and any(drop.can_earn_within(stamp) for drop in self.drops)
         )
+
+    def can_earn_within_next_hour(self):
+        next_hour = datetime.now(timezone.utc) + timedelta(hours=1)
+        return self.can_earn_within(next_hour)

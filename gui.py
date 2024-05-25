@@ -1458,6 +1458,7 @@ class _SettingsVars(TypedDict):
     dark_theme: IntVar
     autostart: IntVar
     priority_only: IntVar
+    prioritze_end: IntVar
     tray_notifications: IntVar
 
 
@@ -1476,6 +1477,7 @@ class SettingsPanel:
             "dark_theme": IntVar(master, self._settings.dark_theme),
             "autostart": IntVar(master, self._settings.autostart),
             "priority_only": IntVar(master, self._settings.priority_only),
+            "prioritze_end": IntVar(master, self._settings.prioritze_end),
             "tray_notifications": IntVar(master, self._settings.tray_notifications),
         }
         master.rowconfigure(0, weight=1)
@@ -1539,6 +1541,12 @@ class SettingsPanel:
         ).grid(column=0, row=(irow := irow + 1), sticky="e")
         ttk.Checkbutton(
             checkboxes_frame, variable=self._vars["priority_only"], command=self.priority_only
+        ).grid(column=1, row=irow, sticky="w")
+        ttk.Label(
+            checkboxes_frame, text=_("gui", "settings", "general", "prioritze_end")
+        ).grid(column=0, row=(irow := irow + 1), sticky="e")
+        ttk.Checkbutton(
+            checkboxes_frame, variable=self._vars["prioritze_end"], command=self.prioritze_end
         ).grid(column=1, row=irow, sticky="w")
         # proxy frame
         proxy_frame = ttk.Frame(center_frame2)
@@ -1758,6 +1766,9 @@ class SettingsPanel:
 
     def priority_only(self) -> None:
         self._settings.priority_only = bool(self._vars["priority_only"].get())
+
+    def prioritze_end(self) -> None:
+        self._settings.prioritze_end = bool(self._vars["prioritze_end"].get())
 
     def exclude_add(self) -> None:
         game_name: str = self._exclude_entry.get()
@@ -2173,7 +2184,7 @@ def set_theme(root, manager, name):
                 popdown_window = combobox.tk.call("ttk::combobox::PopdownWindow", combobox)
                 listbox = f"{popdown_window}.f.l"
                 combobox.tk.call(listbox, "configure", flag, value)
-    
+
     # Style options, !!!"background" and "bg" is not interchangable for some reason!!!
     match name:
         case "dark":
@@ -2225,7 +2236,7 @@ def set_theme(root, manager, name):
             configure_combobox_list(manager.settings._exclude_entry, "-background", bg_grey)
             configure_combobox_list(manager.settings._exclude_entry, "-foreground", "white")
             configure_combobox_list(manager.settings._exclude_entry, "-selectbackground", active_grey)
-        
+
         case "light" | "default" | _ : # When creating a new theme, additional values might need to be set, so the default theme remains consistent
             # General
             style.theme_use(set_theme.default_style)
@@ -2388,6 +2399,7 @@ if __name__ == "__main__":
                 autostart=False,
                 language="English",
                 priority_only=False,
+                prioritze_end=False,
                 autostart_tray=False,
                 exclude={"Lit Game"},
                 tray_notifications=True
