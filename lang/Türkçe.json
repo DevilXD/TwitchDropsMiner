@@ -1,161 +1,164 @@
 {
-    "english_name": "Turkish",
+  "english_name": "Turkish",
+  "status": {
+    "terminated": "\nUygulama durduruldu.\nUygulamadan çıkmak için pencereyi kapatın",
+    "watching": "{channel} izleniyor",
+    "goes_online": "{channel} ÇEVRİM İÇİ oldu, geçiş yapılıyor...",
+    "goes_offline": "{channel} ÇEVRİM DIŞI oldu, geçiş yapılıyor...",
+    "claimed_drop": "Alınan ödül: {drop}",
+    "claimed_points": "Kazanılan bonus kanal puanları: {points}",
+    "earned_points": "İzleme karşılığında kazanılan kanal puanları: {points} | Toplam: {balance}",
+    "no_channel": "İzlenebilecek kanal yok. ÇEVRİM İÇİ kanal bekleniyor...",
+    "no_campaign": "Ödül madenciliği için aktif kampanya yok. Aktif bir kampanya bekleniyor..."
+  },
+  "login": {
+    "unexpected_content": "Beklenmeyen içerik türü döndürüldü, genellikle yeniden yönlendirilme nedeniyle. İnternet erişimi için giriş yapmanız gerekiyor mu?",
+    "chrome": {
+      "startup": "Tarayıcı Açılıyor...",
+      "login_to_complete": "Oturum aç düğmesine tekrar basarak oturum açma işlemini kendiniz tamamlayın.",
+      "no_token": "Yetkilendirme anahtarı bulunamadı.",
+      "closed_window": "Oturum açma işlemi tamamlanamadan tarayıcı penceresi kapatıldı."
+    },
+    "error_code": "Oturum açma hatası kodu: {error_code}",
+    "incorrect_login_pass": "Yanlış kullanıcı adı veya şifre.",
+    "incorrect_email_code": "Yanlış e-posta kodu.",
+    "incorrect_twofa_code": "Yanlış 2FA kodu.",
+    "email_code_required": "E-posta kodu gerekli. Lütfen e-postanızı kontrol edin.",
+    "twofa_code_required": "2FA kodu gerekli."
+  },
+  "error": {
+    "captcha": "Giriş denemeniz CAPTCHA tarafından reddedildi.\nLütfen en az 12 saat sonra tekrar deneyin.",
+    "site_down": "Twitch kapalı, {seconds} saniye içinde tekrar denenecek...",
+    "no_connection": "Twitch'e bağlanılamıyor. {seconds} saniye içinde tekrar deneniyor..."
+  },
+  "gui": {
+    "output": "Çıktı",
     "status": {
-        "terminated": "\nUygulama durduruldu.\nUygulamadan çıkmak için pencereyi kapatın",
-        "watching": "{channel} izleniyor",
-        "goes_online": "{channel} ÇEVRİMİÇİ oldu, geçiş yapın...",
-        "goes_offline": "{channel} ÇEVRİMDIŞI duruma geçti, geçiş yapın...",
-        "claimed_drop": "Alınan drop: {drop}",
-        "claimed_points": "Kazanılan kanal puanları: {points}",
-        "earned_points": "İzleme karşılığında kazanılan kanal puanları: {points} | Toplam: {balance}",
-        "no_channel": "Çevrimiçi katılımcı kanal yok. Kanallar bekleniyor...",
-        "no_campaign": "Etkin kampanya yok. Yeni kampanya bekleniyor..."
+      "name": "Durum",
+      "idle": "Boşta",
+      "exiting": "Çıkılıyor...",
+      "terminated": "Sonlandırıldı",
+      "cleanup": " Kanallar temizleniyor...",
+      "gathering": " Kanallar toplanıyor...",
+      "switching": "Kanal değiştiriliyor...",
+      "fetching_inventory": "Envanter getiriliyor...",
+      "fetching_campaigns": "Kampanyalar getiriliyor...",
+      "adding_campaigns": "Kampanyalar envantere ekleniyor... {counter}"
+    },
+    "tabs": {
+      "main": "Ana Sayfa",
+      "inventory": "Envanter",
+      "settings": "Ayarlar",
+      "help": "Yardım"
+    },
+    "tray": {
+      "notification_title": "Ödül alındı",
+      "minimize": "Sistem tepsisine küçült",
+      "show": "Göster",
+      "quit": "Çık"
     },
     "login": {
-        "chrome": {
-            "startup": "Chrome'u Başlat...",
-            "login_to_complete": "Oturum açma işlemini manuel olarak tamamlamak için tekrar Oturum Aç'a basın.",
-            "no_token": "Yetkilendirme belirteci bulunamadı.",
-            "closed_window": "Oturum açma işlemi tamamlanamadan Chrome penceresi kapandı."
-        },
-        "error_code": "Giriş Hata Kodu: {error_code}",
-        "unexpected_content": "Genellikle bir yönlendirme nedeniyle beklenmeyen içerik türü döndürüldü.\nİnternete erişmek için oturum açmanız gerekiyor mu?",
-        "incorrect_login_pass": "Yanlış kullanıcı adı veya şifre.",
-        "incorrect_email_code": "Yanlış e-posta kodu.",
-        "incorrect_twofa_code": "Yanlış 2FA kodu.",
-        "email_code_required": "E-posta kodu gerekli. Lütfen e-postayı kontrol edin.",
-        "twofa_code_required": "2FA belirteci gerekli."
+      "name": "Giriş Yap",
+      "labels": "Durum:\nKullanıcı ID:",
+      "logged_in": "Giriş Yapıldı",
+      "logged_out": "Çıkış Yapıldı",
+      "logging_in": "Giriş yapılıyor...",
+      "required": "Oturum açmak gerekli",
+      "request": "Devam etmek için lütfen giriş yapınız.",
+      "username": "Kullanıcı Adı",
+      "password": "Parola",
+      "twofa_code": "2FA kodu (isteğe bağlı)",
+      "button": "Giriş yap"
     },
-    "error": {
-        "captcha": "Giriş girişimi CAPTCHA tarafından reddedildi.\nLütfen en az 12 saat içinde tekrar deneyin.",
-        "site_down": "cadı ulaşılmaz. {seconds} saniye içinde tekrar deneniyor...",
-        "no_connection": "Twitch'e bağlanılamıyor. {seconds} saniye içinde tekrar deneniyor..."
+    "websocket": {
+      "name": "WebSocket Durumu",
+      "websocket": "WebSocket #{id}:",
+      "initializing": "Başlatılıyor...",
+      "connected": "Bağlandı",
+      "disconnected": "Bağlantı koptu",
+      "connecting": "Bağlanıyor...",
+      "disconnecting": "Bağlantı kesiliyor...",
+      "reconnecting": "Yeniden bağlanılıyor..."
     },
-    "gui": {
-        "output": "Protokoll",
-        "status": {
-            "name": "Durum",
-            "idle": "Boşta",
-            "exiting": "Çıkış...",
-            "terminated": "Sonlandırıldı",
-            "cleanup": "Kanalları temizle..",
-            "gathering": "Kanalları toplama...",
-            "switching": "Kanal değiştiriliyor...",
-            "fetching_inventory": "Envanter getiriliyor...",
-            "fetching_campaigns": "Kampanyalar getiriliyor...",
-            "adding_campaigns": "Kampanyaları envantere ekle... {counter}"
-        },
-        "tabs": {
-            "main": "Anasayfa",
-            "inventory": "Envanter",
-            "settings": "Ayarlar",
-            "help": "Yardım"
-        },
-        "tray": {
-            "notification_title": "Drop alındı",
-            "minimize": "Sistem tepsisine küçült",
-            "show": "Göster",
-            "quit": "Çık"
-        },
-        "login": {
-            "name": "Giriş Yap",
-            "labels": "Durum:\nKullanıcı ID:",
-            "logged_in": "Giriş Yapıldı",
-            "logged_out": "Çıkış Yapıldı",
-            "logging_in": "Kayıt Ol...",
-            "required": "Kaydolmak gerekiyor",
-            "request": "Devam etmek için lütfen giriş yapınız.",
-            "username": "Kullanıcı Adı",
-            "password": "Parola",
-            "twofa_code": "2FA Kodu (opsyonel)",
-            "button": "Kayıt Ol"
-        },
-        "websocket": {
-            "name": "WebSocket Status",
-            "websocket": "WebSocket #{id}:",
-            "initializing": "Başlat...",
-            "connected": "Bağlandı",
-            "disconnected": "Bağlantı koptu",
-            "connecting": "Bağlanıyor...",
-            "disconnecting": "Bağlantı kesiliyor...",
-            "reconnecting": "Yeniden bağlanılıyor..."
-        },
-        "progress": {
-            "name": "Drop İlerlemesi",
-            "drop": "Drop:",
-            "game": "Oyun:",
-            "campaign": "Kampanya:",
-            "remaining": "{time} geriye kalan",
-            "drop_progress": "İlerleme:",
-            "campaign_progress": "İlerleme:"
-        },
-        "channels": {
-            "name": "Kanallar",
-            "switch": "Değiştir",
-            "load_points": "Puanları Yükle",
-            "online": "ONLINE ✔",
-            "pending": "OFFLINE ⏳",
-            "offline": "OFFLINE ❌",
-            "headings": {
-                "channel": "Kanal",
-                "status": "Durum",
-                "game": "Oyun",
-                "viewers": "İzleyici",
-                "points": "Puan"
-            }
-        },
-        "inventory": {
-            "filter": {
-                "name": "Filtre",
-                "show": "Dava etmek:",
-                "not_linked": "Bağlantılı değil",
-                "upcoming": "Gelecek",
-                "expired": "Süresi doldu",
-                "excluded": "Hariç tutuldu",
-                "finished": "Aldı",
-                "refresh": "Güncellemek için"
-            },
-            "status": {
-                "linked": "Bağlantılı ✔",
-                "not_linked": "Bağlantılı değil ❌",
-                "active": "Aktif ✔",
-                "upcoming": "Gelecek ⏳",
-                "expired": "Süresi dolmuş ❌",
-                "claimed": "Alındı ​​✔",
-                "ready_to_claim": "Almaya hazır ⏳"
-            },
-            "starts": "Başladı: {time}",
-            "ends": "Bitiş: {time}",
-            "allowed_channels": "Katılan Kanallar:",
-            "all_channels": "Tüm Kanallar",
-            "and_more": "ve {amount} diğer...",
-            "percent_progress": "{percent} {minutes} dakika",
-            "minutes_progress": "{minutes} dakika"
-        },
-        "settings": {
-            "general": {
-                "name": "Genel",
-                "autostart": "Otomatik başlatma: ",
-                "tray": "Sistem tepsisine otomatik başlatma: ",
-                "priority_only": "Yalnızca öncelik: ",
-                "proxy": "Proxy (Yeniden başlatma gerektirir):"
-            },
-            "game_name": "Oyun",
-            "priority": "Öncelik",
-            "exclude": "Hariç tut",
-            "reload": "Tekrar yükle",
-            "reload_text": "Değişikliklerin çoğu, hemen yürürlüğe girmesi için yeniden yükleme gerektirir: "
-        },
-        "help": {
-            "links": {
-                "name": "Faydalı Bağlantılar",
-                "inventory": "Twitch Envanterini Görüntüle",
-                "campaigns": "Tüm Twitch Kampanyalarını Görüntüle"
-            },
-            "how_it_works": "Nasıl çalışır",
-            "how_it_works_text": "Uygulama, her ~60 saniyede bir \"izlenen dakika\" olayını o anda izlenmekte olan kanala gönderir.\nBu, düşüşü ileri götürmek için yeterlidir. Bu şekilde, indirmeye gerek yoktur akış sağlar ve bant genişliğinden tasarruf sağlar.\nKanalların çevrimiçi veya çevrimdışı durumunu güncel tutmak için, kanalların durumunu kontrol eden\nbir websocket bağlantısı kurulur.",
-            "getting_started": "Başlarken",
-            "getting_started_text": "• Uygulamada oturum açın.\n• Twitch hesabının ilgilendiğiniz tüm kampanyalara bağlı olduğundan emin olun.\n• Tüm ödüllerin işlenmesini istiyorsanız, \"Yalnızca öncelikli \" seçeneğinin işaretini kaldırın ve \"Yeniden Yükle\"ye basın.\n• Yalnızca belirli oyunların dikkate alınmasını istiyorsanız, seçimi oyuna göre daraltmak için \"Öncelik\" listesini kullanın.\n• Liste yukarıdan aşağıya doğru öncelik sırasına göre sıralanır. n• \"Yalnızca öncelik\" seçeneği, öncelik listesinde olmayan oyunların işlenmesini engeller.\n• \"Hariç tut\" listesi ile, asla olması gerektiği düşünülmeyecek oyunların filtrelenmesi mümkündür.\n• Listeler veya seçenekler özelleştirilmişse, değişikliklerin geçerli olması için \"Yeniden Yükle\"ye basılmalıdır."
-        }
+    "progress": {
+      "name": "Ödül İlerlemesi",
+      "drop": "Ödül:",
+      "game": "Oyun:",
+      "campaign": "Kampanya:",
+      "remaining": "{time} geriye kalan",
+      "drop_progress": "İlerleme:",
+      "campaign_progress": "İlerleme:"
+    },
+    "channels": {
+      "name": "Kanallar",
+      "switch": "Değiştir",
+      "load_points": "Puanları Yükle",
+      "online": "ÇEVRİM İÇİ ✔",
+      "pending": "ÇEVRİM DIŞI⏳",
+      "offline": "ÇEVRİM DIŞI ❌",
+      "headings": {
+        "channel": "Kanal",
+        "status": "Durum",
+        "game": "Oyun",
+        "viewers": "İzleyiciler",
+        "points": "Puan"
+      }
+    },
+    "inventory": {
+      "filter": {
+        "name": "Filtre",
+        "show": "Göster:",
+        "not_linked": "Bağlantılı değil",
+        "upcoming": "Gelecekler",
+        "expired": "Süresi dolanlar",
+        "excluded": "Hariç tutulanlar",
+        "finished": "Bitenler",
+        "refresh": "Yenile"
+      },
+      "status": {
+        "linked": "Bağlantılı ✔",
+        "not_linked": "Bağlantılı değil ❌",
+        "active": "Aktif ✔",
+        "upcoming": "Gelecek ⏳",
+        "expired": "Süresi dolmuş ❌",
+        "claimed": "Alındı ​​✔",
+        "ready_to_claim": "Almaya hazır ⏳"
+      },
+      "starts": "Başladı: {time}",
+      "ends": "Bitti: {time}",
+      "allowed_channels": "Katılan Kanallar:",
+      "all_channels": "Tüm Kanallar",
+      "and_more": "ve {amount} diğer...",
+      "percent_progress": "{percent} {minutes} dakika",
+      "minutes_progress": "{minutes} dakika"
+    },
+    "settings": {
+      "general": {
+        "name": "Genel",
+        "dark_theme": "Karanlık tema:",
+        "autostart": "Otomatik başlat: ",
+        "tray": "Sistem tepsisine otomatik başlat: ",
+        "tray_notifications": "Bildirim gönder: ",
+        "priority_only": "Öncelik sıralamasına göre: ",
+        "prioritze_end": "En kısa sürede biteceklere öncelik ver:",
+        "proxy": "Proxy (Yeniden başlatma gerektirir):"
+      },
+      "game_name": "Oyun ismi",
+      "priority": "Öncelik",
+      "exclude": "Hariç tut",
+      "reload": "Yeniden Yükle",
+      "reload_text": "Değişikliklerin uygulanabilmesi için yeniden yükle tuşuna basılması lazım:"
+    },
+    "help": {
+      "links": {
+        "name": "Faydalı Bağlantılar",
+        "inventory": "Twitch Envanterini Görüntüle",
+        "campaigns": "Tüm Twitch Kampanyalarını Görüntüle"
+      },
+      "how_it_works": "Nasıl çalışır",
+      "how_it_works_text": "Uygulama, her 20 saniyede bir Twitch'ten o anda izlenmekte olan kanalın ham akış verilerine ait bir URL ister. Daha sonra bu veri akışının meta verilerini alır bu ödülleri ilerletmek için yeterlidir. Bu herhangi bir video ve sesi indirme ihtiyacını tamamen atlar. Kanalların durumunu (Çevrim içi veya Çevrim dışı) güncel tutmak için, akışların yukarı veya aşağı gitmesiyle ilgili olayları veya mevcut izleyici miktarıyla ilgili güncellemeleri alan bir websocket bağlantısı kurulmuştur.",
+      "getting_started": "Başlarken",
+      "getting_started_text": "1. Uygulamaya giriş yapın.\n2. Twitch hesabınızın madencilikle ilgilendiğiniz tüm kampanyalara bağlı olduğundan emin olun.\n3. Her şeyi madencilikle ilgileniyorsanız, “Yalnızca öncelikli” seçeneğinin işaretini kaldırın ve “Yeniden Yükle” tuşuna basın.\n4. Önce belirli oyunların madenciliğini yapmak istiyorsanız, seçtiğiniz oyunların sıralı bir listesini oluşturmak için “Öncelik” listesini kullanın. Listenin en üstündeki oyunlar, listenin altındakilerden önce çıkarılmaya çalışılacaktır.\n5. Öncelik listesinde olmayan oyunların madenciliğini önlemek için “Yalnızca öncelik” seçeneğini işaretli tutun. Ya da yapmayın , bu size kalmış.\n6. Uygulamaya hangi oyunların asla madenciliğinin yapılmaması gerektiğini söylemek için “Hariç tut” listesini kullanın.\n7. Listelerden herhangi birinin içeriğini değiştirmek veya “Yalnızca öncelik” seçeneğinin durumunu değiştirmek, değişikliklerin etkili olması için “Yeniden Yükle” düğmesine basmanızı gerektirir."
     }
+  }
 }
