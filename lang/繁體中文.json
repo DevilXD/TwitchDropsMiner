@@ -1,162 +1,164 @@
 {
-    "english_name": "Traditional Chinese",
+  "english_name": "Traditional Chinese",
+  "status": {
+    "terminated": "\n應用程序已終止，請關閉窗口以退出應用程序。",
+    "watching": "正在觀看: {channel}",
+    "goes_online": "{channel} 該頻道已上線, 正在切換...",
+    "goes_offline": "{channel} 該頻道已離線, 正在切換...",
+    "claimed_drop": "領取的掉寶: {drop}",
+    "claimed_points": "領取的積分獎勵: {points}",
+    "earned_points": "觀看直播獲得積分: {points}, 總積分: {balance}",
+    "no_channel": "沒有可觀看的頻道，等待一個在線直播頻道...",
+    "no_campaign": "沒有可用於掉寶的活動，等待一個有效的掉寶活動..."
+  },
+  "login": {
+    "unexpected_content": "返回的內容類型有誤通常是由於被重定向.您需要設置VPN或者確認登錄頁面才能聯網嗎？",
+    "chrome": {
+      "startup": "正在打開Chrome瀏覽器...",
+      "login_to_complete": "請再次點擊登錄按鈕來完成登陸.",
+      "no_token": "無法獲取授權令牌.",
+      "closed_window": "在登錄完成之前關閉了Chrome瀏覽器."
+    },
+    "error_code": "登錄出錯: {error_code}",
+    "incorrect_login_pass": "用戶名或密碼錯誤.",
+    "incorrect_email_code": "電子郵箱驗證碼錯誤.",
+    "incorrect_twofa_code": "雙重驗證2FA令牌錯誤.",
+    "email_code_required": "需要電子郵件驗證碼 查看你的郵件.",
+    "twofa_code_required": "需要雙重驗證2FA令牌."
+  },
+  "error": {
+    "captcha": "您的登錄存在異常,Twitch官方已進行限制,請在12小時後重試.",
+    "site_down": "Twitch無法連接，{seconds} 秒後重試...",
+    "no_connection": "無法連接到Twitch,請確保已經開啟VPN並添加了代理，{seconds} 秒後重試..."
+  },
+  "gui": {
+    "output": "輸出日志",
     "status": {
-        "terminated": "\n應用程序已終止，請關閉窗口以退出應用程序。",
-        "watching": "正在觀看: {channel}",
-        "goes_online": "{channel} 該頻道已上線, 正在切換...",
-        "goes_offline": "{channel} 該頻道已離線, 正在切換...",
-        "claimed_drop": "領取的掉寶: {drop}",
-        "claimed_points": "領取的積分獎勵: {points}",
-        "earned_points": "觀看直播獲得積分: {points}, 總積分: {balance}",
-        "no_channel": "沒有可觀看的頻道，等待一個在線直播頻道...",
-        "no_campaign": "沒有可用於掉寶的活動，等待一個有效的掉寶活動..."
+      "name": "狀態",
+      "idle": "已完成獲取",
+      "exiting": "正在退出...",
+      "terminated": "應用已終止運行",
+      "cleanup": "清除頻道中...",
+      "gathering": "搜索直播頻道...",
+      "switching": "切換直播頻道中...",
+      "fetching_inventory": "獲取庫存中...",
+      "fetching_campaigns": "獲取掉寶活動...",
+      "adding_campaigns": "將掉寶活動列表添加至庫存... {counter}"
+    },
+    "tabs": {
+      "main": "主面板",
+      "inventory": "掉寶庫存",
+      "settings": "設置",
+      "help": "幫助"
+    },
+    "tray": {
+      "notification_title": "開始掉寶活動",
+      "minimize": "窗口最小化",
+      "show": "掉寶活動",
+      "quit": "退出"
     },
     "login": {
-        "chrome": {
-            "startup": "正在打開Chrome瀏覽器...",
-            "login_to_complete": "請再次點擊登錄按鈕來完成登陸.",
-            "no_token": "無法獲取授權令牌.",
-            "closed_window": "在登錄完成之前關閉了Chrome瀏覽器."
-        },
-        "error_code": "登錄出錯: {error_code}",
-        "unexpected_content": "返回的內容類型有誤通常是由於被重定向.您需要設置VPN或者確認登錄頁面才能聯網嗎？",
-        "incorrect_login_pass": "用戶名或密碼錯誤.",
-        "incorrect_email_code": "電子郵箱驗證碼錯誤.",
-        "incorrect_twofa_code": "雙重驗證2FA令牌錯誤.",
-        "email_code_required": "需要電子郵件驗證碼 查看你的郵件.",
-        "twofa_code_required": "需要雙重驗證2FA令牌."
+      "name": "登錄Twitch賬號",
+      "labels": "狀態:\n用戶ID:",
+      "logged_in": "已登錄",
+      "logged_out": "未登錄",
+      "logging_in": "正在登錄中...",
+      "required": "請先登錄",
+      "request": "請先登錄以訪問更多內容.",
+      "username": "用戶名",
+      "password": "密碼",
+      "twofa_code": "郵箱2FA令牌",
+      "button": "登錄"
     },
-    "error": {
-        "captcha": "您的登錄存在異常,Twitch官方已進行限制,請在12小時后重試.",
-        "site_down": "Twitch無法連接，{seconds} 秒后重試...",
-        "no_connection": "無法連接到Twitch,請確保已經開啟VPN並添加了代理，{seconds} 秒后重試..."
+    "websocket": {
+      "name": "網絡協議連接狀態",
+      "websocket": "Websocket #{id}:",
+      "initializing": "初始化...",
+      "connected": "已連接",
+      "disconnected": "斷開連接",
+      "connecting": "連接中...",
+      "disconnecting": "斷開連接中...",
+      "reconnecting": "重新連接中..."
     },
-    "gui": {
-        "output": "輸出日志",
-        "status": {
-            "name": "狀態",
-            "idle": "已完成獲取",
-            "exiting": "正在退出...",
-            "terminated": "應用已終止運行",
-            "cleanup": "清除頻道中...",
-            "gathering": "搜索直播頻道...",
-            "switching": "切換直播頻道中...",
-            "fetching_inventory": "獲取庫存中...",
-            "fetching_campaigns": "獲取掉寶活動...",
-            "adding_campaigns": "將掉寶活動列表添加至庫存... {counter}"
-        },
-        "tabs": {
-            "main": "主面板",
-            "inventory": "掉寶庫存",
-            "settings": "設置",
-            "help": "幫助"
-        },
-        "tray": {
-            "notification_title": "開始掉寶活動",
-            "minimize": "窗口最小化",
-            "show": "掉寶活動",
-            "quit": "退出"
-        },
-        "login": {
-            "name": "登錄Twitch賬號",
-            "labels": "狀態:\n用戶ID:",
-            "logged_in": "已登錄",
-            "logged_out": "未登錄",
-            "logging_in": "正在登錄中...",
-            "required": "請先登錄",
-            "request": "請先登錄以訪問更多內容.",
-            "username": "用戶名",
-            "password": "密碼",
-            "twofa_code": "郵箱2FA令牌",
-            "button": "登錄"
-        },
-        "websocket": {
-            "name": "網絡協議連接狀態",
-            "websocket": "Websocket #{id}:",
-            "initializing": "初始化...",
-            "connected": "已連接",
-            "disconnected": "斷開連接",
-            "connecting": "連接中...",
-            "disconnecting": "斷開連接中...",
-            "reconnecting": "重新連接中..."
-        },
-        "progress": {
-            "name": "掉寶活動進度",
-            "drop": "掉寶獎勵:",
-            "game": "遊戲:",
-            "remaining": "剩余 {time}",
-            "campaign": "掉寶活動名稱:",
-            "drop_progress": "掉寶進度:",
-            "campaign_progress": "活動進度:"
-        },
-        "channels": {
-            "name": "活動頻道",
-            "switch": "切換",
-            "load_points": "加載積分",
-            "online": "ONLINE  \u2714",
-            "pending": "OFFLINE \u23f3",
-            "offline": "OFFLINE \u274c",
-            "headings": {
-                "channel": "直播頻道",
-                "game": "遊戲",
-                "points": "積分",
-                "status": "在線狀態",
-                "viewers": "觀眾"
-            }
-        },
-        "inventory": {
-            "filter": {
-                "name": "篩選",
-                "show": "掉寶活動:",
-                "not_linked": "未關聯賬戶的遊戲掉寶",
-                "expired": "已結束",
-                "excluded": "未添加的掉寶活動",
-                "upcoming": "即將上線",
-                "finished": "已完成",
-                "refresh": "刷新"
-            },
-            "status": {
-                "linked": "已關聯 \u2714",
-                "not_linked": "未關聯賬戶 \u274c",
-                "active": "已上線 \u2714",
-                "upcoming": "即將上線 \u23f3",
-                "expired": "已結束 \u274c",
-                "claimed": "已領取 \u2714",
-                "ready_to_claim": "可以領取 \u23f3"
-            },
-            "starts": "開始時間: {time}",
-            "ends": "結束時間: {time}",
-            "allowed_channels": "允許的頻道:",
-            "all_channels": "全部",
-            "and_more": "還有 {amount} 個...",
-            "percent_progress": "{minutes} 分鐘的 {percent}",
-            "minutes_progress": "{minutes} 分鐘"
-        },
-        "settings": {
-            "general": {
-                "name": "功能設置",
-                "autostart": "開機自啟動: ",
-                "tray": "開機自啟動並最小化: ",
-                "tray_notifications": "啟用托盤通知: ",
-                "priority_only": "僅參與優先掉寶遊戲: ",
-                "proxy": "代理:"
-            },
-            "game_name": "遊戲名稱",
-            "priority": "優先掉寶遊戲",
-            "exclude": "不參與掉寶遊戲",
-            "reload": "刷新",
-            "reload_text": "大多數設置更改后需要重新啟動軟件或刷新才能生效: "
-        },
-        "help": {
-            "links": {
-                "name": "幫助",
-                "inventory": "查看Twitch庫存",
-                "campaigns": "查看所有掉寶活動並管理連接賬號"
-            },
-            "how_it_works": "工作原理",
-            "how_it_works_text": "每隔約 20 秒，程序就會向 Twitch 詢問當前正在觀看的頻道的原始數據流 URL。然后，它會獲取這個數據流的元數據。 - 這足以推進掉寶進度。這完全不需要下載任何實際的視頻流和音頻流。為了使頻道的狀態（在線或離線）保持最新，程序會建立 Websocket 連接，用於接收有關頻道開播和下播的事件，並更新當前的觀眾數量。",
-            "getting_started": "入門設置",
-            "getting_started_text": "1. 登錄應用程序。\n2.確保所有感興趣挖掘的遊戲的賬號已連接到您的Twitch賬號。\n3.如果您想挖掘所有掉寶，請不要勾選“僅參與優先掉寶遊戲”，然后按“刷新”。\n4.如果您想優先挖掘特定遊戲，請使用“優先掉寶遊戲”列表設置您想挖掘的遊戲的優先順序。程序將嘗試先挖掘列表頂部的遊戲，然后再挖掘后邊的遊戲。\n5.勾選“僅參與優先掉寶遊戲”時，不會挖掘不在優先列表中的遊戲。勾不勾選取決於你。\n6。使用“不參與掉寶遊戲”列表設置永不挖掘的遊戲。\n7.更改任一列表的內容，或更改“僅參與優先掉寶遊戲”勾選狀態，需要手動按“刷新”才能使更改生效。"
-        }
+    "progress": {
+      "name": "掉寶活動進度",
+      "drop": "掉寶獎勵:",
+      "game": "遊戲:",
+      "campaign": "掉寶活動名稱:",
+      "remaining": "剩余 {time}",
+      "drop_progress": "掉寶進度:",
+      "campaign_progress": "活動進度:"
+    },
+    "channels": {
+      "name": "活動頻道",
+      "switch": "切換",
+      "load_points": "加載積分",
+      "online": "ONLINE  ✔",
+      "pending": "OFFLINE ⏳",
+      "offline": "OFFLINE ❌",
+      "headings": {
+        "channel": "直播頻道",
+        "status": "在線狀態",
+        "game": "遊戲",
+        "viewers": "觀眾",
+        "points": "積分"
+      }
+    },
+    "inventory": {
+      "filter": {
+        "name": "篩選",
+        "show": "掉寶活動:",
+        "not_linked": "未關聯賬戶的遊戲掉寶",
+        "upcoming": "即將上線",
+        "expired": "已結束",
+        "excluded": "未添加的掉寶活動",
+        "finished": "已完成",
+        "refresh": "刷新"
+      },
+      "status": {
+        "linked": "已關聯 ✔",
+        "not_linked": "未關聯賬戶 ❌",
+        "active": "已上線 ✔",
+        "upcoming": "即將上線 ⏳",
+        "expired": "已結束 ❌",
+        "claimed": "已領取 ✔",
+        "ready_to_claim": "可以領取 ⏳"
+      },
+      "starts": "開始時間: {time}",
+      "ends": "結束時間: {time}",
+      "allowed_channels": "允許的頻道:",
+      "all_channels": "全部",
+      "and_more": "還有 {amount} 個...",
+      "percent_progress": "{minutes} 分鐘的 {percent}",
+      "minutes_progress": "{minutes} 分鐘"
+    },
+    "settings": {
+      "general": {
+        "name": "功能設置",
+        "dark_theme": "暗色主題: ",
+        "autostart": "開機自啟動: ",
+        "tray": "開機自啟動並最小化: ",
+        "tray_notifications": "啟用托盤通知: ",
+        "priority_only": "僅參與優先掉寶遊戲: ",
+        "prioritze_end": "按掉寶遊戲的結束日期決定優先度: ",
+        "proxy": "代理:"
+      },
+      "game_name": "遊戲名稱",
+      "priority": "優先掉寶遊戲",
+      "exclude": "不參與掉寶遊戲",
+      "reload": "刷新",
+      "reload_text": "大多數設置更改後需要重新啟動軟件或刷新才能生效:"
+    },
+    "help": {
+      "links": {
+        "name": "幫助",
+        "inventory": "查看Twitch庫存",
+        "campaigns": "查看所有掉寶活動並管理連接賬號"
+      },
+      "how_it_works": "工作原理",
+      "how_it_works_text": "每隔約 20 秒，程序就會向 Twitch 詢問當前正在觀看的頻道的原始數據流 URL。然後，它會獲取這個數據流的元數據。 - 這足以推進掉寶進度。這完全不需要下載任何實際的視頻流和音頻流。為了使頻道的狀態（在線或離線）保持最新，程序會建立 Websocket 連接，用於接收有關頻道開播和下播的事件，並更新當前的觀眾數量。",
+      "getting_started": "入門設置",
+      "getting_started_text": "1. 登錄應用程序。\n2.確保所有感興趣挖掘的遊戲的賬號已連接到您的Twitch賬號。\n3.如果您想挖掘所有掉寶，請不要勾選“僅參與優先掉寶遊戲”，然後按“刷新”。\n4.如果您想優先挖掘特定遊戲，請使用“優先掉寶遊戲”列表設置您想挖掘的遊戲的優先順序。程序將嘗試先挖掘列表頂部的遊戲，然後再挖掘後邊的遊戲。\n5.勾選“僅參與優先掉寶遊戲”時，不會挖掘不在優先列表中的遊戲。勾不勾選取決於你。\n6。使用“不參與掉寶遊戲”列表設置永不挖掘的遊戲。\n7.更改任一列表的內容，或更改“僅參與優先掉寶遊戲”勾選狀態，需要手動按“刷新”才能使更改生效。"
     }
+  }
 }
