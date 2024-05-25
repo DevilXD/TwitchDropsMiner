@@ -1,162 +1,164 @@
 {
-    "english_name": "Simplified Chinese",
+  "english_name": "Simplified Chinese",
+  "status": {
+    "terminated": "\n应用程序已终止，请关闭窗口以退出应用程序。",
+    "watching": "正在观看: {channel}",
+    "goes_online": "{channel} 该频道已上线, 正在切换...",
+    "goes_offline": "{channel} 该频道已离线, 正在切换...",
+    "claimed_drop": "领取的掉宝: {drop}",
+    "claimed_points": "领取的积分奖励: {points}",
+    "earned_points": "观看直播获得积分: {points}, 总积分: {balance}",
+    "no_channel": "没有可观看的频道，等待一个在线直播频道...",
+    "no_campaign": "没有可用于掉宝的活动，等待一个有效的掉宝活动..."
+  },
+  "login": {
+    "unexpected_content": "返回的内容类型有误通常是由于被重定向.您需要设置VPN或者确认登录页面才能联网吗？",
+    "chrome": {
+      "startup": "正在打开Chrome浏览器...",
+      "login_to_complete": "请再次点击登录按钮来完成登陆.",
+      "no_token": "无法获取授权令牌.",
+      "closed_window": "在登录完成之前关闭了Chrome浏览器."
+    },
+    "error_code": "登录出错: {error_code}",
+    "incorrect_login_pass": "用户名或密码错误.",
+    "incorrect_email_code": "电子邮箱验证码错误.",
+    "incorrect_twofa_code": "双重验证2FA令牌错误.",
+    "email_code_required": "需要电子邮件验证码 查看你的邮件.",
+    "twofa_code_required": "需要双重验证2FA令牌."
+  },
+  "error": {
+    "captcha": "您的登录存在异常,Twitch官方已进行限制,请在12小时后重试.",
+    "site_down": "Twitch无法连接，{seconds} 秒后重试...",
+    "no_connection": "无法连接到Twitch,请确保已经开启VPN并添加了代理，{seconds} 秒后重试..."
+  },
+  "gui": {
+    "output": "输出日志",
     "status": {
-        "terminated": "\n应用程序已终止，请关闭窗口以退出应用程序。",
-        "watching": "正在观看: {channel}",
-        "goes_online": "{channel} 该频道已上线, 正在切换...",
-        "goes_offline": "{channel} 该频道已离线, 正在切换...",
-        "claimed_drop": "领取的掉宝: {drop}",
-        "claimed_points": "领取的积分奖励: {points}",
-        "earned_points": "观看直播获得积分: {points}, 总积分: {balance}",
-        "no_channel": "没有可观看的频道，等待一个在线直播频道...",
-        "no_campaign": "没有可用于掉宝的活动，等待一个有效的掉宝活动..."
+      "name": "状态",
+      "idle": "已完成获取",
+      "exiting": "正在退出...",
+      "terminated": "应用已终止运行",
+      "cleanup": "清除频道中...",
+      "gathering": "搜索直播频道...",
+      "switching": "切换直播频道中...",
+      "fetching_inventory": "获取库存中...",
+      "fetching_campaigns": "获取掉宝活动...",
+      "adding_campaigns": "将掉宝活动列表添加至库存... {counter}"
+    },
+    "tabs": {
+      "main": "主面板",
+      "inventory": "掉宝库存",
+      "settings": "设置",
+      "help": "帮助"
+    },
+    "tray": {
+      "notification_title": "开始掉宝活动",
+      "minimize": "窗口最小化",
+      "show": "掉宝活动",
+      "quit": "退出"
     },
     "login": {
-        "chrome": {
-            "startup": "正在打开Chrome浏览器...",
-            "login_to_complete": "请再次点击登录按钮来完成登陆.",
-            "no_token": "无法获取授权令牌.",
-            "closed_window": "在登录完成之前关闭了Chrome浏览器."
-        },
-        "error_code": "登录出错: {error_code}",
-        "unexpected_content": "返回的内容类型有误通常是由于被重定向.您需要设置VPN或者确认登录页面才能联网吗？",
-        "incorrect_login_pass": "用户名或密码错误.",
-        "incorrect_email_code": "电子邮箱验证码错误.",
-        "incorrect_twofa_code": "双重验证2FA令牌错误.",
-        "email_code_required": "需要电子邮件验证码 查看你的邮件.",
-        "twofa_code_required": "需要双重验证2FA令牌."
+      "name": "登录Twitch账号",
+      "labels": "状态:\n用户ID:",
+      "logged_in": "已登录",
+      "logged_out": "未登录",
+      "logging_in": "正在登录中...",
+      "required": "请先登录",
+      "request": "请先登录以访问更多内容.",
+      "username": "用户名",
+      "password": "密码",
+      "twofa_code": "邮箱2FA令牌",
+      "button": "登录"
     },
-    "error": {
-        "captcha": "您的登录存在异常,Twitch官方已进行限制,请在12小时后重试.",
-        "site_down": "Twitch无法连接，{seconds} 秒后重试...",
-        "no_connection": "无法连接到Twitch,请确保已经开启VPN并添加了代理，{seconds} 秒后重试..."
+    "websocket": {
+      "name": "网络协议连接状态",
+      "websocket": "Websocket #{id}:",
+      "initializing": "初始化...",
+      "connected": "已连接",
+      "disconnected": "断开连接",
+      "connecting": "连接中...",
+      "disconnecting": "断开连接中...",
+      "reconnecting": "重新连接中..."
     },
-    "gui": {
-        "output": "输出日志",
-        "status": {
-            "name": "状态",
-            "idle": "已完成获取",
-            "exiting": "正在退出...",
-            "terminated": "应用已终止运行",
-            "cleanup": "清除频道中...",
-            "gathering": "搜索直播频道...",
-            "switching": "切换直播频道中...",
-            "fetching_inventory": "获取库存中...",
-            "fetching_campaigns": "获取掉宝活动...",
-            "adding_campaigns": "将掉宝活动列表添加至库存... {counter}"
-        },
-        "tabs": {
-            "main": "主面板",
-            "inventory": "掉宝库存",
-            "settings": "设置",
-            "help": "帮助"
-        },
-        "tray": {
-            "notification_title": "开始掉宝活动",
-            "minimize": "窗口最小化",
-            "show": "掉宝活动",
-            "quit": "退出"
-        },
-        "login": {
-            "name": "登录Twitch账号",
-            "labels": "状态:\n用户ID:",
-            "logged_in": "已登录",
-            "logged_out": "未登录",
-            "logging_in": "正在登录中...",
-            "required": "请先登录",
-            "request": "请先登录以访问更多内容.",
-            "username": "用户名",
-            "password": "密码",
-            "twofa_code": "邮箱2FA令牌",
-            "button": "登录"
-        },
-        "websocket": {
-            "name": "网络协议连接状态",
-            "websocket": "Websocket #{id}:",
-            "initializing": "初始化...",
-            "connected": "已连接",
-            "disconnected": "断开连接",
-            "connecting": "连接中...",
-            "disconnecting": "断开连接中...",
-            "reconnecting": "重新连接中..."
-        },
-        "progress": {
-            "name": "掉宝活动进度",
-            "drop": "掉宝奖励:",
-            "game": "游戏:",
-            "remaining": "剩余 {time}",
-            "campaign": "掉宝活动名称:",
-            "drop_progress": "掉宝进度:",
-            "campaign_progress": "活动进度:"
-        },
-        "channels": {
-            "name": "活动频道",
-            "switch": "切换",
-            "load_points": "加载积分",
-            "online": "ONLINE  \u2714",
-            "pending": "OFFLINE \u23f3",
-            "offline": "OFFLINE \u274c",
-            "headings": {
-                "channel": "直播频道",
-                "game": "游戏",
-                "points": "积分",
-                "status": "在线状态",
-                "viewers": "观众"
-            }
-        },
-        "inventory": {
-            "filter": {
-                "name": "筛选",
-                "show": "掉宝活动:",
-                "not_linked": "未关联账户的游戏掉宝",
-                "expired": "已结束",
-                "excluded": "未添加的掉宝活动",
-                "upcoming": "即将上线",
-                "finished": "已完成",
-                "refresh": "刷新"
-            },
-            "status": {
-                "linked": "已关联 \u2714",
-                "not_linked": "未关联账户 \u274c",
-                "active": "已上线 \u2714",
-                "upcoming": "即将上线 \u23f3",
-                "expired": "已结束 \u274c",
-                "claimed": "已领取 \u2714",
-                "ready_to_claim": "可以领取 \u23f3"
-            },
-            "starts": "开始时间: {time}",
-            "ends": "结束时间: {time}",
-            "allowed_channels": "允许的频道:",
-            "all_channels": "全部",
-            "and_more": "还有 {amount} 个...",
-            "percent_progress": "{minutes} 分钟的 {percent}",
-            "minutes_progress": "{minutes} 分钟"
-        },
-        "settings": {
-            "general": {
-                "name": "功能设置",
-                "autostart": "开机自启动: ",
-                "tray": "开机自启动并最小化: ",
-                "tray_notifications": "启用托盘通知: ",
-                "priority_only": "仅参与优先掉宝游戏: ",
-                "proxy": "代理:"
-            },
-            "game_name": "游戏名称",
-            "priority": "优先掉宝游戏",
-            "exclude": "不参与掉宝游戏",
-            "reload": "刷新",
-            "reload_text": "大多数设置更改后需要重新启动软件或刷新才能生效: "
-        },
-        "help": {
-            "links": {
-                "name": "帮助",
-                "inventory": "查看Twitch库存",
-                "campaigns": "查看所有掉宝活动并管理连接账号"
-            },
-            "how_it_works": "工作原理",
-            "how_it_works_text": "每隔约 20 秒，程序就会向 Twitch 询问当前正在观看的频道的原始数据流 URL。然后，它会获取这个数据流的元数据。 - 这足以推进掉宝进度。这完全不需要下载任何实际的视频流和音频流。为了使频道的状态（在线或离线）保持最新，程序会建立 Websocket 连接，用于接收有关频道开播和下播的事件，并更新当前的观众数量。",
-            "getting_started": "入门设置",
-            "getting_started_text": "1. 登录应用程序。\n2.确保所有感兴趣挖掘的游戏的账号已连接到您的Twitch账号。\n3.如果您想挖掘所有掉宝，请不要勾选“仅参与优先掉宝游戏”，然后按“刷新”。\n4.如果您想优先挖掘特定游戏，请使用“优先掉宝游戏”列表设置您想挖掘的游戏的优先顺序。程序将尝试先挖掘列表顶部的游戏，然后再挖掘后边的游戏。\n5.勾选“仅参与优先掉宝游戏”时，不会挖掘不在优先列表中的游戏。勾不勾选取决于你。\n6。使用“不参与掉宝游戏”列表设置永不挖掘的游戏。\n7.更改任一列表的内容，或更改“仅参与优先掉宝游戏”勾选状态，需要手动按“刷新”才能使更改生效。"
-        }
+    "progress": {
+      "name": "掉宝活动进度",
+      "drop": "掉宝奖励:",
+      "game": "游戏:",
+      "campaign": "掉宝活动名称:",
+      "remaining": "剩余 {time}",
+      "drop_progress": "掉宝进度:",
+      "campaign_progress": "活动进度:"
+    },
+    "channels": {
+      "name": "活动频道",
+      "switch": "切换",
+      "load_points": "加载积分",
+      "online": "ONLINE  ✔",
+      "pending": "OFFLINE ⏳",
+      "offline": "OFFLINE ❌",
+      "headings": {
+        "channel": "直播频道",
+        "status": "在线状态",
+        "game": "游戏",
+        "viewers": "观众",
+        "points": "积分"
+      }
+    },
+    "inventory": {
+      "filter": {
+        "name": "筛选",
+        "show": "掉宝活动:",
+        "not_linked": "未关联账户的游戏掉宝",
+        "upcoming": "即将上线",
+        "expired": "已结束",
+        "excluded": "未添加的掉宝活动",
+        "finished": "已完成",
+        "refresh": "刷新"
+      },
+      "status": {
+        "linked": "已关联 ✔",
+        "not_linked": "未关联账户 ❌",
+        "active": "已上线 ✔",
+        "upcoming": "即将上线 ⏳",
+        "expired": "已结束 ❌",
+        "claimed": "已领取 ✔",
+        "ready_to_claim": "可以领取 ⏳"
+      },
+      "starts": "开始时间: {time}",
+      "ends": "结束时间: {time}",
+      "allowed_channels": "允许的频道:",
+      "all_channels": "全部",
+      "and_more": "还有 {amount} 个...",
+      "percent_progress": "{minutes} 分钟的 {percent}",
+      "minutes_progress": "{minutes} 分钟"
+    },
+    "settings": {
+      "general": {
+        "name": "功能设置",
+        "dark_theme": "暗色主题: ",
+        "autostart": "开机自启动: ",
+        "tray": "开机自启动并最小化: ",
+        "tray_notifications": "启用托盘通知: ",
+        "priority_only": "仅参与优先掉宝游戏: ",
+        "prioritze_end": "按掉宝游戏的结束日期决定优先度: ",
+        "proxy": "代理:"
+      },
+      "game_name": "游戏名称",
+      "priority": "优先掉宝游戏",
+      "exclude": "不参与掉宝游戏",
+      "reload": "刷新",
+      "reload_text": "大多数设置更改后需要重新启动软件或刷新才能生效: "
+    },
+    "help": {
+      "links": {
+        "name": "帮助",
+        "inventory": "查看Twitch库存",
+        "campaigns": "查看所有掉宝活动并管理连接账号"
+      },
+      "how_it_works": "工作原理",
+      "how_it_works_text": "每隔约 20 秒，程序就会向 Twitch 询问当前正在观看的频道的原始数据流 URL。然后，它会获取这个数据流的元数据。 - 这足以推进掉宝进度。这完全不需要下载任何实际的视频流和音频流。为了使频道的状态（在线或离线）保持最新，程序会建立 Websocket 连接，用于接收有关频道开播和下播的事件，并更新当前的观众数量。",
+      "getting_started": "入门设置",
+      "getting_started_text": "1. 登录应用程序。\n2.确保所有感兴趣挖掘的游戏的账号已连接到您的Twitch账号。\n3.如果您想挖掘所有掉宝，请不要勾选“仅参与优先掉宝游戏”，然后按“刷新”。\n4.如果您想优先挖掘特定游戏，请使用“优先掉宝游戏”列表设置您想挖掘的游戏的优先顺序。程序将尝试先挖掘列表顶部的游戏，然后再挖掘后边的游戏。\n5.勾选“仅参与优先掉宝游戏”时，不会挖掘不在优先列表中的游戏。勾不勾选取决于你。\n6。使用“不参与掉宝游戏”列表设置永不挖掘的游戏。\n7.更改任一列表的内容，或更改“仅参与优先掉宝游戏”勾选状态，需要手动按“刷新”才能使更改生效。"
     }
+  }
 }
