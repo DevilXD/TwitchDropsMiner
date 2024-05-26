@@ -240,7 +240,7 @@ default_translation: Translation = {
             ),
             "no_token": "No authorization token could be found.",
             "closed_window": (
-                "The Chrome window was closed before the login procedure could be complete."
+                "The Chrome window was closed before the login procedure could be completed."
             ),
         },
         "error_code": "Login error code: {error_code}",
@@ -369,7 +369,7 @@ default_translation: Translation = {
             "priority": "Priority",
             "exclude": "Exclude",
             "reload": "Reload",
-            "reload_text": "Most changes require a reload to take immediate effect: ",
+            "reload_text": "Most changes require a reload to take an immediate effect: ",
         },
         "help": {
             "links": {
