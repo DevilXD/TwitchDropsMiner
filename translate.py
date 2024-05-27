@@ -240,7 +240,7 @@ default_translation: Translation = {
             ),
             "no_token": "No authorization token could be found.",
             "closed_window": (
-                "Chrome window was closed before the login procedure could complete."
+                "The Chrome window was closed before the login procedure could be completed."
             ),
         },
         "error_code": "Login error code: {error_code}",
@@ -382,28 +382,28 @@ default_translation: Translation = {
                 "Every ~60 seconds, the application sends a \"minute watched\" event "
                 "to the channel that's currently being watched - this is enough "
                 "to advance the drops. Note that this completely bypasses the need to download "
-                "any actual stream video and sound. "
+                "any actual stream of video and sound. "
                 "To keep the status (ONLINE or OFFLINE) of the channels up-to-date, "
-                "there's a websocket connection estabilished that receives events about streams "
-                "going up or down, or updates regarding the current amount of viewers."
+                "there's a websocket connection established that receives events about streams "
+                "going up or down, or updates regarding the current number of viewers."
             ),
             "getting_started": "Getting Started",
             "getting_started_text": (
-                "1. Login into the application.\n"
+                "1. Login to the application.\n"
                 "2. Ensure your Twitch account is linked to all campaigns "
                 "you're interested in mining.\n"
                 "3. If you're interested in just mining everything, "
-                "uncheck \"Priority only\" and press on \"Reload\".\n"
+                "uncheck \"Priority only\" and press \"Reload\".\n"
                 "4. If you want to mine specific games first, use the \"Priority\" list "
-                "to setup an ordered list of games of your choice. Games from the top of the list "
+                "to set up an ordered list of games of your choice. Games from the top of the list "
                 "will be attempted to be mined first, before the ones lower down the list.\n"
-                "5. Keep the \"Priority only\" option checked, to avoid mining games "
+                "5. Keep the \"Priority only\" option checked to avoid mining games "
                 "that are not on the priority list. Or not - it's up to you.\n"
                 "6. Use the \"Exclude\" list to tell the application "
                 "which games should never be mined.\n"
-                "7. Changing the contents of either of the lists, or changing the state "
-                "of the \"Priority only\" option, requires you to press on \"Reload\" "
-                "for the changes to take an effect."
+                "7. Changing the contents of either of the lists or changing the state "
+                "of the \"Priority only\" option, requires you to press \"Reload\" "
+                "for the changes to take effect."
             ),
         },
     },
