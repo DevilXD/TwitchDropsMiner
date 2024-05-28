@@ -1,5 +1,8 @@
 ## v15.5.0
 
+28.5.2024
+- updated **Italian**, **Polish**, **Turkish** and **Ukrainian** translation as well as corresponding credits
+
 25.5.2024
 - Added ability to sort by Campaign end date (made by @jaredkotoff)
 - Updated **Simplified and Traditional Chinese**, **Turkish** and **Ukrainian** translation as well as corresponding credits
