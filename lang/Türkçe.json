@@ -124,8 +124,8 @@
         "claimed": "Alındı ​​✔",
         "ready_to_claim": "Almaya hazır ⏳"
       },
-      "starts": "Başladı: {time}",
-      "ends": "Bitti: {time}",
+      "starts": "Başlangıç: {time}",
+      "ends": "Bitiş: {time}",
       "allowed_channels": "Katılan Kanallar:",
       "all_channels": "Tüm Kanallar",
       "and_more": "ve {amount} diğer...",
