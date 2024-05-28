@@ -140,6 +140,7 @@
         "tray": "Autostart z zasobnika: ",
         "tray_notifications": "Powiadomienia z zasobnika: ",
         "priority_only": "Tylko priorytetowe: ",
+        "prioritze_end": "Priorytetyzuj według czasu zakończenia:",
         "proxy": "Proxy (wymaga restartu):"
       },
       "game_name": "Nazwa gry",
