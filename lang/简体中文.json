@@ -140,7 +140,7 @@
         "tray": "开机自启动并最小化: ",
         "tray_notifications": "启用托盘通知: ",
         "priority_only": "仅参与优先掉宝游戏: ",
-        "prioritze_end": "按掉宝游戏的结束日期决定优先度: ",
+        "prioritize_by_ending_soonest": "按掉宝游戏的结束日期决定优先度: ",
         "proxy": "代理:"
       },
       "game_name": "游戏名称",

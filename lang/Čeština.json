@@ -140,7 +140,7 @@
         "tray": "Automaticky spusti minimalizovaně: ",
         "tray_notifications": "Oznámení v systémové liště:",
         "priority_only": "Pouze prioritní: ",
-        "prioritze_end": "Upřednostnit kampaně podle data ukončení:",
+        "prioritize_by_ending_soonest": "Upřednostnit kampaně podle data ukončení:",
         "proxy": "Proxy:"
       },
       "game_name": "Název Hry",

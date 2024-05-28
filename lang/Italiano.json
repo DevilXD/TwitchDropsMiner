@@ -140,7 +140,7 @@
         "tray": "Avvio automatico nella barra delle applicazioni: ",
         "tray_notifications": "Notifiche: ",
         "priority_only": "Solo priorità: ",
-        "prioritze_end": "Dai la priorità in base all'ora di fine: ",
+        "prioritize_by_ending_soonest": "Dai la priorità in base all'ora di fine: ",
         "proxy": "Proxy (richiede il riavvio):"
       },
       "game_name": "Nome del gioco",

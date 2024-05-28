@@ -140,7 +140,7 @@
         "tray": "Autostart ins System Tray: ",
         "tray_notifications": "System Tray Benachrichtigungen:",
         "priority_only": "Nur Priorität: ",
-        "prioritze_end": "Kampagnen nach Ende priorisieren: ",
+        "prioritize_by_ending_soonest": "Kampagnen nach Ende priorisieren: ",
         "proxy": "Proxy (Erfordert Neustart):"
       },
       "game_name": "Spiel",

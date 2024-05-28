@@ -140,7 +140,7 @@
         "tray": "開機自啟動並最小化: ",
         "tray_notifications": "啟用托盤通知: ",
         "priority_only": "僅參與優先掉寶遊戲: ",
-        "prioritze_end": "按掉寶遊戲的結束日期決定優先度: ",
+        "prioritize_by_ending_soonest": "按掉寶遊戲的結束日期決定優先度: ",
         "proxy": "代理:"
       },
       "game_name": "遊戲名稱",

@@ -140,7 +140,7 @@
         "tray": "Ejecutar en la bandeja del sistema: ",
         "tray_notifications": "Mostrar notificaciones: ",
         "priority_only": "Minar solo juegos preferidos: ",
-        "prioritze_end": "Priorizar campañas por fecha de finalización: ",
+        "prioritize_by_ending_soonest": "Priorizar campañas por fecha de finalización: ",
         "proxy": "Proxy (requiere reinicio):"
       },
       "game_name": "Nombre del juego",

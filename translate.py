@@ -166,7 +166,7 @@ class GUISettingsGeneral(TypedDict):
     tray: str
     tray_notifications: str
     priority_only: str
-    prioritze_end: str
+    prioritize_by_ending_soonest: str
     proxy: str
 
 
@@ -365,7 +365,7 @@ default_translation: Translation = {
                 "tray": "Autostart into tray: ",
                 "tray_notifications": "Tray notifications: ",
                 "priority_only": "Priority Only: ",
-                "prioritze_end": "Prioritize by ending soonest: ",
+                "prioritize_by_ending_soonest": "Prioritize by ending soonest: ",
                 "proxy": "Proxy (requires restart):",
             },
             "game_name": "Game name",

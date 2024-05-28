@@ -140,7 +140,7 @@
         "tray": "Sistem tepsisine otomatik başlat: ",
         "tray_notifications": "Bildirim gönder: ",
         "priority_only": "Öncelik sıralamasına göre: ",
-        "prioritze_end": "En kısa sürede biteceklere öncelik ver:",
+        "prioritize_by_ending_soonest": "En kısa sürede biteceklere öncelik ver:",
         "proxy": "Proxy (Yeniden başlatma gerektirir):"
       },
       "game_name": "Oyun ismi",
