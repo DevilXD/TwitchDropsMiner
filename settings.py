@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import Any, TypedDict, TYPE_CHECKING
 
 from yarl import URL
@@ -20,6 +21,7 @@ class SettingsFile(TypedDict):
     priority: list[str]
     priority_only: bool
     prioritize_by_ending_soonest: bool
+    unlinked_campaigns: bool
     autostart_tray: bool
     connection_quality: int
     tray_notifications: bool
@@ -33,6 +35,7 @@ default_settings: SettingsFile = {
     "autostart": False,
     "priority_only": True,
     "prioritize_by_ending_soonest": False,
+    "unlinked_campaigns": False,
     "autostart_tray": False,
     "connection_quality": 1,
     "language": DEFAULT_LANG,
@@ -58,6 +61,7 @@ class Settings:
     priority: list[str]
     priority_only: bool
     prioritize_by_ending_soonest: bool
+    unlinked_campaigns: bool
     autostart_tray: bool
     connection_quality: int
     tray_notifications: bool
@@ -66,8 +70,15 @@ class Settings:
 
     def __init__(self, args: ParsedArgs):
         self._settings: SettingsFile = json_load(SETTINGS_PATH, default_settings)
+        self.__get_settings_from_env__()
         self._args: ParsedArgs = args
         self._altered: bool = False
+
+    def __get_settings_from_env__(self):
+        if(os.environ.get('prioritize_by_ending_soonest') == '1'):
+            self._settings["prioritize_by_ending_soonest"] = True
+        if(os.environ.get('UNLINKED_CAMPAIGNS') == '1'):
+            self._settings["unlinked_campaigns"] = True
 
     # default logic of reading settings is to check args first, then the settings file
     def __getattr__(self, name: str, /) -> Any:

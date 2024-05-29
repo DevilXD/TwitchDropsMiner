@@ -141,6 +141,7 @@
                 "tray_notifications": "Tray notifications: ",
                 "priority_only": "Priority Only: ",
                 "prioritize_by_ending_soonest": "Prioritize by ending soonest: ",
+                "unlinked_campaigns": "Allow Unlinked Campaigns: ",
                 "proxy": "Proxy (requires restart):"
             },
             "game_name": "Game name",

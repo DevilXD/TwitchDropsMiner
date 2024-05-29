@@ -1622,12 +1622,15 @@ class Twitch:
         exclude = self.settings.exclude
         priority = self.settings.priority
         priority_only = self.settings.priority_only
+        unlinked_campaigns = self.settings.unlinked_campaigns
         game = campaign.game
         if (
             game not in self.wanted_games # isn't already there
             and game.name not in exclude # and isn't excluded
             # and isn't excluded by priority_only
             and (not priority_only or game.name in priority)
+            # and user wants unlinked games or the game is linked
+            and (unlinked_campaigns or campaign.linked)
             # and can be progressed within the next hour
             and campaign.can_earn_within_next_hour()
         ):

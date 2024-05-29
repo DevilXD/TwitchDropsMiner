@@ -335,8 +335,7 @@ class DropsCampaign:
 
     def _base_can_earn(self, channel: Channel | None = None) -> bool:
         return (
-            self.linked  # account is connected
-            and self.active  # campaign is active
+            self.active  # campaign is active
             # channel isn't specified, or there's no ACL, or the channel is in the ACL
             and (channel is None or not self.allowed_channels or channel in self.allowed_channels)
         )
@@ -349,8 +348,7 @@ class DropsCampaign:
         # Same as can_earn, but doesn't check the channel
         # and uses a future timestamp to see if we can earn this campaign later
         return (
-            self.linked
-            and self.ends_at > datetime.now(timezone.utc)
+            self.ends_at > datetime.now(timezone.utc)
             and self.starts_at < stamp
             and any(drop.can_earn_within(stamp) for drop in self.drops)
         )
