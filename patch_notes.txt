@@ -1,5 +1,8 @@
 ## v15.5.0
 
+30.5.2024
+- updated **Arabic**, **Turkish** and **Simplified Chinese** translation as well as corresponding credits
+
 28.5.2024
 - updated **Italian**, **Polish**, **Turkish** and **Ukrainian** translation as well as corresponding credits
 
