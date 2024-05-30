@@ -53,12 +53,12 @@
     },
     "tray": {
       "notification_title": "Ödül alındı",
-      "minimize": "Sistem tepsisine küçült",
+      "minimize": "Sistem Tepsisine Küçült",
       "show": "Göster",
       "quit": "Çık"
     },
     "login": {
-      "name": "Giriş Yap",
+      "name": "Giriş Kısmı",
       "labels": "Durum:\nKullanıcı ID:",
       "logged_in": "Giriş Yapıldı",
       "logged_out": "Çıkış Yapıldı",
@@ -100,7 +100,7 @@
         "channel": "Kanal",
         "status": "Durum",
         "game": "Oyun",
-        "viewers": "İzleyiciler",
+        "viewers": "İzleyici",
         "points": "Puan"
       }
     },
@@ -144,8 +144,8 @@
         "proxy": "Proxy (Yeniden başlatma gerektirir):"
       },
       "game_name": "Oyun ismi",
-      "priority": "Öncelik",
-      "exclude": "Hariç tut",
+      "priority": "Öncelik Sırası",
+      "exclude": "Hariç Tutulacaklar",
       "reload": "Yeniden Yükle",
       "reload_text": "Değişikliklerin uygulanabilmesi için yeniden yükle tuşuna basılması lazım:"
     },
