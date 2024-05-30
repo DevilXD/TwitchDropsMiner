@@ -135,7 +135,7 @@
     "settings": {
       "general": {
         "name": "功能设置",
-        "dark_theme": "暗色主题: ",
+        "dark_theme": "黑夜模式: ",
         "autostart": "开机自启动: ",
         "tray": "开机自启动并最小化: ",
         "tray_notifications": "启用托盘通知: ",
