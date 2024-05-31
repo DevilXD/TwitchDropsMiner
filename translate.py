@@ -169,6 +169,7 @@ class GUISettingsGeneral(TypedDict):
     priority_only: str
     prioritize_by_ending_soonest: str
     proxy: str
+    dark_theme: str
 
 
 class GUISettings(TypedDict):
