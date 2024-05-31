@@ -217,14 +217,232 @@ class Translation(TypedDict):
     error: ErrorMessages
     gui: GUIMessages
 
-with open(f"./lang/{DEFAULT_LANG}.json", 'r', encoding='utf-8') as file:
-    default_translation: Translation = json.load(file)
+# with open(LANG_PATH.joinpath(f"{DEFAULT_LANG}.json"), 'r', encoding='utf-8') as file:
+#     default_translation: Translation = json.load(file)
+
+
+
+
+
+
+
+
+
+default_translation: Translation = {
+    "english_name": "English",
+    "status": {
+        "terminated": "\nApplication Terminated.\nClose the window to exit the application.",
+        "watching": "Watching: {channel}",
+        "goes_online": "{channel} goes ONLINE, switching...",
+        "goes_offline": "{channel} goes OFFLINE, switching...",
+        "claimed_drop": "Claimed drop: {drop}",
+        "claimed_points": "Claimed bonus points: {points}",
+        "earned_points": "Earned points for watching: {points}, total: {balance}",
+        "no_channel": "No available channels to watch. Waiting for an ONLINE channel...",
+        "no_campaign": "No active campaigns to mine drops for. Waiting for an active campaign...",
+    },
+    "login": {
+        "unexpected_content": (
+            "Unexpected content type returned, usually due to being redirected. "
+            "Do you need to login for internet access?"
+        ),
+        "chrome": {
+            "startup": "Opening Chrome...",
+            "login_to_complete": (
+                "Complete the login procedure manually by pressing the Login button again."
+            ),
+            "no_token": "No authorization token could be found.",
+            "closed_window": (
+                "Chrome window was closed before the login procedure could complete."
+            ),
+        },
+        "error_code": "Login error code: {error_code}",
+        "incorrect_login_pass": "Incorrect username or password.",
+        "incorrect_email_code": "Incorrect email code.",
+        "incorrect_twofa_code": "Incorrect 2FA code.",
+        "email_code_required": "Email code required. Check your email.",
+        "twofa_code_required": "2FA token required.",
+    },
+    "error": {
+        "captcha": "Your login attempt was denied by CAPTCHA.\nPlease try again in 12+ hours.",
+        "site_down": "Twitch is down, retrying in {seconds} seconds...",
+        "no_connection": "Cannot connect to Twitch, retrying in {seconds} seconds...",
+    },
+    "gui": {
+        "output": "Output",
+        "status": {
+            "name": "Status",
+            "idle": "Idle",
+            "exiting": "Exiting...",
+            "terminated": "Terminated",
+            "cleanup": "Cleaning up channels...",
+            "gathering": "Gathering channels...",
+            "switching": "Switching the channel...",
+            "fetching_inventory": "Fetching inventory...",
+            "fetching_campaigns": "Fetching campaigns...",
+            "adding_campaigns": "Adding campaigns to inventory... {counter}",
+        },
+        "tabs": {
+            "main": "Main",
+            "inventory": "Inventory",
+            "settings": "Settings",
+            "help": "Help",
+        },
+        "tray": {
+            "notification_title": "Mined Drop",
+            "minimize": "Minimize to Tray",
+            "show": "Show",
+            "quit": "Quit",
+        },
+        "login": {
+            "name": "Login Form",
+            "labels": "Status:\nUser ID:",
+            "logged_in": "Logged in",
+            "logged_out": "Logged out",
+            "logging_in": "Logging in...",
+            "required": "Login required",
+            "request": "Please log in to continue.",
+            "username": "Username",
+            "password": "Password",
+            "twofa_code": "2FA code (optional)",
+            "button": "Login",
+        },
+        "websocket": {
+            "name": "Websocket Status",
+            "websocket": "Websocket #{id}:",
+            "initializing": "Initializing...",
+            "connected": "Connected",
+            "disconnected": "Disconnected",
+            "connecting": "Connecting...",
+            "disconnecting": "Disconnecting...",
+            "reconnecting": "Reconnecting...",
+        },
+        "progress": {
+            "name": "Campaign Progress",
+            "drop": "Drop:",
+            "game": "Game:",
+            "campaign": "Campaign:",
+            "remaining": "{time} remaining",
+            "drop_progress": "Progress:",
+            "campaign_progress": "Progress:",
+        },
+        "channels": {
+            "name": "Channels",
+            "switch": "Switch",
+            "load_points": "Load Points",
+            "online": "ONLINE  ✔",
+            "pending": "OFFLINE ⏳",
+            "offline": "OFFLINE ❌",
+            "headings": {
+                "channel": "Channel",
+                "status": "Status",
+                "game": "Game",
+                "viewers": "Viewers",
+                "points": "Points",
+            },
+        },
+        "inventory": {
+            "filter": {
+                "name": "Filter",
+                "show": "Show:",
+                "not_linked": "Not linked",
+                "upcoming": "Upcoming",
+                "expired": "Expired",
+                "excluded": "Excluded",
+                "finished": "Finished",
+                "refresh": "Refresh",
+            },
+            "status": {
+                "linked": "Linked ✔",
+                "not_linked": "Not Linked ❌",
+                "active": "Active ✔",
+                "upcoming": "Upcoming ⏳",
+                "expired": "Expired ❌",
+                "claimed": "Claimed ✔",
+                "ready_to_claim": "Ready to claim ⏳",
+            },
+            "starts": "Starts: {time}",
+            "ends": "Ends: {time}",
+            "allowed_channels": "Allowed Channels:",
+            "all_channels": "All",
+            "and_more": "and {amount} more...",
+            "percent_progress": "{percent} of {minutes} minutes",
+            "minutes_progress": "{minutes} minutes",
+        },
+        "settings": {
+            "general": {
+                "name": "General",
+                "dark_theme": "Dark theme: ",
+                "autostart": "Autostart: ",
+                "tray": "Autostart into tray: ",
+                "tray_notifications": "Tray notifications: ",
+                "priority_only": "Priority Only: ",
+                "prioritize_by_ending_soonest": "Prioritize by ending soonest: ",
+                "proxy": "Proxy (requires restart):",
+            },
+            "game_name": "Game name",
+            "priority": "Priority",
+            "exclude": "Exclude",
+            "reload": "Reload",
+            "reload_text": "Most changes require a reload to take an immediate effect: ",
+        },
+        "help": {
+            "links": {
+                "name": "Useful Links",
+                "inventory": "See Twitch inventory",
+                "campaigns": "See all campaigns and manage account links",
+            },
+            "how_it_works": "How It Works",
+            "how_it_works_text": (
+                "Every ~20 seconds, the application asks Twitch for a URL to the raw stream data of the channel currently being watched. "
+                "It then fetches the metadata of this data stream - this is enough "
+                "to advance the drops. Note that this completely bypasses the need to download "
+                "any actual stream video and sound. "
+                "To keep the status (ONLINE or OFFLINE) of the channels up-to-date, "
+                "there's a websocket connection estabilished that receives events about streams "
+                "going up or down, or updates regarding the current amount of viewers."
+            ),
+            "getting_started": "Getting Started",
+            "getting_started_text": (
+                "1. Login into the application.\n"
+                "2. Ensure your Twitch account is linked to all campaigns "
+                "you're interested in mining.\n"
+                "3. If you're interested in just mining everything, "
+                "uncheck \"Priority only\" and press on \"Reload\".\n"
+                "4. If you want to mine specific games first, use the \"Priority\" list "
+                "to setup an ordered list of games of your choice. Games from the top of the list "
+                "will be attempted to be mined first, before the ones lower down the list.\n"
+                "5. Keep the \"Priority only\" option checked, to avoid mining games "
+                "that are not on the priority list. Or not - it's up to you.\n"
+                "6. Use the \"Exclude\" list to tell the application "
+                "which games should never be mined.\n"
+                "7. Changing the contents of either of the lists, or changing the state "
+                "of the \"Priority only\" option, requires you to press on \"Reload\" "
+                "for the changes to take an effect."
+            ),
+        },
+    },
+}
+
+
+
+
+
+
+
+
+
+
+
 
 class Translator:
     def __init__(self) -> None:
         self._langs: list[str] = []
         # start with (and always copy) the default translation
-        self._translation: Translation = default_translation.copy()
+        self._translation: Translation = default_translation.copy()        # if we're in dev, update the template English.json file
+        if not IS_PACKAGED:
+            default_langpath = LANG_PATH.joinpath(f"{DEFAULT_LANG}.json")
+            json_save(default_langpath, default_translation)
         self._translation["language_name"] = DEFAULT_LANG
         # load available translation names
         for filepath in LANG_PATH.glob("*.json"):
