@@ -167,6 +167,7 @@ class GUISettingsGeneral(TypedDict):
     tray_notifications: str
     priority_only: str
     proxy: str
+    dark_theme: str
 
 
 class GUISettings(TypedDict):
