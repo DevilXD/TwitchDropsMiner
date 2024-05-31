@@ -217,8 +217,8 @@ class Translation(TypedDict):
     error: ErrorMessages
     gui: GUIMessages
 
-# with open(LANG_PATH.joinpath(f"{DEFAULT_LANG}.json"), 'r', encoding='utf-8') as file:
-#     default_translation: Translation = json.load(file)
+with open(LANG_PATH.joinpath(f"{DEFAULT_LANG}.json"), 'r', encoding='utf-8') as file:
+    default_translation: Translation = json.load(file)
 
 
 
@@ -227,7 +227,7 @@ class Translation(TypedDict):
 
 
 
-
+"""
 default_translation: Translation = {
     "english_name": "English",
     "status": {
@@ -423,7 +423,7 @@ default_translation: Translation = {
         },
     },
 }
-
+"""
 
 
 
@@ -439,10 +439,7 @@ class Translator:
     def __init__(self) -> None:
         self._langs: list[str] = []
         # start with (and always copy) the default translation
-        self._translation: Translation = default_translation.copy()        # if we're in dev, update the template English.json file
-        if not IS_PACKAGED:
-            default_langpath = LANG_PATH.joinpath(f"{DEFAULT_LANG}.json")
-            json_save(default_langpath, default_translation)
+        self._translation: Translation = default_translation.copy()
         self._translation["language_name"] = DEFAULT_LANG
         # load available translation names
         for filepath in LANG_PATH.glob("*.json"):
