@@ -54,9 +54,6 @@ jobs:
         run: |
           python3 -m pip install pyinstaller
 
-      - name: Check lang
-        run: echo "${{ github.workspace }}/lang"
-
       - name: Create portable executable
         run: |
           pyinstaller build.spec
