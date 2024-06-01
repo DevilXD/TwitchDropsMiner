@@ -1059,7 +1059,7 @@ class TrayIcon:
             min_length = 30
             diff = len(title) - 127
             if (len(drop.rewards_text()) - diff) >= min_length + 1:     # If we can trim the drop name to 20 chars
-                new_length = len(drop.rewards_text()) - diff - 1        # Length - Diff - Ellipse (…)
+                new_length = len(drop.rewards_text()) - diff - 1        # Length - Diff - Ellipsis (…)
                 title = (
                     f"{self.TITLE}\n"
                     f"{campaign.game.name}\n"
@@ -1067,7 +1067,7 @@ class TrayIcon:
                     f"{drop.progress:.1%} ({campaign.claimed_drops}/{campaign.total_drops})"
                 )
             else:                                                                                               # Trimming both
-                new_length = len(campaign.game.name) - (diff - len(drop.rewards_text()) + min_length + 1) - 1   # Campaign name - (Remaining diff from trimmed drop name) - Ellipse
+                new_length = len(campaign.game.name) - (diff - len(drop.rewards_text()) + min_length + 1) - 1   # Campaign name - (Remaining diff from trimmed drop name) - Ellipsis
                 title = (
                     f"{self.TITLE}\n"
                     f"{campaign.game.name[:new_length]}…\n"
