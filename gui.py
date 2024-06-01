@@ -1049,12 +1049,34 @@ class TrayIcon:
         if drop is None:
             return self.TITLE
         campaign = drop.campaign
-        return (
+        title = (
             f"{self.TITLE}\n"
             f"{campaign.game.name}\n"
             f"{drop.rewards_text()} "
             f"{drop.progress:.1%} ({campaign.claimed_drops}/{campaign.total_drops})"
         )
+        if  len(title) > 128:        # ValueError: string too long (x, maximum length 128)
+            min_length = 30
+            diff = len(title) - 128
+            if (len(drop.rewards_text()) - diff) >= min_length + 1:     # If we can trim the drop name to 20 chars
+                new_length = len(drop.rewards_text()) - diff - 1        # Length - Diff - Ellipse (…)
+                title = (
+                    f"{self.TITLE}\n"
+                    f"{campaign.game.name}\n"
+                    f"{drop.rewards_text()[:new_length]}… "
+                    f"{drop.progress:.1%} ({campaign.claimed_drops}/{campaign.total_drops})"
+                )
+            else:                                                                                               # Trimming both
+                new_length = len(campaign.game.name) - (diff - len(drop.rewards_text()) + min_length + 1) - 1   # Campaign name - (Remaining diff from trimmed drop name) - Ellipse
+                title = (
+                    f"{self.TITLE}\n"
+                    f"{campaign.game.name[:new_length]}…\n"
+                    f"{drop.rewards_text()[:min_length]}… "
+                    f"{drop.progress:.1%} ({campaign.claimed_drops}/{campaign.total_drops})"
+                )
+        print(f"len after: {len(title)}")
+        print(title)
+        return title
 
     def _start(self):
         loop = asyncio.get_running_loop()
