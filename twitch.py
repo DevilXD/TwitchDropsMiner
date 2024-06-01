@@ -1111,7 +1111,7 @@ class Twitch:
                                 f"{drop.name} ({drop.campaign.game}, "
                                 f"{drop.current_minutes}/{drop.required_minutes})"
                             )
-                        logger.log(CALL, f"Drop progress from active search: {drop_text}")
+                            logger.log(CALL, f"Drop progress from active search: {drop_text}")
                     else:
                         logger.log(CALL, "No active drop could be determined")
             await self._watch_sleep(last_watch + interval - time())
