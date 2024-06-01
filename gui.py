@@ -1074,8 +1074,6 @@ class TrayIcon:
                     f"{drop.rewards_text()[:min_length]}… "
                     f"{drop.progress:.1%} ({campaign.claimed_drops}/{campaign.total_drops})"
                 )
-        print(f"len after: {len(title)}")
-        print(title)
         return title
 
     def _start(self):
