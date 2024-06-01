@@ -1055,9 +1055,9 @@ class TrayIcon:
             f"{drop.rewards_text()} "
             f"{drop.progress:.1%} ({campaign.claimed_drops}/{campaign.total_drops})"
         )
-        if  len(title) > 128:        # ValueError: string too long (x, maximum length 128)
+        if  len(title) > 127:        # ValueError: string too long (x, maximum length 128), but it only shows 127
             min_length = 30
-            diff = len(title) - 128
+            diff = len(title) - 127
             if (len(drop.rewards_text()) - diff) >= min_length + 1:     # If we can trim the drop name to 20 chars
                 new_length = len(drop.rewards_text()) - diff - 1        # Length - Diff - Ellipse (…)
                 title = (
