@@ -1233,6 +1233,7 @@ class InventoryOverview:
         ).grid(column=(icolumn := icolumn + 1), row=0)
         # Inventory view
         self._canvas = tk.Canvas(master, scrollregion=(0, 0, 0, 0))
+        self._canvas.configure(scrollregion=self._canvas.bbox("all"))       # Fix scrolling for linux
         self._canvas.grid(column=0, row=1, sticky="nsew")
         master.rowconfigure(1, weight=1)
         master.columnconfigure(0, weight=1)
