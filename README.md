@@ -129,5 +129,3 @@ if they aren't already there. Doing so ensures proper markdown rendering on Gith
 @casungo - For the entirety of the Italian (Italiano) translation.  
 @Bamboozul - For the entirety of the Arabic (العربية) translation.  
 @Kjerne - For the entirety of the Danish (Dansk) translation.
-
-For updating Translations: @Kuddus73, @VSeryi, @Windows200000, @BreakshadowCN, @kilroy98, @zelda0079, @Calvineries, @VSeryi, @notNSANE, @ElvisDesigns
