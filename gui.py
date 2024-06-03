@@ -352,12 +352,11 @@ class SelectMenu(tk.Menubutton, Generic[_T]):
         command: abc.Callable[[_T], Any] | None = None,
         default: str | None = None,
         relief: tk._Relief = "solid",
-        background: str = "white",
         **kwargs: Any,
     ):
         width = max((len(k) for k in options.keys()), default=20)
         super().__init__(
-            master, *args, background=background, relief=relief, width=width, **kwargs
+            master, *args, relief=relief, width=width, **kwargs
         )
         self._menu_options: dict[str, _T] = options
         self._command = command
@@ -1454,6 +1453,7 @@ def proxy_validate(entry: PlaceholderEntry, settings: Settings) -> bool:
 class _SettingsVars(TypedDict):
     tray: IntVar
     proxy: StringVar
+    dark_theme: IntVar
     autostart: IntVar
     priority_only: IntVar
     tray_notifications: IntVar
@@ -1463,12 +1463,15 @@ class SettingsPanel:
     AUTOSTART_NAME: str = "TwitchDropsMiner"
     AUTOSTART_KEY: str = "HKCU/Software/Microsoft/Windows/CurrentVersion/Run"
 
-    def __init__(self, manager: GUIManager, master: ttk.Widget):
+    def __init__(self, manager: GUIManager, master: ttk.Widget, root: tk.Tk):
+        self._manager = manager
+        self._root = root
         self._twitch = manager._twitch
         self._settings: Settings = manager._twitch.settings
         self._vars: _SettingsVars = {
             "proxy": StringVar(master, str(self._settings.proxy)),
             "tray": IntVar(master, self._settings.autostart_tray),
+            "dark_theme": IntVar(master, self._settings.dark_theme),
             "autostart": IntVar(master, self._settings.autostart),
             "priority_only": IntVar(master, self._settings.priority_only),
             "tray_notifications": IntVar(master, self._settings.tray_notifications),
@@ -1493,18 +1496,25 @@ class SettingsPanel:
         language_frame = ttk.Frame(center_frame2)
         language_frame.grid(column=0, row=0)
         ttk.Label(language_frame, text="Language 🌐 (requires restart): ").grid(column=0, row=0)
-        SelectMenu(
+        self._select_menu = SelectMenu(
             language_frame,
             default=_.current,
             options={k: k for k in _.languages},
             command=lambda lang: setattr(self._settings, "language", lang),
-        ).grid(column=1, row=0)
+        )
+        self._select_menu.grid(column=1, row=0)
         # checkboxes frame
         checkboxes_frame = ttk.Frame(center_frame2)
         checkboxes_frame.grid(column=0, row=1)
         ttk.Label(
-            checkboxes_frame, text=_("gui", "settings", "general", "autostart")
+            checkboxes_frame, text=_("gui", "settings", "general", "dark_theme")
         ).grid(column=0, row=(irow := 0), sticky="e")
+        ttk.Checkbutton(
+            checkboxes_frame, variable=self._vars["dark_theme"], command=self.change_theme
+        ).grid(column=1, row=irow, sticky="w")
+        ttk.Label(
+            checkboxes_frame, text=_("gui", "settings", "general", "autostart")
+        ).grid(column=0, row=(irow := irow + 1), sticky="e")
         ttk.Checkbutton(
             checkboxes_frame, variable=self._vars["autostart"], command=self.update_autostart
         ).grid(column=1, row=irow, sticky="w")
@@ -1636,6 +1646,13 @@ class SettingsPanel:
         if tray:
             self_path += " --tray"
         return self_path
+
+    def change_theme(self):
+        self._settings.dark_theme = bool(self._vars["dark_theme"].get())
+        if self._settings.dark_theme:
+            set_theme(self._root, self._manager, "dark")
+        else:
+            set_theme(self._root, self._manager,  "light")
 
     def update_autostart(self) -> None:
         enabled = bool(self._vars["autostart"].get())
@@ -1878,14 +1895,14 @@ class GUIManager:
         # Image cache for displaying images
         self._cache = ImageCache(self)
 
-        # style adjustements
+        # style adjustments
         self._style = style = ttk.Style(root)
         default_font = nametofont("TkDefaultFont")
         # theme
         theme = ''
         # theme = style.theme_names()[6]
         # style.theme_use(theme)
-        # fix treeview's background color from tags not working (also see '_fixed_map')
+        # Fix treeview's background color from tags not working (also see '_fixed_map')
         style.map(
             "Treeview",
             foreground=self._fixed_map("foreground"),
@@ -1948,7 +1965,7 @@ class GUIManager:
         self.tabs.add_tab(inv_frame, name=_("gui", "tabs", "inventory"))
         # Settings tab
         settings_frame = ttk.Frame(root_frame, padding=8)
-        self.settings = SettingsPanel(self, settings_frame)
+        self.settings = SettingsPanel(self, settings_frame, root)
         self.tabs.add_tab(settings_frame, name=_("gui", "tabs", "settings"))
         # Help tab
         help_frame = ttk.Frame(root_frame, padding=8)
@@ -1994,6 +2011,11 @@ class GUIManager:
             self._root.after_idle(self.tray.minimize)
         else:
             self._root.after_idle(self._root.deiconify)
+
+        if self._twitch.settings.dark_theme:
+            set_theme(root, self, "dark")
+        else:
+            set_theme(root, self, "default")    #
 
     # https://stackoverflow.com/questions/56329342/tkinter-treeview-background-tag-not-working
     def _fixed_map(self, option):
@@ -2133,6 +2155,111 @@ class GUIManager:
         self.output.print(message)
 
 
+def set_theme(root, manager, name):
+    style = ttk.Style(root)
+    if not hasattr(set_theme, "default_style"):
+        set_theme.default_style = style.theme_use()         # "Themes" is more fitting for the recolour and "Style" for the button style.
+
+    default_font = nametofont("TkDefaultFont")
+    large_font = default_font.copy()
+    large_font.config(size=12)
+    link_font = default_font.copy()
+    link_font.config(underline=True)
+
+    def configure_combobox_list(combobox, flag, value):
+                combobox.update_idletasks()
+                popdown_window = combobox.tk.call("ttk::combobox::PopdownWindow", combobox)
+                listbox = f"{popdown_window}.f.l"
+                combobox.tk.call(listbox, "configure", flag, value)
+    
+    # Style options, !!!"background" and "bg" is not interchangable for some reason!!!
+    if name == "dark":
+        bg_grey = "#181818"
+        active_grey = "#2b2b2b"
+        # General
+        style.theme_use('alt')      # We have to switch the theme, because OS-defaults ("vista") don't support certain customisations, like Treeview-fieldbackground etc.
+        style.configure('.', background=bg_grey, foreground="white")
+        style.configure("Link.TLabel", font=link_font, foreground="#00aaff")
+        # Buttons
+        style.map("TButton",
+                  background=[("active", active_grey)])
+        # Tabs
+        style.configure("TNotebook.Tab", background=bg_grey)
+        style.map("TNotebook.Tab",
+                  background=[("selected", active_grey)])
+        # Checkboxes
+        style.configure("TCheckbutton", foreground="black") # The checkbox has to be white since it's an image, so the tick has to be black
+        style.map("TCheckbutton",
+                  background=[('active', active_grey)])
+        # Output field
+        manager.output._text.configure(bg=bg_grey, fg="white", selectbackground=active_grey)
+        # Include/Exclude lists
+        manager.settings._exclude_list.configure(bg=bg_grey, fg="white")
+        manager.settings._priority_list.configure(bg=bg_grey, fg="white")
+        # Channel list
+        style.configure('Treeview', background=bg_grey, fieldbackground=bg_grey)
+        manager.channels._table
+        # Inventory
+        manager.inv._canvas.configure(bg=bg_grey)
+        # Scroll bars
+        style.configure("TScrollbar", foreground="white", troughcolor=bg_grey, bordercolor=bg_grey,  arrowcolor="white")
+        style.map("TScrollbar",
+                  background=[("active", bg_grey), ("!active", bg_grey)])
+        # Language selection box _select_menu
+        manager.settings._select_menu.configure(bg=bg_grey, fg="white", activebackground=active_grey, activeforeground="white") # Couldn't figure out how to change the border, so it stays black
+        for index in range(manager.settings._select_menu.menu.index("end")+1):
+             manager.settings._select_menu.menu.entryconfig(index, background=bg_grey, activebackground=active_grey, foreground="white")
+        # Proxy field
+        style.configure("TEntry", foreground="white", selectbackground=active_grey, fieldbackground=bg_grey)
+        # Include/Exclude box
+        style.configure("TCombobox", foreground="white", selectbackground=active_grey, fieldbackground=bg_grey, arrowcolor="white")
+        style.map("TCombobox", background=[("active", active_grey), ("disabled", bg_grey)])
+        # Include list
+        configure_combobox_list(manager.settings._priority_entry, "-background", bg_grey)
+        configure_combobox_list(manager.settings._priority_entry, "-foreground", "white")
+        configure_combobox_list(manager.settings._priority_entry, "-selectbackground", active_grey)
+        # Exclude list
+        configure_combobox_list(manager.settings._exclude_entry, "-background", bg_grey)
+        configure_combobox_list(manager.settings._exclude_entry, "-foreground", "white")
+        configure_combobox_list(manager.settings._exclude_entry, "-selectbackground", active_grey)
+
+    else: # When creating a new theme, additional values might need to be set, so the default theme remains consistent
+        # General
+        style.theme_use(set_theme.default_style)
+        style.configure('.', background="#f0f0f0", foreground="#000000")
+        # Buttons
+        style.map("TButton",
+                  background=[("active", "#ffffff")])
+        # Tabs
+        style.configure("TNotebook.Tab", background="#f0f0f0")
+        style.map("TNotebook.Tab",
+                  background=[("selected", "#ffffff")])
+        # Checkboxes don't need to be reverted
+        # Output field
+        manager.output._text.configure(bg="#ffffff", fg="#000000")
+        # Include/Exclude lists
+        manager.settings._exclude_list.configure(bg="#ffffff", fg="#000000")
+        manager.settings._priority_list.configure(bg="#ffffff", fg="#000000")
+        # Channel list doesn't need to be reverted
+        # Inventory
+        manager.inv._canvas.configure(bg="#f0f0f0")
+        # Scroll bars don't need to be reverted
+        # Language selection box _select_menu
+        manager.settings._select_menu.configure(bg="#ffffff", fg="black", activebackground="#f0f0f0", activeforeground="black") # Couldn't figure out how to change the border, so it stays black
+        for index in range(manager.settings._select_menu.menu.index("end")+1):
+             manager.settings._select_menu.menu.entryconfig(index, background="#f0f0f0", activebackground="#0078d7", foreground="black")
+        # Proxy field doesn't need to be reverted
+        # Include/Exclude dropdown - Only the lists have to be reverted
+        # Include list
+        configure_combobox_list(manager.settings._priority_entry, "-background", "white")
+        configure_combobox_list(manager.settings._priority_entry, "-foreground", "black")
+        configure_combobox_list(manager.settings._priority_entry, "-selectbackground", "#0078d7")
+        # Exclude list
+        configure_combobox_list(manager.settings._exclude_entry, "-background", "white")
+        configure_combobox_list(manager.settings._exclude_entry, "-foreground", "black")
+        configure_combobox_list(manager.settings._exclude_entry, "-selectbackground", "#0078d7")
+
+
 ###################
 # GUI MANAGER END #
 ###################
@@ -2254,11 +2381,13 @@ if __name__ == "__main__":
                 tray=False,
                 priority=[],
                 proxy=URL(),
+                dark_theme=False,
                 autostart=False,
                 language="English",
                 priority_only=False,
                 autostart_tray=False,
                 exclude={"Lit Game"},
+                tray_notifications=True
             )
         )
         mock.change_state = lambda state: mock.gui.print(f"State change: {state.value}")

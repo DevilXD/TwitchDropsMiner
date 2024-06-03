@@ -167,6 +167,7 @@ class GUISettingsGeneral(TypedDict):
     tray_notifications: str
     priority_only: str
     proxy: str
+    dark_theme: str
 
 
 class GUISettings(TypedDict):
@@ -359,6 +360,7 @@ default_translation: Translation = {
         "settings": {
             "general": {
                 "name": "General",
+                "dark_theme": "Dark theme: ",
                 "autostart": "Autostart: ",
                 "tray": "Autostart into tray: ",
                 "tray_notifications": "Tray notifications: ",
