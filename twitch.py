@@ -898,10 +898,11 @@ class Twitch:
                 # NOTE: we use another set so that we can set them online separately
                 no_acl: set[Game] = set()
                 acl_channels: OrderedSet[Channel] = OrderedSet()
+                next_hour = datetime.now(timezone.utc) + timedelta(hours=1)
                 for campaign in self.inventory:
                     if (
                         campaign.game in self.wanted_games
-                        and campaign.can_earn_within_next_hour()
+                        and campaign.can_earn_within(next_hour)
                     ):
                         if campaign.allowed_channels:
                             acl_channels.update(campaign.allowed_channels)
@@ -1623,13 +1624,14 @@ class Twitch:
         priority = self.settings.priority
         priority_only = self.settings.priority_only
         game = campaign.game
+        next_hour = datetime.now(timezone.utc) + timedelta(hours=1)
         if (
             game not in self.wanted_games # isn't already there
             and game.name not in exclude # and isn't excluded
             # and isn't excluded by priority_only
             and (not priority_only or game.name in priority)
             # and can be progressed within the next hour
-            and campaign.can_earn_within_next_hour()
+            and campaign.can_earn_within(next_hour)
         ):
             return True
         return False
@@ -1680,12 +1682,13 @@ class Twitch:
         self.gui.inv.clear()
         self.inventory.clear()
         switch_triggers: set[datetime] = set()
+        next_hour = datetime.now(timezone.utc) + timedelta(hours=1)
         for i, campaign in enumerate(campaigns, start=1):
             status_update(
                 _("gui", "status", "adding_campaigns").format(counter=f"({i}/{len(campaigns)})")
             )
             self._drops.update({drop.id: drop for drop in campaign.drops})
-            if campaign.can_earn_within_next_hour():
+            if campaign.can_earn_within(next_hour):
                 switch_triggers.update(campaign.time_triggers)
             # NOTE: this fetches pictures from the CDN, so might be slow without a cache
             await self.gui.inv.add_campaign(campaign)
