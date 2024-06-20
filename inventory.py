@@ -216,7 +216,12 @@ class TimedDrop(BaseDrop):
 
     @cached_property
     def progress(self) -> float:
-        return self.current_minutes / self.required_minutes
+        if self.required_minutes > 0:
+            return self.current_minutes / self.required_minutes
+        return 0.0  # Drops with 0 required minutes are filtered via _base_can_earn
+
+    def _base_can_earn(self) -> bool:
+        return self.required_minutes > 0 and super()._base_can_earn()
 
     def _on_claim(self) -> None:
         result = super()._on_claim()
