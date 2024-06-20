@@ -30,7 +30,7 @@ if sys.platform == "win32":
 
 from translate import _
 from cache import ImageCache
-from exceptions import ExitRequest
+from exceptions import MinerException, ExitRequest
 from utils import resource_path, set_root_icon, webopen, Game, _T
 from constants import (
     SELF_PATH, OUTPUT_FORMATTER, WS_TOPICS_LIMIT, MAX_WEBSOCKETS, WINDOW_TITLE, State
@@ -1043,16 +1043,36 @@ class TrayIcon:
         self.stop()
         self.icon_image.close()
 
+    def _shorten(self, text: str, by_len: int, min_len: int) -> str:
+        if (text_len := len(text)) <= min_len + 3 or by_len <= 0:
+            # cannot shorten
+            return text
+        return text[:-min(by_len + 3, text_len - min_len)] + "..."
+
     def get_title(self, drop: TimedDrop | None) -> str:
         if drop is None:
             return self.TITLE
         campaign = drop.campaign
-        return (
-            f"{self.TITLE}\n"
-            f"{campaign.game.name}\n"
-            f"{drop.rewards_text()} "
-            f"{drop.progress:.1%} ({campaign.claimed_drops}/{campaign.total_drops})"
-        )
+        title_parts: list[str] = [
+            f"{self.TITLE}\n",
+            f"{campaign.game.name}\n",
+            drop.rewards_text(),
+            f" {drop.progress:.1%} ({campaign.claimed_drops}/{campaign.total_drops})"
+        ]
+        min_len: int = 30
+        max_len: int = 127
+        missing_len = len(''.join(title_parts)) - max_len
+        if missing_len > 0:
+            # try shortening the reward text
+            title_parts[2] = self._shorten(title_parts[2], missing_len, min_len)
+            missing_len = len(''.join(title_parts)) - max_len
+        if missing_len > 0:
+            # try shortening the game name
+            title_parts[1] = self._shorten(title_parts[1], missing_len, min_len)
+            missing_len = len(''.join(title_parts)) - max_len
+        if missing_len > 0:
+            raise MinerException(f"Title couldn't be shortened: {''.join(title_parts)}")
+        return ''.join(title_parts)
 
     def _start(self):
         loop = asyncio.get_running_loop()
@@ -2259,6 +2279,7 @@ if __name__ == "__main__":
                 priority_only=False,
                 autostart_tray=False,
                 exclude={"Lit Game"},
+                tray_notifications=True,
             )
         )
         mock.change_state = lambda state: mock.gui.print(f"State change: {state.value}")
