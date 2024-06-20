@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import re
-import sys
 import json
 import asyncio
 import logging
@@ -13,26 +11,8 @@ from datetime import datetime, timedelta, timezone
 from contextlib import suppress, asynccontextmanager
 from typing import Any, Literal, Final, NoReturn, overload, cast, TYPE_CHECKING
 
-if sys.platform == "win32":
-    from subprocess import CREATE_NO_WINDOW
-
 import aiohttp
 from yarl import URL
-try:
-    from seleniumwire.request import Request
-    from selenium.common.exceptions import WebDriverException
-    from seleniumwire.undetected_chromedriver import Chrome, ChromeOptions
-except ModuleNotFoundError:
-    # the dependencies weren't installed, but they're not used either, so skip them
-    pass
-except ImportError as exc:
-    if "_brotli" in exc.msg:
-        raise ImportError(
-            "You need to install Visual C++ Redist (x86 and x64): "
-            "https://support.microsoft.com/en-gb/help/2977003/"
-            "the-latest-supported-visual-c-downloads"
-        ) from exc
-    raise
 
 from translate import _
 from gui import GUIManager
@@ -53,7 +33,6 @@ from utils import (
     timestamp,
     create_nonce,
     task_wrapper,
-    first_to_complete,
     OrderedSet,
     AwaitableValue,
     ExponentialBackoff,
@@ -89,7 +68,6 @@ class SkipExtraJsonDecoder(json.JSONDecoder):
         return obj
 
 
-# CLIENT_URL, CLIENT_ID, USER_AGENT = ClientType.MOBILE_WEB
 SAFE_LOADS = lambda s: json.loads(s, cls=SkipExtraJsonDecoder)
 
 
@@ -103,15 +81,6 @@ class _AuthState:
         self.session_id: str
         self.access_token: str
         self.client_version: str
-        self.integrity_token: str
-        self.integrity_expires: datetime
-
-    @property
-    def integrity_expired(self) -> bool:
-        return (
-            not hasattr(self, "integrity_expires")
-            or datetime.now(timezone.utc) >= self.integrity_expires
-        )
 
     def _hasattrs(self, *attrs: str) -> bool:
         return all(hasattr(self, attr) for attr in attrs)
@@ -128,146 +97,8 @@ class _AuthState:
             "session_id",
             "access_token",
             "client_version",
-            "integrity_token",
-            "integrity_expires",
         )
         self._logged_in.clear()
-
-    def interceptor(self, request: Request) -> None:
-        if (
-            request.method == "POST"
-            and request.url == "https://passport.twitch.tv/protected_login"
-        ):
-            body = request.body.decode("utf-8")
-            data = json.loads(body)
-            data["client_id"] = self._twitch._client_type.CLIENT_ID
-            request.body = json.dumps(data).encode("utf-8")
-            del request.headers["Content-Length"]
-            request.headers["Content-Length"] = str(len(request.body))
-
-    async def _chrome_login(self) -> None:
-        gui_print = self._twitch.gui.print
-        login_form: LoginForm = self._twitch.gui.login
-        coro_unless_closed = self._twitch.gui.coro_unless_closed
-
-        # open the chrome browser on the Twitch's login page
-        # use a separate executor to void blocking the event loop
-        loop = asyncio.get_running_loop()
-        driver: Chrome | None = None
-        while True:
-            gui_print(_("login", "chrome", "startup"))
-            try:
-                version_main = None
-                for attempt in range(2):
-                    options = ChromeOptions()
-                    options.add_argument("--log-level=3")
-                    options.add_argument("--disable-web-security")
-                    options.add_argument("--allow-running-insecure-content")
-                    options.add_argument("--lang=en")
-                    options.add_argument("--disable-gpu")
-                    options.set_capability("pageLoadStrategy", "eager")
-                    try:
-                        wire_options: dict[str, Any] = {"proxy": {}}
-                        if self._twitch.settings.proxy:
-                            wire_options["proxy"]["http"] = str(self._twitch.settings.proxy)
-                        driver_coro = loop.run_in_executor(
-                            None,
-                            lambda: Chrome(
-                                options=options,
-                                no_sandbox=True,
-                                suppress_welcome=True,
-                                version_main=version_main,
-                                seleniumwire_options=wire_options,
-                                service_creationflags=CREATE_NO_WINDOW,
-                            )
-                        )
-                        driver = await coro_unless_closed(driver_coro)
-                        break
-                    except WebDriverException as exc:
-                        message = exc.msg
-                        if (
-                            message is not None
-                            and (
-                                match := re.search(
-                                    (
-                                        r'Chrome version ([\d]+)\n'
-                                        r'Current browser version is ((\d+)\.[\d.]+)'
-                                    ),
-                                    message,
-                                )
-                            ) is not None
-                        ):
-                            if not attempt:
-                                version_main = int(match.group(3))
-                                continue
-                            else:
-                                raise MinerException(
-                                    "Your Chrome browser is out of date\n"
-                                    f"Required version: {match.group(1)}\n"
-                                    f"Current version: {match.group(2)}"
-                                ) from None
-                        raise MinerException(
-                            "An error occured while boostrapping the Chrome browser"
-                        ) from exc
-                assert driver is not None
-                driver.request_interceptor = self.interceptor
-                # driver.set_page_load_timeout(30)
-                # page_coro = loop.run_in_executor(None, driver.get, "https://twitch.tv")
-                # await coro_unless_closed(page_coro)
-                page_coro = loop.run_in_executor(None, driver.get, "https://twitch.tv/login")
-                await coro_unless_closed(page_coro)
-
-                # auto login
-                # if login_data.username and login_data.password:
-                #     driver.find_element("id", "login-username").send_keys(login_data.username)
-                #     driver.find_element("id", "password-input").send_keys(login_data.password)
-                #     driver.find_element(
-                #         "css selector", '[data-a-target="passport-login-button"]'
-                #     ).click()
-                # token submit button css selectors
-                # Button: "screen="two_factor" target="submit_button"
-                # Input: <input type="text" autocomplete="one-time-code" data-a-target="tw-input"
-                # inputmode="numeric" pattern="[0-9]*" value="">
-
-                # wait for the user to navigate away from the URL, indicating successful login
-                # alternatively, they can press on the login button again
-                async def url_waiter(driver=driver):
-                    while driver.current_url != "https://www.twitch.tv/?no-reload=true":
-                        await asyncio.sleep(0.5)
-
-                gui_print(_("login", "chrome", "login_to_complete"))
-                await first_to_complete([
-                    url_waiter(),
-                    coro_unless_closed(login_form.wait_for_login_press()),
-                ])
-
-                # cookies = [
-                #     {
-                #         "domain": ".twitch.tv",
-                #         "expiry": 1700000000,
-                #         "httpOnly": False,
-                #         "name": "auth-token",
-                #         "path": "/",
-                #         "sameSite": "None",
-                #         "secure": True,
-                #         "value": "..."
-                #     },
-                #     ...,
-                # ]
-                cookies = driver.get_cookies()
-                for cookie in cookies:
-                    if "twitch.tv" in cookie["domain"] and cookie["name"] == "auth-token":
-                        self.access_token = cookie["value"]
-                        break
-                else:
-                    gui_print(_("login", "chrome", "no_token"))
-            except WebDriverException:
-                gui_print(_("login", "chrome", "closed_window"))
-            finally:
-                if driver is not None:
-                    driver.quit()
-                    driver = None
-            await coro_unless_closed(login_form.wait_for_login_press())
 
     async def _oauth_login(self) -> str:
         login_form: LoginForm = self._twitch.gui.login
@@ -484,9 +315,7 @@ class _AuthState:
             return self.access_token
         raise MinerException("Login flow finished without setting the access token")
 
-    def headers(
-        self, *, user_agent: str = '', gql: bool = False, integrity: bool = False
-    ) -> JsonType:
+    def headers(self, *, user_agent: str = '', gql: bool = False) -> JsonType:
         client_info: ClientInfo = self._twitch._client_type
         headers = {
             "Accept": "*/*",
@@ -508,8 +337,6 @@ class _AuthState:
             headers["Origin"] = str(client_info.CLIENT_URL)
             headers["Referer"] = str(client_info.CLIENT_URL)
             headers["Authorization"] = f"OAuth {self.access_token}"
-        if integrity:
-            headers["Client-Integrity"] = self.integrity_token
         return headers
 
     async def validate(self):
@@ -576,39 +403,10 @@ class _AuthState:
             # update our cookie and save it
             jar.update_cookies(cookie, client_info.CLIENT_URL)
             jar.save(COOKIES_PATH)
-        # if not self._hasattrs("integrity_token") or self.integrity_expired:
-        #     async with self._twitch.request(
-        #         "POST",
-        #         "https://gql.twitch.tv/integrity",
-        #         headers=self.gql_headers(integrity=False)
-        #     ) as response:
-        #         self._last_request = datetime.now(timezone.utc)
-        #         response_json: JsonType = await response.json()
-        #     self.integrity_token = cast(str, response_json["token"])
-        #     now = datetime.now(timezone.utc)
-        #     expiration = datetime.fromtimestamp(response_json["expiration"] / 1000, timezone.utc)
-        #     self.integrity_expires = ((expiration - now) * 0.9) + now
-        #     # verify the integrity token's contents for the "is_bad_bot" flag
-        #     stripped_token: str = self.integrity_token.split('.')[2] + "=="
-        #     messy_json: str = urlsafe_b64decode(stripped_token.encode()).decode(errors="ignore")
-        #     match = re.search(r'(.+)(?<="}).+$', messy_json)
-        #     if match is None:
-        #         raise MinerException("Unable to parse the integrity token")
-        #     decoded_header: JsonType = json.loads(match.group(1))
-        #     if decoded_header.get("is_bad_bot", "false") != "false":
-        #         self._twitch.print(
-        #             "Twitch has detected this miner as a \"Bad Bot\". "
-        #             "You're proceeding at your own risk!"
-        #         )
-        #         await asyncio.sleep(8)
         self._logged_in.set()
 
-    def invalidate(self, *, auth: bool = False, integrity: bool = False):
-        if auth:
-            self._delattrs("access_token")
-        if integrity:
-            self._delattrs("client_version")
-            self.integrity_expires = datetime.now(timezone.utc)
+    def invalidate(self):
+        self._delattrs("access_token")
 
 
 class Twitch:
@@ -1540,7 +1338,7 @@ class Twitch:
                     "https://gql.twitch.tv/gql",
                     json=ops,
                     headers=auth_state.headers(user_agent=self._client_type.USER_AGENT, gql=True),
-                    invalidate_after=getattr(auth_state, "integrity_expires", None),
+                    invalidate_after=None,  # unused
                 ) as response:
                     response_json: JsonType | list[JsonType] = await response.json()
             except RequestInvalid:

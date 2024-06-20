@@ -6,7 +6,3 @@ PyGObject<3.47; sys_platform == "linux" # required for better system tray suppor
 # environment-dependent dependencies
 pywin32; sys_platform == "win32"
 truststore; python_version >= "3.10"
-
-# unused dependencies
-# selenium-wire
-# undetected-chromedriver
