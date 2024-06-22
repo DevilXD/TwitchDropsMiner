@@ -116,7 +116,7 @@ DEFAULT_LANG = "English"
 PING_INTERVAL = timedelta(minutes=3)
 PING_TIMEOUT = timedelta(seconds=10)
 ONLINE_DELAY = timedelta(seconds=120)
-WATCH_INTERVAL = timedelta(seconds=59)
+WATCH_INTERVAL = timedelta(seconds=20)
 # Strings
 WINDOW_TITLE = f"Twitch Drops Miner v{__version__} (by DevilXD)"
 # Logging
@@ -308,6 +308,18 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
         "9a62a09bce5b53e26e64a671e530bc599cb6aab1e5ba3cbd5d85966d3940716f",
         variables={
             "channelID": ...,  # channel ID as a str
+        },
+    ),
+    # retuns stream playback access token
+    "PlaybackAccessToken": GQLOperation(
+        "PlaybackAccessToken",
+        "3093517e37e4f4cb48906155bcd894150aef92617939236d2508f3375ab732ce",
+        variables={
+            "isLive": True,
+            "login": ...,  # channel login
+            "isVod": False,
+            "vodID": "",
+            "playerType": "site"
         },
     ),
     # returns live channels for a particular game

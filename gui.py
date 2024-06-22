@@ -700,6 +700,9 @@ class CampaignProgress:
             self._timer_task.cancel()
             self._timer_task = None
 
+    def is_counting(self) -> bool:
+        return self._timer_task is not None
+
     def display(self, drop: TimedDrop | None, *, countdown: bool = True, subone: bool = False):
         self._drop = drop
         vars_drop = self._vars["drop"]

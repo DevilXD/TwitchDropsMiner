@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import re
+import logging
 from itertools import chain
 from typing import TYPE_CHECKING
 from functools import cached_property
 from datetime import datetime, timedelta, timezone
 
 from channel import Channel
-from constants import GQL_OPERATIONS, URLType
+from constants import CALL, GQL_OPERATIONS, URLType
 from utils import timestamp, invalidate_cache, Game
 
 if TYPE_CHECKING:
@@ -18,6 +19,7 @@ if TYPE_CHECKING:
     from gui import GUIManager, InventoryOverview
 
 
+logger = logging.getLogger("TwitchDrops")
 DIMS_PATTERN = re.compile(r'-\d+x\d+(?=\.(?:jpg|png|gif)$)', re.I)
 
 
@@ -242,14 +244,26 @@ class TimedDrop(BaseDrop):
     def update_minutes(self, minutes: int):
         self.current_minutes = minutes
         self._on_minutes_changed()
+        self.display()
 
     def display(self, *, countdown: bool = True, subone: bool = False):
         self._manager.display_drop(self, countdown=countdown, subone=subone)
 
     def bump_minutes(self):
+        # this may get called more often than once every minute
+        # we can detect this by checking if the GUI progress display is currently counting down
+        # if we haven't finished counting down the last minute, then we can ignore this call
+        if self._manager.progress.is_counting():
+            return
         if self.current_minutes < self.required_minutes:
             self.current_minutes += 1
             self._on_minutes_changed()
+        drop_text = (
+            f"{self.name} ({self.campaign.game}, "
+            f"{self.current_minutes}/{self.required_minutes})"
+        )
+        logger.log(CALL, f"Drop progress from active search: {drop_text}")
+        self.display()
 
 
 class DropsCampaign:

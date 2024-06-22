@@ -430,7 +430,6 @@ class Twitch:
         self.watching_channel: AwaitableValue[Channel] = AwaitableValue()
         self._watching_task: asyncio.Task[None] | None = None
         self._watching_restart = asyncio.Event()
-        self._drop_update: asyncio.Future[bool] | None = None
         # Websocket
         self.websocket = WebsocketPool(self)
         # Maintenance task
@@ -487,7 +486,6 @@ class Twitch:
             cookie_jar.save(COOKIES_PATH)
             await self._session.close()
             self._session = None
-        self._drop_update = None
         self._drops.clear()
         self.channels.clear()
         self.inventory.clear()
@@ -843,72 +841,20 @@ class Twitch:
             channel: Channel = await self.watching_channel.get()
             succeeded: bool = await channel.send_watch()
             if not succeeded:
-                # this usually means the campaign expired in the middle of mining
-                # NOTE: the maintenance task should switch the channel right after this happens
-                await self._watch_sleep(60)
+                logger.log(CALL, f"Watch requested failed for channel: {channel.name}")
+                await self._watch_sleep(interval)
                 continue
-            last_watch = time()
-            self._drop_update = asyncio.Future()
-            use_active: bool = False
-            try:
-                handled: bool = await asyncio.wait_for(self._drop_update, timeout=10)
-            except asyncio.TimeoutError:
-                # there was no websocket update within 10s
-                handled = False
-                use_active = True
-                logger.log(CALL, "No drop update from the websocket received")
-            self._drop_update = None
-            if not handled:
-                # websocket update timed out, or the update was for an unrelated drop
-                if not use_active:
-                    # we need to use GQL to get the current progress
-                    context = await self.gql_request(GQL_OPERATIONS["CurrentDrop"])
-                    drop_data: JsonType | None = (
-                        context["data"]["currentUser"]["dropCurrentSession"]
-                    )
-                    if drop_data is not None:
-                        drop = self._drops.get(drop_data["dropID"])
-                        if drop is None:
-                            use_active = True
-                            # usually this means there was a campaign changed between reloads
-                            logger.info("Missing drop detected, reloading...")
-                            self.change_state(State.INVENTORY_FETCH)
-                        elif not drop.can_earn(channel):
-                            # we can't earn this drop in the current watching channel
-                            use_active = True
-                            drop_text = (
-                                f"{drop.name} ({drop.campaign.game}, "
-                                f"{drop.current_minutes}/{drop.required_minutes})"
-                            )
-                            logger.log(CALL, f"Current drop returned mismach: {drop_text}")
-                        else:
-                            drop.update_minutes(drop_data["currentMinutesWatched"])
-                            drop.display()
-                            drop_text = (
-                                f"{drop.name} ({drop.campaign.game}, "
-                                f"{drop.current_minutes}/{drop.required_minutes})"
-                            )
-                            logger.log(CALL, f"Drop progress from GQL: {drop_text}")
-                    else:
-                        use_active = True
-                        logger.log(CALL, "Current drop returned as none")
-                if use_active:
-                    # Sometimes, even GQL fails to give us the correct drop.
-                    # In that case, we can use the locally cached inventory to try
-                    # and put together the drop that we're actually mining right now
-                    # NOTE: get_active_drop uses the watching channel by default,
-                    # so there's no point to pass it here
-                    if (drop := self.get_active_drop()) is not None:
-                        drop.bump_minutes()
-                        drop.display()
-                        drop_text = (
-                            f"{drop.name} ({drop.campaign.game}, "
-                            f"{drop.current_minutes}/{drop.required_minutes})"
-                        )
-                        logger.log(CALL, f"Drop progress from active search: {drop_text}")
-                    else:
-                        logger.log(CALL, "No active drop could be determined")
-            await self._watch_sleep(last_watch + interval - time())
+            # Drop progress isn't always returned by the websocket, but we can "pretend"
+            # the progress is constantly advancing, by simply incrementing the minutes
+            # watched ourselves. Once the websocket "wakes up" to return proper progress,
+            # it'll update the display automatically.
+            # NOTE: get_active_drop uses the watching channel by default,
+            # so there's no point to pass it here
+            if (drop := self.get_active_drop()) is not None:
+                drop.bump_minutes()
+            else:
+                logger.log(CALL, "No active drop could be determined")
+            await self._watch_sleep(interval)
 
     @task_wrapper
     async def _maintenance_task(self) -> None:
@@ -1179,22 +1125,9 @@ class Twitch:
         else:
             drop_text = "<Unknown>"
         logger.log(CALL, f"Drop update from websocket: {drop_text}")
-        if self._drop_update is None:
-            # we aren't actually waiting for a progress update right now, so we can just
-            # ignore the event this time
-            return
-        elif drop is not None and drop.can_earn(self.watching_channel.get_with_default(None)):
+        if drop is not None and drop.can_earn(self.watching_channel.get_with_default(None)):
             # the received payload is for the drop we expected
             drop.update_minutes(message["data"]["current_progress_min"])
-            drop.display()
-            # Let the watch loop know we've handled it here
-            self._drop_update.set_result(True)
-        else:
-            # Sometimes, the drop update we receive doesn't actually match what we're mining.
-            # This is a Twitch bug workaround: signal the watch loop to use GQL
-            # to get the current drop progress instead.
-            self._drop_update.set_result(False)
-        self._drop_update = None
 
     @task_wrapper
     async def process_notifications(self, user_id: int, message: JsonType):
