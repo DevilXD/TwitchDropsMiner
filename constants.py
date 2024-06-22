@@ -302,7 +302,7 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
             "dropID": ...,  # campaign ID
         },
     ),
-    # returns drops available for a particular channel (unused)
+    # returns drops available for a particular channel
     "AvailableDrops": GQLOperation(
         "DropsHighlightService_AvailableDrops",
         "9a62a09bce5b53e26e64a671e530bc599cb6aab1e5ba3cbd5d85966d3940716f",
@@ -340,6 +340,13 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
                 "requestID": "JIRA-VXP-2397",
             },
             "sortTypeIsRecency": False,
+        },
+    ),
+    "SlugRedirect": GQLOperation(  # can be used to turn game name -> game slug
+        "DirectoryGameRedirect",
+        "1f0300090caceec51f33c5e20647aceff9017f740f223c3c532ba6fa59f6b6cc",
+        variables={
+            "name": ...,  # game name
         },
     ),
     "NotificationsView": GQLOperation(  # unused, triggers notifications "update-summary"
