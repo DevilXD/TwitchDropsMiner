@@ -1103,6 +1103,7 @@ class Twitch:
             return
         drop_id: str = message["data"]["drop_id"]
         drop: TimedDrop | None = self._drops.get(drop_id)
+        watching_channel: Channel | None = self.watching_channel.get_with_default(None)
         if msg_type == "drop-claim":
             if drop is None:
                 logger.error(
@@ -1129,15 +1130,20 @@ class Twitch:
             # by re-sending the watch payload. We can test for it by fetching the current drop
             # via GQL, and then comparing drop IDs.
             await asyncio.sleep(4)
-            for attempt in range(8):
-                context = await self.gql_request(GQL_OPERATIONS["CurrentDrop"])
-                drop_data: JsonType | None = (
-                    context["data"]["currentUser"]["dropCurrentSession"]
-                )
-                if drop_data is None or drop_data["dropID"] != drop.id:
-                    break
-                await asyncio.sleep(2)
-            if campaign.can_earn(self.watching_channel.get_with_default(None)):
+            if watching_channel is not None:
+                for attempt in range(8):
+                    context = await self.gql_request(
+                        GQL_OPERATIONS["CurrentDrop"].with_variables(
+                            {"channelID": str(watching_channel.id)}
+                        )
+                    )
+                    drop_data: JsonType | None = (
+                        context["data"]["currentUser"]["dropCurrentSession"]
+                    )
+                    if drop_data is None or drop_data["dropID"] != drop.id:
+                        break
+                    await asyncio.sleep(2)
+            if campaign.can_earn(watching_channel):
                 self.restart_watching()
             else:
                 self.change_state(State.INVENTORY_FETCH)
