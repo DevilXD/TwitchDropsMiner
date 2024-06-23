@@ -842,18 +842,45 @@ class Twitch:
             succeeded: bool = await channel.send_watch()
             if not succeeded:
                 logger.log(CALL, f"Watch requested failed for channel: {channel.name}")
-                await self._watch_sleep(interval)
-                continue
-            # Drop progress isn't always returned by the websocket, but we can "pretend"
-            # the progress is constantly advancing, by simply incrementing the minutes
-            # watched ourselves. Once the websocket "wakes up" to return proper progress,
-            # it'll update the display automatically.
-            # NOTE: get_active_drop uses the watching channel by default,
-            # so there's no point to pass it here
-            if (drop := self.get_active_drop()) is not None:
-                drop.bump_minutes()
-            else:
-                logger.log(CALL, "No active drop could be determined")
+            elif not self.gui.progress.is_counting():
+                # If the previous update was more than 60s ago, and the progress tracker
+                # isn't counting down anymore, that means Twitch has temporarily
+                # stopped reporting drops progress. To ensure the timer keeps at least somewhat
+                # accurate time, we can use GQL to query for the current drop,
+                # or even "pretend" mining as a last resort option.
+                handled: bool = False
+
+                # Solution 1: use GQL to query for the currently mined drop status
+                context = await self.gql_request(
+                    GQL_OPERATIONS["CurrentDrop"].with_variables({"channelID": str(channel.id)})
+                )
+                drop_data: JsonType | None = (
+                    context["data"]["currentUser"]["dropCurrentSession"]
+                )
+                if drop_data is not None:
+                    drop = self._drops.get(drop_data["dropID"])
+                    if drop is not None and drop.can_earn(channel):
+                        drop.update_minutes(drop_data["currentMinutesWatched"])
+                        drop_text = (
+                            f"{drop.name} ({drop.campaign.game}, "
+                            f"{drop.current_minutes}/{drop.required_minutes})"
+                        )
+                        logger.log(CALL, f"Drop progress from GQL: {drop_text}")
+                        handled = True
+
+                # Solution 2: If GQL fails, figure out which drop we're most likely mining
+                # right now, and then bump up the minutes on that drop
+                if not handled:
+                    if (drop := self.get_active_drop(channel)) is not None:
+                        drop.bump_minutes()
+                        drop_text = (
+                            f"{drop.name} ({drop.campaign.game}, "
+                            f"{drop.current_minutes}/{drop.required_minutes})"
+                        )
+                        logger.log(CALL, f"Drop progress from active search: {drop_text}")
+                        handled = True
+                    else:
+                        logger.log(CALL, "No active drop could be determined")
             await self._watch_sleep(interval)
 
     @task_wrapper

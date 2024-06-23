@@ -284,8 +284,11 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
     # returns current state of drops (current drop progress)
     "CurrentDrop": GQLOperation(
         "DropCurrentSessionContext",
-        "2e4b3630b91552eb05b76a94b6850eb25fe42263b7cf6d06bee6d156dd247c1c",
-        # no variables needed
+        "4d06b702d25d652afb9ef835d2a550031f1cf762b193523a92166f40ea3d142b",
+        variables={
+            "channelID": ...,  # watched channel ID as a str
+            "channelLogin": "",  # always empty string
+        },
     ),
     # returns all available campaigns
     "Campaigns": GQLOperation(
