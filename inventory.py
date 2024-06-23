@@ -131,6 +131,14 @@ class BaseDrop:
     def update_claim(self, claim_id: str):
         self.claim_id = claim_id
 
+    async def generate_claim(self) -> None:
+        # claim IDs now appear to be constructed from other IDs we have access to
+        # Format: UserID#CampaignID#DropID
+        # NOTE: This marks a drop as a ready-to-claim, so we may want to later ensure
+        # its mining progress is finished first
+        auth_state = await self.campaign._twitch.get_auth()
+        self.claim_id = f"{auth_state.user_id}#{self.campaign.id}#{self.id}"
+
     def rewards_text(self, delim: str = ", ") -> str:
         return delim.join(benefit.name for benefit in self.benefits)
 
