@@ -363,8 +363,13 @@ class Channel:
         ) as chunks_response:
             available_chunks: str = await chunks_response.text()
         # the list contains ~10-13 chunks of the stream at 2s intervals,
-        # let's pick the last chunk URL available
-        stream_chunk_url: URLType = URLType(available_chunks.strip().split("\n")[-1])
+        # pick the last chunk URL available. Ensure it's not the end-of-stream tag,
+        # otherwise use the 2nd to last line.
+        chunks_list: list[str] = available_chunks.strip().split("\n")
+        selected_chunk: str = chunks_list[-1]
+        if selected_chunk == "#EXT-X-ENDLIST":
+            selected_chunk = chunks_list[-2]
+        stream_chunk_url: URLType = URLType(selected_chunk)
         # sending a HEAD request is enough to advance the drops,
         # without downloading the actual stream data
         async with self._twitch.request("HEAD", stream_chunk_url) as head_response:
