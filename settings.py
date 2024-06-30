@@ -40,7 +40,7 @@ class Settings:
     # from args
     log: bool
     tray: bool
-    no_run_check: bool
+    dump: bool
     # args properties
     debug_ws: int
     debug_gql: int

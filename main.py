@@ -53,7 +53,7 @@ if __name__ == "__main__":
         _debug_gql: bool
         log: bool
         tray: bool
-        no_run_check: bool
+        dump: bool
 
         # TODO: replace int with union of literal values once typeshed updates
         @property
@@ -103,6 +103,7 @@ if __name__ == "__main__":
     parser.add_argument("-v", dest="_verbose", action="count", default=0)
     parser.add_argument("--tray", action="store_true")
     parser.add_argument("--log", action="store_true")
+    parser.add_argument("--dump", action="store_true")
     # undocumented debug args
     parser.add_argument(
         "--debug-ws", dest="_debug_ws", action="store_true", help=argparse.SUPPRESS

@@ -5,15 +5,20 @@
 Available command line arguments:
 
 • --tray
-	Start application as minimised into tray.
+	Start the application as minimised into tray.
 • -v
 	Increase verbosity level. Can be stacked up several times (-vv, -vvv, etc.) to show
 	increasingly more information during application runtime.
 • --log
 	Enables logging of runtime information into a 'log.txt' file. Verbosity level of this logging
 	matches the level set by `-v`.
+• --dump
+	Start the application in a data-dump mode, where a 'dump.dat' file is created.
+	The file contains anonymous raw Twitch API data, studying of which can help troubleshoot
+	issues with the application. The application automatically closes shortly after launching,
+	once dumping is finished.
 • --version
-	Show application version information
+	Show application version information.
 
 Note: Additional settings are available within the application GUI.
 

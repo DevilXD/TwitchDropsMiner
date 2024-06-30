@@ -4,6 +4,7 @@ import json
 import asyncio
 import logging
 from time import time
+from copy import deepcopy
 from itertools import chain
 from functools import partial
 from collections import abc, deque, OrderedDict
@@ -39,6 +40,7 @@ from utils import (
 )
 from constants import (
     CALL,
+    DUMP_PATH,
     COOKIES_PATH,
     GQL_OPERATIONS,
     MAX_CHANNELS,
@@ -559,6 +561,10 @@ class Twitch:
         return -1
 
     async def run(self):
+        if self.settings.dump:
+            with open(DUMP_PATH, 'w', encoding="utf8"):
+                # replace the existing file with an empty one
+                pass
         while True:
             try:
                 await self._run()
@@ -599,6 +605,9 @@ class Twitch:
         self.change_state(State.INVENTORY_FETCH)
         while True:
             if self._state is State.IDLE:
+                if self.settings.dump:
+                    self.gui.close()
+                    continue
                 self.gui.status.update(_("gui", "status", "idle"))
                 self.stop_watching()
                 # clear the flag and wait until it's set again
@@ -787,6 +796,9 @@ class Twitch:
                     watching_channel,
                 )
             elif self._state is State.CHANNEL_SWITCH:
+                if self.settings.dump:
+                    self.gui.close()
+                    continue
                 self.gui.status.update(_("gui", "status", "switching"))
                 # Change into the selected channel, stay in the watching channel,
                 # or select a new channel that meets the required conditions
@@ -1412,6 +1424,26 @@ class Twitch:
             chunk_campaigns_data = await chunk_coro
             # merge the inventory and campaigns datas together
             inventory_data = self._merge_data(inventory_data, chunk_campaigns_data)
+
+        if self.settings.dump:
+            # dump the campaigns data to the dump file
+            with open(DUMP_PATH, 'a', encoding="utf8") as file:
+                # pre-process a little, so the dump file isn't overly bloated
+                dump_data: JsonType = deepcopy(inventory_data)
+                for campaign_data in dump_data.values():
+                    if (
+                        campaign_data["allow"]
+                        and campaign_data["allow"].get("isEnabled", True)
+                        and campaign_data["allow"]["channels"]
+                    ):
+                        # simply count the channels included in the ACL
+                        campaign_data["allow"]["channels"] = (
+                            f"{len(campaign_data['allow']['channels'])} channels"
+                        )
+                json.dump(dump_data, file, indent=4, sort_keys=True)
+                file.write("\n\n")  # add a new line spacer
+                json.dump(claimed_benefits, file, indent=4, sort_keys=True, default=str)
+
         # use the merged data to create campaign objects
         campaigns: list[DropsCampaign] = [
             DropsCampaign(self, campaign_data, claimed_benefits)

@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 IS_APPIMAGE = "APPIMAGE" in os.environ and os.path.exists(os.environ["APPIMAGE"])
 IS_PACKAGED = hasattr(sys, "_MEIPASS") or IS_APPIMAGE
 # logging special levels
-CALL = logging.INFO - 1
+CALL: int = logging.INFO - 1
 logging.addLevelName(CALL, "CALL")
 # site-packages venv path changes depending on the system platform
 if sys.platform == "win32":
@@ -94,8 +94,9 @@ SITE_PACKAGES_PATH = Path(VENV_PATH, SYS_SITE_PACKAGES)
 LANG_PATH = _resource_path("lang")
 # Other Paths
 LOG_PATH = Path(WORKING_DIR, "log.txt")
-CACHE_PATH = Path(WORKING_DIR, "cache")
+DUMP_PATH = Path(WORKING_DIR, "dump.dat")
 LOCK_PATH = Path(WORKING_DIR, "lock.file")
+CACHE_PATH = Path(WORKING_DIR, "cache")
 CACHE_DB = Path(CACHE_PATH, "mapping.json")
 COOKIES_PATH = Path(WORKING_DIR, "cookies.jar")
 SETTINGS_PATH = Path(WORKING_DIR, "settings.json")
