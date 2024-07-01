@@ -10,7 +10,7 @@ class RegistryError(Exception):
     pass
 
 
-class ValueNotExists(RegistryError):
+class ValueNotFound(RegistryError):
     pass
 
 
@@ -58,13 +58,14 @@ class ValueType(Enum):
 
 
 class RegistryKey:
-    def __init__(self, path: str):
+    def __init__(self, path: str, *, read_only: bool = False):
         main_key, _, path = path.replace('/', '\\').partition('\\')
         self.main_key = MainKey[main_key]
         self.path = path
-        self._handle = reg.OpenKey(
-            self.main_key.value, path, access=(Access.KEY_QUERY_VALUE | Access.KEY_SET_VALUE).value
-        )
+        access_flags = Access.KEY_QUERY_VALUE
+        if not read_only:
+            access_flags |= Access.KEY_SET_VALUE
+        self._handle = reg.OpenKey(self.main_key.value, path, access=access_flags.value)
 
     def __enter__(self) -> RegistryKey:
         return self
@@ -77,7 +78,7 @@ class RegistryKey:
             value, value_type = reg.QueryValueEx(self._handle, name)
         except FileNotFoundError:
             # TODO: consider returning None for missing values
-            raise ValueNotExists(name)
+            raise ValueNotFound(name)
         return (ValueType(value_type), value)
 
     def set(self, name: str, value_type: ValueType, value: Any) -> bool:
@@ -89,7 +90,7 @@ class RegistryKey:
             reg.DeleteValue(self._handle, name)
         except FileNotFoundError:
             if not silent:
-                raise ValueNotExists(name)
+                raise ValueNotFound(name)
             return False
         return True
 

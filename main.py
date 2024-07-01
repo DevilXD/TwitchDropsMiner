@@ -28,7 +28,7 @@ if __name__ == "__main__":
     from version import __version__
     from exceptions import CaptchaRequired
     from utils import lock_file, resource_path, set_root_icon
-    from constants import CALL, SELF_PATH, FILE_FORMATTER, LOG_PATH, LOCK_PATH
+    from constants import LOGGING_LEVELS, SELF_PATH, FILE_FORMATTER, LOG_PATH, LOCK_PATH
 
     warnings.simplefilter("default", ResourceWarning)
 
@@ -58,13 +58,7 @@ if __name__ == "__main__":
         # TODO: replace int with union of literal values once typeshed updates
         @property
         def logging_level(self) -> int:
-            return {
-                0: logging.ERROR,
-                1: logging.WARNING,
-                2: logging.INFO,
-                3: CALL,
-                4: logging.DEBUG,
-            }[min(self._verbose, 4)]
+            return LOGGING_LEVELS[min(self._verbose, 4)]
 
         @property
         def debug_ws(self) -> int:
