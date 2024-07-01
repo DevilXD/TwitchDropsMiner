@@ -19,7 +19,7 @@ script:
 
   # Package the app.
   - mkdir -p "$TARGET_APPDIR"/usr/{src,share/icons/hicolor/128x128/apps}
-  - cp -r "$SOURCE_DIR/../lang" "$SOURCE_DIR/../pickaxe.ico" "$SOURCE_DIR"/../*.py "$TARGET_APPDIR/usr/src"
+  - cp -r "$SOURCE_DIR/../lang" "$SOURCE_DIR/../icons" "$SOURCE_DIR"/../*.py "$TARGET_APPDIR/usr/src"
   - cp "$SOURCE_DIR/pickaxe.png" "$TARGET_APPDIR/usr/share/icons/hicolor/128x128/apps/io.github.devilxd.twitchdropsminer.png"
 
   # Install requirements.

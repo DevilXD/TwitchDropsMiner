@@ -87,7 +87,7 @@ if __name__ == "__main__":
     root = tk.Tk()
     root.overrideredirect(True)
     root.withdraw()
-    set_root_icon(root, resource_path("pickaxe.ico"))
+    set_root_icon(root, resource_path("icons/pickaxe.ico"))
     root.update()
     parser = Parser(
         SELF_PATH.name,
@@ -168,6 +168,7 @@ if __name__ == "__main__":
             await client.shutdown()
         if not client.gui.close_requested:
             # user didn't request the closure
+            client.gui.tray.change_icon("error")
             client.print(_("status", "terminated"))
             client.gui.status.update(_("gui", "status", "terminated"))
             # notify the user about the closure

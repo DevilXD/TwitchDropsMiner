@@ -17,7 +17,12 @@ if TYPE_CHECKING:
 
 # (source_path, dest_path, required)
 to_add: list[tuple[Path, str, bool]] = [
-    (Path("pickaxe.ico"), '.', True),  # icon file
+    # icon files
+    (Path("icons/pickaxe.ico"), "./icons", True),
+    (Path("icons/active.ico"), "./icons", True),
+    (Path("icons/idle.ico"), "./icons", True),
+    (Path("icons/error.ico"), "./icons", True),
+    (Path("icons/maint.ico"), "./icons", True),
     # SeleniumWire HTTPS/SSL cert file and key
     (Path(SITE_PACKAGES_PATH, "seleniumwire/ca.crt"), "./seleniumwire", False),
     (Path(SITE_PACKAGES_PATH, "seleniumwire/ca.key"), "./seleniumwire", False),
@@ -99,10 +104,10 @@ exe = EXE(
     console=False,
     upx_exclude=[],
     target_arch=None,
-    icon="pickaxe.ico",
     runtime_tmpdir=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon="icons/pickaxe.ico",
     bootloader_ignore_signals=False,
     disable_windowed_traceback=False,
     name="Twitch Drops Miner (by DevilXD)",
