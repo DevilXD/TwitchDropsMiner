@@ -1428,9 +1428,10 @@ class Twitch:
         if self.settings.dump:
             # dump the campaigns data to the dump file
             with open(DUMP_PATH, 'a', encoding="utf8") as file:
-                # pre-process a little, so the dump file isn't overly bloated
+                # we need to pre-process the inventory dump a little
                 dump_data: JsonType = deepcopy(inventory_data)
                 for campaign_data in dump_data.values():
+                    # replace ACL lists with a simple text description
                     if (
                         campaign_data["allow"]
                         and campaign_data["allow"].get("isEnabled", True)
@@ -1440,8 +1441,12 @@ class Twitch:
                         campaign_data["allow"]["channels"] = (
                             f"{len(campaign_data['allow']['channels'])} channels"
                         )
+                    # replace drop instance IDs, so they don't include user IDs
+                    for drop_data in campaign_data["timeBasedDrops"]:
+                        if "self" in drop_data and drop_data["self"]["dropInstanceID"]:
+                            drop_data["self"]["dropInstanceID"] = "..."
                 json.dump(dump_data, file, indent=4, sort_keys=True)
-                file.write("\n\n")  # add a new line spacer
+                file.write("\n\n")  # add 2x new line spacer
                 json.dump(claimed_benefits, file, indent=4, sort_keys=True, default=str)
 
         # use the merged data to create campaign objects
