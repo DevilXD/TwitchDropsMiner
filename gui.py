@@ -1519,6 +1519,7 @@ class SettingsPanel:
             "priority_only": IntVar(master, self._settings.priority_only),
             "tray_notifications": IntVar(master, self._settings.tray_notifications),
         }
+        self._game_names: set[str] = set()
         master.rowconfigure(0, weight=1)
         master.columnconfigure(0, weight=1)
         # use a frame to center the content within the tab
@@ -1756,10 +1757,20 @@ class SettingsPanel:
             else:
                 autostart_file.unlink(missing_ok=True)
 
-    def set_games(self, games: abc.Iterable[Game]) -> None:
-        games_list = sorted(map(str, games))
-        self._exclude_entry.config(values=games_list)
-        self._priority_entry.config(values=games_list)
+    def update_excluded_choices(self) -> None:
+        self._exclude_entry.config(
+            values=sorted(self._game_names.difference(self._settings.exclude))
+        )
+
+    def update_priority_choices(self) -> None:
+        self._priority_entry.config(
+            values=sorted(self._game_names.difference(self._settings.priority))
+        )
+
+    def set_games(self, games: set[Game]) -> None:
+        self._game_names.update(game.name for game in games)
+        self.update_excluded_choices()
+        self.update_priority_choices()
 
     def priorities(self) -> dict[str, int]:
         # NOTE: we shift the indexes so that 0 can be used as the default one
@@ -1783,6 +1794,7 @@ class SettingsPanel:
             self._priority_list.see("end")
             self._settings.priority.append(game_name)
             self._settings.alter()
+            self.update_priority_choices()
         else:
             # already there, set the selection on it
             self._priority_list.selection_set(existing_idx)
@@ -1818,6 +1830,7 @@ class SettingsPanel:
         self._priority_list.delete(idx)
         del self._settings.priority[idx]
         self._settings.alter()
+        self.update_priority_choices()
 
     def priority_only(self) -> None:
         self._settings.priority_only = bool(self._vars["priority_only"].get())
@@ -1828,10 +1841,10 @@ class SettingsPanel:
             # prevent adding empty strings
             return
         self._exclude_entry.clear()
-        exclude = self._settings.exclude
-        if game_name not in exclude:
-            exclude.add(game_name)
+        if game_name not in self._settings.exclude:
+            self._settings.exclude.add(game_name)
             self._settings.alter()
+            self.update_excluded_choices()
             # insert it alphabetically
             for i, item in enumerate(self._exclude_list.get(0, "end")):
                 if game_name < item:
@@ -1860,9 +1873,10 @@ class SettingsPanel:
         idx: int = selection[0]
         item: str = self._exclude_list.get(idx)
         if item in self._settings.exclude:
+            self._exclude_list.delete(idx)
             self._settings.exclude.discard(item)
             self._settings.alter()
-            self._exclude_list.delete(idx)
+            self.update_excluded_choices()
 
 
 class HelpTab:
@@ -2196,7 +2210,7 @@ class GUIManager:
         if sound:
             self._root.bell()
 
-    def set_games(self, games: abc.Iterable[Game]) -> None:
+    def set_games(self, games: set[Game]) -> None:
         self.settings.set_games(games)
 
     def display_drop(
@@ -2226,6 +2240,8 @@ if __name__ == "__main__":
     from types import SimpleNamespace
 
     class StrNamespace(SimpleNamespace):
+        __hash__ = object.__hash__  # type: ignore
+
         def __str__(self):
             if hasattr(self, "_str__"):
                 return self._str__(self)
@@ -2342,6 +2358,7 @@ if __name__ == "__main__":
                 autostart_tray=False,
                 exclude={"Lit Game"},
                 tray_notifications=True,
+                alter=lambda: None,
             )
         )
         mock.change_state = lambda state: mock.gui.print(f"State change: {state.value}")
@@ -2356,11 +2373,11 @@ if __name__ == "__main__":
         # Login form
         gui.login.update("Login required", None)
         # Game selector and settings panel games
-        gui.set_games([
+        gui.set_games(set([
             create_game(420690, "Lit Game"),
             create_game(123456, "Best Game"),
             create_game(654321, "My Game Very Long Name"),
-        ])
+        ]))
         # Channel list
         gui.channels.display(
             create_channel(
