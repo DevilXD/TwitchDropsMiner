@@ -1600,7 +1600,7 @@ class SettingsPanel:
         self._priority_entry.grid(column=0, row=0, sticky="ew")
         priority_frame.columnconfigure(0, weight=1)
         ttk.Button(
-            priority_frame, text="+", command=self.priority_add, width=2, style="Large.TButton"
+            priority_frame, text="➕", command=self.priority_add, width=2, style="Large.TButton"
         ).grid(column=1, row=0)
         self._priority_list = PaddedListbox(
             priority_frame,
@@ -1643,7 +1643,7 @@ class SettingsPanel:
         )
         self._exclude_entry.grid(column=0, row=0, sticky="ew")
         ttk.Button(
-            exclude_frame, text="+", command=self.exclude_add, width=2, style="Large.TButton"
+            exclude_frame, text="➕", command=self.exclude_add, width=2, style="Large.TButton"
         ).grid(column=1, row=0)
         self._exclude_list = PaddedListbox(
             exclude_frame,
@@ -2013,7 +2013,7 @@ class GUIManager:
         style.configure("MS.TLabel", font=monospaced_font)
         # button style with a larger font
         large_font = default_font.copy()
-        large_font.config(size=12)
+        large_font.config(size=10)
         style.configure("Large.TButton", font=large_font)
         # label style that mimics links
         link_font = default_font.copy()
