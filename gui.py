@@ -1686,12 +1686,12 @@ class SettingsPanel:
 
     def _get_autostart_path(self) -> str:
         flags: list[str] = ['']  # this will add a space between self path and flags
-        # if non-zero, include the current logging level as well
-        if self._settings.logging_level > 0:
-            for lvl_idx, lvl_value in LOGGING_LEVELS.items():
-                if lvl_value == self._settings.logging_level:
+        # if applicable, include the current logging level as well
+        for lvl_idx, lvl_value in LOGGING_LEVELS.items():
+            if lvl_value == self._settings.logging_level:
+                if lvl_idx > 0:
                     flags.append(f"-{'v' * lvl_idx}")
-                    break
+                break
         if self._vars["tray"].get():
             flags.append("--tray")
         return self._get_self_path() + ' '.join(flags)
