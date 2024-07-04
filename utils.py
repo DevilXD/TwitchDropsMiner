@@ -140,7 +140,7 @@ def task_wrapper(
         except (ExitRequest, ReloadRequest):
             pass
         except Exception:
-            logger.exception("Exception in task")
+            logger.exception(f"Exception in {afunc.__name__} task")
             raise  # raise up to the wrapping task
     return wrapper
 
