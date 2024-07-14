@@ -379,9 +379,9 @@ default_translation: Translation = {
             },
             "how_it_works": "How It Works",
             "how_it_works_text": (
-                "Every ~60 seconds, the application sends a \"minute watched\" event "
-                "to the channel that's currently being watched - this is enough "
-                "to advance the drops. Note that this completely bypasses the need to download "
+                "Every several seconds, the application pretends to watch a particular stream "
+                "by fetching stream metadata - this is enough to advance the drops. "
+                "Note that this completely bypasses the need to download "
                 "any actual stream of video and sound. "
                 "To keep the status (ONLINE or OFFLINE) of the channels up-to-date, "
                 "there's a websocket connection established that receives events about streams "
@@ -395,8 +395,9 @@ default_translation: Translation = {
                 "3. If you're interested in just mining everything, "
                 "uncheck \"Priority only\" and press \"Reload\".\n"
                 "4. If you want to mine specific games first, use the \"Priority\" list "
-                "to set up an ordered list of games of your choice. Games from the top of the list "
-                "will be attempted to be mined first, before the ones lower down the list.\n"
+                "to set up an ordered list of games of your choice. "
+                "Games from the top of the list will be attempted to be mined first, "
+                "before the ones lower down the list.\n"
                 "5. Keep the \"Priority only\" option checked to avoid mining games "
                 "that are not on the priority list. Or not - it's up to you.\n"
                 "6. Use the \"Exclude\" list to tell the application "
