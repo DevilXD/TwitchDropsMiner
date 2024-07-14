@@ -1338,6 +1338,7 @@ class Twitch:
                         if (
                             "message" in error_dict
                             and error_dict["message"] in (
+                                # "server error",
                                 # "service error",
                                 "service unavailable",
                                 "service timeout",
