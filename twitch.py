@@ -849,7 +849,7 @@ class Twitch:
         with suppress(asyncio.TimeoutError):
             await asyncio.wait_for(self._watching_restart.wait(), timeout=delay)
 
-    @task_wrapper
+    @task_wrapper(critical=True)
     async def _watch_loop(self) -> NoReturn:
         interval: float = WATCH_INTERVAL.total_seconds()
         while True:
@@ -898,7 +898,7 @@ class Twitch:
                         logger.log(CALL, "No active drop could be determined")
             await self._watch_sleep(interval)
 
-    @task_wrapper
+    @task_wrapper(critical=True)
     async def _maintenance_task(self) -> None:
         claim_period = timedelta(minutes=30)
         max_period = timedelta(hours=1)
@@ -911,10 +911,9 @@ class Twitch:
                 break
             next_trigger = min(now + claim_period, next_period)
             trigger_cleanup = False
-            while self._mnt_triggers and (switch_trigger := self._mnt_triggers[0]) <= next_trigger:
+            while self._mnt_triggers and self._mnt_triggers[0] <= next_trigger:
+                next_trigger = self._mnt_triggers.popleft()
                 trigger_cleanup = True
-                self._mnt_triggers.popleft()
-                next_trigger = switch_trigger
             if next_trigger == next_period:
                 trigger_type: str = "Reload"
             elif trigger_cleanup:
@@ -943,7 +942,7 @@ class Twitch:
                     await watching_channel.claim_bonus()
                 except Exception:
                     pass  # we intentionally silently skip anything else
-        # this triggers this task restart every (up to) 60 minutes
+        # this triggers a restart of this task every (up to) 60 minutes
         logger.log(CALL, "Maintenance task requests a reload")
         self.change_state(State.INVENTORY_FETCH)
 
