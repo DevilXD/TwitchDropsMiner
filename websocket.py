@@ -59,7 +59,7 @@ class Websocket:
         self.topics: dict[str, WebsocketTopic] = {}
         self._submitted: set[WebsocketTopic] = set()
         # notify GUI
-        self.set_status("Disconnected")
+        self.set_status(_("gui", "websocket", "disconnected"))
 
     @property
     def connected(self) -> bool:
