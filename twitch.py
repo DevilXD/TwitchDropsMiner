@@ -1462,25 +1462,37 @@ class Twitch:
         campaigns.sort(key=lambda c: c.active, reverse=True)
         campaigns.sort(key=lambda c: c.upcoming and c.starts_at or c.ends_at)
         campaigns.sort(key=lambda c: c.linked, reverse=True)
+
         self._drops.clear()
         self.gui.inv.clear()
         self.inventory.clear()
+        self._mnt_triggers.clear()
         switch_triggers: set[datetime] = set()
         next_hour = datetime.now(timezone.utc) + timedelta(hours=1)
-        for i, campaign in enumerate(campaigns, start=1):
-            status_update(
-                _("gui", "status", "adding_campaigns").format(counter=f"({i}/{len(campaigns)})")
-            )
+        # add the campaigns to the internal inventory
+        for campaign in campaigns:
             self._drops.update({drop.id: drop for drop in campaign.drops})
             if campaign.can_earn_within(next_hour):
                 switch_triggers.update(campaign.time_triggers)
-            # NOTE: this fetches pictures from the CDN, so might be slow without a cache
-            await self.gui.inv.add_campaign(campaign)
-            # this is needed here explicitly, because images aren't always fetched
+            self.inventory.append(campaign)
+        # concurrently add the campaigns into the GUI
+        # NOTE: this fetches pictures from the CDN, so might be slow without a cache
+        for i, coro in enumerate(
+            asyncio.as_completed(
+                [
+                    asyncio.create_task(self.gui.inv.add_campaign(campaign))
+                    for campaign in campaigns
+                ]
+            ),
+            start=1,
+        ):
+            status_update(
+                _("gui", "status", "adding_campaigns").format(counter=f"({i}/{len(campaigns)})")
+            )
+            await coro
+            # this is needed here explicitly, because cache reads from disk don't raise this
             if self.gui.close_requested:
                 raise ExitRequest()
-            self.inventory.append(campaign)
-        self._mnt_triggers.clear()
         self._mnt_triggers.extend(sorted(switch_triggers))
         # trim out all triggers that we're already past
         now = datetime.now(timezone.utc)

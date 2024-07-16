@@ -1302,6 +1302,18 @@ class InventoryOverview:
             # refresh only if we're switching to the tab
             self.refresh()
 
+    def get_status(self, campaign: DropsCampaign) -> tuple[str, str]:
+        if campaign.active:
+            status_text: str = _("gui", "inventory", "status", "active")
+            status_color: str = "green"
+        elif campaign.upcoming:
+            status_text = _("gui", "inventory", "status", "upcoming")
+            status_color = "goldenrod"
+        else:
+            status_text = _("gui", "inventory", "status", "expired")
+            status_color = "red"
+        return (status_text, status_color)
+
     def refresh(self):
         for campaign in self._campaigns:
             # status
@@ -1341,6 +1353,13 @@ class InventoryOverview:
             campaign_frame, text=status_text, takefocus=False, foreground=status_color
         )
         status_label.grid(column=1, row=1, sticky="w", padx=4)
+        # NOTE: We have to save the campaign's frame and status before any awaits happen,
+        # otherwise the len(self._campaigns) call may overwrite an existing frame,
+        # if the campaigns are added concurrently.
+        self._campaigns[campaign] = {
+            "frame": campaign_frame,
+            "status": status_label,
+        }
         # Starts / Ends
         MouseOverLabel(
             campaign_frame,
@@ -1415,10 +1434,6 @@ class InventoryOverview:
             self._drops[drop.id] = label = MouseOverLabel(drop_frame)
             self.update_progress(drop, label)
             label.grid(column=0, row=1)
-        self._campaigns[campaign] = {
-            "frame": campaign_frame,
-            "status": status_label,
-        }
         if self._manager.tabs.current_tab() == 1:
             self._update_visibility(campaign)
             self._canvas_update()
@@ -1428,18 +1443,6 @@ class InventoryOverview:
             child.destroy()
         self._drops.clear()
         self._campaigns.clear()
-
-    def get_status(self, campaign: DropsCampaign) -> tuple[str, str]:
-        if campaign.active:
-            status_text: str = _("gui", "inventory", "status", "active")
-            status_color: str = "green"
-        elif campaign.upcoming:
-            status_text = _("gui", "inventory", "status", "upcoming")
-            status_color = "goldenrod"
-        else:
-            status_text = _("gui", "inventory", "status", "expired")
-            status_color = "red"
-        return (status_text, status_color)
 
     def update_progress(self, drop: TimedDrop, label: MouseOverLabel) -> None:
         # Returns: main text, alt text, text color
