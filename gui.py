@@ -1714,13 +1714,11 @@ class SettingsPanel:
                     value_type, value = key.get(self.AUTOSTART_NAME)
                 except ValueNotFound:
                     return False
-                if (
-                    value_type is not ValueType.REG_SZ
-                    or self._get_self_path() not in value
-                ):
-                    # TODO: Consider deleting the old value to avoid autostart errors
-                    return False
-            return True
+                # TODO: Consider deleting the old value to avoid autostart errors
+                return (
+                    value_type is ValueType.REG_SZ
+                    and self._get_self_path() in value
+                )
         elif sys.platform == "linux":
             autostart_file: Path = self._get_linux_autostart_filepath()
             if not autostart_file.exists():
