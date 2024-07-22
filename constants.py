@@ -303,8 +303,10 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
     # returns all available campaigns
     "Campaigns": GQLOperation(
         "ViewerDropsDashboard",
-        "8d5d9b5e3f088f9d1ff39eb2caab11f7a4cf7a3353da9ce82b5778226ff37268",
-        # no variables needed
+        "5a4da2ab3d5b47c9f9ce864e727b2cb346af1e3ea8b897fe8f704a97ff017619",
+        variables={
+            "fetchRewardCampaigns": False,
+        }
     ),
     # returns extended information about a particular campaign
     "CampaignDetails": GQLOperation(
