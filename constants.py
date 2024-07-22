@@ -311,7 +311,7 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
     # returns extended information about a particular campaign
     "CampaignDetails": GQLOperation(
         "DropCampaignDetails",
-        "e5916665a37150808f8ad053ed6394b225d5504d175c7c0b01b9a89634c57136",
+        "e7acdecb05429a62f5984bdcb27ee938ae20543579bf73c3ae44e7c822bc4f54",
         variables={
             "channelLogin": ...,  # user login
             "dropID": ...,  # campaign ID
