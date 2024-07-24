@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, SupportsInt, TYPE_CHECKING
+from typing import Any, SupportsInt, cast, TYPE_CHECKING
+
+import aiohttp
+from yarl import URL
 
 from utils import Game
 from exceptions import MinerException
@@ -81,16 +84,21 @@ class Stream:
         token_value = token_data["value"]
         token_signature = token_data["signature"]
         # using the token, query Twitch for a list of all available stream qualities
-        async with self.channel._twitch.request(
-            "GET",
-            URLType(
-                "https://usher.ttvnw.net/api/channel/hls/"
-                f"{self.channel._login}.m3u8?sig={token_signature}&token={token_value}"
-            ),
-        ) as qualities_response:
-            available_qualities: str = await qualities_response.text()
-        # pick the last URL from the list, usually with the lowest quality stream
-        self._stream_url = URLType(available_qualities.strip().split("\n")[-1])
+        available_qualities: str = ''
+        try:
+            async with self.channel._twitch.request(
+                "GET",
+                URL(
+                    "https://usher.ttvnw.net/api/channel/hls/"
+                    f"{self.channel._login}.m3u8?sig={token_signature}&token={token_value}"
+                ),
+            ) as qualities_response:
+                available_qualities = await qualities_response.text()
+            # pick the last URL from the list, usually with the lowest quality stream
+            self._stream_url = cast(URLType, URL(available_qualities.strip().split("\n")[-1]))
+        except (aiohttp.InvalidURL, ValueError):
+            self.channel._twitch.print(available_qualities)
+            raise
         return self._stream_url
 
 
@@ -358,19 +366,25 @@ class Channel:
         # fetch a list of chunks available to download for the stream
         # NOTE: the CDN is configured to forcibly disconnect shortly after serving the list,
         # if we don't do it yourselves. Lets help it by actually doing it ourselves instead.
-        async with self._twitch.request(
-            "GET", stream_url, headers={"Connection": "close"}
-        ) as chunks_response:
-            available_chunks: str = await chunks_response.text()
-        # the list contains ~10-13 chunks of the stream at 2s intervals,
-        # pick the last chunk URL available. Ensure it's not the end-of-stream tag,
-        # otherwise use the 2nd to last line.
-        chunks_list: list[str] = available_chunks.strip().split("\n")
-        selected_chunk: str = chunks_list[-1]
-        if selected_chunk == "#EXT-X-ENDLIST":
-            selected_chunk = chunks_list[-2]
-        stream_chunk_url: URLType = URLType(selected_chunk)
-        # sending a HEAD request is enough to advance the drops,
-        # without downloading the actual stream data
-        async with self._twitch.request("HEAD", stream_chunk_url) as head_response:
-            return head_response.status == 200
+        available_chunks: str = ''
+        try:
+            async with self._twitch.request(
+                "GET", stream_url, headers={"Connection": "close"}
+            ) as chunks_response:
+                available_chunks = await chunks_response.text()
+            # the list contains ~10-13 chunks of the stream at 2s intervals,
+            # pick the last chunk URL available. Ensure it's not the end-of-stream tag,
+            # otherwise use the 2nd to last line.
+            chunks_list: list[str] = available_chunks.strip().split("\n")
+            selected_chunk: str = chunks_list[-1]
+            if selected_chunk == "#EXT-X-ENDLIST":
+                selected_chunk = chunks_list[-2]
+            stream_chunk_url: URLType = URLType(selected_chunk)
+            # sending a HEAD request is enough to advance the drops,
+            # without downloading the actual stream data
+            async with self._twitch.request("HEAD", stream_chunk_url) as head_response:
+                return head_response.status == 200
+        except aiohttp.InvalidURL:
+            # Temporarily log the entire response into the output
+            self._twitch.print(available_chunks)
+            raise
