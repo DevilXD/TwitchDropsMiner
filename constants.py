@@ -340,7 +340,7 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
     # returns live channels for a particular game
     "GameDirectory": GQLOperation(
         "DirectoryPage_Game",
-        "5459858b3193374510478d5c0fbb8c9bcd77ee5c82eaf45990e2df4f598bfa4f",
+        "c7c9d5aad09155c4161d2382092dc44610367f3536aac39019ec2582ae5065f9",
         variables={
             "limit": 30,  # limit of channels returned
             "slug": ...,  # game slug
