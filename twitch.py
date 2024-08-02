@@ -1332,6 +1332,7 @@ class Twitch:
                 response_list = [response_json]
             force_retry: bool = False
             for response_json in response_list:
+                # GQL errors handling
                 if "errors" in response_json:
                     for error_dict in response_json["errors"]:
                         if (
@@ -1348,6 +1349,11 @@ class Twitch:
                             break
                     else:
                         raise MinerException(f"GQL error: {response_json['errors']}")
+                # Other error handling
+                elif "error" in response_json:
+                    raise MinerException(
+                        f"GQL error: {response_json['error']}: {response_json['message']}"
+                    )
                 if force_retry:
                     break
             else:
