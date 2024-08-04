@@ -21,12 +21,14 @@ from channel import Channel
 from websocket import WebsocketPool
 from inventory import DropsCampaign
 from exceptions import (
-    MinerException,
-    CaptchaRequired,
     ExitRequest,
-    LoginException,
+    GQLException,
     ReloadRequest,
+    LoginException,
+    MinerException,
     RequestInvalid,
+    CaptchaRequired,
+    RequestException,
 )
 from utils import (
     CHARS_HEX_LOWER,
@@ -42,8 +44,8 @@ from constants import (
     CALL,
     DUMP_PATH,
     COOKIES_PATH,
-    GQL_OPERATIONS,
     MAX_CHANNELS,
+    GQL_OPERATIONS,
     WATCH_INTERVAL,
     State,
     ClientType,
@@ -315,7 +317,7 @@ class _AuthState:
 
         if hasattr(self, "access_token"):
             return self.access_token
-        raise MinerException("Login flow finished without setting the access token")
+        raise LoginException("Login flow finished without setting the access token")
 
     def headers(self, *, user_agent: str = '', gql: bool = False) -> JsonType:
         client_info: ClientInfo = self._twitch._client_type
@@ -397,7 +399,7 @@ class _AuthState:
             else:
                 raise RuntimeError("Login verification failure")
             if validate_response["client_id"] != client_info.CLIENT_ID:
-                raise MinerException("You're using an old cookie file, please generate a new one.")
+                raise LoginException("You're using an old cookie file, please generate a new one.")
             self.user_id = int(validate_response["user_id"])
             cookie["persistent"] = str(self.user_id)
             logger.info(f"Login successful, user ID: {self.user_id}")
@@ -574,7 +576,7 @@ class Twitch:
             except ExitRequest:
                 break
             except aiohttp.ContentTypeError as exc:
-                raise MinerException(_("login", "unexpected_content")) from exc
+                raise RequestException(_("login", "unexpected_content")) from exc
 
     async def _run(self):
         """
@@ -1348,18 +1350,18 @@ class Twitch:
                             force_retry = True
                             break
                     else:
-                        raise MinerException(f"GQL error: {response_json['errors']}")
+                        raise GQLException(response_json['errors'])
                 # Other error handling
                 elif "error" in response_json:
-                    raise MinerException(
-                        f"GQL error: {response_json['error']}: {response_json['message']}"
+                    raise GQLException(
+                        f"{response_json['error']}: {response_json['message']}"
                     )
                 if force_retry:
                     break
             else:
                 return orig_response
             await asyncio.sleep(delay)
-        raise MinerException()
+        raise GQLException("Retry loop was broken")
 
     def _merge_data(self, primary_data: JsonType, secondary_data: JsonType) -> JsonType:
         merged = {}
@@ -1544,7 +1546,7 @@ class Twitch:
                     },
                 })
             )
-        except MinerException as exc:
+        except GQLException as exc:
             raise MinerException(f"Game: {game.slug}") from exc
         if "game" in response["data"]:
             return [

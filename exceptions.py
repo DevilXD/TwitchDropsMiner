@@ -84,3 +84,11 @@ class CaptchaRequired(LoginException):
     """
     def __init__(self):
         super().__init__("Captcha is required")
+
+
+class GQLException(RequestException):
+    """
+    Raised when a GQL request returns an error response.
+    """
+    def __init__(self, message: str):
+        super().__init__(message)
