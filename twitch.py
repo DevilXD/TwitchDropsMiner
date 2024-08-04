@@ -719,7 +719,8 @@ class Twitch:
                 # use the other set to set them online if possible
                 if acl_channels:
                     await asyncio.gather(
-                        *(channel.update_stream(trigger_events=False) for channel in acl_channels)
+                        *(channel.update_stream(trigger_events=False) for channel in acl_channels),
+                        return_exceptions=True,
                     )
                 # finally, add them as new channels
                 new_channels.update(acl_channels)
@@ -868,12 +869,17 @@ class Twitch:
                 handled: bool = False
 
                 # Solution 1: use GQL to query for the currently mined drop status
-                context = await self.gql_request(
-                    GQL_OPERATIONS["CurrentDrop"].with_variables({"channelID": str(channel.id)})
-                )
-                drop_data: JsonType | None = (
-                    context["data"]["currentUser"]["dropCurrentSession"]
-                )
+                try:
+                    context = await self.gql_request(
+                        GQL_OPERATIONS["CurrentDrop"].with_variables(
+                            {"channelID": str(channel.id)}
+                        )
+                    )
+                    drop_data: JsonType | None = (
+                        context["data"]["currentUser"]["dropCurrentSession"]
+                    )
+                except GQLException:
+                    drop_data = None
                 if drop_data is not None:
                     drop = self._drops.get(drop_data["dropID"])
                     if drop is not None and drop.can_earn(channel):
