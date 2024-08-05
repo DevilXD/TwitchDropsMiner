@@ -424,7 +424,7 @@ class Twitch:
         self._drops: dict[str, TimedDrop] = {}
         self._mnt_triggers: deque[datetime] = deque()
         # Client type, session and auth
-        self._client_type: ClientInfo = ClientType.MOBILE_WEB
+        self._client_type: ClientInfo = ClientType.ANDROID_APP
         self._session: aiohttp.ClientSession | None = None
         self._auth_state: _AuthState = _AuthState(self)
         # GUI
