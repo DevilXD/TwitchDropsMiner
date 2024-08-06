@@ -21,12 +21,14 @@ from channel import Channel
 from websocket import WebsocketPool
 from inventory import DropsCampaign
 from exceptions import (
-    MinerException,
-    CaptchaRequired,
     ExitRequest,
-    LoginException,
+    GQLException,
     ReloadRequest,
+    LoginException,
+    MinerException,
     RequestInvalid,
+    CaptchaRequired,
+    RequestException,
 )
 from utils import (
     CHARS_HEX_LOWER,
@@ -42,8 +44,8 @@ from constants import (
     CALL,
     DUMP_PATH,
     COOKIES_PATH,
-    GQL_OPERATIONS,
     MAX_CHANNELS,
+    GQL_OPERATIONS,
     WATCH_INTERVAL,
     State,
     ClientType,
@@ -315,7 +317,7 @@ class _AuthState:
 
         if hasattr(self, "access_token"):
             return self.access_token
-        raise MinerException("Login flow finished without setting the access token")
+        raise LoginException("Login flow finished without setting the access token")
 
     def headers(self, *, user_agent: str = '', gql: bool = False) -> JsonType:
         client_info: ClientInfo = self._twitch._client_type
@@ -397,7 +399,7 @@ class _AuthState:
             else:
                 raise RuntimeError("Login verification failure")
             if validate_response["client_id"] != client_info.CLIENT_ID:
-                raise MinerException("You're using an old cookie file, please generate a new one.")
+                raise LoginException("You're using an old cookie file, please generate a new one.")
             self.user_id = int(validate_response["user_id"])
             cookie["persistent"] = str(self.user_id)
             logger.info(f"Login successful, user ID: {self.user_id}")
@@ -577,7 +579,7 @@ class Twitch:
             except ExitRequest:
                 break
             except aiohttp.ContentTypeError as exc:
-                raise MinerException(_("login", "unexpected_content")) from exc
+                raise RequestException(_("login", "unexpected_content")) from exc
 
     async def _run(self):
         """
@@ -719,7 +721,8 @@ class Twitch:
                 # use the other set to set them online if possible
                 if acl_channels:
                     await asyncio.gather(
-                        *(channel.update_stream(trigger_events=False) for channel in acl_channels)
+                        *(channel.update_stream(trigger_events=False) for channel in acl_channels),
+                        return_exceptions=True,
                     )
                 # finally, add them as new channels
                 new_channels.update(acl_channels)
@@ -851,7 +854,7 @@ class Twitch:
         with suppress(asyncio.TimeoutError):
             await asyncio.wait_for(self._watching_restart.wait(), timeout=delay)
 
-    @task_wrapper
+    @task_wrapper(critical=True)
     async def _watch_loop(self) -> NoReturn:
         interval: float = WATCH_INTERVAL.total_seconds()
         while True:
@@ -868,12 +871,17 @@ class Twitch:
                 handled: bool = False
 
                 # Solution 1: use GQL to query for the currently mined drop status
-                context = await self.gql_request(
-                    GQL_OPERATIONS["CurrentDrop"].with_variables({"channelID": str(channel.id)})
-                )
-                drop_data: JsonType | None = (
-                    context["data"]["currentUser"]["dropCurrentSession"]
-                )
+                try:
+                    context = await self.gql_request(
+                        GQL_OPERATIONS["CurrentDrop"].with_variables(
+                            {"channelID": str(channel.id)}
+                        )
+                    )
+                    drop_data: JsonType | None = (
+                        context["data"]["currentUser"]["dropCurrentSession"]
+                    )
+                except GQLException:
+                    drop_data = None
                 if drop_data is not None:
                     drop = self._drops.get(drop_data["dropID"])
                     if drop is not None and drop.can_earn(channel):
@@ -900,7 +908,7 @@ class Twitch:
                         logger.log(CALL, "No active drop could be determined")
             await self._watch_sleep(interval)
 
-    @task_wrapper
+    @task_wrapper(critical=True)
     async def _maintenance_task(self) -> None:
         claim_period = timedelta(minutes=30)
         max_period = timedelta(hours=1)
@@ -913,10 +921,9 @@ class Twitch:
                 break
             next_trigger = min(now + claim_period, next_period)
             trigger_cleanup = False
-            while self._mnt_triggers and (switch_trigger := self._mnt_triggers[0]) <= next_trigger:
+            while self._mnt_triggers and self._mnt_triggers[0] <= next_trigger:
+                next_trigger = self._mnt_triggers.popleft()
                 trigger_cleanup = True
-                self._mnt_triggers.popleft()
-                next_trigger = switch_trigger
             if next_trigger == next_period:
                 trigger_type: str = "Reload"
             elif trigger_cleanup:
@@ -945,7 +952,7 @@ class Twitch:
                     await watching_channel.claim_bonus()
                 except Exception:
                     pass  # we intentionally silently skip anything else
-        # this triggers this task restart every (up to) 60 minutes
+        # this triggers a restart of this task every (up to) 60 minutes
         logger.log(CALL, "Maintenance task requests a reload")
         self.change_state(State.INVENTORY_FETCH)
 
@@ -1335,11 +1342,13 @@ class Twitch:
                 response_list = [response_json]
             force_retry: bool = False
             for response_json in response_list:
+                # GQL errors handling
                 if "errors" in response_json:
                     for error_dict in response_json["errors"]:
                         if (
                             "message" in error_dict
                             and error_dict["message"] in (
+                                # "server error",
                                 # "service error",
                                 "service unavailable",
                                 "service timeout",
@@ -1349,13 +1358,18 @@ class Twitch:
                             force_retry = True
                             break
                     else:
-                        raise MinerException(f"GQL error: {response_json['errors']}")
+                        raise GQLException(response_json['errors'])
+                # Other error handling
+                elif "error" in response_json:
+                    raise GQLException(
+                        f"{response_json['error']}: {response_json['message']}"
+                    )
                 if force_retry:
                     break
             else:
                 return orig_response
             await asyncio.sleep(delay)
-        raise MinerException()
+        raise GQLException("Retry loop was broken")
 
     def _merge_data(self, primary_data: JsonType, secondary_data: JsonType) -> JsonType:
         merged = {}
@@ -1480,25 +1494,37 @@ class Twitch:
         campaigns.sort(key=lambda c: c.active, reverse=True)
         campaigns.sort(key=lambda c: c.upcoming and c.starts_at or c.ends_at)
         campaigns.sort(key=lambda c: c.linked, reverse=True)
+
         self._drops.clear()
         self.gui.inv.clear()
         self.inventory.clear()
+        self._mnt_triggers.clear()
         switch_triggers: set[datetime] = set()
         next_hour = datetime.now(timezone.utc) + timedelta(hours=1)
-        for i, campaign in enumerate(campaigns, start=1):
-            status_update(
-                _("gui", "status", "adding_campaigns").format(counter=f"({i}/{len(campaigns)})")
-            )
+        # add the campaigns to the internal inventory
+        for campaign in campaigns:
             self._drops.update({drop.id: drop for drop in campaign.drops})
             if campaign.can_earn_within(next_hour):
                 switch_triggers.update(campaign.time_triggers)
-            # NOTE: this fetches pictures from the CDN, so might be slow without a cache
-            await self.gui.inv.add_campaign(campaign)
-            # this is needed here explicitly, because images aren't always fetched
+            self.inventory.append(campaign)
+        # concurrently add the campaigns into the GUI
+        # NOTE: this fetches pictures from the CDN, so might be slow without a cache
+        for i, coro in enumerate(
+            asyncio.as_completed(
+                [
+                    asyncio.create_task(self.gui.inv.add_campaign(campaign))
+                    for campaign in campaigns
+                ]
+            ),
+            start=1,
+        ):
+            status_update(
+                _("gui", "status", "adding_campaigns").format(counter=f"({i}/{len(campaigns)})")
+            )
+            await coro
+            # this is needed here explicitly, because cache reads from disk don't raise this
             if self.gui.close_requested:
                 raise ExitRequest()
-            self.inventory.append(campaign)
-        self._mnt_triggers.clear()
         self._mnt_triggers.extend(sorted(switch_triggers))
         # trim out all triggers that we're already past
         now = datetime.now(timezone.utc)
@@ -1545,7 +1571,7 @@ class Twitch:
                     },
                 })
             )
-        except MinerException as exc:
+        except GQLException as exc:
             raise MinerException(f"Game: {game.slug}") from exc
         if "game" in response["data"]:
             return [

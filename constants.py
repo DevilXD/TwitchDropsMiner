@@ -303,13 +303,15 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
     # returns all available campaigns
     "Campaigns": GQLOperation(
         "ViewerDropsDashboard",
-        "8d5d9b5e3f088f9d1ff39eb2caab11f7a4cf7a3353da9ce82b5778226ff37268",
-        # no variables needed
+        "5a4da2ab3d5b47c9f9ce864e727b2cb346af1e3ea8b897fe8f704a97ff017619",
+        variables={
+            "fetchRewardCampaigns": False,
+        }
     ),
     # returns extended information about a particular campaign
     "CampaignDetails": GQLOperation(
         "DropCampaignDetails",
-        "e5916665a37150808f8ad053ed6394b225d5504d175c7c0b01b9a89634c57136",
+        "e7acdecb05429a62f5984bdcb27ee938ae20543579bf73c3ae44e7c822bc4f54",
         variables={
             "channelLogin": ...,  # user login
             "dropID": ...,  # campaign ID
@@ -338,7 +340,7 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
     # returns live channels for a particular game
     "GameDirectory": GQLOperation(
         "DirectoryPage_Game",
-        "e303f59d4836d19e66cb0f5a1efe15fbe2a1c02d314ad4f09982e825950b293d",
+        "c7c9d5aad09155c4161d2382092dc44610367f3536aac39019ec2582ae5065f9",
         variables={
             "limit": 30,  # limit of channels returned
             "slug": ...,  # game slug
@@ -353,6 +355,7 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
                 "tags": [],
                 "requestID": "JIRA-VXP-2397",
             },
+            "includeIsDJ": False,
             "includePreviewBlur": True,
             "sortTypeIsRecency": False,
         },

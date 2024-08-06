@@ -131,18 +131,36 @@ def deduplicate(iterable: abc.Iterable[_T]) -> list[_T]:
 
 
 def task_wrapper(
-    afunc: abc.Callable[_P, abc.Coroutine[Any, Any, _T]]
-) -> abc.Callable[_P, abc.Coroutine[Any, Any, _T]]:
-    @wraps(afunc)
-    async def wrapper(*args: _P.args, **kwargs: _P.kwargs):
-        try:
-            await afunc(*args, **kwargs)
-        except (ExitRequest, ReloadRequest):
-            pass
-        except Exception:
-            logger.exception(f"Exception in {afunc.__name__} task")
-            raise  # raise up to the wrapping task
-    return wrapper
+    afunc: abc.Callable[_P, abc.Coroutine[Any, Any, _T]] | None = None, *, critical: bool = False
+):
+    def decorator(
+        afunc: abc.Callable[_P, abc.Coroutine[Any, Any, _T]]
+    ) -> abc.Callable[_P, abc.Coroutine[Any, Any, _T]]:
+        @wraps(afunc)
+        async def wrapper(*args: _P.args, **kwargs: _P.kwargs):
+            try:
+                await afunc(*args, **kwargs)
+            except (ExitRequest, ReloadRequest):
+                pass
+            except Exception:
+                logger.exception(f"Exception in {afunc.__name__} task")
+                if critical:
+                    # critical task's death should trigger a termination.
+                    # there isn't an easy and sure way to obtain the Twitch instance here,
+                    # but we can improvise finding it
+                    from twitch import Twitch  # cyclic import
+                    probe = args and args[0] or None  # extract from 'self' arg
+                    if isinstance(probe, Twitch):
+                        probe.close()
+                    elif probe is not None:
+                        probe = getattr(probe, "_twitch", None)  # extract from '_twitch' attr
+                        if isinstance(probe, Twitch):
+                            probe.close()
+                raise  # raise up to the wrapping task
+        return wrapper
+    if afunc is None:
+        return decorator
+    return decorator(afunc)
 
 
 def invalidate_cache(instance, *attrnames):

@@ -59,7 +59,7 @@ class Websocket:
         self.topics: dict[str, WebsocketTopic] = {}
         self._submitted: set[WebsocketTopic] = set()
         # notify GUI
-        self.set_status("Disconnected")
+        self.set_status(_("gui", "websocket", "disconnected"))
 
     @property
     def connected(self) -> bool:
@@ -121,7 +121,7 @@ class Websocket:
             proxy = None
         for delay in backoff:
             try:
-                async with session.ws_connect(ws_url, ssl=True, proxy=proxy) as websocket:
+                async with session.ws_connect(ws_url, proxy=proxy) as websocket:
                     yield websocket
                     backoff.reset()
             except (
@@ -141,7 +141,7 @@ class Websocket:
                 )
                 break
 
-    @task_wrapper
+    @task_wrapper(critical=True)
     async def _handle(self):
         # ensure we're logged in before connecting
         self.set_status(_("gui", "websocket", "initializing"))
