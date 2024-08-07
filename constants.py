@@ -345,6 +345,7 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
             "limit": 30,  # limit of channels returned
             "slug": ...,  # game slug
             "imageWidth": 50,
+            "includeIsDJ": False,
             "options": {
                 "broadcasterLanguages": [],
                 "freeformTags": None,
