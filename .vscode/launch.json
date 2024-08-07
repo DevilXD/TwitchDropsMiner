@@ -39,6 +39,15 @@
             "justMyCode": false
         },
         {
+            "name": "Run App (DEBUG+GQL)",
+            "type": "python",
+            "request": "launch",
+            "program": "main.py",
+            "args": ["-vvv", "--debug-gql"],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
             "name": "Debug GUI",
             "type": "python",
             "request": "launch",
