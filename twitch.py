@@ -717,11 +717,11 @@ class Twitch:
                 # remove all ACL channels that already exist from the other set
                 acl_channels.difference_update(new_channels)
                 # use the other set to set them online if possible
-                if acl_channels:
-                    await asyncio.gather(
-                        *(channel.update_stream(trigger_events=False) for channel in acl_channels),
-                        return_exceptions=True,
-                    )
+                # if acl_channels:
+                #     await asyncio.gather(*(
+                #         channel.update_stream(trigger_events=False)
+                #         for channel in acl_channels
+                #     ))
                 # finally, add them as new channels
                 new_channels.update(acl_channels)
                 for game in no_acl:
