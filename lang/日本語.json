@@ -1,0 +1,162 @@
+{
+  "english_name": "Japanese",
+  "status": {
+    "terminated": "\nアプリケーションが終了しました。\nウィンドウを閉じてアプリケーションを終了します。",
+    "watching": "{channel} を視聴中",
+    "goes_online": "{channel} がオンラインになりました。切り替え中...",
+    "goes_offline": "{channel} がオフラインになりました。切り替え中...",
+    "claimed_drop": "ドロップを取得しました：{drop}",
+    "claimed_points": "ボーナスポイントを受け取りました：{points}",
+    "earned_points": "視聴ポイントを獲得しました：{points}、合計：{balance}",
+    "no_channel": "視聴可能なチャンネルがありません。オンラインになるチャンネルを待機中...",
+    "no_campaign": "マイニングするドロップがないアクティブなキャンペーンはありません。アクティブなキャンペーンを待機中..."
+  },
+  "login": {
+    "unexpected_content": "予期しないコンテンツタイプが返されました。リダイレクトされたためかもしれません。インターネットアクセスのためにログインが必要ですか？",
+    "chrome": {
+      "startup": "Chromeを開いています...",
+      "login_to_complete": "ログインボタンを再度押して手動でログイン手続きを完了してください。",
+      "no_token": "認証トークンが見つかりませんでした。",
+      "closed_window": "ログイン手続きが完了する前にChromeウィンドウが閉じられました。"
+    },
+    "error_code": "ログインエラーコード：{error_code}",
+    "incorrect_login_pass": "ユーザー名またはパスワードが間違っています。",
+    "incorrect_email_code": "メールコードが間違っています。",
+    "incorrect_twofa_code": "2段階認証コードが間違っています。",
+    "email_code_required": "メールコードが必要です。メールを確認してください。",
+    "twofa_code_required": "2段階認証トークンが必要です。"
+  },
+  "error": {
+    "captcha": "ログイン試行がCAPTCHAによって拒否されました。\n12時間以上後に再試行してください。",
+    "site_down": "Twitchがダウンしています。{seconds}秒後に再試行します...",
+    "no_connection": "Twitchに接続できません。{seconds}秒後に再試行します..."
+  },
+  "gui": {
+    "output": "出力",
+    "status": {
+      "name": "ステータス",
+      "idle": "アイドル",
+      "exiting": "終了しています...",
+      "terminated": "終了",
+      "cleanup": "チャンネルをクリーンアップ中...",
+      "gathering": "チャンネルを収集中...",
+      "switching": "チャンネルを切り替え中...",
+      "fetching_inventory": "インベントリを取得中...",
+      "fetching_campaigns": "キャンペーンを取得中...",
+      "adding_campaigns": "キャンペーンをインベントリに追加中... {counter}"
+    },
+    "tabs": {
+      "main": "メイン",
+      "inventory": "インベントリ",
+      "settings": "設定",
+      "help": "ヘルプ"
+    },
+    "tray": {
+      "notification_title": "ドロップを取得しました",
+      "minimize": "トレイに最小化",
+      "show": "表示",
+      "quit": "終了"
+    },
+    "login": {
+      "name": "ログインフォーム",
+      "labels": "ステータス：\nユーザーID：",
+      "logged_in": "ログイン済み",
+      "logged_out": "ログアウト済み",
+      "logging_in": "ログイン中...",
+      "required": "ログインが必要です",
+      "request": "続行するにはログインしてください。",
+      "username": "ユーザー名",
+      "password": "パスワード",
+      "twofa_code": "2段階認証コード（オプション）",
+      "button": "ログイン"
+    },
+    "websocket": {
+      "name": "Websocketステータス",
+      "websocket": "Websocket #{id}：",
+      "initializing": "初期化中...",
+      "connected": "接続済み",
+      "disconnected": "切断されました",
+      "connecting": "接続中...",
+      "disconnecting": "切断中...",
+      "reconnecting": "再接続中..."
+    },
+    "progress": {
+      "name": "キャンペーン進行状況",
+      "drop": "ドロップ：",
+      "game": "ゲーム：",
+      "campaign": "キャンペーン：",
+      "remaining": "残り時間：{time}",
+      "drop_progress": "進行状況：",
+      "campaign_progress": "進行状況："
+    },
+    "channels": {
+      "name": "チャンネル",
+      "switch": "切り替え",
+      "load_points": "ポイントを読み込む",
+      "online": "オンライン \u2714",
+      "pending": "オフライン中 \u23f3",
+      "offline": "オフライン \u274c",
+      "headings": {
+        "channel": "チャンネル",
+        "status": "ステータス",
+        "game": "ゲーム",
+        "viewers": "視聴者数",
+        "points": "ポイント"
+      }
+    },
+    "inventory": {
+      "filter": {
+        "name": "フィルター",
+        "show": "表示：",
+        "not_linked": "リンクなし",
+        "upcoming": "予定",
+        "expired": "期限切れ",
+        "excluded": "除外",
+        "finished": "終了",
+        "refresh": "更新"
+      },
+      "status": {
+        "linked": "リンク済み \u2714",
+        "not_linked": "リンクされていない \u274c",
+        "active": "アクティブ \u2714",
+        "upcoming": "予定 \u23f3",
+        "expired": "期限切れ \u274c",
+        "claimed": "受け取り済み \u2714",
+        "ready_to_claim": "受け取り準備完了 \u23f3"
+      },
+      "starts": "開始：{time}",
+      "ends": "終了：{time}",
+      "allowed_channels": "許可されたチャンネル：",
+      "all_channels": "全て",
+      "and_more": "その他 {amount} 件...",
+      "percent_progress": "{minutes} 分のうち {percent}",
+      "minutes_progress": "{minutes} 分"
+    },
+    "settings": {
+      "general": {
+        "name": "一般",
+        "autostart": "自動起動：",
+        "tray": "トレイに自動起動：",
+        "tray_notifications": "トレイ通知：",
+        "priority_only": "優先のみ：",
+        "proxy": "プロキシ（再起動が必要）："
+      },
+      "game_name": "ゲーム名",
+      "priority": "優先度",
+      "exclude": "除外",
+      "reload": "再読み込み",
+      "reload_text": "ほとんどの変更は即時に反映されるために再読み込みが必要です："
+    },
+    "help": {
+      "links": {
+        "name": "役立つリンク",
+        "inventory": "Twitchインベントリを表示",
+        "campaigns": "すべてのキャンペーンを表示してアカウントリンクを管理"
+      },
+      "how_it_works": "動作原理",
+      "how_it_works_text": "数秒ごとに、アプリケーションは特定のストリームを視聴しているかのように振る舞い、ストリームメタデータを取得します。これにより、ドロップが進むことが可能です。実際のビデオや音声ストリームをダウンロードする必要はないことに注意してください。チャンネルのステータス（オンラインまたはオフライン）を最新の状態に保つために、ストリームがオンラインまたはオフラインになったり、視聴者数が更新されたりするイベントを受け取るためのwebsocket接続が確立されます。",
+      "getting_started": "始め方",
+      "getting_started_text": "1. アプリケーションにログインします。\n2. Twitchアカウントが関連付けられていることを確認し、マイニングしたいすべてのキャンペーンにリンクされていることを確認します。\n3. すべてをマイニングしたい場合は、「優先のみ」をチェックせずに「再読み込み」を押します。\n4. 特定のゲームを最初にマイニングしたい場合は、「優先度」リストを使用して選択したゲームの順序付きリストを設定します。リストの先頭にあるゲームが、リストの下にあるゲームよりも優先してマイニングされます。\n5. マイニングしたくないゲームを避けるためには「優先のみ」オプションをチェックしたままにします。または、チェックを外してもかまいません。選択はあなた次第です。\n6. 「除外」リストを使用して、アプリケーションにマイニングを行ってはいけないゲームを指定します。\n7. リストの内容を変更したり、「優先のみ」オプションのステータスを変更したりすると、変更を反映させるために「再読み込み」ボタンを押す必要があります。"
+    }
+  }
+}
