@@ -128,4 +128,5 @@ if they aren't already there. Doing so ensures proper markdown rendering on Gith
 @Nollasko - For the entirety of the Ukrainian (Українська) translation.  
 @casungo - For the entirety of the Italian (Italiano) translation.  
 @Bamboozul - For the entirety of the Arabic (العربية) translation.  
-@Kjerne - For the entirety of the Danish (Dansk) translation.
+@Kjerne - For the entirety of the Danish (Dansk) translation.  
+@ShimadaNanaki - For the entirety of the Japanese (日本語) translation.
