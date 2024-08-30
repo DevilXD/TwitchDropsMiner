@@ -1043,7 +1043,7 @@ class TrayIcon:
 
     def __init__(self, manager: GUIManager, master: ttk.Widget):
         self._manager = manager
-        self.icon: pystray.Icon | None = None
+        self.icon: pystray.Icon | None = None  # type: ignore
         self._icon_images: dict[str, Image_module.Image] = {
             "pickaxe": Image_module.open(resource_path("icons/pickaxe.ico")),
             "active": Image_module.open(resource_path("icons/active.ico")),

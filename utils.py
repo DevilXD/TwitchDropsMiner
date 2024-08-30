@@ -19,9 +19,7 @@ from contextlib import suppress
 from functools import cached_property
 from datetime import datetime, timezone
 from collections import abc, OrderedDict
-from typing import (
-    Any, Literal, MutableSet, Callable, Generic, Mapping, TypeVar, cast, TYPE_CHECKING
-)
+from typing import Any, Literal, MutableSet, Callable, Generic, Mapping, TypeVar, ParamSpec, cast
 
 import yarl
 from PIL.ImageTk import PhotoImage
@@ -30,14 +28,6 @@ from PIL import Image as Image_module
 from constants import JsonType, IS_PACKAGED
 from exceptions import ExitRequest, ReloadRequest
 from constants import _resource_path as resource_path  # noqa
-
-if TYPE_CHECKING:
-    from typing_extensions import ParamSpec
-else:
-    # stub it
-    class ParamSpec:
-        def __init__(*args, **kwargs):
-            pass
 
 
 _T = TypeVar("_T")  # type
