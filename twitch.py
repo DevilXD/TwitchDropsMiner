@@ -1100,8 +1100,8 @@ class Twitch:
                     # Channel stays ONLINE, but we can't watch it anymore
                     logger.info(
                         f"{channel.name} status has been updated, switching... "
-                        f"(🎁: {stream_before.drops_enabled and '✔' or '❌'} -> "
-                        f"{stream_after.drops_enabled and '✔' or '❌'})"
+                        f"(D: {stream_before.drops_enabled and 'Y' or 'N'} -> "
+                        f"{stream_after.drops_enabled and 'Y' or 'N'})"
                     )
                 self.change_state(State.CHANNEL_SWITCH)
             # NOTE: In these cases, it wasn't the watching channel
@@ -1111,8 +1111,8 @@ class Twitch:
                 # Channel is and stays ONLINE, but has been updated
                 logger.info(
                     f"{channel.name} status has been updated "
-                    f"(🎁: {stream_before.drops_enabled and '✔' or '❌'} -> "
-                    f"{stream_after.drops_enabled and '✔' or '❌'})"
+                    f"(D: {stream_before.drops_enabled and 'Y' or 'N'} -> "
+                    f"{stream_after.drops_enabled and 'Y' or 'N'})"
                 )
         channel.display()
 

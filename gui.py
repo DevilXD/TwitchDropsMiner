@@ -492,7 +492,7 @@ class LoginForm:
         self._login_entry = PlaceholderEntry(frame, placeholder=_("gui", "login", "username"))
         # self._login_entry.grid(column=0, row=1, columnspan=2)
         self._pass_entry = PlaceholderEntry(
-            frame, placeholder=_("gui", "login", "password"), show='•'
+            frame, placeholder=_("gui", "login", "password"), show='#'
         )
         # self._pass_entry.grid(column=0, row=2, columnspan=2)
         self._token_entry = PlaceholderEntry(frame, placeholder=_("gui", "login", "twofa_code"))
@@ -843,14 +843,14 @@ class ChannelList:
             ],
         )
         self._add_column("game", _("gui", "channels", "headings", "game"), width=50)
-        self._add_column("drops", "🎁", width_template="✔")
+        self._add_column("drops", "D", width_template="D")
         self._add_column(
             "viewers", _("gui", "channels", "headings", "viewers"), width_template="1234567"
         )
         self._add_column(
             "points", _("gui", "channels", "headings", "points"), width_template="1234567"
         )
-        self._add_column("acl_base", "📋", width_template="✔")
+        self._add_column("acl_base", "A", width_template="A")
         self._channel_map: dict[str, Channel] = {}
 
     def _add_column(
@@ -989,7 +989,7 @@ class ChannelList:
             # the channel isn't on the list and we're not supposed to add it
             return
         # ACL-based
-        acl_based = "✔" if channel.acl_based else "❌"
+        acl_based = "Y" if channel.acl_based else "N"
         # status
         if channel.online:
             status = _("gui", "channels", "online")
@@ -1000,7 +1000,7 @@ class ChannelList:
         # game
         game = str(channel.game or '')
         # drops
-        drops = "✔" if channel.drops_enabled else "❌"
+        drops = "Y" if channel.drops_enabled else "N"
         # viewers
         viewers = ''
         if channel.viewers is not None:
@@ -1542,7 +1542,7 @@ class SettingsPanel:
         # language frame
         language_frame = ttk.Frame(center_frame2)
         language_frame.grid(column=0, row=0)
-        ttk.Label(language_frame, text="Language 🌐 (requires restart): ").grid(column=0, row=0)
+        ttk.Label(language_frame, text="Language (requires restart): ").grid(column=0, row=0)
         SelectMenu(
             language_frame,
             default=_.current,
@@ -1603,7 +1603,7 @@ class SettingsPanel:
         self._priority_entry.grid(column=0, row=0, sticky="ew")
         priority_frame.columnconfigure(0, weight=1)
         ttk.Button(
-            priority_frame, text="➕", command=self.priority_add, width=2, style="Large.TButton"
+            priority_frame, text="+", command=self.priority_add, width=2, style="Large.TButton"
         ).grid(column=1, row=0)
         self._priority_list = PaddedListbox(
             priority_frame,
@@ -1619,7 +1619,7 @@ class SettingsPanel:
         ttk.Button(
             priority_frame,
             width=2,
-            text="▲",
+            text="/\\",
             style="Large.TButton",
             command=partial(self.priority_move, True),
         ).grid(column=1, row=1, sticky="ns")
@@ -1627,13 +1627,13 @@ class SettingsPanel:
         ttk.Button(
             priority_frame,
             width=2,
-            text="▼",
+            text="\\/",
             style="Large.TButton",
             command=partial(self.priority_move, False),
         ).grid(column=1, row=2, sticky="ns")
         priority_frame.rowconfigure(2, weight=1)
         ttk.Button(
-            priority_frame, text="❌", command=self.priority_delete, width=2, style="Large.TButton"
+            priority_frame, text="X", command=self.priority_delete, width=2, style="Large.TButton"
         ).grid(column=1, row=3, sticky="ns")
         priority_frame.rowconfigure(3, weight=1)
         # Exclude section
@@ -1646,7 +1646,7 @@ class SettingsPanel:
         )
         self._exclude_entry.grid(column=0, row=0, sticky="ew")
         ttk.Button(
-            exclude_frame, text="➕", command=self.exclude_add, width=2, style="Large.TButton"
+            exclude_frame, text="+", command=self.exclude_add, width=2, style="Large.TButton"
         ).grid(column=1, row=0)
         self._exclude_list = PaddedListbox(
             exclude_frame,
@@ -1662,7 +1662,7 @@ class SettingsPanel:
         # insert them alphabetically
         self._exclude_list.insert("end", *sorted(self._settings.exclude))
         ttk.Button(
-            exclude_frame, text="❌", command=self.exclude_delete, width=2, style="Large.TButton"
+            exclude_frame, text="X", command=self.exclude_delete, width=2, style="Large.TButton"
         ).grid(column=0, row=2, columnspan=2, sticky="ew")
         # Reload button
         reload_frame = ttk.Frame(center_frame)
