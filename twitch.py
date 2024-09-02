@@ -1293,12 +1293,15 @@ class Twitch:
                     yield response
                     return
                 self.print(_("error", "site_down").format(seconds=round(delay)))
-            except aiohttp.ClientConnectorCertificateError:  # type: ignore[unused-ignore]
+            except aiohttp.ClientConnectorCertificateError:
                 # for a case where SSL verification fails
                 raise
-            except (aiohttp.ClientConnectionError, asyncio.TimeoutError):
-                # just so that quick retries that often happen, aren't shown
+            except (
+                aiohttp.ClientConnectionError, asyncio.TimeoutError, aiohttp.ClientPayloadError
+            ):
+                # connection problems, retry
                 if backoff.steps > 1:
+                    # just so that quick retries that sometimes happen, aren't shown
                     self.print(_("error", "no_connection").format(seconds=round(delay)))
             finally:
                 if response is not None:
