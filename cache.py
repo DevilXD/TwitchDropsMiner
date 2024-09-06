@@ -85,7 +85,9 @@ class ImageCache:
         return datetime.now(timezone.utc) + self.LIFETIME
 
     def _hash(self, image: Image) -> ImageHash:
-        pixel_data = list(image.resize((10, 10), Image_module.LANCZOS).convert('L').getdata())
+        pixel_data = list(
+            image.resize((10, 10), Image_module.Resampling.LANCZOS).convert('L').getdata()
+        )
         avg_pixel = sum(pixel_data) / len(pixel_data)
         bits = ''.join('1' if px >= avg_pixel else '0' for px in pixel_data)
         return ImageHash(f"{int(bits, 2):x}.png")
@@ -122,6 +124,6 @@ class ImageCache:
         if photo_key in self._photos:
             return self._photos[photo_key]
         if image.size != size:
-            image = image.resize(size, Image_module.ADAPTIVE)
+            image = image.resize(size, Image_module.Palette.ADAPTIVE)
         self._photos[photo_key] = photo = PhotoImage(master=self._root, image=image)
         return photo

@@ -40,7 +40,7 @@ logger = logging.getLogger("TwitchDrops")
 def set_root_icon(root: tk.Tk, image_path: Path | str) -> None:
     with Image_module.open(image_path) as image:
         icon_photo = PhotoImage(master=root, image=image)
-    root.iconphoto(True, icon_photo)
+    root.iconphoto(True, icon_photo)  # type: ignore[arg-type]
     # keep a reference to the PhotoImage to avoid the ResourceWarning
     root._icon_image = icon_photo  # type: ignore[attr-defined]
 

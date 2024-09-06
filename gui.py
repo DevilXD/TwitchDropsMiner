@@ -159,7 +159,7 @@ class PlaceholderEntry(ttk.Entry):
             return ''
         return super().get()
 
-    def insert(self, index: tk._EntryIndex, content: str) -> None:
+    def insert(self, index: str | int, content: str) -> None:
         # when inserting into the entry externally, disable the placeholder flag
         if not content:
             # if an empty string was passed in
@@ -167,7 +167,7 @@ class PlaceholderEntry(ttk.Entry):
         self._remove_placeholder()
         super().insert(index, content)
 
-    def delete(self, first: tk._EntryIndex, last: tk._EntryIndex | None = None) -> None:
+    def delete(self, first: str | int, last: str | int | None = None) -> None:
         super().delete(first, last)
         self._insert_placeholder()
 
@@ -247,9 +247,9 @@ class PaddedListbox(tk.Listbox):
                 pady1 = pady2 = padding[1]
             elif len(padding) == 3:
                 padx1, padx2 = padding[0], padding[1]
-                pady1 = pady2 = padding[2]  # type: ignore
+                pady1 = pady2 = padding[2]
             else:
-                padx1, padx2, pady1, pady2 = padding  # type: ignore
+                padx1, padx2, pady1, pady2 = padding
             super().grid(column=0, row=0, padx=(padx1, padx2), pady=(pady1, pady2), sticky="nsew")
         else:
             super().grid(column=0, row=0, sticky="nsew")
@@ -1043,7 +1043,7 @@ class TrayIcon:
 
     def __init__(self, manager: GUIManager, master: ttk.Widget):
         self._manager = manager
-        self.icon: pystray.Icon | None = None  # type: ignore
+        self.icon: pystray.Icon | None = None  # type: ignore[unused-ignore]
         self._icon_images: dict[str, Image_module.Image] = {
             "pickaxe": Image_module.open(resource_path("icons/pickaxe.ico")),
             "active": Image_module.open(resource_path("icons/active.ico")),
@@ -1410,7 +1410,9 @@ class InventoryOverview:
         ).grid(column=1, row=4, sticky="nw", padx=4)
         # Image
         campaign_image = await self._cache.get(campaign.image_url, size=(108, 144))
-        ttk.Label(campaign_frame, image=campaign_image).grid(column=0, row=1, rowspan=4)
+        ttk.Label(
+            campaign_frame, image=campaign_image  # type: ignore[arg-type]
+        ).grid(column=0, row=1, rowspan=4)
         # Drops separator
         ttk.Separator(
             campaign_frame, orient="vertical", takefocus=False
@@ -1429,7 +1431,10 @@ class InventoryOverview:
             )
             for i, benefit, image in zip(range(len(drop.benefits)), drop.benefits, benefit_images):
                 ttk.Label(
-                    benefits_frame, text=benefit.name, image=image, compound="bottom"
+                    benefits_frame,
+                    text=benefit.name,
+                    image=image,  # type: ignore[arg-type]
+                    compound="bottom",
                 ).grid(column=i, row=0, padx=5)
             self._drops[drop.id] = label = MouseOverLabel(drop_frame)
             self.update_progress(drop, label)
