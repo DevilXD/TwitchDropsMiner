@@ -1608,7 +1608,7 @@ class SettingsPanel:
         self._priority_entry.grid(column=0, row=0, sticky="ew")
         priority_frame.columnconfigure(0, weight=1)
         ttk.Button(
-            priority_frame, text="➕", command=self.priority_add, width=2, style="Large.TButton"
+            priority_frame, text="➕", command=self.priority_add, width=3, style="Large.TButton"
         ).grid(column=1, row=0)
         self._priority_list = PaddedListbox(
             priority_frame,
@@ -1627,7 +1627,7 @@ class SettingsPanel:
             text="▲",
             style="Large.TButton",
             command=partial(self.priority_move, True),
-        ).grid(column=1, row=1, sticky="ns")
+        ).grid(column=1, row=1, sticky="nsew")
         priority_frame.rowconfigure(1, weight=1)
         ttk.Button(
             priority_frame,
@@ -1635,10 +1635,10 @@ class SettingsPanel:
             text="▼",
             style="Large.TButton",
             command=partial(self.priority_move, False),
-        ).grid(column=1, row=2, sticky="ns")
+        ).grid(column=1, row=2, sticky="nsew")
         priority_frame.rowconfigure(2, weight=1)
         ttk.Button(
-            priority_frame, text="❌", command=self.priority_delete, width=2, style="Large.TButton"
+            priority_frame, text="❌", command=self.priority_delete, width=3, style="Large.TButton"
         ).grid(column=1, row=3, sticky="ns")
         priority_frame.rowconfigure(3, weight=1)
         # Exclude section
@@ -1651,7 +1651,7 @@ class SettingsPanel:
         )
         self._exclude_entry.grid(column=0, row=0, sticky="ew")
         ttk.Button(
-            exclude_frame, text="➕", command=self.exclude_add, width=2, style="Large.TButton"
+            exclude_frame, text="➕", command=self.exclude_add, width=3, style="Large.TButton"
         ).grid(column=1, row=0)
         self._exclude_list = PaddedListbox(
             exclude_frame,
@@ -1667,7 +1667,7 @@ class SettingsPanel:
         # insert them alphabetically
         self._exclude_list.insert("end", *sorted(self._settings.exclude))
         ttk.Button(
-            exclude_frame, text="❌", command=self.exclude_delete, width=2, style="Large.TButton"
+            exclude_frame, text="❌", command=self.exclude_delete, width=3, style="Large.TButton"
         ).grid(column=0, row=2, columnspan=2, sticky="ew")
         # Reload button
         reload_frame = ttk.Frame(center_frame)
