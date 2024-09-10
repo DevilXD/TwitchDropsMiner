@@ -6,14 +6,14 @@
     "configurations": [
         {
             "name": "Run Current File",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal"
         },
         {
             "name": "Run App (CALL)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "main.py",
             "args": ["-vvv"],
@@ -22,7 +22,7 @@
         },
         {
             "name": "Run App (DUMP)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "main.py",
             "args": ["--dump"],
@@ -31,7 +31,7 @@
         },
         {
             "name": "Run App (DEBUG+WS)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "main.py",
             "args": ["-vvv", "--debug-ws"],
@@ -40,7 +40,7 @@
         },
         {
             "name": "Run App (DEBUG+GQL)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "main.py",
             "args": ["-vvv", "--debug-gql"],
@@ -49,7 +49,7 @@
         },
         {
             "name": "Debug GUI",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "gui.py",
             "console": "integratedTerminal",
