@@ -18,9 +18,8 @@ if __name__ == "__main__":
     from tkinter import messagebox
     from typing import IO, NoReturn
 
-    if sys.version_info >= (3, 10):
-        import truststore
-        truststore.inject_into_ssl()
+    import truststore
+    truststore.inject_into_ssl()
 
     from translate import _
     from twitch import Twitch
