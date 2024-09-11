@@ -210,14 +210,12 @@ class TimedDrop(BaseDrop):
 
     @property
     def total_remaining_minutes(self) -> int:
-        return (
-            sum(
-                (
-                    self.campaign.timed_drops[pid].remaining_minutes
-                    for pid in self._all_preconditions
-                ),
-                start=self.remaining_minutes,
-            )
+        return sum(
+            (
+                self.campaign.timed_drops[pid].remaining_minutes
+                for pid in self._all_preconditions
+            ),
+            start=self.remaining_minutes,
         )
 
     @cached_property
