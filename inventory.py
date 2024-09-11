@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import math
 from itertools import chain
 from typing import TYPE_CHECKING
 from functools import cached_property
@@ -232,6 +233,14 @@ class TimedDrop(BaseDrop):
             return 1.0
         return self.current_minutes / self.required_minutes
 
+    @property
+    def availability(self) -> float:
+        if not self._base_can_earn():
+            # this verifies "self.total_remaining_minutes > 0" and "now < self.ends_at"
+            return math.inf
+        now = datetime.now(timezone.utc)
+        return ((self.ends_at - now).total_seconds() / 60) / self.total_remaining_minutes
+
     def _base_earn_conditions(self) -> bool:
         return super()._base_earn_conditions() and self.required_minutes > 0
 
@@ -345,6 +354,10 @@ class DropsCampaign:
     @cached_property
     def progress(self) -> float:
         return sum(d.progress for d in self.drops) / self.total_drops
+
+    @property
+    def availability(self) -> float:
+        return min(d.availability for d in self.drops)
 
     def _on_claim(self) -> None:
         invalidate_cache(self, "finished", "claimed_drops", "remaining_drops")

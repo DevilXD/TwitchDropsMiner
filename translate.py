@@ -165,12 +165,19 @@ class GUISettingsGeneral(TypedDict):
     autostart: str
     tray: str
     tray_notifications: str
-    priority_only: str
+    priority_mode: str
     proxy: str
+
+
+class GUIPriorityModes(TypedDict):
+    priority_only: str
+    ending_soonest: str
+    low_availability: str
 
 
 class GUISettings(TypedDict):
     general: GUISettingsGeneral
+    priority_modes: GUIPriorityModes
     game_name: str
     priority: str
     exclude: str
@@ -362,8 +369,13 @@ default_translation: Translation = {
                 "autostart": "Autostart: ",
                 "tray": "Autostart into tray: ",
                 "tray_notifications": "Tray notifications: ",
-                "priority_only": "Priority Only: ",
+                "priority_mode": "Priority mode: ",
                 "proxy": "Proxy (requires restart):",
+            },
+            "priority_modes": {
+                "priority_only": "Priority list only",
+                "ending_soonest": "Ending soonest",
+                "low_availability": "Low availability first",
             },
             "game_name": "Game name",
             "priority": "Priority",

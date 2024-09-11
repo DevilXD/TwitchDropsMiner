@@ -25,8 +25,8 @@ import yarl
 from PIL.ImageTk import PhotoImage
 from PIL import Image as Image_module
 
-from constants import JsonType, IS_PACKAGED
 from exceptions import ExitRequest, ReloadRequest
+from constants import IS_PACKAGED, JsonType, PriorityMode
 from constants import _resource_path as resource_path  # noqa
 
 
@@ -165,15 +165,17 @@ def invalidate_cache(instance, *attrnames):
 def _serialize(obj: Any) -> Any:
     # convert data
     d: int | str | float | list[Any] | JsonType
-    if isinstance(obj, set):
-        d = list(obj)
-    elif isinstance(obj, Enum):
-        d = obj.value
-    elif isinstance(obj, datetime):
+    if isinstance(obj, datetime):
         if obj.tzinfo is None:
             # assume naive objects are UTC
             obj = obj.replace(tzinfo=timezone.utc)
         d = obj.timestamp()
+    elif isinstance(obj, set):
+        d = list(obj)
+    elif isinstance(obj, Enum):
+        # NOTE: IntEnum cannot be used, as it will get serialized as a plain integer,
+        # then loaded back as an integer as well.
+        d = obj.value
     elif isinstance(obj, yarl.URL):
         d = str(obj)
     else:
@@ -188,8 +190,9 @@ def _serialize(obj: Any) -> Any:
 _MISSING = object()
 SERIALIZE_ENV: dict[str, Callable[[Any], object]] = {
     "set": set,
-    "datetime": lambda d: datetime.fromtimestamp(d, timezone.utc),
     "URL": yarl.URL,
+    "PriorityMode": PriorityMode,
+    "datetime": lambda d: datetime.fromtimestamp(d, timezone.utc),
 }
 
 

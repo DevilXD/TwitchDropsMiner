@@ -42,6 +42,7 @@ from utils import (
 )
 from constants import (
     CALL,
+    MAX_INT,
     DUMP_PATH,
     COOKIES_PATH,
     MAX_CHANNELS,
@@ -49,6 +50,7 @@ from constants import (
     WATCH_INTERVAL,
     State,
     ClientType,
+    PriorityMode,
     WebsocketTopic,
 )
 
@@ -419,7 +421,7 @@ class Twitch:
         # State management
         self._state: State = State.IDLE
         self._state_change = asyncio.Event()
-        self.wanted_games: dict[Game, int] = {}
+        self.wanted_games: list[Game] = []
         self.inventory: list[DropsCampaign] = []
         self._drops: dict[str, TimedDrop] = {}
         self._mnt_triggers: deque[datetime] = deque()
@@ -545,16 +547,16 @@ class Twitch:
         """
         Return a priority number for a given channel.
 
-        Higher number, higher priority.
-        Priority 0 is given to channels streaming a game not on the priority list.
-        Priority -1 is given to OFFLINE channels, or channels streaming no particular games.
+        0 has the highest priority.
+        Higher numbers -> lower priority.
+        MAX_INT (a really big number) signifies the lowest possible priority.
         """
-        if (game := channel.game) is None:
-            # None when OFFLINE or no game set
-            return -1
-        elif game not in self.wanted_games:
-            return 0
-        return self.wanted_games[game]
+        if (
+            (game := channel.game) is None  # None when OFFLINE or no game set
+            or game not in self.wanted_games  # we don't care about the played game
+        ):
+            return MAX_INT
+        return self.wanted_games.index(game)
 
     @staticmethod
     def _viewers_key(channel: Channel) -> int:
@@ -633,23 +635,35 @@ class Twitch:
                                 await drop.claim()
                 # figure out which games we want
                 self.wanted_games.clear()
-                priorities = self.gui.settings.priorities()
                 exclude = self.settings.exclude
                 priority = self.settings.priority
-                priority_only = self.settings.priority_only
+                priority_mode = self.settings.priority_mode
+                priority_only = priority_mode is PriorityMode.PRIORITY_ONLY
                 next_hour = datetime.now(timezone.utc) + timedelta(hours=1)
-                for campaign in self.inventory:
-                    game = campaign.game
+                # sorted_campaigns: list[DropsCampaign] = list(self.inventory)
+                sorted_campaigns: list[DropsCampaign] = self.inventory
+                if not priority_only:
+                    if priority_mode is PriorityMode.ENDING_SOONEST:
+                        sorted_campaigns.sort(key=lambda c: c.ends_at)
+                    elif priority_mode is PriorityMode.LOW_AVBL_FIRST:
+                        sorted_campaigns.sort(key=lambda c: c.availability)
+                sorted_campaigns.sort(
+                    key=lambda c: (
+                        priority.index(c.game.name) if c.game.name in priority else MAX_INT
+                    )
+                )
+                for campaign in sorted_campaigns:
+                    game: Game = campaign.game
                     if (
                         game not in self.wanted_games  # isn't already there
-                        and game.name not in exclude  # and isn't excluded
-                        # and isn't excluded by priority_only
+                        # and isn't excluded by list or priority mode
+                        and game.name not in exclude
                         and (not priority_only or game.name in priority)
                         # and can be progressed within the next hour
                         and campaign.can_earn_within(next_hour)
                     ):
                         # non-excluded games with no priority are placed last, below priority ones
-                        self.wanted_games[game] = priorities.get(game.name, 0)
+                        self.wanted_games.append(game)
                 full_cleanup = True
                 self.restart_watching()
                 self.change_state(State.CHANNELS_CLEANUP)
@@ -734,7 +748,7 @@ class Twitch:
                     new_channels, key=self._viewers_key, reverse=True
                 )
                 ordered_channels.sort(key=lambda ch: ch.acl_based, reverse=True)
-                ordered_channels.sort(key=self.get_priority, reverse=True)
+                ordered_channels.sort(key=self.get_priority)
                 # ensure that we won't end up with more channels than we can handle
                 # NOTE: we trim from the end because that's where the non-priority,
                 # offline (or online but low viewers) channels end up
@@ -817,7 +831,7 @@ class Twitch:
                     # for a switch (including the watching one)
                     # NOTE: we need to sort the channels every time because one channel
                     # can end up streaming any game - channels aren't game-tied
-                    for channel in sorted(channels.values(), key=self.get_priority, reverse=True):
+                    for channel in sorted(channels.values(), key=self.get_priority):
                         if self.can_watch(channel) and self.should_switch(channel):
                             new_watching = channel
                             break
@@ -857,6 +871,10 @@ class Twitch:
         interval: float = WATCH_INTERVAL.total_seconds()
         while True:
             channel: Channel = await self.watching_channel.get()
+            if not channel.online:
+                # if the channel isn't online anymore, we stop watching it
+                self.stop_watching()
+                continue
             succeeded: bool = await channel.send_watch()
             if not succeeded:
                 logger.log(CALL, f"Watch requested failed for channel: {channel.name}")
@@ -985,7 +1003,7 @@ class Twitch:
         watching_order = self.get_priority(watching_channel)
         return (
             # this channel's game is higher order than the watching one's
-            channel_order > watching_order
+            channel_order < watching_order
             or channel_order == watching_order  # or the order is the same
             # and this channel is ACL-based and the watching channel isn't
             and channel.acl_based > watching_channel.acl_based

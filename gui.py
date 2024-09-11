@@ -40,6 +40,7 @@ from constants import (
     WS_TOPICS_LIMIT,
     OUTPUT_FORMATTER,
     State,
+    PriorityMode,
 )
 if sys.platform == "win32":
     from registry import RegistryKey, ValueType, ValueNotFound
@@ -388,18 +389,24 @@ class SelectCombobox(ttk.Combobox):
         self,
         master: tk.Misc,
         *args,
+        width_offset: int = 0,
+        width: int | None = None,
         textvariable: tk.StringVar,
         values: list[str] | tuple[str, ...],
         command: abc.Callable[[tk.Event[SelectCombobox]], None] | None = None,
         **kwargs,
     ) -> None:
+        if width is None:
+            width = max(len(v) for v in values)
+        width += width_offset
         super().__init__(
             master,
             *args,
+            width=width,
             values=values,
+            state="readonly",
             exportselection=False,
             textvariable=textvariable,
-            state="readonly",
             **kwargs,
         )
         if command is not None:
@@ -1216,7 +1223,9 @@ class InventoryOverview:
         self._cache: ImageCache = manager._cache
         self._settings: Settings = manager._twitch.settings
         self._filters = {
-            "not_linked": IntVar(master, 1),
+            "not_linked": IntVar(
+                master, self._settings.priority_mode is PriorityMode.PRIORITY_ONLY
+            ),
             "upcoming": IntVar(master, 1),
             "expired": IntVar(master, 0),
             "excluded": IntVar(master, 0),
@@ -1304,7 +1313,7 @@ class InventoryOverview:
         excluded = bool(self._filters["excluded"].get())
         upcoming = bool(self._filters["upcoming"].get())
         finished = bool(self._filters["finished"].get())
-        priority_only = self._settings.priority_only
+        priority_only = self._settings.priority_mode is PriorityMode.PRIORITY_ONLY
         if (
             campaign.remaining_minutes > 0  # don't show sub-only campaigns
             and (not_linked or campaign.linked)
@@ -1534,23 +1543,32 @@ class _SettingsVars(TypedDict):
     proxy: StringVar
     autostart: IntVar
     language: StringVar
-    priority_only: IntVar
+    priority_mode: StringVar
     tray_notifications: IntVar
 
 
 class SettingsPanel:
     AUTOSTART_NAME: str = "TwitchDropsMiner"
     AUTOSTART_KEY: str = "HKCU/Software/Microsoft/Windows/CurrentVersion/Run"
+    PRIORITY_MODES: dict[PriorityMode, str] = {
+        PriorityMode.PRIORITY_ONLY: _("gui", "settings", "priority_modes", "priority_only"),
+        PriorityMode.ENDING_SOONEST: _("gui", "settings", "priority_modes", "ending_soonest"),
+        PriorityMode.LOW_AVBL_FIRST: _("gui", "settings", "priority_modes", "low_availability"),
+    }
 
     def __init__(self, manager: GUIManager, master: ttk.Widget):
         self._twitch = manager._twitch
         self._settings: Settings = manager._twitch.settings
+        priority_mode = self._settings.priority_mode
+        if priority_mode not in self.PRIORITY_MODES:
+            priority_mode = PriorityMode.PRIORITY_ONLY
+            self._settings.priority_mode = priority_mode
         self._vars: _SettingsVars = {
+            "autostart": IntVar(master, 0),
             "language": StringVar(master, _.current),
             "proxy": StringVar(master, str(self._settings.proxy)),
             "tray": IntVar(master, self._settings.autostart_tray),
-            "autostart": IntVar(master, 0),
-            "priority_only": IntVar(master, self._settings.priority_only),
+            "priority_mode": StringVar(master, self.PRIORITY_MODES[priority_mode]),
             "tray_notifications": IntVar(master, self._settings.tray_notifications),
         }
         self._game_names: set[str] = set()
@@ -1577,7 +1595,6 @@ class SettingsPanel:
         ttk.Label(language_frame, text="Language 🌐 (requires restart): ").grid(column=0, row=0)
         SelectCombobox(
             language_frame,
-            width=12,
             values=list(_.languages),
             textvariable=self._vars["language"],
             command=lambda e: setattr(self._settings, "language", self._vars["language"].get()),
@@ -1607,10 +1624,13 @@ class SettingsPanel:
             command=self.update_notifications,
         ).grid(column=1, row=irow, sticky="w")
         ttk.Label(
-            checkboxes_frame, text=_("gui", "settings", "general", "priority_only")
+            checkboxes_frame, text=_("gui", "settings", "general", "priority_mode")
         ).grid(column=0, row=(irow := irow + 1), sticky="e")
-        ttk.Checkbutton(
-            checkboxes_frame, variable=self._vars["priority_only"], command=self.priority_only
+        SelectCombobox(
+            checkboxes_frame,
+            command=self.priority_mode,
+            textvariable=self._vars["priority_mode"],
+            values=list(self.PRIORITY_MODES.values()),
         ).grid(column=1, row=irow, sticky="w")
 
         # proxy frame
@@ -1808,13 +1828,6 @@ class SettingsPanel:
         self.update_excluded_choices()
         self.update_priority_choices()
 
-    def priorities(self) -> dict[str, int]:
-        # NOTE: we shift the indexes so that 0 can be used as the default one
-        size = self._priority_list.size()
-        return {
-            game_name: size - i for i, game_name in enumerate(self._priority_list.get(0, "end"))
-        }
-
     def priority_add(self) -> None:
         game_name: str = self._priority_entry.get()
         if not game_name:
@@ -1868,8 +1881,12 @@ class SettingsPanel:
         self._settings.alter()
         self.update_priority_choices()
 
-    def priority_only(self) -> None:
-        self._settings.priority_only = bool(self._vars["priority_only"].get())
+    def priority_mode(self, event: tk.Event[ttk.Combobox]) -> None:
+        mode_name: str = self._vars["priority_mode"].get()
+        for value, name in self.PRIORITY_MODES.items():
+            if mode_name == name:
+                self._settings.priority_mode = value
+                break
 
     def exclude_add(self) -> None:
         game_name: str = self._exclude_entry.get()
@@ -2390,11 +2407,11 @@ if __name__ == "__main__":
                 proxy=URL(),
                 autostart=False,
                 language="English",
-                priority_only=False,
                 autostart_tray=False,
                 exclude={"Lit Game"},
                 tray_notifications=True,
                 alter=lambda: None,
+                priority_mode=PriorityMode.PRIORITY_ONLY,
             )
         )
         mock.change_state = lambda state: mock.gui.print(f"State change: {state.value}")

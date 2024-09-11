@@ -105,6 +105,7 @@ JsonType = Dict[str, Any]
 URLType = NewType("URLType", str)
 TopicProcess: TypeAlias = "abc.Callable[[int, JsonType], Any]"
 # Values
+MAX_INT = sys.maxsize
 BASE_TOPICS = 3
 MAX_WEBSOCKETS = 8
 WS_TOPICS_LIMIT = 50
@@ -221,6 +222,12 @@ class State(Enum):
     CHANNELS_CLEANUP = auto()
     CHANNEL_SWITCH = auto()
     EXIT = auto()
+
+
+class PriorityMode(Enum):
+    PRIORITY_ONLY = 0
+    ENDING_SOONEST = 1
+    LOW_AVBL_FIRST = 2
 
 
 class GQLOperation(JsonType):

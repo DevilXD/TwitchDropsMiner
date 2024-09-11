@@ -5,7 +5,7 @@ from typing import Any, TypedDict, TYPE_CHECKING
 from yarl import URL
 
 from utils import json_load, json_save
-from constants import SETTINGS_PATH, DEFAULT_LANG
+from constants import SETTINGS_PATH, DEFAULT_LANG, PriorityMode
 
 if TYPE_CHECKING:
     from main import ParsedArgs
@@ -16,21 +16,21 @@ class SettingsFile(TypedDict):
     language: str
     exclude: set[str]
     priority: list[str]
-    priority_only: bool
     autostart_tray: bool
     connection_quality: int
     tray_notifications: bool
+    priority_mode: PriorityMode
 
 
 default_settings: SettingsFile = {
     "proxy": URL(),
     "priority": [],
     "exclude": set(),
-    "priority_only": True,
     "autostart_tray": False,
     "connection_quality": 1,
     "language": DEFAULT_LANG,
     "tray_notifications": True,
+    "priority_mode": PriorityMode.PRIORITY_ONLY,
 }
 
 
@@ -48,10 +48,10 @@ class Settings:
     language: str
     exclude: set[str]
     priority: list[str]
-    priority_only: bool
     autostart_tray: bool
     connection_quality: int
     tray_notifications: bool
+    priority_mode: PriorityMode
 
     PASSTHROUGH = ("_settings", "_args", "_altered")
 
