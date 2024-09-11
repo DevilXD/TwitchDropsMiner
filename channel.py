@@ -5,7 +5,6 @@ import logging
 from typing import Any, SupportsInt, cast, TYPE_CHECKING
 
 import aiohttp
-import aiohttp.client_exceptions
 from yarl import URL
 
 from utils import Game
@@ -385,7 +384,7 @@ class Channel:
             # without downloading the actual stream data
             async with self._twitch.request("HEAD", stream_chunk_url) as head_response:
                 return head_response.status == 200
-        except aiohttp.client_exceptions.InvalidUrlClientError:
+        except aiohttp.InvalidURL:
             # Temporarily log the entire response into the output
             self._twitch.print(available_chunks)
             raise
