@@ -31,6 +31,9 @@ if __name__ == "__main__":
 
     warnings.simplefilter("default", ResourceWarning)
 
+    if sys.version_info < (3, 10):
+        raise RuntimeError("Python 3.10 or higher is required")
+
     class Parser(argparse.ArgumentParser):
         def __init__(self, *args, **kwargs) -> None:
             super().__init__(*args, **kwargs)
