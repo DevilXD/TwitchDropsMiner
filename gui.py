@@ -383,6 +383,29 @@ class SelectMenu(tk.Menubutton, Generic[_T]):
         return self._menu_options[self.cget("text")]
 
 
+class SelectCombobox(ttk.Combobox):
+    def __init__(
+        self,
+        master: tk.Misc,
+        *args,
+        textvariable: tk.StringVar,
+        values: list[str] | tuple[str, ...],
+        command: abc.Callable[[tk.Event[SelectCombobox]], None] | None = None,
+        **kwargs,
+    ) -> None:
+        super().__init__(
+            master,
+            *args,
+            values=values,
+            exportselection=False,
+            textvariable=textvariable,
+            state="readonly",
+            **kwargs,
+        )
+        if command is not None:
+            self.bind("<<ComboboxSelected>>", command)
+
+
 ###########################################
 # GUI ELEMENTS END / GUI DEFINITION START #
 ###########################################
@@ -1509,6 +1532,7 @@ class _SettingsVars(TypedDict):
     tray: IntVar
     proxy: StringVar
     autostart: IntVar
+    language: StringVar
     priority_only: IntVar
     tray_notifications: IntVar
 
@@ -1521,6 +1545,7 @@ class SettingsPanel:
         self._twitch = manager._twitch
         self._settings: Settings = manager._twitch.settings
         self._vars: _SettingsVars = {
+            "language": StringVar(master, _.current),
             "proxy": StringVar(master, str(self._settings.proxy)),
             "tray": IntVar(master, self._settings.autostart_tray),
             "autostart": IntVar(master, 0),
@@ -1544,16 +1569,19 @@ class SettingsPanel:
         general_frame.columnconfigure(0, weight=1)
         center_frame2 = ttk.Frame(general_frame)
         center_frame2.grid(column=0, row=0)
+
         # language frame
         language_frame = ttk.Frame(center_frame2)
         language_frame.grid(column=0, row=0)
         ttk.Label(language_frame, text="Language 🌐 (requires restart): ").grid(column=0, row=0)
-        SelectMenu(
+        SelectCombobox(
             language_frame,
-            default=_.current,
-            options={k: k for k in _.languages},
-            command=lambda lang: setattr(self._settings, "language", lang),
+            width=12,
+            values=list(_.languages),
+            textvariable=self._vars["language"],
+            command=lambda e: setattr(self._settings, "language", self._vars["language"].get()),
         ).grid(column=1, row=0)
+
         # checkboxes frame
         checkboxes_frame = ttk.Frame(center_frame2)
         checkboxes_frame.grid(column=0, row=1)
@@ -1583,6 +1611,7 @@ class SettingsPanel:
         ttk.Checkbutton(
             checkboxes_frame, variable=self._vars["priority_only"], command=self.priority_only
         ).grid(column=1, row=irow, sticky="w")
+
         # proxy frame
         proxy_frame = ttk.Frame(center_frame2)
         proxy_frame.grid(column=0, row=2)
@@ -2370,6 +2399,7 @@ if __name__ == "__main__":
         mock.change_state = lambda state: mock.gui.print(f"State change: {state.value}")
         mock.state_change = lambda state: partial(mock.change_state, state)
         mock.request = aiohttp.request
+        # _.set_language("Dansk")
         gui = GUIManager(mock)  # type: ignore
         mock.gui = gui
         mock.close = gui.stop
