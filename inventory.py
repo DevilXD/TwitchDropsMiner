@@ -95,21 +95,27 @@ class BaseDrop:
             )
         )
 
-    def _base_can_earn(self) -> bool:
+    def _base_earn_conditions(self) -> bool:
+        # define when a drop can be earned or not
         return (
             self.preconditions_met  # preconditions are met
             and not self.is_claimed  # isn't already claimed
+        )
+
+    def _base_can_earn(self) -> bool:
+        # cross-participates in can_earn and can_earn_within handling, where a timeframe is added
+        return (
+            self._base_earn_conditions()
             # is within the timeframe
             and self.starts_at <= datetime.now(timezone.utc) < self.ends_at
         )
 
     def can_earn(self, channel: Channel | None = None) -> bool:
-        return self.campaign._base_can_earn(channel) and self._base_can_earn()
+        return self._base_can_earn() and self.campaign._base_can_earn(channel)
 
     def can_earn_within(self, stamp: datetime) -> bool:
         return (
-            self.preconditions_met  # preconditions are met
-            and not self.is_claimed  # isn't already claimed
+            self._base_earn_conditions()
             and self.ends_at > datetime.now(timezone.utc)
             and self.starts_at < stamp
         )
@@ -226,8 +232,8 @@ class TimedDrop(BaseDrop):
             return 1.0
         return self.current_minutes / self.required_minutes
 
-    def _base_can_earn(self) -> bool:
-        return self.required_minutes > 0 and super()._base_can_earn()
+    def _base_earn_conditions(self) -> bool:
+        return super()._base_earn_conditions() and self.required_minutes > 0
 
     def _on_claim(self) -> None:
         result = super()._on_claim()
