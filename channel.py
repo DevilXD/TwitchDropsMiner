@@ -43,9 +43,9 @@ class Stream:
         self._stream_url: URLType | None = None
 
     @classmethod
-    def from_get_stream(cls, channel: Channel, data: JsonType) -> Stream:
-        stream = data["stream"]
-        settings = data["broadcastSettings"]
+    def from_get_stream(cls, channel: Channel, channel_data: JsonType) -> Stream:
+        stream = channel_data["stream"]
+        settings = channel_data["broadcastSettings"]
         return cls(
             channel,
             id=stream["id"],
@@ -56,14 +56,14 @@ class Stream:
 
     @classmethod
     def from_directory(
-        cls, channel: Channel, data: JsonType, *, drops_enabled: bool = False
+        cls, channel: Channel, channel_data: JsonType, *, drops_enabled: bool = False
     ) -> Stream:
         self = cls(
             channel,
-            id=data["id"],
-            game=data["game"],  # has to be there since we searched with it
-            viewers=data["viewersCount"],
-            title=data["title"],
+            id=channel_data["id"],
+            game=channel_data["game"],  # has to be there since we searched with it
+            viewers=channel_data["viewersCount"],
+            title=channel_data["title"],
         )
         self.drops_enabled = drops_enabled
         return self
@@ -252,26 +252,28 @@ class Channel:
             )
         except MinerException as exc:
             raise MinerException(f"Channel: {self._login}") from exc
-        stream_data: JsonType | None = response["data"]["user"]
-        if not stream_data:
+        channel_data: JsonType | None = response["data"]["user"]
+        if not channel_data:
             return None
         # fill in channel_id and display name
-        self.id = int(stream_data["id"])
-        self._display_name = stream_data["displayName"]
-        if not stream_data["stream"]:
+        self.id = int(channel_data["id"])
+        self._display_name = channel_data["displayName"]
+        if not channel_data["stream"]:
             return None
-        stream = Stream.from_get_stream(self, stream_data)
+        stream = Stream.from_get_stream(self, channel_data)
         if not stream.drops_enabled:
             try:
-                available_drops: JsonType = await self._twitch.gql_request(
+                available_drops_campaigns: JsonType = await self._twitch.gql_request(
                     GQL_OPERATIONS["AvailableDrops"].with_variables({"channelID": str(self.id)})
                 )
             except MinerException:
                 logger.log(CALL, f"AvailableDrops GQL call failed for channel: {self._login}")
             else:
                 stream.drops_enabled = any(
-                    bool(c["timeBasedDrops"])
-                    for c in (available_drops["data"]["channel"]["viewerDropCampaigns"] or [])
+                    bool(campaign["timeBasedDrops"])
+                    for campaign in (
+                        available_drops_campaigns["data"]["channel"]["viewerDropCampaigns"] or []
+                    )
                 )
         return stream
 
