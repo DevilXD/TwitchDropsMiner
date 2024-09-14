@@ -1511,19 +1511,20 @@ class Twitch:
             self.inventory.append(campaign)
         # concurrently add the campaigns into the GUI
         # NOTE: this fetches pictures from the CDN, so might be slow without a cache
+        status_update(
+            _("gui", "status", "adding_campaigns").format(counter=f"(0/{len(campaigns)})")
+        )
         for i, coro in enumerate(
-            asyncio.as_completed(
-                [
-                    asyncio.create_task(self.gui.inv.add_campaign(campaign))
-                    for campaign in campaigns
-                ]
-            ),
+            asyncio.as_completed([
+                asyncio.create_task(self.gui.inv.add_campaign(campaign))
+                for campaign in campaigns
+            ]),
             start=1,
         ):
+            await coro
             status_update(
                 _("gui", "status", "adding_campaigns").format(counter=f"({i}/{len(campaigns)})")
             )
-            await coro
             # this is needed here explicitly, because cache reads from disk don't raise this
             if self.gui.close_requested:
                 raise ExitRequest()
