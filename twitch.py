@@ -489,6 +489,12 @@ class Twitch:
         await self.websocket.stop(clear_topics=True)
         if self._session is not None:
             cookie_jar = cast(aiohttp.CookieJar, self._session.cookie_jar)
+            # clear empty cookie entries off the cookies file before saving
+            # NOTE: Unfortunately, aiohttp provides no easy way of clearing empty cookies,
+            # so we need to access the private '_cookies' attribute for this.
+            for cookie_key, cookie in list(cookie_jar._cookies.items()):
+                if not cookie:
+                    del cookie_jar._cookies[cookie_key]
             cookie_jar.save(COOKIES_PATH)
             await self._session.close()
             self._session = None
