@@ -223,16 +223,14 @@ def merge_json(obj: JsonType, template: Mapping[Any, Any]) -> None:
     # NOTE: This modifies object in place
     for k, v in list(obj.items()):
         if k not in template:
+            # unknown key: overwrite from template
             del obj[k]
-        elif isinstance(v, dict):
-            if isinstance(template[k], dict):
-                merge_json(v, template[k])
-            else:
-                # object is a dict, template is not: overwrite from template
-                obj[k] = template[k]
-        elif isinstance(template[k], dict):
-            # template is a dict, object is not: overwrite from template
+        elif type(v) is not type(template[k]):
+            # types don't match: overwrite from template
             obj[k] = template[k]
+        elif isinstance(v, dict):
+            assert isinstance(template[k], dict)
+            merge_json(v, template[k])
     # ensure the object is not missing any keys
     for k in template.keys():
         if k not in obj:
