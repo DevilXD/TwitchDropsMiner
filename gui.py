@@ -586,6 +586,7 @@ class LoginForm:
         self._manager.print(_("gui", "login", "request"))
         await self.wait_for_login_press()
         self._manager.print(f"Enter this code on the Twitch's device activation page: {user_code}")
+        await asyncio.sleep(4)
         webopen("https://www.twitch.tv/activate")
 
     def update(self, status: str, user_id: int | None):
