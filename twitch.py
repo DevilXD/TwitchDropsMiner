@@ -374,34 +374,42 @@ class _AuthState:
             login_form: LoginForm = self._twitch.gui.login
             logger.info("Checking login")
             login_form.update(_("gui", "login", "logging_in"), None)
-            for attempt in range(2):
-                cookie = jar.filter_cookies(client_info.CLIENT_URL)
-                if "auth-token" not in cookie:
-                    self.access_token = await self._oauth_login()
-                    cookie["auth-token"] = self.access_token
-                elif not hasattr(self, "access_token"):
-                    logger.info("Restoring session from cookie")
-                    self.access_token = cookie["auth-token"].value
-                # validate the auth token, by obtaining user_id
-                async with self._twitch.request(
-                    "GET",
-                    "https://id.twitch.tv/oauth2/validate",
-                    headers={"Authorization": f"OAuth {self.access_token}"}
-                ) as response:
-                    status = response.status
-                    if status == 401:
-                        # the access token we have is invalid - clear the cookie and reauth
-                        logger.info("Restored session is invalid")
-                        assert client_info.CLIENT_URL.host is not None
-                        jar.clear_domain(client_info.CLIENT_URL.host)
-                        continue
-                    elif status == 200:
-                        validate_response = await response.json()
-                        break
+            for client_mismatch_attempt in range(2):
+                for invalid_token_attempt in range(2):
+                    cookie = jar.filter_cookies(client_info.CLIENT_URL)
+                    if "auth-token" not in cookie:
+                        self.access_token = await self._oauth_login()
+                        cookie["auth-token"] = self.access_token
+                    elif not hasattr(self, "access_token"):
+                        logger.info("Restoring session from cookie")
+                        self.access_token = cookie["auth-token"].value
+                    # validate the auth token, by obtaining user_id
+                    async with self._twitch.request(
+                        "GET",
+                        "https://id.twitch.tv/oauth2/validate",
+                        headers={"Authorization": f"OAuth {self.access_token}"}
+                    ) as response:
+                        status = response.status
+                        if status == 401:
+                            # the access token we have is invalid - clear the cookie and reauth
+                            logger.info("Restored session is invalid")
+                            assert client_info.CLIENT_URL.host is not None
+                            jar.clear_domain(client_info.CLIENT_URL.host)
+                            continue
+                        elif status == 200:
+                            validate_response = await response.json()
+                            break
+                else:
+                    raise RuntimeError("Login verification failure (step #2)")
+                # ensure the cookie's client ID matches the currently selected client
+                if validate_response["client_id"] == client_info.CLIENT_ID:
+                    break
+                # otherwise, we need to delete the entire cookie file and clear the jar
+                logger.info("Cookie client ID mismatch")
+                jar.clear()
+                COOKIES_PATH.unlink(missing_ok=True)
             else:
-                raise RuntimeError("Login verification failure")
-            if validate_response["client_id"] != client_info.CLIENT_ID:
-                raise LoginException("You're using an old cookie file, please generate a new one.")
+                raise RuntimeError("Login verification failure (step #1)")
             self.user_id = int(validate_response["user_id"])
             cookie["persistent"] = str(self.user_id)
             logger.info(f"Login successful, user ID: {self.user_id}")
