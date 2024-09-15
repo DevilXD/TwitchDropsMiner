@@ -14,7 +14,7 @@ from constants import CALL, GQL_OPERATIONS, ONLINE_DELAY, URLType
 if TYPE_CHECKING:
     from twitch import Twitch
     from gui import ChannelList
-    from constants import JsonType
+    from constants import JsonType, GQLOperation
 
 
 logger = logging.getLogger("TwitchDrops")
@@ -174,6 +174,10 @@ class Channel:
         return self.id
 
     @property
+    def stream_gql(self) -> GQLOperation:
+        return GQL_OPERATIONS["GetStreamInfo"].with_variables({"channel": self._login})
+
+    @property
     def name(self) -> str:
         if self._display_name is not None:
             return self._display_name
@@ -245,11 +249,25 @@ class Channel:
             self._pending_stream_up = None
         self._gui_channels.remove(self)
 
+    def external_update(self, channel_data: JsonType, available_drops: list[JsonType]):
+        """
+        Update stream information based on data provided externally.
+
+        Used for bulk-updates of channel statuses during reload.
+        """
+        if not channel_data["stream"]:
+            self._stream = None
+            return
+        stream = Stream.from_get_stream(self, channel_data)
+        if not stream.drops_enabled:
+            stream.drops_enabled = any(
+                bool(campaign["timeBasedDrops"]) for campaign in available_drops
+            )
+        self._stream = stream
+
     async def get_stream(self) -> Stream | None:
         try:
-            response: JsonType = await self._twitch.gql_request(
-                GQL_OPERATIONS["GetStreamInfo"].with_variables({"channel": self._login})
-            )
+            response: JsonType = await self._twitch.gql_request(self.stream_gql)
         except MinerException as exc:
             raise MinerException(f"Channel: {self._login}") from exc
         channel_data: JsonType | None = response["data"]["user"]
@@ -277,7 +295,7 @@ class Channel:
                 )
         return stream
 
-    async def update_stream(self, *, trigger_events: bool) -> bool:
+    async def update_stream(self) -> bool:
         """
         Fetches the current channel stream, and if one exists,
         updates it's game, title, tags and viewers. Updates channel status in general.
@@ -287,8 +305,7 @@ class Channel:
         """
         old_stream = self._stream
         self._stream = await self.get_stream()
-        if trigger_events:
-            self._twitch.on_channel_update(self, old_stream, self._stream)
+        self._twitch.on_channel_update(self, old_stream, self._stream)
         return self._stream is not None
 
     async def _online_delay(self):
@@ -298,7 +315,7 @@ class Channel:
         """
         await asyncio.sleep(ONLINE_DELAY.total_seconds())
         self._pending_stream_up = None  # for 'display' to work properly
-        await self.update_stream(trigger_events=True)  # triggers 'display' via the event
+        await self.update_stream()
 
     def check_online(self):
         """

@@ -744,11 +744,7 @@ class Twitch:
                 # remove all ACL channels that already exist from the other set
                 acl_channels.difference_update(new_channels)
                 # use the other set to set them online if possible
-                # if acl_channels:
-                #     await asyncio.gather(*(
-                #         channel.update_stream(trigger_events=False)
-                #         for channel in acl_channels
-                #     ))
+                await self.bulk_check_online(acl_channels)
                 # finally, add them as new channels
                 new_channels.update(acl_channels)
                 for game in no_acl:
@@ -1610,3 +1606,49 @@ class Twitch:
                 {"input": {"channelID": str(channel_id), "claimID": claim_id}}
             )
         )
+
+    async def bulk_check_online(self, channels: abc.Iterable[Channel]):
+        """
+        Utilize batch GQL requests to check ONLINE status for a lot of channels at once.
+        Also handles the drops_enabled check.
+        """
+        acl_streams_map: dict[int, JsonType] = {}
+        stream_gql_ops: list[GQLOperation] = [channel.stream_gql for channel in channels]
+        if not stream_gql_ops:
+            # shortcut for nothing to process
+            # NOTE: Have to do this here, becase "channels" can be any iterable
+            return
+        for coro in asyncio.as_completed([
+            self.gql_request(stream_gql_chunk)
+            for stream_gql_chunk in chunk(stream_gql_ops, 20)
+        ]):
+            response_list: list[JsonType] = await coro
+            for response_json in response_list:
+                channel_data: JsonType = response_json["data"]["user"]
+                acl_streams_map[int(channel_data["id"])] = channel_data
+        # for all channels with an active stream, check the available drops as well
+        acl_available_drops_map: dict[int, list[JsonType]] = {}
+        available_gql_ops: list[GQLOperation] = [
+            GQL_OPERATIONS["AvailableDrops"].with_variables({"channelID": str(channel_id)})
+            for channel_id, channel_data in acl_streams_map.items()
+            if channel_data["stream"] is not None  # only do this for ONLINE channels
+        ]
+        for coro in asyncio.as_completed([
+            self.gql_request(available_gql_chunk)
+            for available_gql_chunk in chunk(available_gql_ops, 20)
+        ]):
+            response_list = await coro
+            for response_json in response_list:
+                available_info: JsonType = response_json["data"]["channel"]
+                acl_available_drops_map[int(available_info["id"])] = (
+                    available_info["viewerDropCampaigns"] or []
+                )
+        for channel in channels:
+            channel_id = channel.id
+            if channel_id not in acl_streams_map:
+                continue
+            channel_data = acl_streams_map[channel_id]
+            if channel_data["stream"] is None:
+                continue
+            available_drops: list[JsonType] = acl_available_drops_map[channel_id]
+            channel.external_update(channel_data, available_drops)
