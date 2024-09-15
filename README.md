@@ -10,7 +10,7 @@ Every several seconds, the application pretends to watch a particular stream by 
 
 - Stream-less drop mining - save on bandwidth.
 - Game priority and exclusion lists, allowing you to focus on mining what you want, in the order you want, and ignore what you don't want.
-- Sharded websocket connection, allowing for tracking up to `8*25-2=199` channels at the same time.
+- Sharded websocket connection, allowing for tracking up to `(8*50-2)//2=199` channels at the same time.
 - Automatic drop campaigns discovery based on linked accounts (requires you to do [account linking](https://www.twitch.tv/drops/campaigns) yourself though)
 - Stream tags and drop campaign validation, to ensure you won't end up mining a stream that can't earn you the drop.
 - Automatic channel stream switching, when the one you were currently watching goes offline, as well as when a channel streaming a higher priority game goes online.
@@ -20,10 +20,10 @@ Every several seconds, the application pretends to watch a particular stream by 
 ### Usage:
 
 - Download and unzip [the latest release](https://github.com/DevilXD/TwitchDropsMiner/releases) - it's recommended to keep it in the folder it comes in.
-- Run it and login into your Twitch account using your username and password, and a 2FA key if you have one setup. It's recommended to avoid having to double-take this step, as you can run into CAPTCHA that will prevent you from trying to log in again for the next 12+ hours. You can retry afterwards though.
+- Run it and login/connect the miner to your Twitch account by using the in-app login form.
 - After a successful login, the app should fetch a list of all available campaigns and games you can mine drops for - you can then select and add games of choice to the Priority List available on the Settings tab, and then press on the `Reload` button to start processing. It will fetch a list of all applicable streams it can watch, and start mining right away. You can also manually switch to a different channel as needed.
+- If you wish to keep the miner occupied with mining anything it can, beyond what you've selected via the Priority List, you can use the Priority Mode setting to specify the mining order for the rest of the games.
 - Make sure to link your Twitch account to game accounts on the [campaigns page](https://www.twitch.tv/drops/campaigns), to enable more games to be mined.
-- Persistent cookies will be stored in the `cookies.jar` file, from which the authorization (login) information will be restored on each subsequent run.
 
 ### Pictures:
 
@@ -33,10 +33,20 @@ Every several seconds, the application pretends to watch a particular stream by 
 
 ### Notes:
 
-- Requires Python 3.10 or higher.
-- Make sure to keep your cookies file safe, as the authorization information it stores can give another person access to your Twitch account.
-- Successfully logging into your Twitch account in the application, may cause Twitch to send you a "New Login" notification email. This is normal - you can verify that it comes from your own IP address. The application uses the Twitch's SmartTV account linking process, so the detected browser during the login should signify that as well.
-- The time remaining timer always countdowns a single minute and then stops - it is then restarted only after the application redetermines the remaining time. This "redetermination" can happen as early as at 10 seconds in a minute remaining, and as late as 20 seconds after the timer reaches zero (especially when finishing mining a drop), but is generally only an approximation and does not represent nor affect actual mining speed. The time variations are due to Twitch sometimes not reporting drop progress at all, or reporting progress for the wrong drop - these cases have all been accounted for in the application though.
+> [!WARNING]  
+> Requires Python 3.10 or higher.
+
+> [!CAUTION]  
+> Persistent cookies will be stored in the `cookies.jar` file, from which the authorization (login) information will be restored on each subsequent run. Make sure to keep your cookies file safe, as the authorization information it stores can give another person access to your Twitch account.
+
+> [!IMPORTANT]  
+> Successfully logging into your Twitch account in the application may cause Twitch to send you a "New Login" notification email. This is normal - you can verify that it comes from your own IP address. The detected browser during the login will be "Chrome", as that's what the miner currently presents itself as internally.
+
+> [!NOTE]  
+> The miner uses an OAuth login flow to let you authorize it to use your account. This is done by entering the code printed in the miner's Output window on the [Twitch device activation page](https://www.twitch.tv/activate). If you'd ever wish to unlink the miner from your Twitch account, head over to the [connections page,](https://www.twitch.tv/settings/connections) where you should be able to find the miner in the "Other connections" section. It will be listed as "Twitch Mobile Web". Simply click on "Disconnect" to remove the link and invalidate the authorization token.
+
+> [!NOTE]  
+> The time remaining timer always countdowns a single minute and then stops - it is then restarted only after the application redetermines the remaining time. This "redetermination" can happen at any time Twitch decides to report on the drop's progress, but not later than 20 seconds after the timer reaches zero. The seconds timer is only an approximation and does not represent nor affect actual mining speed. The time variations are due to Twitch sometimes not reporting drop progress at all, or reporting progress for the wrong drop - these cases have all been accounted for in the application though.
 
 ### Notes about the Windows build:
 
@@ -53,6 +63,10 @@ Every several seconds, the application pretends to watch a particular stream by 
 - The size of the Linux app is significantly larger than the Windows app due to the inclusion of the `gtk3` library (and its dependencies), which is required for proper system tray/notifications support.
 - As an alternative to the native Linux app, you can run the Windows app via [Wine](https://www.winehq.org/) instead. It works really well!
 
+### Advanced Usage:
+
+If you'd be interested in running the latest master from source or building your own executable, see the wiki page explaining how to do so: https://github.com/DevilXD/TwitchDropsMiner/wiki/Setting-up-the-environment,-building-and-running
+
 ### Support
 
 <div align="center">
@@ -66,10 +80,6 @@ Every several seconds, the application pretends to watch a particular stream by 
 
 </div>
 
-### Advanced Usage:
-
-If you'd be interested in running the latest master from source or building your own executable, see the wiki page explaining how to do so: https://github.com/DevilXD/TwitchDropsMiner/wiki/Setting-up-the-environment,-building-and-running
-
 ### Project goals:
 
 Twitch Drops Miner (TDM for short) has been designed with a couple of simple goals in mind. These are, specifically:
@@ -82,7 +92,7 @@ Twitch Drops Miner (TDM for short) has been designed with a couple of simple goa
 
 TDM is not intended for/as:
 
-- Mining channel points - again, it's about the drops: only. The current points you're getting are a byproduct of getting the drops, not the main goal of it.
+- Mining channel points - again, it's about the drops: only.
 - Mining anything else besides Twitch drops - no, I won't be adding support for a random 3rd party site that also happens to rely on watching Twitch streams.
 - Unattended operation: worst case scenario, it'll stop working and you'll hopefully notice that at some point. Hopefully.
 - 100% uptime application, due to the underlying nature of it, expect fatal errors to happen every so often.
