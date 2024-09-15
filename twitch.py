@@ -755,7 +755,7 @@ class Twitch:
                 for game in no_acl:
                     # for every campaign without an ACL, for it's game,
                     # add a list of live channels with drops enabled
-                    new_channels.update(await self.get_live_streams(game))
+                    new_channels.update(await self.get_live_streams(game, drops_enabled=True))
                 # sort them descending by viewers, by priority and by game priority
                 # NOTE: We can drop OrderedSet now because there's no more channels being added
                 ordered_channels: list[Channel] = sorted(
@@ -1576,7 +1576,12 @@ class Twitch:
             return drops[0]
         return None
 
-    async def get_live_streams(self, game: Game, *, limit: int = 30) -> list[Channel]:
+    async def get_live_streams(
+        self, game: Game, *, limit: int = 20, drops_enabled: bool = True
+    ) -> list[Channel]:
+        filters: list[str] = []
+        if drops_enabled:
+            filters.append("DROPS_ENABLED")
         try:
             response = await self.gql_request(
                 GQL_OPERATIONS["GameDirectory"].with_variables({
@@ -1584,7 +1589,7 @@ class Twitch:
                     "slug": game.slug,
                     "options": {
                         "includeRestricted": ["SUB_ONLY_LIVE"],
-                        "systemFilters": ["DROPS_ENABLED"],
+                        "systemFilters": filters,
                     },
                 })
             )
@@ -1592,7 +1597,9 @@ class Twitch:
             raise MinerException(f"Game: {game.slug}") from exc
         if "game" in response["data"]:
             return [
-                Channel.from_directory(self, stream_channel_data["node"], drops_enabled=True)
+                Channel.from_directory(
+                    self, stream_channel_data["node"], drops_enabled=drops_enabled
+                )
                 for stream_channel_data in response["data"]["game"]["streams"]["edges"]
             ]
         return []
