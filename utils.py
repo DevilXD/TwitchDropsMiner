@@ -19,7 +19,7 @@ from contextlib import suppress
 from functools import cached_property
 from datetime import datetime, timezone
 from collections import abc, OrderedDict
-from typing import Any, Literal, MutableSet, Callable, Generic, Mapping, TypeVar, ParamSpec, cast
+from typing import Any, Literal, Callable, Generic, Mapping, TypeVar, ParamSpec, cast
 
 import yarl
 from PIL.ImageTk import PhotoImage
@@ -325,46 +325,6 @@ class ExponentialBackoff:
 
     def reset(self) -> None:
         self.steps = 0
-
-
-class OrderedSet(MutableSet[_T]):
-    """
-    Implementation of a set that preserves insertion order,
-    based on OrderedDict with values set to None.
-    """
-    def __init__(self, iterable: abc.Iterable[_T] = [], /):
-        self._items: OrderedDict[_T, None] = OrderedDict((item, None) for item in iterable)
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}([{', '.join(map(repr, self._items))}])"
-
-    def __contains__(self, item: object, /) -> bool:
-        return item in self._items
-
-    def __iter__(self) -> abc.Iterator[_T]:
-        return iter(self._items)
-
-    def __len__(self) -> int:
-        return len(self._items)
-
-    def add(self, item: _T, /) -> None:
-        self._items[item] = None
-
-    def discard(self, item: _T, /) -> None:
-        with suppress(KeyError):
-            del self._items[item]
-
-    def update(self, *others: abc.Iterable[_T]) -> None:
-        for it in others:
-            for item in it:
-                if item not in self._items:
-                    self._items[item] = None
-
-    def difference_update(self, *others: abc.Iterable[_T]) -> None:
-        for it in others:
-            for item in it:
-                if item in self._items:
-                    del self._items[item]
 
 
 class AwaitableValue(Generic[_T]):

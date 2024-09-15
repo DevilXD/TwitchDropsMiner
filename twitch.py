@@ -36,7 +36,6 @@ from utils import (
     timestamp,
     create_nonce,
     task_wrapper,
-    OrderedSet,
     AwaitableValue,
     ExponentialBackoff,
 )
@@ -724,14 +723,14 @@ class Twitch:
             elif self._state is State.CHANNELS_FETCH:
                 self.gui.status.update(_("gui", "status", "gathering"))
                 # start with all current channels, clear the memory and GUI
-                new_channels: OrderedSet[Channel] = OrderedSet(channels.values())
+                new_channels: set[Channel] = set(channels.values())
                 channels.clear()
                 self.gui.channels.clear()
                 # gather and add ACL channels from campaigns
                 # NOTE: we consider only campaigns that can be progressed
                 # NOTE: we use another set so that we can set them online separately
                 no_acl: set[Game] = set()
-                acl_channels: OrderedSet[Channel] = OrderedSet()
+                acl_channels: set[Channel] = set()
                 next_hour = datetime.now(timezone.utc) + timedelta(hours=1)
                 for campaign in self.inventory:
                     if (
@@ -757,7 +756,8 @@ class Twitch:
                     # add a list of live channels with drops enabled
                     new_channels.update(await self.get_live_streams(game, drops_enabled=True))
                 # sort them descending by viewers, by priority and by game priority
-                # NOTE: We can drop OrderedSet now because there's no more channels being added
+                # NOTE: Viewers sort also ensures ONLINE channels are sorted to the top
+                # NOTE: We can drop using the set now, because there's no more channels being added
                 ordered_channels: list[Channel] = sorted(
                     new_channels, key=self._viewers_key, reverse=True
                 )
