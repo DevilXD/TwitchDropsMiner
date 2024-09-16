@@ -375,8 +375,9 @@ class Channel:
 
     async def send_watch(self) -> bool:
         """
-        This uses the encoded payload on spade url to simulate watching the stream.
-        Optimally, send every 60 seconds to advance drops.
+        This performs a HEAD request on the stream's current playlist,
+        to simulate watching the stream.
+        Optimally, send every ~20 seconds to advance drops.
         """
         if self._stream is None:
             return False
