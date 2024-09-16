@@ -29,16 +29,6 @@ class ReloadRequest(MinerException):
         super().__init__("Application was requested to reload entirely")
 
 
-class RequestInvalid(MinerException):
-    """
-    Raised when a request becomes no longer valid inside its retry loop.
-
-    Intended for internal use only.
-    """
-    def __init__(self):
-        super().__init__("Request became invalid during its retry loop")
-
-
 class RequestException(MinerException):
     """
     Raised for cases where a web request doesn't return what we wanted it to.
@@ -48,6 +38,16 @@ class RequestException(MinerException):
             super().__init__(*args)
         else:
             super().__init__("Unknown error during request")
+
+
+class RequestInvalid(RequestException):
+    """
+    Raised when a request becomes no longer valid inside its retry loop.
+
+    Intended for internal use only.
+    """
+    def __init__(self):
+        super().__init__("Request became invalid during its retry loop")
 
 
 class WebsocketClosed(RequestException):
