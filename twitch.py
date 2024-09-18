@@ -385,14 +385,13 @@ class _AuthState:
                         "https://id.twitch.tv/oauth2/validate",
                         headers={"Authorization": f"OAuth {self.access_token}"}
                     ) as response:
-                        status = response.status
-                        if status == 401:
+                        if response.status == 401:
                             # the access token we have is invalid - clear the cookie and reauth
                             logger.info("Restored session is invalid")
                             assert client_info.CLIENT_URL.host is not None
                             jar.clear_domain(client_info.CLIENT_URL.host)
                             continue
-                        elif status == 200:
+                        elif response.status == 200:
                             validate_response = await response.json()
                             break
                 else:
