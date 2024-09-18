@@ -123,10 +123,7 @@ class _AuthState:
         }
         payload = {
             "client_id": client_info.CLIENT_ID,
-            "scopes": (
-                "channel_read chat:read user_blocks_edit "
-                "user_blocks_read user_follows_edit user_read"
-            ),
+            "scopes": "user_read",
         }
         while True:
             try:
