@@ -391,6 +391,9 @@ class Channel:
             async with self._twitch.request(
                 "GET", stream_url, headers={"Connection": "close"}
             ) as chunks_response:
+                if chunks_response.status >= 400:
+                    # if the stream goes OFFLINE, trying to get a list of chunks returns a 404
+                    return False
                 available_chunks = await chunks_response.text()
             # the list contains ~10-13 chunks of the stream at 2s intervals,
             # pick the last chunk URL available. Ensure it's not the end-of-stream tag,
