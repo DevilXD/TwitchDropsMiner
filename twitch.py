@@ -36,6 +36,7 @@ from utils import (
     timestamp,
     create_nonce,
     task_wrapper,
+    RateLimiter,
     AwaitableValue,
     ExponentialBackoff,
 )
@@ -428,6 +429,9 @@ class Twitch:
         self.inventory: list[DropsCampaign] = []
         self._drops: dict[str, TimedDrop] = {}
         self._mnt_triggers: deque[datetime] = deque()
+        # NOTE: GQL is pretty volatile and breaks everything if one runs into their rate limit.
+        # Do not modify the default, safe values.
+        self._qgl_limiter = RateLimiter(capacity=20, window=1)
         # Client type, session and auth
         self._client_type: ClientInfo = ClientType.ANDROID_APP
         self._session: aiohttp.ClientSession | None = None
@@ -1347,18 +1351,15 @@ class Twitch:
         gql_logger.debug(f"GQL Request: {ops}")
         backoff = ExponentialBackoff(maximum=60)
         for delay in backoff:
-            try:
+            async with self._qgl_limiter:
                 auth_state = await self.get_auth()
                 async with self.request(
                     "POST",
                     "https://gql.twitch.tv/gql",
                     json=ops,
                     headers=auth_state.headers(user_agent=self._client_type.USER_AGENT, gql=True),
-                    invalidate_after=None,  # unused
                 ) as response:
                     response_json: JsonType | list[JsonType] = await response.json()
-            except RequestInvalid:
-                continue
             gql_logger.debug(f"GQL Response: {response_json}")
             orig_response = response_json
             if isinstance(response_json, list):

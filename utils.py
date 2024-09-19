@@ -327,6 +327,51 @@ class ExponentialBackoff:
         self.steps = 0
 
 
+class RateLimiter:
+    def __init__(self, *, capacity: int, window: int):
+        self.total: int = 0
+        self.concurrent: int = 0
+        self.window: int = window
+        self.capacity: int = capacity
+        self._reset_task: asyncio.Task[None] | None = None
+        self._cond: asyncio.Condition = asyncio.Condition()
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(capacity={self.total}/{self.capacity})"
+
+    def __del__(self) -> None:
+        if self._reset_task is not None:
+            self._reset_task.cancel()
+
+    def _can_proceed(self) -> bool:
+        return max(self.total, self.concurrent) < self.capacity
+
+    async def __aenter__(self):
+        async with self._cond:
+            await self._cond.wait_for(self._can_proceed)
+            self.total += 1
+            self.concurrent += 1
+            if self._reset_task is None:
+                self._reset_task = asyncio.create_task(self._rtask())
+
+    async def __aexit__(self, exc_type, exc, tb):
+        self.concurrent -= 1
+        async with self._cond:
+            self._cond.notify(self.capacity - self.concurrent)
+
+    async def _reset(self) -> None:
+        if self._reset_task is not None:
+            self._reset_task = None
+        async with self._cond:
+            self.total = 0
+            if self.concurrent < self.capacity:
+                self._cond.notify(self.capacity - self.concurrent)
+
+    async def _rtask(self) -> None:
+        await asyncio.sleep(self.window)
+        await self._reset()
+
+
 class AwaitableValue(Generic[_T]):
     def __init__(self):
         self._value: _T
