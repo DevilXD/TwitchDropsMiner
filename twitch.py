@@ -431,7 +431,7 @@ class Twitch:
         self._mnt_triggers: deque[datetime] = deque()
         # NOTE: GQL is pretty volatile and breaks everything if one runs into their rate limit.
         # Do not modify the default, safe values.
-        self._qgl_limiter = RateLimiter(capacity=20, window=1)
+        self._qgl_limiter = RateLimiter(capacity=10, window=2)
         # Client type, session and auth
         self._client_type: ClientInfo = ClientType.ANDROID_APP
         self._session: aiohttp.ClientSession | None = None
