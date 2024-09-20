@@ -85,17 +85,6 @@ class BaseDrop:
         campaign = self.campaign
         return all(campaign.timed_drops[pid].is_claimed for pid in self._precondition_drops)
 
-    @cached_property
-    def _all_preconditions(self) -> set[str]:
-        campaign = self.campaign
-        preconditions: set[str] = set(self._precondition_drops)
-        return preconditions.union(
-            *(
-                campaign.timed_drops[pid]._all_preconditions
-                for pid in self._precondition_drops
-            )
-        )
-
     def _base_earn_conditions(self) -> bool:
         # define when a drop can be earned or not
         return (
@@ -215,14 +204,24 @@ class TimedDrop(BaseDrop):
     def remaining_minutes(self) -> int:
         return self.required_minutes - self.current_minutes
 
-    @property
-    def total_remaining_minutes(self) -> int:
-        return sum(
+    @cached_property
+    def total_required_minutes(self) -> int:
+        return self.required_minutes + max(
             (
-                self.campaign.timed_drops[pid].remaining_minutes
-                for pid in self._all_preconditions
+                self.campaign.timed_drops[pid].total_required_minutes
+                for pid in self._precondition_drops
             ),
-            start=self.remaining_minutes,
+            default=0,
+        )
+
+    @cached_property
+    def total_remaining_minutes(self) -> int:
+        return self.remaining_minutes + max(
+            (
+                self.campaign.timed_drops[pid].total_remaining_minutes
+                for pid in self._precondition_drops
+            ),
+            default=0,
         )
 
     @cached_property
@@ -253,6 +252,9 @@ class TimedDrop(BaseDrop):
         invalidate_cache(self, "progress", "remaining_minutes")
         self.campaign._on_minutes_changed()
         self._gui_inv.update_drop(self)
+
+    def _on_total_minutes_changed(self) -> None:
+        invalidate_cache(self, "total_required_minutes", "total_remaining_minutes")
 
     async def claim(self) -> bool:
         result = await super().claim()
@@ -348,6 +350,10 @@ class DropsCampaign:
         return sum(not d.is_claimed for d in self.drops)
 
     @cached_property
+    def required_minutes(self) -> int:
+        return max(d.total_required_minutes for d in self.drops)
+
+    @cached_property
     def remaining_minutes(self) -> int:
         return max(d.total_remaining_minutes for d in self.drops)
 
@@ -365,7 +371,9 @@ class DropsCampaign:
             drop._on_claim()
 
     def _on_minutes_changed(self) -> None:
-        invalidate_cache(self, "progress", "remaining_minutes")
+        invalidate_cache(self, "progress", "required_minutes", "remaining_minutes")
+        for drop in self.drops:
+            drop._on_total_minutes_changed()
 
     def get_drop(self, drop_id: str) -> TimedDrop | None:
         return self.timed_drops.get(drop_id)
