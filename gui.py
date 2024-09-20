@@ -1316,7 +1316,7 @@ class InventoryOverview:
         finished = bool(self._filters["finished"].get())
         priority_only = self._settings.priority_mode is PriorityMode.PRIORITY_ONLY
         if (
-            campaign.remaining_minutes > 0  # don't show sub-only campaigns
+            campaign.required_minutes > 0  # don't show sub-only campaigns
             and (not_linked or campaign.linked)
             and (campaign.active or upcoming and campaign.upcoming or expired and campaign.expired)
             and (
