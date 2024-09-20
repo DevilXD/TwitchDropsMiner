@@ -337,7 +337,7 @@ class RateLimiter:
         self._cond: asyncio.Condition = asyncio.Condition()
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(capacity={self.total}/{self.capacity})"
+        return f"{self.__class__.__name__}({self.concurrent}/{self.total}/{self.capacity})"
 
     def __del__(self) -> None:
         if self._reset_task is not None:
