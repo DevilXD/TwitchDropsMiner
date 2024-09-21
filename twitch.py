@@ -1633,7 +1633,8 @@ class Twitch:
                 response_list: list[JsonType] = await coro
                 for response_json in response_list:
                     channel_data: JsonType = response_json["data"]["user"]
-                    acl_streams_map[int(channel_data["id"])] = channel_data
+                    if channel_data is not None:
+                        acl_streams_map[int(channel_data["id"])] = channel_data
         except Exception:
             # asyncio.as_completed doesn't cancel tasks on errors
             for task in stream_gql_tasks:
