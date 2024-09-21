@@ -147,17 +147,6 @@ class Channel:
         self._stream = Stream.from_directory(self, data, drops_enabled=drops_enabled)
         return self
 
-    @classmethod
-    async def from_name(
-        cls, twitch: Twitch, channel_login: str, *, acl_based: bool = False
-    ) -> Channel:
-        self = cls(twitch, id=0, login=channel_login, acl_based=acl_based)
-        # id and display name to be filled/overwritten by get_stream
-        stream = await self.get_stream()
-        if stream is not None:
-            self._stream = stream
-        return self
-
     def __repr__(self) -> str:
         if self._display_name is not None:
             name = f"{self._display_name}({self._login})"
@@ -273,9 +262,9 @@ class Channel:
         channel_data: JsonType | None = response["data"]["user"]
         if not channel_data:
             return None
-        # fill in channel_id and display name
-        self.id = int(channel_data["id"])
-        self._display_name = channel_data["displayName"]
+        # fill in display name
+        if self._display_name is None:
+            self._display_name = channel_data["displayName"]
         if not channel_data["stream"]:
             return None
         stream = Stream.from_get_stream(self, channel_data)
