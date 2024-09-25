@@ -234,11 +234,10 @@ class TimedDrop(BaseDrop):
 
     @property
     def availability(self) -> float:
-        if not self._base_can_earn():
-            # this verifies "self.total_remaining_minutes > 0" and "now < self.ends_at"
-            return math.inf
         now = datetime.now(timezone.utc)
-        return ((self.ends_at - now).total_seconds() / 60) / self.total_remaining_minutes
+        if self.required_minutes > 0 and self.total_remaining_minutes > 0 and now < self.ends_at:
+            return ((self.ends_at - now).total_seconds() / 60) / self.total_remaining_minutes
+        return math.inf
 
     def _base_earn_conditions(self) -> bool:
         return super()._base_earn_conditions() and self.required_minutes > 0
