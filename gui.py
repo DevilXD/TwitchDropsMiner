@@ -1304,7 +1304,7 @@ class InventoryOverview:
         self._canvas.bind("<Leave>", lambda e: self._canvas.unbind_all("<MouseWheel>"))
         self._canvas.create_window(0, 0, anchor="nw", window=self._main_frame)
         self._campaigns: dict[DropsCampaign, CampaignDisplay] = {}
-        self._drops: dict[str, MouseOverLabel] = {}
+        self._drops: dict[str, ttk.Label] = {}
 
     def _update_visibility(self, campaign: DropsCampaign):
         # True if the campaign is supposed to show, False makes it hidden.
@@ -1470,7 +1470,7 @@ class InventoryOverview:
                     image=image,  # type: ignore[arg-type]
                     compound="bottom",
                 ).grid(column=i, row=0, padx=5)
-            self._drops[drop.id] = label = MouseOverLabel(drop_frame)
+            self._drops[drop.id] = label = ttk.Label(drop_frame, justify=tk.CENTER)
             self.update_progress(drop, label)
             label.grid(column=0, row=1)
         if self._manager.tabs.current_tab() == 1:
@@ -1483,11 +1483,8 @@ class InventoryOverview:
         self._drops.clear()
         self._campaigns.clear()
 
-    def update_progress(self, drop: TimedDrop, label: MouseOverLabel) -> None:
-        # Returns: main text, alt text, text color
-        alt_text: str = ''
+    def update_progress(self, drop: TimedDrop, label: ttk.Label) -> None:
         progress_text: str
-        reverse: bool = False
         progress_color: str = ''
         if drop.is_claimed:
             progress_color = "green"
@@ -1500,25 +1497,26 @@ class InventoryOverview:
                 percent=f"{drop.progress:3.1%}",
                 minutes=drop.required_minutes,
             )
+            if drop.ends_at < drop.campaign.ends_at:
+                # this drop becomes unavailable earlier than the campaign ends
+                progress_text += '\n' + _("gui", "inventory", "ends").format(
+                    time=drop.ends_at.astimezone().replace(microsecond=0, tzinfo=None)
+                )
         else:
             progress_text = _("gui", "inventory", "minutes_progress").format(
                 minutes=drop.required_minutes
             )
             if datetime.now(timezone.utc) < drop.starts_at > drop.campaign.starts_at:
                 # this drop can only be earned later than the campaign start
-                alt_text = _("gui", "inventory", "starts").format(
+                progress_text += '\n' + _("gui", "inventory", "starts").format(
                     time=drop.starts_at.astimezone().replace(microsecond=0, tzinfo=None)
                 )
-                reverse = True
             elif drop.ends_at < drop.campaign.ends_at:
                 # this drop becomes unavailable earlier than the campaign ends
-                alt_text = _("gui", "inventory", "ends").format(
+                progress_text += '\n' + _("gui", "inventory", "ends").format(
                     time=drop.ends_at.astimezone().replace(microsecond=0, tzinfo=None)
                 )
-                reverse = True
-        label.config(
-            text=progress_text, alt_text=alt_text, reverse=reverse, foreground=progress_color
-        )
+        label.config(text=progress_text, foreground=progress_color)
 
     def update_drop(self, drop: TimedDrop) -> None:
         label = self._drops.get(drop.id)
@@ -2354,7 +2352,7 @@ if __name__ == "__main__":
         td = total_drops
         cm = current_minutes
         tm = total_minutes
-        ref_stamp = datetime.now(timezone.utc).replace(minute=0, second=0)
+        ref_stamp = datetime.now(timezone.utc)
         image_url = (
             "https://static-cdn.jtvnw.net/twitch-drops-assets-prod/"
             "BENEFIT-81ab5665-b2f4-4179-96e6-74da5a82da28.jpeg"
@@ -2379,6 +2377,7 @@ if __name__ == "__main__":
                 timed_drops={},
                 claimed_drops=cd,
                 total_drops=td,
+                required_minutes=tm,
                 remaining_drops=td - cd,
                 progress=(cd * tm + cm) / (td * tm),
                 remaining_minutes=(td - cd) * tm - cm,
@@ -2390,6 +2389,8 @@ if __name__ == "__main__":
             preconditions=True,
             benefits=benefits,
             rewards_text=lambda: ', '.join(b.name for b in benefits),
+            starts_at=ref_stamp + timedelta(seconds=2),
+            ends_at=ref_stamp + timedelta(days=7) - timedelta(seconds=2),
             progress=cm/tm,
             current_minutes=cm,
             required_minutes=tm,
@@ -2406,7 +2407,6 @@ if __name__ == "__main__":
                 tray=False,
                 priority=[],
                 proxy=URL(),
-                autostart=False,
                 language="English",
                 autostart_tray=False,
                 exclude={"Lit Game"},
@@ -2449,7 +2449,7 @@ if __name__ == "__main__":
         channel = create_channel(
             name="Traitus", status=1, game=None, drops=False, viewers=0, points=0, acl_based=True
         )
-        gui.channels.display(channel, add=True,)
+        gui.channels.display(channel, add=True)
         gui.channels.set_watching(channel)
         gui.channels.display(
             create_channel(
@@ -2479,7 +2479,7 @@ if __name__ == "__main__":
         gui.channels.get_selection()
         # Inventory overview
         drop = create_drop(
-            "Wardrobe Cleaning", "Cleaning Masters", ["Fancy Pants"], 2, 7, 239, 240
+            "Wardrobe Cleaning", "Cleaning Masters", ["Fancy Pants"], 2, 7, 0, 240
         )
         campaign = drop.campaign
         await gui.inv.add_campaign(campaign)
@@ -2500,26 +2500,34 @@ if __name__ == "__main__":
         # Drop progress
         gui.display_drop(drop, countdown=False)
         await asyncio.sleep(3)
+
         gui.progress.start_timer()
         await asyncio.sleep(5)
+
         gui.clear_drop()
         await asyncio.sleep(5)
-        gui.display_drop(drop)
 
+        campaign.can_earn = lambda: True
+        gui.inv.update_drop(drop)
+        gui.display_drop(drop)
+        await asyncio.sleep(10)
+
+        drop.current_minutes = 239
+        drop.remaining_minutes = 1
+        drop.progress = 239/240
+        campaign.remaining_minutes -= 1
+        gui.inv.update_drop(drop)
+        gui.display_drop(drop)
         await asyncio.sleep(63)
+
         drop.current_minutes = 240
         drop.remaining_minutes = 0
         drop.progress = 1.0
-        campaign = drop.campaign
         campaign.remaining_minutes -= 1
         campaign.progress = 3/7
         campaign.claimed_drops = 3
         campaign.remaining_drops = 4
-        gui.display_drop(drop)
-        await asyncio.sleep(10)
-        drop.current_minutes = 0
-        drop.remaining_minutes = 240
-        drop.progress = 0.0
+        gui.inv.update_drop(drop)
         gui.display_drop(drop)
 
     def main_exit(task: asyncio.Task[None]) -> None:
