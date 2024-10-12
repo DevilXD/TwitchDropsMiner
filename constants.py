@@ -295,8 +295,10 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
     # returns all in-progress campaigns
     "Inventory": GQLOperation(
         "Inventory",
-        "37fea486d6179047c41d0f549088a4c3a7dd60c05c70956a1490262f532dccd9",
-        # no variables needed
+        "09acb7d3d7e605a92bdfdcc465f6aa481b71c234d8686a9ba38ea5ed51507592",
+        variables={
+            "fetchRewardCampaigns": False,
+        }
     ),
     # returns current state of drops (current drop progress)
     "CurrentDrop": GQLOperation(
