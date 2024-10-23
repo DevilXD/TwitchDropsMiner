@@ -1603,6 +1603,7 @@ class Twitch:
                     self, stream_channel_data["node"], drops_enabled=drops_enabled
                 )
                 for stream_channel_data in response["data"]["game"]["streams"]["edges"]
+                if stream_channel_data["node"]["broadcaster"] is not None
             ]
         return []
 
