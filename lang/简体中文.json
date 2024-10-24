@@ -59,7 +59,7 @@
         },
         "login": {
             "name": "登录Twitch账号",
-            "labels": "状态:用户ID:",
+            "labels": "状态:\n用户ID:",
             "logged_in": "已登录",
             "logged_out": "未登录",
             "logging_in": "正在登录中...",
