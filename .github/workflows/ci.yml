@@ -11,9 +11,40 @@ env:
   PYTHON_VERSION: '3.10'
 
 jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Validate language files
+        run: |
+          failed=()
+          for file in "lang/"*.json; do
+            if err="$(python -m json.tool "${file}" 2>&1 >/dev/null)"; then
+              echo "[OK] ${file}"
+            else
+              echo "[ERROR] ${file} ${err}"
+              failed+=("${file}")
+            fi
+          done
+          if [ "${#failed[@]}" -gt 0 ]; then
+            echo -e "\nFailed to validate the following language file(s): ${failed[@]}"
+            exit 1
+          fi
+
   windows:
     name: Windows
     runs-on: windows-latest
+    needs:
+      - validate
 
     steps:
       - name: Checkout code
@@ -74,6 +105,8 @@ jobs:
   linux-pyinstaller:
     name: Linux (PyInstaller)
     runs-on: ubuntu-20.04
+    needs:
+      - validate
 
     steps:
       - name: Checkout code
@@ -145,6 +178,8 @@ jobs:
   linux-appimage:
     name: Linux (AppImage)
     runs-on: ubuntu-22.04
+    needs:
+      - validate
 
     steps:
       - name: Checkout code
