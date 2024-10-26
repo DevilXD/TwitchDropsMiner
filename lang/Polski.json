@@ -142,9 +142,9 @@
                 "proxy": "Proxy (wymaga restartu):"
             },
             "priority_modes": {
-                "priority_only": "Tylko lista priorytetowa",
-                "ending_soonest": "Najwcześniejszy koniec",
-                "low_availability": "Najpierw niska dostępność"
+                "priority_only": "Tylko lista priorytetów",
+                "ending_soonest": "Kończące się najwcześniej",
+                "low_availability": "Najniższa dostępność"
             },
             "game_name": "Nazwa gry",
             "priority": "Priorytety",
