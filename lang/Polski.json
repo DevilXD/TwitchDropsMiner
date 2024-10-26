@@ -138,8 +138,13 @@
                 "autostart": "Autostart: ",
                 "tray": "Autostart z zasobnika: ",
                 "tray_notifications": "Powiadomienia z zasobnika: ",
-                "priority_only": "Tylko priorytetowe: ",
+                "priority_mode": "Tryb priorytetu: ",
                 "proxy": "Proxy (wymaga restartu):"
+            },
+            "priority_modes": {
+                "priority_only": "Tylko lista priorytetów",
+                "ending_soonest": "Kończące się najwcześniej",
+                "low_availability": "Najniższa dostępność"
             },
             "game_name": "Nazwa gry",
             "priority": "Priorytety",
