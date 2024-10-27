@@ -33,6 +33,11 @@ else:
     # The Lib folder is also spelled in lowercase: 'lib'
     version_info = sys.version_info
     SYS_SITE_PACKAGES = f"lib/python{version_info.major}.{version_info.minor}/site-packages"
+# scripts venv path changes depending on the system platform
+if sys.platform == "win32":
+    SYS_SCRIPTS = "Scripts"
+else:
+    SYS_SCRIPTS = "bin"
 
 
 def _resource_path(relative_path: Path | str) -> Path:
@@ -90,6 +95,7 @@ WORKING_DIR = SELF_PATH.parent
 # Development paths
 VENV_PATH = Path(WORKING_DIR, "env")
 SITE_PACKAGES_PATH = Path(VENV_PATH, SYS_SITE_PACKAGES)
+SCRIPTS_PATH = Path(VENV_PATH, SYS_SCRIPTS)
 # Translations path
 # NOTE: These don't have to be available to the end-user, so the path points to the internal dir
 LANG_PATH = _resource_path("lang")

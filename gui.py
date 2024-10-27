@@ -34,6 +34,8 @@ from exceptions import MinerException, ExitRequest
 from utils import resource_path, set_root_icon, webopen, Game, _T
 from constants import (
     SELF_PATH,
+    IS_PACKAGED,
+    SCRIPTS_PATH,
     WINDOW_TITLE,
     LOGGING_LEVELS,
     MAX_WEBSOCKETS,
@@ -1742,7 +1744,7 @@ class SettingsPanel:
         return f'"{SELF_PATH.resolve()!s}"'
 
     def _get_autostart_path(self) -> str:
-        flags: list[str] = ['']  # this will add a space between self path and flags
+        flags: list[str] = []
         # if applicable, include the current logging level as well
         for lvl_idx, lvl_value in LOGGING_LEVELS.items():
             if lvl_value == self._settings.logging_level:
@@ -1751,7 +1753,10 @@ class SettingsPanel:
                 break
         if self._vars["tray"].get():
             flags.append("--tray")
-        return self._get_self_path() + ' '.join(flags)
+        if not IS_PACKAGED:
+            # non-packaged autostart has to be done through the venv path pythonw
+            return f"\"{SCRIPTS_PATH / 'pythonw'!s}\" {self._get_self_path()} {' '.join(flags)}"
+        return f"{self._get_self_path()} {' '.join(flags)}"
 
     def _get_linux_autostart_filepath(self) -> Path:
         autostart_folder: Path = Path("~/.config/autostart").expanduser()
@@ -2407,11 +2412,12 @@ if __name__ == "__main__":
                 tray=False,
                 priority=[],
                 proxy=URL(),
+                alter=lambda: None,
                 language="English",
                 autostart_tray=False,
                 exclude={"Lit Game"},
                 tray_notifications=True,
-                alter=lambda: None,
+                logging_level=LOGGING_LEVELS[0],
                 priority_mode=PriorityMode.PRIORITY_ONLY,
             )
         )
