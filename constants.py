@@ -42,7 +42,7 @@ def _resource_path(relative_path: Path | str) -> Path:
     Works for dev and for PyInstaller.
     """
     if IS_APPIMAGE:
-        base_path = Path(sys.argv[0]).absolute().parent
+        base_path = Path(sys.argv[0]).resolve().parent
     elif IS_PACKAGED:
         # PyInstaller's folder where the one-file app is unpacked
         meipass: str = getattr(sys, "_MEIPASS")
@@ -78,13 +78,14 @@ def _merge_vars(base_vars: JsonType, vars: JsonType) -> None:
 
 # Base Paths
 if IS_APPIMAGE:
-    SELF_PATH = Path(os.environ["APPIMAGE"]).absolute()
+    SELF_PATH = Path(os.environ["APPIMAGE"]).resolve()
 else:
-    # NOTE: pyinstaller will set sys.argv[0] to its own executable when building,
-    # detect this to use __file__ and main.py redirection instead
-    SELF_PATH = Path(sys.argv[0]).absolute()
-    if SELF_PATH.stem == "pyinstaller":
-        SELF_PATH = Path(__file__).with_name("main.py").absolute()
+    # NOTE: pyinstaller will set sys.argv[0] to its own executable when building
+    # NOTE: sys.argv[0] will point to gui.py when running the gui.py directly for GUI debug
+    # detect these and use __file__ and main.py redirection instead
+    SELF_PATH = Path(sys.argv[0]).resolve()
+    if SELF_PATH.stem == "pyinstaller" or SELF_PATH.name == "gui.py":
+        SELF_PATH = Path(__file__).with_name("main.py").resolve()
 WORKING_DIR = SELF_PATH.parent
 # Development paths
 VENV_PATH = Path(WORKING_DIR, "env")

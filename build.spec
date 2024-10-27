@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 from typing import Any, TYPE_CHECKING
 
-SELF_PATH = str(Path(".").absolute())
+SELF_PATH = str(Path(".").resolve())
 if SELF_PATH not in sys.path:
     sys.path.insert(0, SELF_PATH)
 
