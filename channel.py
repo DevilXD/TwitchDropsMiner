@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+import json
 import asyncio
 import logging
 from typing import Any, SupportsInt, cast, TYPE_CHECKING
@@ -375,27 +377,37 @@ class Channel:
         # fetch a list of chunks available to download for the stream
         # NOTE: the CDN is configured to forcibly disconnect shortly after serving the list,
         # if we don't do it yourselves. Lets help it by actually doing it ourselves instead.
-        available_chunks: str = ''
+        async with self._twitch.request(
+            "GET", stream_url, headers={"Connection": "close"}
+        ) as chunks_response:
+            if chunks_response.status >= 400:
+                # if the stream goes OFFLINE, trying to get a list of chunks returns a 404
+                return False
+            available_chunks: str = await chunks_response.text()
+        # the response may contain some invalid JSON with duplicate double quotes
+        # in the value strings: we need to get rid of them by removing the "url" key entirely
+        # if no JSON can be found within the response, this is a NOOP
+        available_chunks = re.sub(r'"url": ?".+}",', '', available_chunks)
+        # try to decode the suspected JSON
         try:
-            async with self._twitch.request(
-                "GET", stream_url, headers={"Connection": "close"}
-            ) as chunks_response:
-                if chunks_response.status >= 400:
-                    # if the stream goes OFFLINE, trying to get a list of chunks returns a 404
-                    return False
-                available_chunks = await chunks_response.text()
-            # the list contains ~10-13 chunks of the stream at 2s intervals,
-            # pick the last chunk URL available. Ensure it's not the end-of-stream tag,
-            # otherwise use the 2nd to last line.
-            chunks_list: list[str] = available_chunks.strip().split("\n")
-            selected_chunk: str = chunks_list[-1]
-            if selected_chunk == "#EXT-X-ENDLIST":
-                selected_chunk = chunks_list[-2]
-            stream_chunk_url: URLType = URLType(selected_chunk)
-            # sending a HEAD request is enough to advance the drops,
-            # without downloading the actual stream data
-            async with self._twitch.request("HEAD", stream_chunk_url) as head_response:
-                return head_response.status == 200
-        except aiohttp.InvalidURL as exc:
-            # Temporarily log the entire response into the output
-            raise MinerException(available_chunks) from exc
+            available_json: JsonType = json.loads(available_chunks)
+        except json.JSONDecodeError:
+            # No JSON: this is the expected path. Do nothing and continue with the below.
+            pass
+        else:
+            # JSON was decoded - if there's an error, log it and report failure
+            if "error" in available_json:
+                logger.error(f"Send watch error: \"{available_json['error']}\"")
+            return False
+        # the list contains ~10-13 chunks of the stream at 2s intervals,
+        # pick the last chunk URL available. Ensure it's not the end-of-stream tag,
+        # otherwise use the 2nd to last line.
+        chunks_list: list[str] = available_chunks.strip().split("\n")
+        selected_chunk: str = chunks_list[-1]
+        if selected_chunk == "#EXT-X-ENDLIST":
+            selected_chunk = chunks_list[-2]
+        stream_chunk_url: URLType = URLType(selected_chunk)
+        # sending a HEAD request is enough to advance the drops,
+        # without downloading the actual stream data
+        async with self._twitch.request("HEAD", stream_chunk_url) as head_response:
+            return head_response.status == 200
