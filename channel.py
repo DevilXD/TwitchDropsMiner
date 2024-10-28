@@ -397,5 +397,6 @@ class Channel:
             async with self._twitch.request("HEAD", stream_chunk_url) as head_response:
                 return head_response.status == 200
         except aiohttp.InvalidURL as exc:
-            # Temporarily log the entire response into the output
-            raise MinerException(available_chunks) from exc
+            return False
+            ## Temporarily log the entire response into the output
+            #raise MinerException(available_chunks) from exc

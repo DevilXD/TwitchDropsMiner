@@ -888,6 +888,9 @@ class Twitch:
             succeeded: bool = await channel.send_watch()
             if not succeeded:
                 logger.log(CALL, f"Watch requested failed for channel: {channel.name}")
+                logger.info(f"Failed to watch {channel.name} so marking as offline...")
+                channel.set_offline()
+                continue
             elif not self.gui.progress.is_counting():
                 # If the previous update was more than 60s ago, and the progress tracker
                 # isn't counting down anymore, that means Twitch has temporarily
