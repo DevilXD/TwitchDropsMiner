@@ -144,7 +144,7 @@
             "priority_modes": {
                 "priority_only": "Solo juegos preferidos",
                 "ending_soonest": "Terminando pronto",
-                "low_availability": "Poca disponibilidad primero",
+                "low_availability": "Poca disponibilidad primero"
             },
             "game_name": "Nombre del juego",
             "priority": "Lista de juegos preferidos",
