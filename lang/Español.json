@@ -12,6 +12,7 @@
         "no_campaign": "No se ha encontrado una campaña activa. \nEsperando una nueva campaña..."
     },
     "login": {
+        "unexpected_content": "Se produjo un error inesperado, \ngeneralmente debido a una redirección.\n¿Necesitas un VPN o iniciar sesión para acceder a internet?",
         "chrome": {
             "startup": "Iniciando Chrome...",
             "login_to_complete": "Por favor, presione Iniciar sesión nuevamente para \ncompletar el inicio de sesión.",
@@ -19,7 +20,6 @@
             "closed_window": "La ventana de Chrome se cerró antes de que \nse completara el inicio de sesión."
         },
         "error_code": "Error de inicio de sesión: {error_code}",
-        "unexpected_content": "Se produjo un error inesperado, \ngeneralmente debido a una redirección.\n¿Necesitas un VPN o iniciar sesión para acceder a internet?",
         "incorrect_login_pass": "El usuario o contraseña ingresada es incorrecto.",
         "incorrect_email_code": "El código de verificación de email es incorrecto.",
         "incorrect_twofa_code": "El código 2FA es incorrecto.",
@@ -138,8 +138,13 @@
                 "autostart": "Ejecutar al iniciar el sistema: ",
                 "tray": "Ejecutar en la bandeja del sistema: ",
                 "tray_notifications": "Mostrar notificaciones: ",
-                "priority_only": "Minar solo juegos preferidos: ",
+                "priority_mode": "Modo de prioridad: ",
                 "proxy": "Proxy (requiere reinicio):"
+            },
+            "priority_modes": {
+                "priority_only": "Solo juegos preferidos",
+                "ending_soonest": "Terminando pronto",
+                "low_availability": "Poca disponibilidad primero"
             },
             "game_name": "Nombre del juego",
             "priority": "Lista de juegos preferidos",
@@ -153,10 +158,10 @@
                 "inventory": "Ver inventario de Twitch",
                 "campaigns": "Ver todas las campañas y administrar cuentas vinculadas"
             },
-            "how_it_works": "Cómo funciona",
-            "how_it_works_text": "Cada aproximadamente 60 segundos, la aplicación envía un \"minuto visto\" al canal que se está mirando actualmente. \nDe esta forma, no es necesario descargar el video o sonido del stream. Ahorrando ancho de banda al usuario. \nCon el fin de mantener actualizados los estados (ONLINE o OFFLINE) de los canales, se establece una conexión websocket, \nque recibe información de los streams para poder actualizar el estado, o cantidad de espectadores actuales.",
+            "how_it_works": "Como funciona",
+            "how_it_works_text": "Cada varios segundos, la aplicación pretende ver una transmisión en particular, \ny obtiene los metadatos de la misma para progresar con los drops. \nDe esta forma, no es necesario descargar el video o sonido de la transmisión. Ahorrando ancho de banda al usuario. \nCon el fin de mantener actualizados los estados (ONLINE o OFFLINE) de los canales, se establece una conexión websocket, \nque recibe información de los streams para poder actualizar el estado, o cantidad de espectadores actuales.",
             "getting_started": "Primeros pasos",
-            "getting_started_text": "1. Inicie sesión en la aplicación. \n2. Verifique que su cuenta de Twitch esté vinculada a todas las campañas deseadas a minar. \n3. Si desea minar todas las campañas, desmarque la opción \"Minar solo juegos preferidos\" y presione \"Recargar\". \n4. Si desea darle prioridad a una campaña específica, utilice la \"Lista de juegos preferidos\" para crear una lista de prioridad. \nLos juegos en la parte superior de la lista se intentarán minar antes de los que estén más abajo. \n5. Utilice la opción \"Minar solo juegos preferidos\" si desea evitar minar juegos que no estén en la lista de juegos preferidos. \n6. Utilice la \"Lista de juegos excluidos\" si desea evitar minar juegos que no estén en la lista de juegos excluidos. \n7. Al utilizar la opción \"Minar solo juegos preferidos\" o al cambiar el contenido de las listas, \nserá necesario presionar el botón \"Recargar\" para que los cambios sean aplicados."
+            "getting_started_text": "1. Inicie sesión en la aplicación. \n2. Verifique que su cuenta de Twitch esté vinculada a todas las campañas deseadas a minar. \n3. Si desea minar todas las campañas posibles, cambie el \"Modo de prioridad\" a cualquier opción que no sea \"Solo juegos preferidos\" y presione \"Recargar\". \n4. Si desea darle prioridad a una campaña específica, utilice la \"Lista de juegos preferidos\" para crear una lista de prioridad. \nLos juegos en la parte superior de la lista se intentarán minar antes de los que estén más abajo. \n5. Seleccione la opción \"Solo juegos preferidos\" en el \"Modo de prioridad\" si desea evitar minar juegos que no estén en la lista de juegos preferidos. \n6. Utilice la \"Lista de juegos excluidos\" para indicarle a la aplicación cuales juegos no deben minarse nunca. \n7. Al cambiar el contenido de las listas, o de las opciones del \"Modo de prioridad\", \nserá necesario presionar el botón \"Recargar\" para que los cambios sean aplicados."
         }
     }
 }
