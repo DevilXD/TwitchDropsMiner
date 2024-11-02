@@ -290,9 +290,6 @@ class Channel:
         """
         Fetches the current channel stream, and if one exists,
         updates it's game, title, tags and viewers. Updates channel status in general.
-
-        Setting 'trigger_events' to True will trigger on_online and on_offline events,
-        if the new status differs from the one set before the call.
         """
         old_stream = self._stream
         self._stream = await self.get_stream()
