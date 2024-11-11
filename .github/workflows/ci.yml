@@ -250,7 +250,7 @@ jobs:
           path: artifacts
 
       - name: Delete the existing pre-release
-        run: gh release delete "Development build" --cleanup-tag --yes --repo $GITHUB_REPOSITORY
+        run: gh release delete dev-build --cleanup-tag --yes --repo $GITHUB_REPOSITORY
         env:
           GITHUB_TOKEN: ${{github.token}}
 
