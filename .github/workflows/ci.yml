@@ -22,7 +22,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: ${{env.PYTHON_VERSION}}
 
       - name: Validate language files
         run: |
@@ -119,7 +119,7 @@ jobs:
 
       - name: Append git revision to project version
         run: |
-          sed -ri "s/^__version__\s*=\s*\"[^\"]+/\0.${{ steps.vars.outputs.sha_short }}/" version.py
+          sed -ri "s/^__version__\s*=\s*\"[^\"]+/\0.${{steps.vars.outputs.sha_short}}/" version.py
 
       # NOTE: We're only use a custom version of Python here because truststore requires at least Python 3.10, but Ubuntu 20.04 has Python 3.8.
       - name: Set up Python
