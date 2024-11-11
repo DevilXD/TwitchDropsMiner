@@ -249,7 +249,12 @@ jobs:
         with:
           path: artifacts
 
-      - name: Upload builds to Releases
+      - name: Delete the existing pre-release
+        run: gh release delete "Development build" --cleanup-tag --yes --repo $GITHUB_REPOSITORY
+        env:
+          GITHUB_TOKEN: ${{github.token}}
+
+      - name: Create a new dev build release
         uses: ncipollo/release-action@v1
         with:
           allowUpdates: true
