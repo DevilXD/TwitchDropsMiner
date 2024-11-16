@@ -1,7 +1,7 @@
 {
     "english_name": "Traditional Chinese",
     "status": {
-        "terminated": "\n應用程式已終止，請關閉視窗以離開應用程式。 ",
+        "terminated": "\n應用程式已終止，請關閉視窗以離開應用程式。",
         "watching": "正在觀看：{channel}",
         "goes_online": "{channel} 頻道已開始實況，正在跳轉…",
         "goes_offline": "{channel} 頻道已結束實況，正在跳轉…",
