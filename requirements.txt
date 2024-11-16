@@ -5,4 +5,4 @@ PyGObject; sys_platform == "linux"  # required for better system tray support on
 
 # environment-dependent dependencies
 pywin32; sys_platform == "win32"
-truststore; python_version >= "3.10"
+truststore
