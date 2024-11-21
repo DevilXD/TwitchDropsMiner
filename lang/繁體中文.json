@@ -12,6 +12,7 @@
         "no_campaign": "沒有可用於掉寶的活動，正在等待一個有效的掉寶活動…"
     },
     "login": {
+        "unexpected_content": "回傳的內容類型有誤，通常是由於被重新導向導致。您需要設置 VPN 或者確認登入頁面才能上網嗎？",
         "chrome": {
             "startup": "正在開啟 Chrome 視窗…",
             "login_to_complete": "請再次點擊登入按鈕來完成登入。",
@@ -19,7 +20,6 @@
             "closed_window": "Chrome 視窗在登入步驟完成之前被關閉。"
         },
         "error_code": "登入錯誤代碼：{error_code}",
-        "unexpected_content": "回傳的內容類型有誤，通常是由於被重新導向導致。您需要設置 VPN 或者確認登入頁面才能上網嗎？",
         "incorrect_login_pass": "使用者名稱或密碼錯誤。",
         "incorrect_email_code": "電子郵件驗證碼錯誤。",
         "incorrect_twofa_code": "2FA 驗證碼不正確。",
@@ -137,8 +137,14 @@
                 "name": "基本設定",
                 "autostart": "開機時自動啟動：",
                 "tray": "開機時以最小化自動啟動：",
-                "priority_only": "僅參與優先掉寶遊戲：",
+                "tray_notifications": "啟用系統列通知：",
+                "priority_mode": "掉寶模式：",
                 "proxy": "代理伺服器（需要重新啟動）："
+            },
+            "priority_modes": {
+                "priority_only": "僅參與優先掉寶遊戲",
+                "ending_soonest": "優先觀看即將結束的掉寶活動",
+                "low_availability": "優先觀看可用頻道較少的掉寶活動"
             },
             "game_name": "遊戲名稱",
             "priority": "優先掉寶遊戲",
