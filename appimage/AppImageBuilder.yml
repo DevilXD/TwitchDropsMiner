@@ -48,7 +48,7 @@ AppDir:
         key_url: http://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C
 
     include:
-      - gir1.2-appindicator3-0.1
+      - gir1.2-ayatanaappindicator3-0.1
       - python3-tk
 
     exclude:
