@@ -2044,17 +2044,16 @@ class GUIManager:
             foreground=self._fixed_map("foreground"),
             background=self._fixed_map("background"),
         )
-        # remove Notebook.focus from the Notebook.Tab layout tree to avoid an ugly dotted line
-        # on tab selection. We fold the Notebook.focus children into Notebook.padding children.
-        if theme != "classic":
+        # add padding to the tab names
+        style.configure("TNotebook.Tab", padding=[8, 4])
+        if theme != "classic" and sys.platform != "darwin":  # Skip these for classic theme or macOS
+            # remove Notebook.focus from the Notebook.Tab layout tree to avoid an ugly dotted line
+            # on tab selection. We fold the Notebook.focus children into Notebook.padding children.
             original = style.layout("TNotebook.Tab")
             sublayout = original[0][1]["children"][0][1]
             sublayout["children"] = sublayout["children"][0][1]["children"]
             style.layout("TNotebook.Tab", original)
-        # add padding to the tab names
-        style.configure("TNotebook.Tab", padding=[8, 4])
-        # remove Checkbutton.focus dotted line from checkbuttons
-        if theme != "classic":
+            # remove Checkbutton.focus dotted line from checkbuttons
             style.configure("TCheckbutton", padding=0)
             original = style.layout("TCheckbutton")
             sublayout = original[0][1]["children"]
