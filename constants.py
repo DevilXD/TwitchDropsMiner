@@ -265,7 +265,7 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
     # returns stream information for a particular channel
     "GetStreamInfo": GQLOperation(
         "VideoPlayerStreamInfoOverlayChannel",
-        "a5f2e34d626a9f4f5c0204f910bab2194948a9502089be558bb6e779a9e1b3d2",
+        "198492e0857f6aedead9665c81c5a06d67b25b58034649687124083ff288597d",
         variables={
             "channel": ...,  # channel login
         },
@@ -294,7 +294,7 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
     # returns current state of points (balance, claim available) for a particular channel
     "ChannelPointsContext": GQLOperation(
         "ChannelPointsContext",
-        "1530a003a7d374b0380b79db0be0534f30ff46e61cffa2bc0e2468a909fbc024",
+        "374314de591e69925fce3ddc2bcf085796f56ebb8cad67a0daa3165c03adc345",
         variables={
             "channelLogin": ...,  # channel login
         },
@@ -336,7 +336,7 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
     # returns drops available for a particular channel
     "AvailableDrops": GQLOperation(
         "DropsHighlightService_AvailableDrops",
-        "eff13f4a43157238e40b4cd74b0dac3a41b5f8fb31de1a3b19347fae84e60b92",
+        "9a62a09bce5b53e26e64a671e530bc599cb6aab1e5ba3cbd5d85966d3940716f",
         variables={
             "channelID": ...,  # channel ID as a str
         },
@@ -374,7 +374,6 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
                 "requestID": "JIRA-VXP-2397",
             },
             "includeIsDJ": False,
-            "includePreviewBlur": True,
             "sortTypeIsRecency": False,
         },
     ),
@@ -387,14 +386,14 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
     ),
     "NotificationsView": GQLOperation(  # unused, triggers notifications "update-summary"
         "OnsiteNotifications_View",
-        "f6bdb1298f376539487f28b7f8a6b5d7434ec04ba4d7dc5c232b258410ae04d6",
+        "e8e06193f8df73d04a1260df318585d1bd7a7bb447afa058e52095513f2bfa4f",
         variables={
             "input": {},
         },
     ),
     "NotificationsList": GQLOperation(  # unused
         "OnsiteNotifications_ListNotifications",
-        "e709b905ddb963d7cf4a8f6760148926ecbd0eee0f2edc48d1cf17f3e87f6490",
+        "11cdb54a2706c2c0b2969769907675680f02a6e77d8afe79a749180ad16bfea6",
         variables={
             "cursor": "",
             "displayType": "VIEWER",
