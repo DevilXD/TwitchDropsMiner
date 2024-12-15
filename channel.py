@@ -337,7 +337,7 @@ class Channel:
             old_stream = self._stream
             self._stream = None
             self._twitch.on_channel_update(self, old_stream, self._stream)
-            needs_display = False
+            needs_display = False  # calling on_channel_update always does a display at the end
         if needs_display:
             self.display()
 

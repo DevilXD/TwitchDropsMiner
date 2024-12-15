@@ -1087,7 +1087,7 @@ class Twitch:
         logger.log(CALL, f"Channel update from websocket: {channel.name}{game_change}")
         # There's no information about channel tags here, but this event is triggered
         # when the tags change. We can use this to just update the stream data after the change.
-        # Use 'set_online' to introduce a delay, allowing for multiple title and tags
+        # Use 'check_online' to introduce a delay, allowing for multiple title and tags
         # changes before we update. This eventually calls 'on_channel_update' below.
         channel.check_online()
 

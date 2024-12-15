@@ -2046,7 +2046,8 @@ class GUIManager:
         )
         # add padding to the tab names
         style.configure("TNotebook.Tab", padding=[8, 4])
-        if theme != "classic" and sys.platform != "darwin":  # Skip these for classic theme or macOS
+        # Skip these for classic theme or macOS
+        if theme != "classic" and sys.platform != "darwin":
             # remove Notebook.focus from the Notebook.Tab layout tree to avoid an ugly dotted line
             # on tab selection. We fold the Notebook.focus children into Notebook.padding children.
             original = style.layout("TNotebook.Tab")
