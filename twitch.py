@@ -1102,10 +1102,8 @@ class Twitch:
         if stream_before is None:
             if stream_after is not None:
                 # Channel going ONLINE
-                if (
-                    self.can_watch(channel)  # we can watch the channel
-                    and self.should_switch(channel)  # and we should!
-                ):
+                if self.can_watch(channel) and self.should_switch(channel):
+                    # we can watch the channel, and we should
                     self.print(_("status", "goes_online").format(channel=channel.name))
                     self.watch(channel)
                 else:
@@ -1115,33 +1113,38 @@ class Twitch:
                 logger.log(CALL, f"{channel.name} stays OFFLINE")
         else:
             watching_channel = self.watching_channel.get_with_default(None)
-            if (
-                watching_channel is not None
-                and watching_channel == channel  # the watching channel was the one updated
-                and not self.can_watch(channel)   # we can't watch it anymore
-            ):
+            # check if the watching channel was the one updated
+            if watching_channel is not None and watching_channel == channel:
                 # NOTE: In these cases, channel was the watching channel
-                if stream_after is None:
-                    # Channel going OFFLINE
-                    self.print(_("status", "goes_offline").format(channel=channel.name))
+                if not self.can_watch(channel):
+                    # we can't watch it anymore
+                    if stream_after is None:
+                        # Channel going OFFLINE
+                        self.print(_("status", "goes_offline").format(channel=channel.name))
+                    else:
+                        # Channel stays ONLINE, but we can't watch it anymore
+                        logger.info(
+                            f"{channel.name} status has been updated, switching... "
+                            f"(🎁: {stream_before.drops_enabled and '✔' or '❌'} -> "
+                            f"{stream_after.drops_enabled and '✔' or '❌'})"
+                        )
+                    self.change_state(State.CHANNEL_SWITCH)
                 else:
-                    # Channel stays ONLINE, but we can't watch it anymore
-                    logger.info(
-                        f"{channel.name} status has been updated, switching... "
-                        f"(🎁: {stream_before.drops_enabled and '✔' or '❌'} -> "
-                        f"{stream_after.drops_enabled and '✔' or '❌'})"
-                    )
-                self.change_state(State.CHANNEL_SWITCH)
+                    # Channel stays ONLINE, and we can still watch it - no change
+                    pass
             # NOTE: In these cases, it wasn't the watching channel
             elif stream_after is None:
                 logger.info(f"{channel.name} goes OFFLINE")
             else:
-                # Channel is and stays ONLINE, but has been updated
+                # Channel stays ONLINE, but has been updated
                 logger.info(
                     f"{channel.name} status has been updated "
                     f"(🎁: {stream_before.drops_enabled and '✔' or '❌'} -> "
                     f"{stream_after.drops_enabled and '✔' or '❌'})"
                 )
+                if self.can_watch(channel) and self.should_switch(channel):
+                    # ... and we can and should watch it
+                    self.watch(channel)
         channel.display()
 
     @task_wrapper
