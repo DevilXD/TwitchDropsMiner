@@ -117,27 +117,38 @@ For more context about these goals, please check out these issues: [#161](https:
 ### Credits:
 
 <!---
-Note: When adding a new credits line below, please add two spaces at the end of the previous line,
-if they aren't already there. Doing so ensures proper markdown rendering on Github.
+Note: The translations credits are sorted alphabetically, based on their English language name.
+When adding a new entry, please ensure to insert it in the correct place in the second section.
+Non-translations related credits should be added to the first section instead.
 
-• Last line can have them omitted.
-• Please ensure your editor won't trim the spaces upon saving the file.
-• Please leave a single empty new line at the end of the file.
+Note: When adding a new credits line below, please add two trailing spaces at the end
+of the previous line, if they aren't already there. Doing so ensures proper markdown
+rendering on Github. In short: Each credits line should end with two trailing spaces,
+placed past the period character at the end.
+
+• Last line can have the two trailing spaces omitted.
+• Please ensure your editor won't trim the trailing spaces upon saving the file.
+• Please ensure to leave a single empty new line at the end of the file.
 -->
 
+@guihkx - For the CI script, CI maintenance, and everything related to Linux builds.  
+
+@Bamboozul - For the entirety of the Arabic (العربية) translation.  
 @Suz1e - For the entirety of the Chinese (简体中文) translation and revisions.  
 @wwj010 - For the Chinese (简体中文) translation corrections and revisions.  
-@nwvh - For the entirety of the Czech (Čeština) translation.  
-@ThisIsCyreX - For the entirety of the German (Deutsch) translation.  
-@Shofuu - For the entirety of the Spanish (Español) translation.  
-@zarigata - For the entirety of the Portuguese (Português) translation.  
-@alikdb - For the entirety of the Turkish (Türkçe) translation.  
-@roobini-gamer - For the entirety of the French (Français) translation.  
-@Sergo1217 - For the entirety of the Russian (Русский) translation.  
+@zhangminghao1989 - For the Chinese (简体中文) translation corrections and revisions.  
 @Ricky103403 - For the entirety of the Traditional Chinese (繁體中文) translation.  
-@Patriot99 - For the Polish (Polski) translation (co-authored with @DevilXD).  
-@Nollasko - For the entirety of the Ukrainian (Українська) translation.  
-@casungo - For the entirety of the Italian (Italiano) translation.  
-@Bamboozul - For the entirety of the Arabic (العربية) translation.  
+@LusTerCsI - For the Traditional Chinese (繁體中文) translation corrections and revisions.  
+@nwvh - For the entirety of the Czech (Čeština) translation.  
 @Kjerne - For the entirety of the Danish (Dansk) translation.  
+@roobini-gamer - For the entirety of the French (Français) translation.  
+@ThisIsCyreX - For the entirety of the German (Deutsch) translation.  
+@Eriza-Z - For the entirety of the Indonesian translation.  
+@casungo - For the entirety of the Italian (Italiano) translation.  
 @ShimadaNanaki - For the entirety of the Japanese (日本語) translation.
+@Patriot99 - For the Polish (Polski) translation and revisions (co-authored with @DevilXD).  
+@zarigata - For the entirety of the Portuguese (Português) translation.  
+@Sergo1217 - For the entirety of the Russian (Русский) translation.  
+@Shofuu - For the entirety of the Spanish (Español) translation and revisions.  
+@alikdb - For the entirety of the Turkish (Türkçe) translation.  
+@Nollasko - For the entirety of the Ukrainian (Українська) translation and revisions.  
