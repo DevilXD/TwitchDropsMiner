@@ -4,6 +4,7 @@ dirpath=$(dirname "$(readlink -f "$0")")
 
 # Check if git is installed
 if ! command -v git &> /dev/null; then
+    echo
     echo "No git executable found in PATH!"
     echo
     read -p "Press any key to continue..."
@@ -28,16 +29,17 @@ fi
 echo
 echo "Installing requirements.txt..."
 "$dirpath/env/bin/python" -m pip install -U pip
-
 "$dirpath/env/bin/pip" install wheel
-
 "$dirpath/env/bin/pip" install -r "$dirpath/requirements.txt"
 if [ $? -ne 0 ]; then
+    echo
     echo "Failed to install requirements."
+    echo
+    read -p "Press any key to continue..."
     exit 1
 fi
 
 echo
-echo "All done!"
+echo "Environment setup completed successfully."
 echo
 read -p "Press any key to continue..."

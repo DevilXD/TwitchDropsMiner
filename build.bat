@@ -13,25 +13,39 @@ if not exist "%dirpath%\env" (
     exit /b 1
 )
 
-REM Check if pyinstaller and pywin32 is installed in the virtual environment
+REM Check if PyInstaller and pywin32 is installed in the virtual environment
 if not exist "%dirpath%\env\scripts\pyinstaller.exe" (
+    echo Installing PyInstaller...
     "%dirpath%\env\scripts\pip" install pyinstaller
     if errorlevel 1 (
-        echo Failed to install pyinstaller.
+        echo:
+        echo Failed to install PyInstaller.
+        echo:
+        pause
         exit /b 1
     )
     "%dirpath%\env\scripts\python" "%dirpath%\env\scripts\pywin32_postinstall.py" -install -silent
     if errorlevel 1 (
+        echo:
         echo Failed to run pywin32_postinstall.py.
+        echo:
+        pause
         exit /b 1
     )
 )
 
-REM Run pyinstaller with the specified build spec file
+REM Run PyInstaller with the specified build spec file
+echo Building...
 "%dirpath%\env\scripts\pyinstaller" "%dirpath%\build.spec"
 if errorlevel 1 (
+    echo:
     echo PyInstaller build failed.
+    echo:
+    pause
     exit /b 1
 )
 
+echo:
 echo Build completed successfully.
+echo:
+pause

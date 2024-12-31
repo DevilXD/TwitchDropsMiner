@@ -11,26 +11,33 @@ if [ ! -d "$dirpath/env" ]; then
     exit 1
 fi
 
-# Check if pyinstaller is installed in the virtual environment
+# Check if PyInstaller is installed in the virtual environment
 if [ ! -f "$dirpath/env/bin/pyinstaller" ]; then
     echo
-    echo "Installing pyinstaller..."
+    echo "Installing PyInstaller..."
     "$dirpath/env/bin/pip" install pyinstaller
     if [ $? -ne 0 ]; then
-        echo "Failed to install pyinstaller."
+        echo
+        echo "Failed to install PyInstaller."
+        echo
+        read -p "Press any key to continue..."
         exit 1
     fi
 fi
 
-# Run pyinstaller with the specified build spec file
+# Run PyInstaller with the specified build spec file
 echo
-echo "Running pyinstaller..."
+echo "Running PyInstaller..."
 "$dirpath/env/bin/pyinstaller" "$dirpath/build.spec"
 if [ $? -ne 0 ]; then
+    echo
     echo "PyInstaller build failed."
+    echo
+    read -p "Press any key to continue..."
     exit 1
 fi
 
 echo
 echo "Build completed successfully."
+echo
 read -p "Press any key to continue..."
