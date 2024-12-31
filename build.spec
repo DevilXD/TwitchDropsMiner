@@ -2,9 +2,9 @@
 from __future__ import annotations
 
 import sys
+import platform
 from pathlib import Path
 from typing import Any, TYPE_CHECKING
-import platform
 
 SELF_PATH = str(Path(".").resolve())
 if SELF_PATH not in sys.path:

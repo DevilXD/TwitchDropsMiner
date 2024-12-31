@@ -31,16 +31,8 @@ REM Activate the virtual environment and install requirements
 echo:
 echo Installing requirements.txt...
 "%dirpath%\env\scripts\python" -m pip install -U pip
-if %errorlevel% NEQ 0 (
-    echo Failed to upgrade pip.
-    exit /b 1
-)
 
 "%dirpath%\env\scripts\pip" install wheel
-if %errorlevel% NEQ 0 (
-    echo Failed to install wheel.
-    exit /b 1
-)
 
 "%dirpath%\env\scripts\pip" install -r "%dirpath%\requirements.txt"
 if %errorlevel% NEQ 0 (
