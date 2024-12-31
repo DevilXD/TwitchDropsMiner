@@ -28,16 +28,8 @@ fi
 echo
 echo "Installing requirements.txt..."
 "$dirpath/env/bin/python" -m pip install -U pip
-if [ $? -ne 0 ]; then
-    echo "Failed to upgrade pip."
-    exit 1
-fi
 
 "$dirpath/env/bin/pip" install wheel
-if [ $? -ne 0 ]; then
-    echo "Failed to install wheel."
-    exit 1
-fi
 
 "$dirpath/env/bin/pip" install -r "$dirpath/requirements.txt"
 if [ $? -ne 0 ]; then

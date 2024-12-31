@@ -10,7 +10,7 @@ if not exist "%dirpath%\env" (
     echo No virtual environment found! Run setup_env.bat to set it up first.
     echo:
     pause
-    exit /b
+    exit /b 1
 )
 
 REM Check if pyinstaller and pywin32 is installed in the virtual environment
