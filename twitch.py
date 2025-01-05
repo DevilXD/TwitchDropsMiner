@@ -1353,8 +1353,8 @@ class Twitch:
     ) -> JsonType | list[JsonType]:
         gql_logger.debug(f"GQL Request: {ops}")
         backoff = ExponentialBackoff(maximum=60)
-        # Use a flag to retry the request a single time, if a "service error" is encountered
-        service_error_retry: bool = True
+        # Use a flag to retry the request a single time, if a specific set of errors is encountered
+        single_retry: bool = True
         for delay in backoff:
             async with self._qgl_limiter:
                 auth_state = await self.get_auth()
@@ -1377,20 +1377,27 @@ class Twitch:
                 if "errors" in response_json:
                     for error_dict in response_json["errors"]:
                         if "message" in error_dict:
-                            if error_dict["message"] == "service error" and service_error_retry:
+                            if (
+                                single_retry
+                                and error_dict["message"] in (
+                                    "service error"
+                                    "PersistedQueryNotFound"
+                                )
+                            ):
                                 logger.error(
-                                    "Retrying a \"service error\" for "
+                                    f"Retrying a {error_dict['message']} for "
                                     f"{response_json['extensions']['operationName']}"
                                 )
-                                service_error_retry = False
-                                delay = 5  # overwrite delay
+                                single_retry = False
+                                if delay < 5:
+                                    # overwrite the delay if too short
+                                    delay = 5
                                 force_retry = True
                                 break
                             elif (
                                 error_dict["message"] in (
-                                    # "server error",
-                                    "service unavailable",
                                     "service timeout",
+                                    "service unavailable",
                                     "context deadline exceeded",
                                 )
                             ):
