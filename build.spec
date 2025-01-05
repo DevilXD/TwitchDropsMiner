@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from PyInstaller.building.api import PYZ, EXE
     from PyInstaller.building.build_main import Analysis
 
+
 # (source_path, dest_path, required)
 to_add: list[tuple[Path, str, bool]] = [
     # icon files
@@ -53,7 +54,12 @@ hiddenimports: list[str] = [
 if sys.platform == "linux":
     # Needed files for better system tray support on Linux via pystray (AppIndicator backend).
     arch = platform.machine()
-    datas.append((Path(f"/usr/lib/{arch}-linux-gnu/girepository-1.0/AyatanaAppIndicator3-0.1.typelib"), "gi_typelibs"))
+    datas.append(
+        (
+            Path(f"/usr/lib/{arch}-linux-gnu/girepository-1.0/AyatanaAppIndicator3-0.1.typelib"),
+            "gi_typelibs",
+        )
+    )
     binaries.append((Path(f"/usr/lib/{arch}-linux-gnu/libayatana-appindicator3.so.1"), "."))
 
     hiddenimports.extend([
