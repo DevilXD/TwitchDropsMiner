@@ -27,7 +27,7 @@ fi
 
 # Run PyInstaller with the specified build spec file
 echo
-echo "Running PyInstaller..."
+echo "Building..."
 "$dirpath/env/bin/pyinstaller" "$dirpath/build.spec"
 if [ $? -ne 0 ]; then
     echo
