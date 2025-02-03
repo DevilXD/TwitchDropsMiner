@@ -43,9 +43,6 @@ Every several seconds, the application pretends to watch a particular stream by 
 > Successfully logging into your Twitch account in the application may cause Twitch to send you a "New Login" notification email. This is normal - you can verify that it comes from your own IP address. The detected browser during the login will be "Chrome", as that's what the miner currently presents itself to the Twitch server.
 
 > [!NOTE]  
-> The miner uses an OAuth login flow to let you authorize it to use your account. This is done by entering the code printed in the miner's Output window on the [Twitch device activation page](https://www.twitch.tv/activate). If you'd ever wish to unlink the miner from your Twitch account, head over to the [connections page,](https://www.twitch.tv/settings/connections) where you should be able to find the miner in the "Other connections" section. It will be listed as "Twitch Mobile Web". Simply click on "Disconnect" to remove the link and invalidate the authorization token.
-
-> [!NOTE]  
 > The time remaining timer always countdowns a single minute and then stops - it is then restarted only after the application redetermines the remaining time. This "redetermination" can happen at any time Twitch decides to report on the drop's progress, but not later than 20 seconds after the timer reaches zero. The seconds timer is only an approximation and does not represent nor affect actual mining speed. The time variations are due to Twitch sometimes not reporting drop progress at all, or reporting progress for the wrong drop - these cases have all been accounted for in the application though.
 
 ### Notes about the Windows build:
