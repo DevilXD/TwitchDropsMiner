@@ -124,7 +124,7 @@ class _AuthState:
         }
         payload = {
             "client_id": client_info.CLIENT_ID,
-            "scopes": "user_read",
+            "scopes": "",  # no scopes needed
         }
         while True:
             try:
