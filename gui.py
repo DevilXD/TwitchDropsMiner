@@ -581,7 +581,7 @@ class LoginForm:
                 continue
             return login_data
 
-    async def ask_enter_code(self, user_code: str) -> None:
+    async def ask_enter_code(self, page_url: URL, user_code: str) -> None:
         self.update(_("gui", "login", "required"), None)
         # ensure the window isn't hidden into tray when this runs
         self._manager.grab_attention(sound=False)
@@ -589,7 +589,7 @@ class LoginForm:
         await self.wait_for_login_press()
         self._manager.print(f"Enter this code on the Twitch's device activation page: {user_code}")
         await asyncio.sleep(4)
-        webopen("https://www.twitch.tv/activate")
+        webopen(page_url)
 
     def update(self, status: str, user_id: int | None):
         if user_id is not None:

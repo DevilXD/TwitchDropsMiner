@@ -128,6 +128,7 @@ class _AuthState:
         }
         while True:
             try:
+                now = datetime.now(timezone.utc)
                 async with self._twitch.request(
                     "POST", "https://id.twitch.tv/oauth2/device", headers=headers, data=payload
                 ) as response:
@@ -136,17 +137,17 @@ class _AuthState:
                     #     "expires_in": 1800,
                     #     "interval": 5,
                     #     "user_code": "8 chars [A-Z]",
-                    #     "verification_uri": "https://www.twitch.tv/activate"
+                    #     "verification_uri": "https://www.twitch.tv/activate?device-code=ABCDEFGH"
                     # }
-                    now = datetime.now(timezone.utc)
                     response_json: JsonType = await response.json()
                     device_code: str = response_json["device_code"]
                     user_code: str = response_json["user_code"]
                     interval: int = response_json["interval"]
+                    verification_uri: URL = URL(response_json["verification_uri"])
                     expires_at = now + timedelta(seconds=response_json["expires_in"])
 
                 # Print the code to the user, open them the activate page so they can type it in
-                await login_form.ask_enter_code(user_code)
+                await login_form.ask_enter_code(verification_uri, user_code)
 
                 payload = {
                     "client_id": self._twitch._client_type.CLIENT_ID,
