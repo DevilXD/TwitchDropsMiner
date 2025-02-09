@@ -34,7 +34,9 @@ Every several seconds, the application pretends to watch a particular stream by 
 ### Notes:
 
 > [!WARNING]  
-> Requires Python 3.10 or higher.
+> Due to how Twitch handles the drop progression on their side, watching a stream in the browser (or by any other means) on the same account that is actively being used by the miner, will usually cause the miner to misbehave, reporting false progress and getting stuck mining the current drop.  
+> 
+> Using the same account to watch other streams during mining is thus discouraged, in order to avoid any problems arising from it.
 
 > [!CAUTION]  
 > Persistent cookies will be stored in the `cookies.jar` file, from which the authorization (login) information will be restored on each subsequent run. Make sure to keep your cookies file safe, as the authorization information it stores can give another person access to your Twitch account, even without them knowing your password!
@@ -44,6 +46,9 @@ Every several seconds, the application pretends to watch a particular stream by 
 
 > [!NOTE]  
 > The time remaining timer always countdowns a single minute and then stops - it is then restarted only after the application redetermines the remaining time. This "redetermination" can happen at any time Twitch decides to report on the drop's progress, but not later than 20 seconds after the timer reaches zero. The seconds timer is only an approximation and does not represent nor affect actual mining speed. The time variations are due to Twitch sometimes not reporting drop progress at all, or reporting progress for the wrong drop - these cases have all been accounted for in the application though.
+
+> [!NOTE]  
+> The source code requires Python 3.10 or higher to run.
 
 ### Notes about the Windows build:
 
