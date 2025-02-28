@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import math
+from enum import Enum
 from itertools import chain
 from typing import TYPE_CHECKING
 from functools import cached_property
@@ -27,13 +28,28 @@ def remove_dimensions(url: URLType) -> URLType:
     return URLType(DIMS_PATTERN.sub('', url))
 
 
+class BenefitType(Enum):
+    UNKNOWN = "UNKNOWN"
+    BADGE = "BADGE"
+    EMOTE = "EMOTE"
+    DIRECT_ENTITLEMENT = "DIRECT_ENTITLEMENT"
+
+    def is_badge_or_emote(self) -> bool:
+        return self in (BenefitType.BADGE, BenefitType.EMOTE)
+
+
 class Benefit:
-    __slots__ = ("id", "name", "image_url")
+    __slots__ = ("id", "name", "type", "image_url")
 
     def __init__(self, data: JsonType):
         benefit_data: JsonType = data["benefit"]
         self.id: str = benefit_data["id"]
         self.name: str = benefit_data["name"]
+        self.type: BenefitType = (
+            BenefitType(benefit_data["distributionType"])
+            if benefit_data["distributionType"] in BenefitType.__members__.values()
+            else BenefitType.UNKNOWN
+        )
         self.image_url: URLType = benefit_data["imageAssetURL"]
 
 
@@ -342,6 +358,16 @@ class DropsCampaign:
     def total_drops(self) -> int:
         return len(self.timed_drops)
 
+    @property
+    def eligible(self) -> bool:
+        return self.linked or self.has_badge_or_emote
+
+    @cached_property
+    def has_badge_or_emote(self) -> bool:
+        return any(
+            benefit.type.is_badge_or_emote() for drop in self.drops for benefit in drop.benefits
+        )
+
     @cached_property
     def finished(self) -> bool:
         return all(d.is_claimed for d in self.drops)
@@ -385,7 +411,7 @@ class DropsCampaign:
 
     def _base_can_earn(self, channel: Channel | None = None) -> bool:
         return (
-            self.linked  # account is connected
+            self.eligible  # account is eligible
             and self.active  # campaign is active
             # channel isn't specified, or there's no ACL, or the channel is in the ACL
             and (channel is None or not self.allowed_channels or channel in self.allowed_channels)
@@ -399,7 +425,7 @@ class DropsCampaign:
         # Same as can_earn, but doesn't check the channel
         # and uses a future timestamp to see if we can earn this campaign later
         return (
-            self.linked
+            self.eligible
             and self.ends_at > datetime.now(timezone.utc)
             and self.starts_at < stamp
             and any(drop.can_earn_within(stamp) for drop in self.drops)
