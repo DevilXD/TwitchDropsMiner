@@ -47,7 +47,7 @@ class Benefit:
         self.name: str = benefit_data["name"]
         self.type: BenefitType = (
             BenefitType(benefit_data["distributionType"])
-            if benefit_data["distributionType"] in BenefitType.__members__.values()
+            if benefit_data["distributionType"] in BenefitType.__members__.keys()
             else BenefitType.UNKNOWN
         )
         self.image_url: URLType = benefit_data["imageAssetURL"]
