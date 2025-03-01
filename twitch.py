@@ -1521,7 +1521,7 @@ class Twitch:
         ]
         campaigns.sort(key=lambda c: c.active, reverse=True)
         campaigns.sort(key=lambda c: c.upcoming and c.starts_at or c.ends_at)
-        campaigns.sort(key=lambda c: c.linked, reverse=True)
+        campaigns.sort(key=lambda c: c.eligible, reverse=True)
 
         self._drops.clear()
         self.gui.inv.clear()
