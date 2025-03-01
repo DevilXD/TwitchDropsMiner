@@ -989,17 +989,12 @@ class Twitch:
         """
         if not self.wanted_games:
             return False
-        # exit early if
-        if (
-            not channel.online  # stream is offline
-            or not channel.drops_enabled  # drops aren't enabled
-            # there's no game or it's not one of the games we've selected
-            or (game := channel.game) is None or game not in self.wanted_games
-        ):
+        # exit early if stream is offline or drops aren't enabled
+        if (not channel.online or not channel.drops_enabled):
             return False
         # check if we can progress any campaign for the played game
         for campaign in self.inventory:
-            if campaign.game == game and campaign.can_earn(channel):
+            if campaign.can_earn(channel):
                 return True
         return False
 
@@ -1582,16 +1577,10 @@ class Twitch:
         if watching_channel is None:
             # if we aren't watching anything, we can't earn any drops
             return None
-        watching_game: Game | None = watching_channel.game
-        if watching_game is None:
-            # if the channel isn't playing anything in particular, we can't determine the drop
-            return None
         drops: list[TimedDrop] = []
         for campaign in self.inventory:
-            if (
-                campaign.game == watching_game  # campaign's game matches watching game
-                and campaign.can_earn(watching_channel)  # can be earned on this channel
-            ):
+            # can be earned on this channel
+            if (campaign.can_earn(watching_channel)):
                 # add only the drops we can actually earn
                 drops.extend(drop for drop in campaign.drops if drop.can_earn(watching_channel))
         if drops:
