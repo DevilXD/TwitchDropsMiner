@@ -1,0 +1,162 @@
+{
+    "english_name": "Romanian",
+    "status": {
+        "terminated": "\nAplicația a fost oprită.\nVă rugăm să închideți aplicația.",
+        "watching": "Se vizionează : {channel}",
+        "goes_online": "{channel} intră ONLINE, se schimbă...",
+        "goes_offline": "{channel} intră OFFLINE, se schimbă...",
+        "claimed_drop": "Drop-ul a fost recuperat : {drop}",
+        "claimed_points": "Puncte bonus colectate : {points}",
+        "earned_points": "Puncte câștigate pentru vizionare: {points}, totale : {balance}",
+        "no_channel": "Nu există canale disponibile pentru vizionare. În așteptarea unui canal ONLINE...",
+        "no_campaign": "Nu există campanii active pentru a mina drop-uri. În așteptarea unei campanii active..."
+    },
+    "login": {
+        "chrome": {
+            "startup": "Deschidere Chrome",
+            "login_to_complete": "Finalizați procedura de conectare manual apăsând din nou butonul Conectare.",
+            "no_token": "Nu a putut fi găsit niciun token de autorizare.",
+            "closed_window": "Fereastra Chrome a fost închisă înainte de finalizarea procesului de conectare."
+        },
+        "error_code": "Cod de eroare de conexiune: {error_code}",
+        "unexpected_content": "Tip de conținut neașteptat returnat, de obicei din cauza unei redirecționări. Trebuie să vă autentificați pentru a accesa Internetul?",
+        "incorrect_login_pass": "Numele de utilizator sau parola introdusă este incorectă.",
+        "incorrect_email_code": "Codul de verificare din e-mail este incorect.",
+        "incorrect_twofa_code": "Codul 2FA este incorect.",
+        "email_code_required": "Codul de verificare din e-mail este necesar. Vă rugăm să vă verificați e-mailul.",
+        "twofa_code_required": "Este necesar un cod 2FA."
+    },
+    "error": {
+        "captcha": "Conexiunea a fost respinsă de CAPTCHA. Vă rugăm să încercați din nou în aprox. 12 ore.",
+        "site_down": "Twitch nu este disponibil. Vă rugăm să încercați din nou în {seconds} secunde...",
+        "no_connection": "Nu se poate conecta la Twitch. Vă rugăm să încercați din nou în {seconds} secunde..."
+    },
+    "gui": {
+        "output": "Ieșire",
+        "status": {
+            "name": "Statut",
+            "idle": "Inactiv",
+            "exiting": "Ieșire...",
+            "terminated": "Terminat",
+            "cleanup": "Curățarea canalelor...",
+            "gathering": "Se caută canale live...",
+            "switching": "Colectarea canalelor în curs...",
+            "fetching_inventory": "Se precuperează inventarul...",
+            "fetching_campaigns": "Se recuperează campaniile...",
+            "adding_campaigns": "S-a adăugat lista de campanii la inventar... {counter}"
+        },
+        "tabs": {
+            "main": "Principal",
+            "inventory": "Inventar",
+            "settings": "Setări",
+            "help": "Ajutor"
+        },
+        "tray": {
+            "notification_title": "Drop minat",
+            "minimize": "Minimizați în bara de activități",
+            "show": "Arată",
+            "quit": "Renunțare"
+        },
+        "login": {
+            "name": "Formular de conectare",
+            "labels": "Statut :\nID-ul de utilizator :",
+            "logged_in": "Conectat",
+            "logged_out": "Deconectat",
+            "logging_in": "Se conectează...",
+            "required": "Este necesară conectarea",
+            "request": "Vă rugăm să vă conectați pentru a continua.",
+            "username": "Nume utilizator",
+            "password": "Parolă",
+            "twofa_code": "Cod 2FA (opțional)",
+            "button": "Conectare"
+        },
+        "websocket": {
+            "name": "Stare Websocket",
+            "websocket": "Websocket #{id}:",
+            "initializing": "Se inițializează...",
+            "connected": "Conectat",
+            "disconnected": "Deconectat",
+            "connecting": "Se conectează...",
+            "disconnecting": "Se deconectează...",
+            "reconnecting": "Reconectare..."
+        },
+        "progress": {
+            "name": "Progresul campaniei",
+            "drop": "Drop :",
+            "game": "Joc :",
+            "campaign": "Campanie :",
+            "remaining": "{time} rămas",
+            "drop_progress": "Avansare :",
+            "campaign_progress": "Avansare :"
+        },
+        "channels": {
+            "name": "Canale",
+            "switch": "Schimbă",
+            "load_points": "Încarcă puncte",
+            "online": "ONLINE  ✔",
+            "pending": "OFFLINE ⏳",
+            "offline": "OFFLINE ❌",
+            "headings": {
+                "channel": "Canal",
+                "status": "Statut",
+                "game": "Joc",
+                "viewers": "Spectatori",
+                "points": "Puncte"
+            }
+        },
+        "inventory": {
+            "filter": {
+                "name": "Filtru",
+                "show": "Arată :",
+                "not_linked": "Neconectat",
+                "upcoming": "În viitor",
+                "expired": "Expirat",
+                "excluded": "Exclus",
+                "finished": "Terminat",
+                "refresh": "Actualizare"
+            },
+            "status": {
+                "linked": "Conectat ✔",
+                "not_linked": "Deconectat ❌",
+                "active": "Activ ✔",
+                "upcoming": "În viitor ⏳",
+                "expired": "Expirat ❌",
+                "claimed": "Revendicat ✔",
+                "ready_to_claim": "Gata de revendicare ⏳"
+            },
+            "starts": "Începe : {time}",
+            "ends": "Se termină : {time}",
+            "allowed_channels": "Canale autorizate :",
+            "all_channels": "Toate",
+            "and_more": "și încă {amount}...",
+            "percent_progress": "{percent} din {minutes} minute",
+            "minutes_progress": "{minutes} minute"
+        },
+        "settings": {
+            "general": {
+                "name": "General",
+                "autostart": "Pornire automată :",
+                "tray": "Pornire automată în bara de activități :",
+                "tray_notifications": "Notificări în bara de activități :",
+                "priority_only": "Doar cu prioritate :",
+                "proxy": "Proxy (necesită repornire) :"
+            },
+            "game_name": "Nume joc",
+            "priority": "Prioritate",
+            "exclude": "Exclude",
+            "reload": "Reîncarcă",
+            "reload_text": "Cele mai multe modificări necesită o reîncărcare pentru a se aplica imediat : "
+        },
+        "help": {
+            "links": {
+                "name": "Link-uri utile",
+                "inventory": "Vizualizați inventarul Twitch",
+                "campaigns": "Vizualizați toate campaniile și gestionați conturile asociate"
+            },
+            "how_it_works": "Cum funcționează",
+            "how_it_works_text": "Aproximativ la fiecare ~60 de secunde, aplicația trimite un eveniment \"minut vizionat\" către canalul care este vizionat în prezent - ceea ce este suficient pentru a avansa drop-ul. Rețineți că acest lucru ocolește complet necesitatea de a descărca video și audio din fluxul real. Pentru a menține actualizată starea (ONLINE sau OFFLINE) a canalelor, se stabilește o conexiune websocket pentru a primi evenimente despre fluxurile care cresc sau scad sau actualizări despre numărul actual de spectatori.",
+            "getting_started": "Ghid introductiv",
+            "getting_started_text": "1. Conectați-vă la aplicație.\n2. Asigurați-vă că contul dvs. Twitch este conectat la orice campanie care vă interesează.\n3. Dacă doriți doar să extrageți totul, debifați \"Doar cu prioritate\" și apăsați \"Reîncarcă\".\n4. Dacă doriți să extrageți mai întâi anumite jocuri, utilizați lista \"Prioritate\" pentru a defini o listă ordonată de jocuri la alegere. Jocurile din partea de sus a listei vor fi încercate să fie extrase mai întâi, înaintea celor de mai jos în listă.\n5. Lăsați opțiunea \"Doar cu prioritate\" bifată pentru a evita jocurile miniere care nu sunt în lista de priorități. Sau nu - depinde de tine.\n6. Utilizați lista \"Exclude\" pentru a spune aplicației ce jocuri nu ar trebui să fie extrase niciodată.\n7. Editarea conținutului oricăreia dintre liste sau modificarea stării opțiunii \"Doar cu prioritate\" necesită apăsarea \"Reîncarcă\" pentru ca modificările să intre în vigoare."
+        }
+    }
+}
