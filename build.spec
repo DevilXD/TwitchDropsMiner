@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import sys
 import platform
+import fnmatch
 from pathlib import Path
 from typing import Any, TYPE_CHECKING
 
@@ -91,13 +92,16 @@ a = Analysis(
     win_no_prefer_redirects=False,
 )
 
-# Exclude unneeded Linux libraries
+# Exclude unneeded Linux libraries (supports globbing)
 excluded_binaries = [
-    "libicudata.so.66",
-    "libicuuc.so.66",
-    "librsvg-2.so.2"
+    "libicudata.so.*",
+    "libicuuc.so.*",
+    "librsvg-*.so.*"
 ]
-a.binaries = [b for b in a.binaries if b[0] not in excluded_binaries]
+a.binaries = [
+    b for b in a.binaries
+    if not any(fnmatch.fnmatch(b[0], pattern) for pattern in excluded_binaries)
+]
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 exe = EXE(
