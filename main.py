@@ -3,10 +3,10 @@ from __future__ import annotations
 # import an additional thing for proper PyInstaller freeze support
 from multiprocessing import freeze_support
 
-
 if __name__ == "__main__":
     freeze_support()
     import io
+    import os
     import sys
     import signal
     import asyncio
@@ -27,7 +27,7 @@ if __name__ == "__main__":
     from version import __version__
     from exceptions import CaptchaRequired
     from utils import lock_file, resource_path, set_root_icon
-    from constants import LOGGING_LEVELS, SELF_PATH, FILE_FORMATTER, LOG_PATH, LOCK_PATH
+    from constants import LOGGING_LEVELS, SELF_PATH, FILE_FORMATTER, LOG_PATH, LOCK_PATH, WORKING_DIR
 
     warnings.simplefilter("default", ResourceWarning)
 
@@ -186,6 +186,8 @@ if __name__ == "__main__":
 
     try:
         # use lock_file to check if we're not already running
+        if not os.path.isdir(WORKING_DIR):
+            os.mkdirs(WORKING_DIR)
         success, file = lock_file(LOCK_PATH)
         if not success:
             # already running - exit
