@@ -203,7 +203,8 @@ class TimedDrop(BaseDrop):
         super().__init__(campaign, data, claimed_benefits)
         self._manager: GUIManager = self._twitch.gui
         self._gui_inv: InventoryOverview = self._manager.inv
-        self.current_minutes: int = "self" in data and data["self"]["currentMinutesWatched"] or 0
+        self.real_minutes: int = "self" in data and data["self"]["currentMinutesWatched"] or 0
+        self.current_minutes: int = self.real_minutes
         self.required_minutes: int = data["requiredMinutesWatched"]
         if self.is_claimed:
             # claimed drops may report inconsistent current minutes, so we need to overwrite them
@@ -225,6 +226,10 @@ class TimedDrop(BaseDrop):
     @cached_property
     def remaining_minutes(self) -> int:
         return self.required_minutes - self.current_minutes
+
+    @cached_property
+    def remaining_real_minutes(self) -> int:
+        return self.required_minutes - self.real_minutes
 
     @cached_property
     def total_required_minutes(self) -> int:
@@ -254,6 +259,14 @@ class TimedDrop(BaseDrop):
             return 1.0
         return self.current_minutes / self.required_minutes
 
+    @cached_property
+    def real_progress(self) -> float:
+        if self.real_minutes <= 0 or self.required_minutes <= 0:
+            return 0.0
+        elif self.real_minutes >= self.required_minutes:
+            return 1.0
+        return self.real_minutes / self.required_minutes
+
     @property
     def availability(self) -> float:
         now = datetime.now(timezone.utc)
@@ -270,7 +283,7 @@ class TimedDrop(BaseDrop):
         return result
 
     def _on_minutes_changed(self) -> None:
-        invalidate_cache(self, "progress", "remaining_minutes")
+        invalidate_cache(self, "progress", "remaining_minutes", "remaining_real_minutes")
         self.campaign._on_minutes_changed()
         self._gui_inv.update_drop(self)
 
@@ -280,16 +293,18 @@ class TimedDrop(BaseDrop):
     async def claim(self) -> bool:
         result = await super().claim()
         if result:
-            self.current_minutes = self.required_minutes
+            self.real_minutes = self.current_minutes = self.required_minutes
         return result
 
     def update_minutes(self, minutes: int):
+        # this is used for real minutes updates
         if minutes < 0:
             return
         elif minutes <= self.required_minutes:
-            self.current_minutes = minutes
+            self.real_minutes = minutes
         else:
-            self.current_minutes = self.required_minutes
+            self.real_minutes = self.required_minutes
+        self.current_minutes = self.real_minutes
         self._on_minutes_changed()
         self.display()
 
@@ -297,6 +312,7 @@ class TimedDrop(BaseDrop):
         self._manager.display_drop(self, countdown=countdown, subone=subone)
 
     def bump_minutes(self):
+        # this is used for the "pretend mining" updates
         if self.current_minutes < self.required_minutes:
             self.current_minutes += 1
             self._on_minutes_changed()

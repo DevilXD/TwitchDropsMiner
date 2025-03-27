@@ -41,6 +41,7 @@ from constants import (
     MAX_WEBSOCKETS,
     WS_TOPICS_LIMIT,
     OUTPUT_FORMATTER,
+    DIVERGENT_MINUTES_HIGHLIGHT,
     State,
     PriorityMode,
 )
@@ -600,7 +601,7 @@ class LoginForm:
 
 
 class _BaseVars(TypedDict):
-    progress: DoubleVar
+    progressbar: DoubleVar
     percentage: StringVar
     remaining: StringVar
 
@@ -628,13 +629,13 @@ class CampaignProgress:
             "campaign": {
                 "name": StringVar(master),  # campaign name
                 "game": StringVar(master),  # game name
-                "progress": DoubleVar(master),  # controls the progress bar
+                "progressbar": DoubleVar(master),  # controls the progress bar
                 "percentage": StringVar(master),  # percentage display string
                 "remaining": StringVar(master),  # time remaining string, filled via _update_time
             },
             "drop": {
                 "rewards": StringVar(master),  # drop rewards
-                "progress": DoubleVar(master),  # as above
+                "progressbar": DoubleVar(master),  # as above
                 "percentage": StringVar(master),  # as above
                 "remaining": StringVar(master),  # as above
             },
@@ -645,7 +646,11 @@ class CampaignProgress:
         frame.grid(column=0, row=2, columnspan=2, sticky="nsew", padx=2)
         frame.columnconfigure(0, weight=2)
         frame.columnconfigure(1, weight=1)
-        game_campaign = ttk.Frame(frame)
+
+        campaign_frame = ttk.Frame(frame, padding=(0, 4, 0, 0))
+        campaign_frame.grid(column=0, row=0, sticky="nsew")
+
+        game_campaign = ttk.Frame(campaign_frame)
         game_campaign.grid(column=0, row=0, columnspan=2, sticky="nsew")
         game_campaign.columnconfigure(0, weight=1)
         game_campaign.columnconfigure(1, weight=1)
@@ -653,37 +658,53 @@ class CampaignProgress:
         ttk.Label(game_campaign, textvariable=self._vars["campaign"]["game"]).grid(column=0, row=1)
         ttk.Label(game_campaign, text=_("gui", "progress", "campaign")).grid(column=1, row=0)
         ttk.Label(game_campaign, textvariable=self._vars["campaign"]["name"]).grid(column=1, row=1)
+
         ttk.Label(
-            frame, text=_("gui", "progress", "campaign_progress")
+            campaign_frame, text=_("gui", "progress", "campaign_progress")
+        ).grid(column=0, row=1, rowspan=2)
+        ttk.Label(
+            campaign_frame, textvariable=self._vars["campaign"]["percentage"]
+        ).grid(column=1, row=1)
+        ttk.Label(
+            campaign_frame, textvariable=self._vars["campaign"]["remaining"]
+        ).grid(column=1, row=2)
+        ttk.Progressbar(
+            campaign_frame,
+            mode="determinate",
+            length=self.BAR_LENGTH,
+            maximum=1,
+            variable=self._vars["campaign"]["progressbar"],
+        ).grid(column=0, row=3, columnspan=2)
+
+        ttk.Separator(frame, orient="horizontal").grid(column=0, row=1, sticky="ew", pady=(4, 0))
+
+        drop_frame = ttk.Frame(frame)
+        drop_frame.grid(column=0, row=2, sticky="nsew")
+        ttk.Label(
+            drop_frame, text=_("gui", "progress", "drop")
+        ).grid(column=0, row=0, columnspan=2)
+        ttk.Label(
+            drop_frame, textvariable=self._vars["drop"]["rewards"]
+        ).grid(column=0, row=1, columnspan=2)
+        ttk.Label(
+            drop_frame, text=_("gui", "progress", "drop_progress")
         ).grid(column=0, row=2, rowspan=2)
-        ttk.Label(frame, textvariable=self._vars["campaign"]["percentage"]).grid(column=1, row=2)
-        ttk.Label(frame, textvariable=self._vars["campaign"]["remaining"]).grid(column=1, row=3)
+        self._percentage_label: ttk.Label = ttk.Label(
+            drop_frame, textvariable=self._vars["drop"]["percentage"]
+        )
+        self._percentage_label.grid(column=1, row=2)
+        self._remaining_label: ttk.Label = ttk.Label(
+            drop_frame, textvariable=self._vars["drop"]["remaining"]
+        )
+        self._remaining_label.grid(column=1, row=3)
         ttk.Progressbar(
-            frame,
+            drop_frame,
             mode="determinate",
             length=self.BAR_LENGTH,
             maximum=1,
-            variable=self._vars["campaign"]["progress"],
+            variable=self._vars["drop"]["progressbar"],
         ).grid(column=0, row=4, columnspan=2)
-        ttk.Separator(
-            frame, orient="horizontal"
-        ).grid(row=5, columnspan=2, sticky="ew", pady=(4, 0))
-        ttk.Label(frame, text=_("gui", "progress", "drop")).grid(column=0, row=6, columnspan=2)
-        ttk.Label(
-            frame, textvariable=self._vars["drop"]["rewards"]
-        ).grid(column=0, row=7, columnspan=2)
-        ttk.Label(
-            frame, text=_("gui", "progress", "drop_progress")
-        ).grid(column=0, row=8, rowspan=2)
-        ttk.Label(frame, textvariable=self._vars["drop"]["percentage"]).grid(column=1, row=8)
-        ttk.Label(frame, textvariable=self._vars["drop"]["remaining"]).grid(column=1, row=9)
-        ttk.Progressbar(
-            frame,
-            mode="determinate",
-            length=self.BAR_LENGTH,
-            maximum=1,
-            variable=self._vars["drop"]["progress"],
-        ).grid(column=0, row=10, columnspan=2)
+
         self._drop: TimedDrop | None = None
         self._timer_task: asyncio.Task[None] | None = None
         self.display(None)
@@ -699,17 +720,22 @@ class CampaignProgress:
         drop = self._drop
         if drop is not None:
             drop_minutes = drop.remaining_minutes
+            real_minutes = drop.remaining_real_minutes
             campaign_minutes = drop.campaign.remaining_minutes
         else:
             drop_minutes = 0
+            real_minutes = 0
             campaign_minutes = 0
         drop_vars: _DropVars = self._vars["drop"]
         campaign_vars: _CampaignVars = self._vars["campaign"]
         dseconds = seconds % 60
         hours, minutes = self._divmod(drop_minutes, seconds)
-        drop_vars["remaining"].set(
-            _("gui", "progress", "remaining").format(time=f"{hours:>2}:{minutes:02}:{dseconds:02}")
-        )
+        time: str = f"{hours:>2}:{minutes:02}:{dseconds:02}"
+        if real_minutes > drop_minutes + DIVERGENT_MINUTES_HIGHLIGHT:
+            # don't sub one on real time display
+            hours, minutes = self._divmod(real_minutes, 60)
+            time = f"({hours}:{minutes:02}) " + time
+        drop_vars["remaining"].set(_("gui", "progress", "remaining").format(time=time))
         hours, minutes = self._divmod(campaign_minutes, seconds)
         campaign_vars["remaining"].set(
             _("gui", "progress", "remaining").format(time=f"{hours:>2}:{minutes:02}:{dseconds:02}")
@@ -750,21 +776,31 @@ class CampaignProgress:
         if drop is None:
             # clear the drop display
             vars_drop["rewards"].set("...")
-            vars_drop["progress"].set(0.0)
+            vars_drop["progressbar"].set(0.0)
             vars_drop["percentage"].set("-%")
             vars_campaign["name"].set("...")
             vars_campaign["game"].set("...")
-            vars_campaign["progress"].set(0.0)
+            vars_campaign["progressbar"].set(0.0)
             vars_campaign["percentage"].set("-%")
             self._update_time(0)
+            self._percentage_label.config(style='')
+            self._remaining_label.config(style='')
             return
+        percentage_str: str = f"{drop.progress:6.1%}"
+        if drop.remaining_real_minutes > drop.remaining_minutes + DIVERGENT_MINUTES_HIGHLIGHT:
+            self._percentage_label.config(style="red.TLabel")
+            self._remaining_label.config(style="red.TLabel")
+            percentage_str = f"({drop.real_progress:.1%}) " + percentage_str
+        else:
+            self._percentage_label.config(style='')
+            self._remaining_label.config(style='')
         vars_drop["rewards"].set(drop.rewards_text())
-        vars_drop["progress"].set(drop.progress)
-        vars_drop["percentage"].set(f"{drop.progress:6.1%}")
+        vars_drop["progressbar"].set(drop.progress)
+        vars_drop["percentage"].set(percentage_str)
         campaign = drop.campaign
         vars_campaign["name"].set(campaign.name)
         vars_campaign["game"].set(campaign.game.name)
-        vars_campaign["progress"].set(campaign.progress)
+        vars_campaign["progressbar"].set(campaign.progress)
         vars_campaign["percentage"].set(
             f"{campaign.progress:6.1%} ({campaign.claimed_drops}/{campaign.total_drops})"
         )
@@ -2374,7 +2410,7 @@ if __name__ == "__main__":
                 expired=False,
                 active=False,
                 upcoming=True,
-                linked=False,
+                eligible=False,
                 finished=False,
                 link_url="https://google.com",
                 image_url="https://static-cdn.jtvnw.net/ttv-boxart/460630-285x380.jpg",
@@ -2398,10 +2434,13 @@ if __name__ == "__main__":
             rewards_text=lambda: ', '.join(b.name for b in benefits),
             starts_at=ref_stamp + timedelta(seconds=2),
             ends_at=ref_stamp + timedelta(days=7) - timedelta(seconds=2),
+            real_progress=cm/tm,
             progress=cm/tm,
+            real_minutes=cm,
             current_minutes=cm,
             required_minutes=tm,
             remaining_minutes=tm-cm,
+            remaining_real_minutes=tm-cm,
         )
         mock.campaign.timed_drops["0"] = mock
         mock.campaign.drops = mock.campaign.timed_drops.values()
@@ -2520,17 +2559,34 @@ if __name__ == "__main__":
         gui.display_drop(drop)
         await asyncio.sleep(10)
 
+        drop.real_minutes = 165
         drop.current_minutes = 239
+        drop.remaining_real_minutes = 75
         drop.remaining_minutes = 1
+        drop.real_progress = 165/240
         drop.progress = 239/240
         campaign.remaining_minutes -= 1
         gui.inv.update_drop(drop)
         gui.display_drop(drop)
         await asyncio.sleep(63)
 
+        drop.real_minutes = 239
+        drop.current_minutes = 239
+        drop.remaining_real_minutes = 1
+        drop.remaining_minutes = 1
+        drop.progress = 239/240
+        drop.real_progress = 239/240
+        campaign.remaining_minutes -= 1
+        gui.inv.update_drop(drop)
+        gui.display_drop(drop)
+        await asyncio.sleep(63)
+
+        drop.real_minutes = 240
         drop.current_minutes = 240
+        drop.remaining_real_minutes = 0
         drop.remaining_minutes = 0
         drop.progress = 1.0
+        drop.real_progress = 1.0
         campaign.remaining_minutes -= 1
         campaign.progress = 3/7
         campaign.claimed_drops = 3

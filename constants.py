@@ -113,6 +113,7 @@ URLType = NewType("URLType", str)
 TopicProcess: TypeAlias = "abc.Callable[[int, JsonType], Any]"
 # Values
 MAX_INT = sys.maxsize
+DIVERGENT_MINUTES_HIGHLIGHT = 5
 BASE_TOPICS = 3
 MAX_WEBSOCKETS = 8
 WS_TOPICS_LIMIT = 50
