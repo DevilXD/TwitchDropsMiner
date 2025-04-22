@@ -75,7 +75,7 @@ class Stream:
             return self.broadcast_id == other.broadcast_id
         return NotImplemented
 
-    async def get_stream_url(self) -> URLType:
+    async def get_stream_url(self) -> URLType | None:
         if self._stream_url is not None:
             return self._stream_url
         # get the stream playback access token from GQL
@@ -96,6 +96,20 @@ class Stream:
                 ),
             ) as qualities_response:
                 available_qualities = await qualities_response.text()
+            # try to decode the suspected JSON
+            try:
+                available_json: JsonType = json.loads(available_qualities)
+            except json.JSONDecodeError:
+                # No JSON: this is the expected path. Do nothing and continue with the below.
+                pass
+            else:
+                # JSON was decoded - if there's an error, log it and report failure
+                if isinstance(available_json, list):
+                    available_json = available_json[0]
+                if "error" in available_json:
+                    logger.error(f"Stream URL get error: \"{available_json['error']}\"")
+                    self.channel.set_offline()
+                return None
             # pick the last URL from the list, usually with the lowest quality stream
             self._stream_url = cast(URLType, URL(available_qualities.strip().split("\n")[-1]))
         except (aiohttp.InvalidURL, ValueError):
@@ -371,6 +385,8 @@ class Channel:
             return False
         # get the stream url
         stream_url = await self._stream.get_stream_url()
+        if stream_url is None:
+            return False
         # fetch a list of chunks available to download for the stream
         # NOTE: the CDN is configured to forcibly disconnect shortly after serving the list,
         # if we don't do it yourselves. Lets help it by actually doing it ourselves instead.
@@ -393,6 +409,8 @@ class Channel:
             pass
         else:
             # JSON was decoded - if there's an error, log it and report failure
+            if isinstance(available_json, list):
+                available_json = available_json[0]
             if "error" in available_json:
                 logger.error(f"Send watch error: \"{available_json['error']}\"")
             return False
