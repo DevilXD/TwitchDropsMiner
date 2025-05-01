@@ -1146,19 +1146,8 @@ class Twitch:
                 return
             drop.update_claim(message["data"]["drop_instance_id"])
             campaign = drop.campaign
-            mined = await drop.claim()
+            await drop.claim()
             drop.display()
-            if mined:
-                claim_text = (
-                    f"{campaign.game.name}\n"
-                    f"{drop.rewards_text()} ({campaign.claimed_drops}/{campaign.total_drops})"
-                )
-                # two different claim texts, becase a new line after the game name
-                # looks ugly in the output window - replace it with a space
-                self.print(_("status", "claimed_drop").format(drop=claim_text.replace('\n', ' ')))
-                self.gui.tray.notify(claim_text, _("gui", "tray", "notification_title"))
-            else:
-                logger.error(f"Drop claim has potentially failed! Drop ID: {drop_id}")
             # About 4-20s after claiming the drop, next drop can be started
             # by re-sending the watch payload. We can test for it by fetching the current drop
             # via GQL, and then comparing drop IDs.

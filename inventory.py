@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import re
 import math
+import logging
 from enum import Enum
 from itertools import chain
 from typing import TYPE_CHECKING
 from functools import cached_property
 from datetime import datetime, timedelta, timezone
 
+from translate import _
 from channel import Channel
 from exceptions import GQLException
 from constants import GQL_OPERATIONS, URLType
@@ -21,6 +23,7 @@ if TYPE_CHECKING:
     from gui import GUIManager, InventoryOverview
 
 
+logger = logging.getLogger("TwitchDrops")
 DIMS_PATTERN = re.compile(r'-\d+x\d+(?=\.(?:jpg|png|gif)$)', re.I)
 
 
@@ -162,6 +165,19 @@ class BaseDrop:
             # notify the campaign about claiming
             # this will cause it to call our _on_claim, so no need to call it ourselves here
             self.campaign._on_claim()
+            claim_text = (
+                f"{self.campaign.game.name}\n"
+                f"{self.rewards_text()} "
+                f"({self.campaign.claimed_drops}/{self.campaign.total_drops})"
+            )
+            # two different claim texts, becase a new line after the game name
+            # looks ugly in the output window - replace it with a space
+            self._twitch.print(
+                _("status", "claimed_drop").format(drop=claim_text.replace('\n', ' '))
+            )
+            self._twitch.gui.tray.notify(claim_text, _("gui", "tray", "notification_title"))
+        else:
+            logger.error(f"Drop claim has potentially failed! Drop ID: {self.id}")
         return result
 
     async def _claim(self) -> bool:
