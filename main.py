@@ -83,6 +83,10 @@ if __name__ == "__main__":
                 return logging.INFO
             return logging.NOTSET
 
+    if sys.platform == "win32":
+        from ctypes import windll
+        windll.shcore.SetProcessDpiAwareness(1)
+
     # handle input parameters
     # NOTE: parser output is shown via message box
     # we also need a dummy invisible window for the parser
