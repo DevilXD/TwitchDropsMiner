@@ -6,8 +6,6 @@
         "goes_online": "Изменение: {channel} онлайн",
         "goes_offline": "Изменение: {channel} онлайн",
         "claimed_drop": "Drop получено: {drop}",
-        "claimed_points": "Получены очки канала: {points}",
-        "earned_points": "За просмотр начисляются очки канала: {points} | Сумма: {balance}",
         "no_channel": "Нет участвующих каналов онлайн. Ожидание каналов...",
         "no_campaign": "Нет участвующих кампаний онлайн. Ожидание кампаний..."
     },
@@ -92,7 +90,6 @@
         "channels": {
             "name": "Каналы",
             "switch": "Изменить",
-            "load_points": "Загрузить баллы",
             "online": "ОНЛАЙН ✔",
             "pending": "ОЖИДАНИЕ ⏳",
             "offline": "ОФЛАЙН ❌",
@@ -100,8 +97,7 @@
                 "channel": "Канал",
                 "status": "Статус",
                 "game": "Игра",
-                "viewers": "Зрители",
-                "points": "Баллы"
+                "viewers": "Зрители"
             }
         },
         "inventory": {

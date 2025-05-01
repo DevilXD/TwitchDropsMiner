@@ -6,8 +6,6 @@
         "goes_online": "{channel} 该频道已上线, 正在切换...",
         "goes_offline": "{channel} 该频道已离线, 正在切换...",
         "claimed_drop": "已领取掉宝: {drop}",
-        "claimed_points": "已领取积分奖励: {points}",
-        "earned_points": "观看直播获得积分: {points}, 总积分: {balance}",
         "no_channel": "没有可观看的频道，等待一个在线直播频道...",
         "no_campaign": "没有可用于掉宝的活动，等待一个有效的掉宝活动..."
     },
@@ -92,7 +90,6 @@
         "channels": {
             "name": "活动频道",
             "switch": "切换",
-            "load_points": "加载积分",
             "online": "ONLINE  ✔",
             "pending": "OFFLINE ⏳",
             "offline": "OFFLINE ❌",
@@ -100,8 +97,7 @@
                 "channel": "直播频道",
                 "status": "在线状态",
                 "game": "游戏",
-                "viewers": "观众",
-                "points": "积分"
+                "viewers": "观众"
             }
         },
         "inventory": {

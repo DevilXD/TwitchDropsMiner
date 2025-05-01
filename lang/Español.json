@@ -6,8 +6,6 @@
         "goes_online": "El canal {channel} se ha conectado, cambiando...",
         "goes_offline": "El canal {channel} se ha desconectado, cambiando...",
         "claimed_drop": "Drop reclamado: {drop}",
-        "claimed_points": "Recompensa de puntos reclamados: {points}",
-        "earned_points": "Puntos obtenidos por mirar el stream: {points} | Total: {balance}",
         "no_channel": "No se ha encontrado un canal en vivo para mirar. \nEsperando un canal en vivo...",
         "no_campaign": "No se ha encontrado una campaña activa. \nEsperando una nueva campaña..."
     },
@@ -92,7 +90,6 @@
         "channels": {
             "name": "Canales",
             "switch": "Cambiar",
-            "load_points": "Cargar Puntos",
             "online": "ONLINE  ✔",
             "pending": "OFFLINE ⏳",
             "offline": "OFFLINE ❌",
@@ -100,8 +97,7 @@
                 "channel": "Canal",
                 "status": "Estado",
                 "game": "Juego",
-                "viewers": "Espectadores",
-                "points": "Puntos"
+                "viewers": "Espectadores"
             }
         },
         "inventory": {

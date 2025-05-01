@@ -133,7 +133,6 @@ class Channel:
         self.id: int = int(id)
         self._login: str = login
         self._display_name: str | None = display_name
-        self.points: int | None = None
         self._stream: Stream | None = None
         self._pending_stream_up: asyncio.Task[Any] | None = None
         # ACL-based channels are:
@@ -353,26 +352,6 @@ class Channel:
             self._twitch.on_channel_update(self, old_stream, self._stream)
             needs_display = False  # calling on_channel_update always does a display at the end
         if needs_display:
-            self.display()
-
-    async def claim_bonus(self):
-        """
-        This claims bonus points if they're available, and fills out the 'points' attribute.
-        """
-        response: JsonType = await self._twitch.gql_request(
-            GQL_OPERATIONS["ChannelPointsContext"].with_variables({"channelLogin": self._login})
-        )
-        channel_data: JsonType = response["data"]["community"]["channel"]
-        self.points = channel_data["self"]["communityPoints"]["balance"]
-        claim_available: JsonType = (
-            channel_data["self"]["communityPoints"]["availableClaim"]
-        )
-        if claim_available:
-            await self._twitch.claim_points(channel_data["id"], claim_available["id"])
-            logger.info("Claimed bonus points")
-        else:
-            # calling 'claim_points' is going to refresh the display via the websocket payload,
-            # so if we're not calling it, we need to do it ourselves
             self.display()
 
     async def send_watch(self) -> bool:

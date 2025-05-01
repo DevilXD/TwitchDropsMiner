@@ -6,8 +6,6 @@
         "goes_online": "Nowy status kanału {channel}: ONLINE, zmieniam...",
         "goes_offline": "Nowy status kanału {channel}: OFFLINE, zmieniam...",
         "claimed_drop": "Odebrano drop: {drop}",
-        "claimed_points": "Odebrano punkty: {points}",
-        "earned_points": "Zdobyto punkty za oglądanie: {points} | Łącznie: {balance}",
         "no_channel": "Brak możliwych kanałów do oglądania. Oczekiwanie na nową kampanię...",
         "no_campaign": "Brak dostępnych aktywnych kampanii. Oczekiwanie na nową kampanię..."
     },
@@ -92,7 +90,6 @@
         "channels": {
             "name": "Kanały",
             "switch": "Zmień",
-            "load_points": "Załaduj punkty",
             "online": "ONLINE ✔",
             "pending": "W TOKU ⏳",
             "offline": "OFFLINE ❌",
@@ -100,8 +97,7 @@
                 "channel": "Kanał",
                 "status": "Status",
                 "game": "Gra",
-                "viewers": "Widzowie",
-                "points": "Punkty"
+                "viewers": "Widzowie"
             }
         },
         "inventory": {

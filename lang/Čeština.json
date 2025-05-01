@@ -6,8 +6,6 @@
         "goes_online": "Kanál {channel} je online, přepínám...",
         "goes_offline": "Kanál {channel} je offline, přepínám na další...",
         "claimed_drop": "Drop vyzvednut: {drop}",
-        "claimed_points": "Vyzvednuto {points} bodů",
-        "earned_points": "Získáno {points} bodů za sledování. Celkem: {balance}",
         "no_channel": "Žádný kanál není dostupný, čekání na další...",
         "no_campaign": "Žádné dropy k dispozici, čekání na další dostupné dropy..."
     },
@@ -85,14 +83,12 @@
         "channels": {
             "name": "Název",
             "switch": "Přepnout",
-            "load_points": "Načíst body",
             "online": "ONLINE  \u2714",
             "pending": "PRŮBĚH \u23f3",
             "offline": "OFFLINE \u274c",
             "headings": {
                 "channel": "Kanál",
                 "game": "Hra",
-                "points": "Body",
                 "status": "Status",
                 "viewers": "Diváci"
             }

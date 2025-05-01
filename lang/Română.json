@@ -6,8 +6,6 @@
         "goes_online": "{channel} intră ONLINE, se schimbă...",
         "goes_offline": "{channel} intră OFFLINE, se schimbă...",
         "claimed_drop": "Drop-ul a fost recuperat : {drop}",
-        "claimed_points": "Puncte bonus colectate : {points}",
-        "earned_points": "Puncte câștigate pentru vizionare: {points}, totale : {balance}",
         "no_channel": "Nu există canale disponibile pentru vizionare. În așteptarea unui canal ONLINE...",
         "no_campaign": "Nu există campanii active pentru a mina drop-uri. În așteptarea unei campanii active..."
     },
@@ -92,7 +90,6 @@
         "channels": {
             "name": "Canale",
             "switch": "Schimbă",
-            "load_points": "Încarcă puncte",
             "online": "ONLINE  ✔",
             "pending": "OFFLINE ⏳",
             "offline": "OFFLINE ❌",
@@ -100,8 +97,7 @@
                 "channel": "Canal",
                 "status": "Statut",
                 "game": "Joc",
-                "viewers": "Spectatori",
-                "points": "Puncte"
+                "viewers": "Spectatori"
             }
         },
         "inventory": {

@@ -6,8 +6,6 @@
         "goes_online": "{channel} esta ONLINE, Mudando...",
         "goes_offline": "{channel} ficou OFFLINE, Mudando...",
         "claimed_drop": "Coletou o drop: {drop}",
-        "claimed_points": "Coletou o bonus: {points}",
-        "earned_points": "Ganhou este valor de pontos: {points}, total: {balance}",
         "no_channel": "Sem canal disponivel para assisitir. Esperando por um canal ONLINE...",
         "no_campaign": "Sem campanhas ativas no momento para minerar. Esperando por uma campanha ativa..."
     },
@@ -92,7 +90,6 @@
         "channels": {
             "name": "Canais",
             "switch": "Trocar",
-            "load_points": "Carregar pontos",
             "online": "ONLINE  \u2714",
             "pending": "OFFLINE \u23f3",
             "offline": "OFFLINE \u274c",
@@ -100,8 +97,7 @@
                 "channel": "Canal",
                 "status": "Status",
                 "game": "Jogo",
-                "viewers": "Visualizadores",
-                "points": "Pontos"
+                "viewers": "Visualizadores"
             }
         },
         "inventory": {

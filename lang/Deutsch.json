@@ -6,8 +6,6 @@
         "goes_online": "{channel} ist ONLINE gegangen, wechseln...",
         "goes_offline": "{channel} ist OFFLINE gegangen, wechseln...",
         "claimed_drop": "Drop abgeholt: {drop}",
-        "claimed_points": "Kanal-Punkte verdient: {points}",
-        "earned_points": "Verdiente Kanal-Punkte fürs zuschauen: {points} | Summe: {balance}",
         "no_channel": "Keine teilnehmenden Kanäle online. Warten auf Kanäle...",
         "no_campaign": "Keine aktiven Kampagnen verfügbar. Warten auf neue Kampagne..."
     },
@@ -92,7 +90,6 @@
         "channels": {
             "name": "Kanäle",
             "switch": "Wechseln",
-            "load_points": "Lade Punkte",
             "online": "ONLINE ✔",
             "pending": "OFFLINE ⏳",
             "offline": "OFFLINE ❌",
@@ -100,8 +97,7 @@
                 "channel": "Kanal",
                 "status": "Status",
                 "game": "Spiel",
-                "viewers": "Zuschauer",
-                "points": "Punkte"
+                "viewers": "Zuschauer"
             }
         },
         "inventory": {

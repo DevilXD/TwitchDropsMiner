@@ -6,8 +6,6 @@
         "goes_online": "{channel} 頻道已開始實況，正在跳轉…",
         "goes_offline": "{channel} 頻道已結束實況，正在跳轉…",
         "claimed_drop": "已領取掉寶：{drop}",
-        "claimed_points": "已領取積分獎勵：{points}",
-        "earned_points": "已觀看實況獲得積分：{points}，總積分：{balance}",
         "no_channel": "沒有可觀看的頻道，正在等待一個正在實況的頻道…",
         "no_campaign": "沒有可用於掉寶的活動，正在等待一個有效的掉寶活動…"
     },
@@ -92,14 +90,12 @@
         "channels": {
             "name": "活動頻道",
             "switch": "切換",
-            "load_points": "載入積分",
             "online": "上線 \u2714",
             "pending": "離線 \u23f3",
             "offline": "離線 \u274c",
             "headings": {
                 "channel": "頻道",
                 "game": "遊戲",
-                "points": "積分",
                 "status": "狀態",
                 "viewers": "觀眾"
             }

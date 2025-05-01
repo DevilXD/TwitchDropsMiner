@@ -6,8 +6,6 @@
         "goes_online": "{channel} онлайн, зміна...",
         "goes_offline": "{channel} офлайн, зміна...",
         "claimed_drop": "Отримано дроп: {drop}",
-        "claimed_points": "Отримано {points} бонусних балів",
-        "earned_points": "Зароблено {points} балів за перегляд, усього: {balance}",
         "no_channel": "Немає активних каналів для перегляду. Очікування...",
         "no_campaign": "Немає активних каналів для видобутку дропів. Очікування..."
     },
@@ -92,7 +90,6 @@
         "channels": {
             "name": "Канали",
             "switch": "Перемкнути",
-            "load_points": "Завантажити бали",
             "online": "ОНЛАЙН  \u2714",
             "pending": "ОФЛАЙН \u23f3",
             "offline": "ОФЛАЙН \u274c",
@@ -100,8 +97,7 @@
                 "channel": "Канал",
                 "status": "Стан",
                 "game": "Гра",
-                "viewers": "Глядачі",
-                "points": "Бали"
+                "viewers": "Глядачі"
             }
         },
         "inventory": {

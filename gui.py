@@ -820,7 +820,6 @@ class ConsoleOutput:
 class _Buttons(TypedDict):
     frame: ttk.Frame
     switch: ttk.Button
-    load_points: ttk.Button
 
 
 class ChannelList:
@@ -841,13 +840,9 @@ class ChannelList:
                 state="disabled",
                 command=manager._twitch.state_change(State.CHANNEL_SWITCH),
             ),
-            "load_points": ttk.Button(
-                buttons_frame, text=_("gui", "channels", "load_points"), command=self._load_points
-            ),
         }
         buttons_frame.grid(column=0, row=0, columnspan=2)
         self._buttons["switch"].grid(column=0, row=0)
-        self._buttons["load_points"].grid(column=1, row=0)
         scroll = ttk.Scrollbar(frame, orient="vertical")
         self._table = table = ttk.Treeview(
             frame,
@@ -879,9 +874,6 @@ class ChannelList:
         self._add_column("drops", "🎁", width_template="✔")
         self._add_column(
             "viewers", _("gui", "channels", "headings", "viewers"), width_template="1234567"
-        )
-        self._add_column(
-            "points", _("gui", "channels", "headings", "points"), width_template="1234567"
         )
         self._add_column("acl_base", "📋", width_template="✔")
         self._channel_map: dict[str, Channel] = {}
@@ -936,11 +928,6 @@ class ChannelList:
             self._buttons["switch"].config(state="normal")
         else:
             self._buttons["switch"].config(state="disabled")
-
-    def _load_points(self):
-        # disable the button afterwards
-        self._buttons["load_points"].config(state="disabled")
-        asyncio.gather(*(ch.claim_bonus() for ch in self._manager._twitch.channels.values()))
 
     def _measure(self, text: str) -> int:
         # we need this because columns have 9-10 pixels of padding that cuts text off
@@ -1038,18 +1025,12 @@ class ChannelList:
         viewers = ''
         if channel.viewers is not None:
             viewers = str(channel.viewers)
-        # points
-        points = ''
-        if channel.points is not None:
-            points = str(channel.points)
         if iid in self._channel_map:
             self._set(iid, "game", game)
             self._set(iid, "drops", drops)
             self._set(iid, "status", status)
             self._set(iid, "viewers", viewers)
             self._set(iid, "acl_base", acl_based)
-            if points != '':  # we still want to display 0
-                self._set(iid, "points", points)
         elif add:
             self._channel_map[iid] = channel
             self._insert(
@@ -1057,7 +1038,6 @@ class ChannelList:
                 {
                     "game": game,
                     "drops": drops,
-                    "points": points,
                     "status": status,
                     "viewers": viewers,
                     "acl_base": acl_based,
@@ -2320,7 +2300,6 @@ if __name__ == "__main__":
         game: str | None,
         drops: bool,
         viewers: int,
-        points: int,
         acl_based: bool,
     ):
         # status: 0 -> OFFLINE, 1 -> PENDING_ONLINE, 2 -> ONLINE
@@ -2337,7 +2316,6 @@ if __name__ == "__main__":
         return SimpleNamespace(
             name=name,
             iid=(iid := iid + 1),
-            points=points,
             online=bool(status),
             pending_online=pending,
             game=game_obj,
@@ -2374,7 +2352,7 @@ if __name__ == "__main__":
                 expired=False,
                 active=False,
                 upcoming=True,
-                linked=False,
+                eligible=False,
                 finished=False,
                 link_url="https://google.com",
                 image_url="https://static-cdn.jtvnw.net/ttv-boxart/460630-285x380.jpg",
@@ -2449,13 +2427,12 @@ if __name__ == "__main__":
                 game=None,
                 drops=False,
                 viewers=0,
-                points=0,
                 acl_based=True,
             ),
             add=True,
         )
         channel = create_channel(
-            name="Traitus", status=1, game=None, drops=False, viewers=0, points=0, acl_based=True
+            name="Traitus", status=1, game=None, drops=False, viewers=0, acl_based=True
         )
         gui.channels.display(channel, add=True)
         gui.channels.set_watching(channel)
@@ -2466,7 +2443,6 @@ if __name__ == "__main__":
                 game="Best Game",
                 drops=True,
                 viewers=42,
-                points=1234567,
                 acl_based=False,
             ),
             add=True,
@@ -2478,7 +2454,6 @@ if __name__ == "__main__":
                 game="Best Game",
                 drops=True,
                 viewers=69,
-                points=1234567,
                 acl_based=False,
             ),
             add=True,

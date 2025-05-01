@@ -6,8 +6,6 @@
         "goes_online": "{channel} is ONLINE gegaan, wijzig...",
         "goes_offline": "{channel} is OFFLINE gegaan, wijzig...",
         "claimed_drop": "Drop verkregen: {drop}",
-        "claimed_points": "Kanaal punten verdient: {points}",
-        "earned_points": "Verdiende kanaalpunten voor het kijken: {points} | Totaal: {balance}",
         "no_channel": "Geen deelnemende kanalen online. Wachten op steamers...",
         "no_campaign": "Geen actieve campagnes beschikbaar. Wachten op nieuwe campagne..."
     },
@@ -92,7 +90,6 @@
         "channels": {
             "name": "Kanaal",
             "switch": "Wisselen",
-            "load_points": "Laad Punten",
             "online": "ONLINE ✔",
             "pending": "OFFLINE ⏳",
             "offline": "OFFLINE ❌",
@@ -100,8 +97,7 @@
                 "channel": "Kanaal",
                 "status": "Status",
                 "game": "Spel",
-                "viewers": "Kijkers",
-                "points": "Punten"
+                "viewers": "Kijkers"
             }
         },
         "inventory": {

@@ -6,8 +6,6 @@
         "goes_online": "{channel} går ONLINE, skifter...",
         "goes_offline": "{channel} går OFFLINE, skifter...",
         "claimed_drop": "Hentet belønning: {drop}",
-        "claimed_points": "Hentet ekstra points: {points}",
-        "earned_points": "Optjente point for at se: {points}, Total: {balance}",
         "no_channel": "Ingen tilgængelige kanaler at se. Venter på en ONLINE kanal...",
         "no_campaign": "Der er ingen aktive kampagner at hente. Venter på en aktiv kampagne..."
     },
@@ -92,7 +90,6 @@
         "channels": {
             "name": "Kanaler",
             "switch": "Skift",
-            "load_points": "Indlæs Points",
             "online": "ONLINE  \u2714",
             "pending": "OFFLINE \u23f3",
             "offline": "OFFLINE \u274c",
@@ -100,8 +97,7 @@
                 "channel": "Kanal",
                 "status": "Status",
                 "game": "Spil",
-                "viewers": "Seere",
-                "points": "Points"
+                "viewers": "Seere"
             }
         },
         "inventory": {

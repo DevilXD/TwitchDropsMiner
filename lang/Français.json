@@ -6,8 +6,6 @@
         "goes_online": "{channel} passe EN LIGNE, changement...",
         "goes_offline": "{channel} passe HORS LIGNE, changement...",
         "claimed_drop": "Drop récupéré : {drop}",
-        "claimed_points": "Points bonus récupéré : {points}",
-        "earned_points": "Points gagnés pour avoir regardé : {points}, total : {balance}",
         "no_channel": "Aucune chaîne disponible à regarder. En attente d'une chaîne EN LIGNE...",
         "no_campaign": "Aucune campagne active pour laquelle miner des drops. En attente d'une campagne active..."
     },
@@ -92,7 +90,6 @@
         "channels": {
             "name": "Chaînes",
             "switch": "Basculer",
-            "load_points": "Charger des Points",
             "online": "EN LIGNE  ✔",
             "pending": "HORS LIGNE ⏳",
             "offline": "HORS LIGNE ❌",
@@ -100,8 +97,7 @@
                 "channel": "Chaîne",
                 "status": "Statut",
                 "game": "Jeu",
-                "viewers": "Spectateurs",
-                "points": "Points"
+                "viewers": "Spectateurs"
             }
         },
         "inventory": {

@@ -613,7 +613,6 @@ class Twitch:
         # Add default topics
         self.websocket.add_topics([
             WebsocketTopic("User", "Drops", auth_state.user_id, self.process_drops),
-            WebsocketTopic("User", "CommunityPoints", auth_state.user_id, self.process_points),
             WebsocketTopic(
                 "User", "Notifications", auth_state.user_id, self.process_notifications
             ),
@@ -937,26 +936,17 @@ class Twitch:
 
     @task_wrapper(critical=True)
     async def _maintenance_task(self) -> None:
-        claim_period = timedelta(minutes=30)
-        max_period = timedelta(hours=1)
         now = datetime.now(timezone.utc)
-        next_period = now + max_period
+        next_period = now + timedelta(hours=1)
         while True:
             # exit if there's no need to repeat the loop
             now = datetime.now(timezone.utc)
             if now >= next_period:
                 break
-            next_trigger = min(now + claim_period, next_period)
-            trigger_cleanup = False
+            next_trigger = next_period
             while self._mnt_triggers and self._mnt_triggers[0] <= next_trigger:
                 next_trigger = self._mnt_triggers.popleft()
-                trigger_cleanup = True
-            if next_trigger == next_period:
-                trigger_type: str = "Reload"
-            elif trigger_cleanup:
-                trigger_type = "Cleanup"
-            else:
-                trigger_type = "Points"
+            trigger_type: str = "Reload" if next_trigger == next_period else "Cleanup"
             logger.log(
                 CALL,
                 (
@@ -969,16 +959,9 @@ class Twitch:
             now = datetime.now(timezone.utc)
             if now >= next_period:
                 break
-            if trigger_cleanup:
+            if next_trigger != next_period:
                 logger.log(CALL, "Maintenance task requests channels cleanup")
                 self.change_state(State.CHANNELS_CLEANUP)
-            # ensure that we don't have unclaimed points bonus
-            watching_channel = self.watching_channel.get_with_default(None)
-            if watching_channel is not None:
-                try:
-                    await watching_channel.claim_bonus()
-                except Exception:
-                    pass  # we intentionally silently skip anything else
         # this triggers a restart of this task every (up to) 60 minutes
         logger.log(CALL, "Maintenance task requests a reload")
         self.change_state(State.INVENTORY_FETCH)
@@ -1223,65 +1206,6 @@ class Twitch:
                         {"input": {"id": data["id"]}}
                     )
                 )
-
-    @task_wrapper
-    async def process_points(self, user_id: int, message: JsonType):
-        # Example payloads:
-        # {
-        #     "type": "points-earned",
-        #     "data": {
-        #         "timestamp": "YYYY-MM-DDTHH:MM:SS.UUUUUUUUUZ",
-        #         "channel_id": "123456789",
-        #         "point_gain": {
-        #             "user_id": "12345678",
-        #             "channel_id": "123456789",
-        #             "total_points": 10,
-        #             "baseline_points": 10,
-        #             "reason_code": "WATCH",
-        #             "multipliers": []
-        #         },
-        #         "balance": {
-        #             "user_id": "12345678",
-        #             "channel_id": "123456789",
-        #             "balance": 12345
-        #         }
-        #     }
-        # }
-        # {
-        #     "type": "claim-available",
-        #     "data": {
-        #         "timestamp":"YYYY-MM-DDTHH:MM:SS.UUUUUUUUUZ",
-        #         "claim": {
-        #             "id": "4ae6fefd-1234-40ae-ad3d-92254c576a91",
-        #             "user_id": "12345678",
-        #             "channel_id": "123456789",
-        #             "point_gain": {
-        #                 "user_id": "12345678",
-        #                 "channel_id": "123456789",
-        #                 "total_points": 50,
-        #                 "baseline_points": 50,
-        #                 "reason_code": "CLAIM",
-        #                 "multipliers": []
-        #             },
-        #             "created_at": "YYYY-MM-DDTHH:MM:SSZ"
-        #         }
-        #     }
-        # }
-        msg_type = message["type"]
-        if msg_type == "points-earned":
-            data: JsonType = message["data"]
-            channel: Channel | None = self.channels.get(int(data["channel_id"]))
-            points: int = data["point_gain"]["total_points"]
-            balance: int = data["balance"]["balance"]
-            if channel is not None:
-                channel.points = balance
-                channel.display()
-            self.print(_("status", "earned_points").format(points=f"{points:3}", balance=balance))
-        elif msg_type == "claim-available":
-            claim_data = message["data"]["claim"]
-            points = claim_data["point_gain"]["total_points"]
-            await self.claim_points(claim_data["channel_id"], claim_data["id"])
-            self.print(_("status", "claimed_points").format(points=points))
 
     async def get_auth(self) -> _AuthState:
         await self._auth_state.validate()
@@ -1616,13 +1540,6 @@ class Twitch:
                 if stream_channel_data["node"]["broadcaster"] is not None
             ]
         return []
-
-    async def claim_points(self, channel_id: str | int, claim_id: str) -> None:
-        await self.gql_request(
-            GQL_OPERATIONS["ClaimCommunityPoints"].with_variables(
-                {"input": {"channelID": str(channel_id), "claimID": claim_id}}
-            )
-        )
 
     async def bulk_check_online(self, channels: abc.Iterable[Channel]):
         """

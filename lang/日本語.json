@@ -6,8 +6,6 @@
     "goes_online": "{channel} がオンラインになりました。切り替え中...",
     "goes_offline": "{channel} がオフラインになりました。切り替え中...",
     "claimed_drop": "ドロップを取得しました：{drop}",
-    "claimed_points": "ボーナスポイントを受け取りました：{points}",
-    "earned_points": "視聴ポイントを獲得しました：{points}、合計：{balance}",
     "no_channel": "視聴可能なチャンネルがありません。オンラインになるチャンネルを待機中...",
     "no_campaign": "マイニングするドロップがないアクティブなキャンペーンはありません。アクティブなキャンペーンを待機中..."
   },
@@ -92,7 +90,6 @@
     "channels": {
       "name": "チャンネル",
       "switch": "切り替え",
-      "load_points": "ポイントを読み込む",
       "online": "オンライン \u2714",
       "pending": "オフライン中 \u23f3",
       "offline": "オフライン \u274c",
@@ -100,8 +97,7 @@
         "channel": "チャンネル",
         "status": "ステータス",
         "game": "ゲーム",
-        "viewers": "視聴者数",
-        "points": "ポイント"
+        "viewers": "視聴者数"
       }
     },
     "inventory": {

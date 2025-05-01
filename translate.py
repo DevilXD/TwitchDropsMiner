@@ -17,8 +17,6 @@ class StatusMessages(TypedDict):
     goes_online: str
     goes_offline: str
     claimed_drop: str
-    claimed_points: str
-    earned_points: str
     no_channel: str
     no_campaign: str
 
@@ -113,14 +111,12 @@ class GUIChannelHeadings(TypedDict):
     channel: str
     status: str
     game: str
-    points: str
     viewers: str
 
 
 class GUIChannels(TypedDict):
     name: str
     switch: str
-    load_points: str
     online: str
     pending: str
     offline: str
@@ -230,8 +226,6 @@ default_translation: Translation = {
         "goes_online": "{channel} goes ONLINE, switching...",
         "goes_offline": "{channel} goes OFFLINE, switching...",
         "claimed_drop": "Claimed drop: {drop}",
-        "claimed_points": "Claimed bonus points: {points}",
-        "earned_points": "Earned points for watching: {points}, total: {balance}",
         "no_channel": "No available channels to watch. Waiting for an ONLINE channel...",
         "no_campaign": "No active campaigns to mine drops for. Waiting for an active campaign...",
     },
@@ -323,7 +317,6 @@ default_translation: Translation = {
         "channels": {
             "name": "Channels",
             "switch": "Switch",
-            "load_points": "Load Points",
             "online": "ONLINE  ✔",
             "pending": "OFFLINE ⏳",
             "offline": "OFFLINE ❌",
@@ -332,7 +325,6 @@ default_translation: Translation = {
                 "status": "Status",
                 "game": "Game",
                 "viewers": "Viewers",
-                "points": "Points",
             },
         },
         "inventory": {

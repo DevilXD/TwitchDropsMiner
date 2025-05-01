@@ -6,8 +6,6 @@
         "goes_online": "{channel} è ONLINE, cambiando...",
         "goes_offline": "{channel} è OFFLINE, cambiando...",
         "claimed_drop": "Contenuti riscattati: {drop}",
-        "claimed_points": "Punti bonus riscattati: {points}",
-        "earned_points": "Punti bonus guadagnati per aver guardato la stream: {points}, totale: {balance}",
         "no_channel": "Nessun canale disponibile da guardare. In attesa di un canale ONLINE...",
         "no_campaign": "Nessuna campagna attiva per ottenere i premi. In attesa di una campagna attiva..."
     },
@@ -92,7 +90,6 @@
         "channels": {
             "name": "Canali",
             "switch": "Cambia",
-            "load_points": "Carica Punti",
             "online": "ONLINE  \u2714",
             "pending": "OFFLINE \u23f3",
             "offline": "OFFLINE \u274c",
@@ -100,8 +97,7 @@
                 "channel": "Canale",
                 "status": "Stato",
                 "game": "Gioco",
-                "viewers": "Spettatori",
-                "points": "Punti"
+                "viewers": "Spettatori"
             }
         },
         "inventory": {

@@ -6,8 +6,6 @@
         "goes_online": "{channel} ÇEVRİMİÇİ oldu, geçiş yapın...",
         "goes_offline": "{channel} ÇEVRİMDIŞI duruma geçti, geçiş yapın...",
         "claimed_drop": "Alınan drop: {drop}",
-        "claimed_points": "Kazanılan kanal puanları: {points}",
-        "earned_points": "İzleme karşılığında kazanılan kanal puanları: {points} | Toplam: {balance}",
         "no_channel": "Çevrimiçi katılımcı kanal yok. Kanallar bekleniyor...",
         "no_campaign": "Etkin kampanya yok. Yeni kampanya bekleniyor..."
     },
@@ -92,7 +90,6 @@
         "channels": {
             "name": "Kanallar",
             "switch": "Değiştir",
-            "load_points": "Puanları Yükle",
             "online": "ONLINE ✔",
             "pending": "OFFLINE ⏳",
             "offline": "OFFLINE ❌",
@@ -100,8 +97,7 @@
                 "channel": "Kanal",
                 "status": "Durum",
                 "game": "Oyun",
-                "viewers": "İzleyici",
-                "points": "Puan"
+                "viewers": "İzleyici"
             }
         },
         "inventory": {
