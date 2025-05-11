@@ -14,12 +14,17 @@ if __name__ == "__main__":
     import argparse
     import warnings
     import traceback
+    import threading
     import tkinter as tk
     from tkinter import messagebox
-    from typing import IO, NoReturn
+    from typing import IO, NoReturn, Optional
 
-    import truststore
-    truststore.inject_into_ssl()
+    try:
+        import truststore
+        truststore.inject_into_ssl()
+    except ImportError:
+        # truststore is not required, just recommended
+        pass
 
     from translate import _
     from twitch import Twitch
@@ -28,6 +33,13 @@ if __name__ == "__main__":
     from exceptions import CaptchaRequired
     from utils import lock_file, resource_path, set_root_icon
     from constants import LOGGING_LEVELS, SELF_PATH, FILE_FORMATTER, LOG_PATH, LOCK_PATH
+
+    # Import web interface
+    try:
+        from web.app import run_web_server
+        HAS_WEB_INTERFACE = True
+    except ImportError:
+        HAS_WEB_INTERFACE = False
 
     warnings.simplefilter("default", ResourceWarning)
 
@@ -56,11 +68,15 @@ if __name__ == "__main__":
         log: bool
         tray: bool
         dump: bool
+        
+        # Web interface options
+        enable_web: bool = False
+        web_host: str = "127.0.0.1"
+        web_port: int = 8080
 
-        # TODO: replace int with union of literal values once typeshed updates
         @property
-        def logging_level(self) -> int:
-            return LOGGING_LEVELS[min(self._verbose, 4)]
+        def log_level(self) -> int:
+            return min(self._verbose, 4)
 
         @property
         def debug_ws(self) -> int:
@@ -83,6 +99,10 @@ if __name__ == "__main__":
                 return logging.INFO
             return logging.NOTSET
 
+    # Initialize variables
+    exit_status = 0
+    log_stringio = io.StringIO()
+
     # handle input parameters
     # NOTE: parser output is shown via message box
     # we also need a dummy invisible window for the parser
@@ -100,6 +120,30 @@ if __name__ == "__main__":
     parser.add_argument("--tray", action="store_true")
     parser.add_argument("--log", action="store_true")
     parser.add_argument("--dump", action="store_true")
+    
+    # Web interface options
+    if HAS_WEB_INTERFACE:
+        parser.add_argument(
+            "--web",
+            dest="enable_web",
+            action="store_true",
+            help="Enable the web interface"
+        )
+        parser.add_argument(
+            "--web-host",
+            dest="web_host",
+            type=str,
+            default="127.0.0.1",
+            help="Web interface host address (default: 127.0.0.1)"
+        )
+        parser.add_argument(
+            "--web-port",
+            dest="web_port",
+            type=int,
+            default=8080,
+            help="Web interface port (default: 8080)"
+        )
+    
     # undocumented debug args
     parser.add_argument(
         "--debug-ws", dest="_debug_ws", action="store_true", help=argparse.SUPPRESS
@@ -107,7 +151,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--debug-gql", dest="_debug_gql", action="store_true", help=argparse.SUPPRESS
     )
+    
     args = parser.parse_args(namespace=ParsedArgs())
+    
     # load settings
     try:
         settings = Settings(args)
@@ -120,34 +166,50 @@ if __name__ == "__main__":
     # dummy window isn't needed anymore
     root.destroy()
     # get rid of unneeded objects
-    del root, parser
+    del root, parser    # client run
+    async def main() -> None:
+        global exit_status
+        
+        # setup logging
+        log_level = LOGGING_LEVELS[args.log_level]
+        LOG_PATH.parent.mkdir(exist_ok=True)
+        # Use FILE_FORMATTER._fmt and FILE_FORMATTER.datefmt for correct logging.basicConfig usage
+        logging.basicConfig(
+            level=log_level,
+            format=FILE_FORMATTER._fmt,
+            datefmt=FILE_FORMATTER.datefmt,
+            style='{',
+            force=True,
+            filename=LOG_PATH,
+            encoding="utf-8",
+            filemode="w",
+        )
 
-    # client run
-    async def main():
-        # set language
-        try:
-            _.set_language(settings.language)
-        except ValueError:
-            # this language doesn't exist - stick to English
-            pass
-
-        # handle logging stuff
-        if settings.logging_level > logging.DEBUG:
-            # redirect the root logger into a NullHandler, effectively ignoring all logging calls
-            # that aren't ours. This always runs, unless the main logging level is DEBUG or lower.
-            logging.getLogger().addHandler(logging.NullHandler())
-        logger = logging.getLogger("TwitchDrops")
-        logger.setLevel(settings.logging_level)
-        if settings.log:
-            handler = logging.FileHandler(LOG_PATH)
-            handler.setFormatter(FILE_FORMATTER)
-            logger.addHandler(handler)
-        logging.getLogger("TwitchDrops.gql").setLevel(settings.debug_gql)
-        logging.getLogger("TwitchDrops.websocket").setLevel(settings.debug_ws)
-
-        exit_status = 0
-        client = Twitch(settings)
         loop = asyncio.get_running_loop()
+        log = logging.getLogger("main")
+        log.info(f"Starting TwitchDropsMiner {__version__}")
+
+        # suppress urllib3 debug warnings
+        logging.getLogger("urllib3").setLevel(logging.WARNING)
+        # suppress PIL debug info spam
+        logging.getLogger("PIL").setLevel(logging.INFO)
+        # suppress py warning coming from browser.py (from obviated dependency of aiohttp)
+        warnings.filterwarnings("ignore", "unclosed", ResourceWarning)
+        warnings.filterwarnings("ignore", "Unclosed.*<ssl.SSLSocket.*>", ResourceWarning)
+
+        client = Twitch(settings)
+        
+        # Start web server if enabled and available
+        if HAS_WEB_INTERFACE and args.enable_web:
+            log.info(f"Starting web interface on {args.web_host}:{args.web_port}")
+            client.print(f"Starting web interface on http://{args.web_host}:{args.web_port}")
+            web_thread = threading.Thread(
+                target=run_web_server,
+                args=(args.web_host, args.web_port, False, client),
+                daemon=True
+            )
+            web_thread.start()
+
         if sys.platform == "linux":
             loop.add_signal_handler(signal.SIGINT, lambda *_: client.gui.close())
             loop.add_signal_handler(signal.SIGTERM, lambda *_: client.gui.close())
@@ -193,4 +255,7 @@ if __name__ == "__main__":
 
         asyncio.run(main())
     finally:
-        file.close()
+        try:
+            file.close()
+        except:
+            pass

@@ -1,0 +1,618 @@
+from __future__ import annotations
+
+import os
+import sys
+import json
+import logging
+from pathlib import Path
+from typing import Dict, Any, Optional
+
+from flask import Flask, render_template, jsonify, request, redirect, url_for
+from flask_cors import CORS
+
+# Add parent directory to path for imports
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(parent_dir)
+
+# Import from main project
+from constants import State
+from utils import Game
+
+
+# Global reference to the TDM instance - will be set by the main app
+tdm_instance = None
+
+# Configure Flask app
+app = Flask(__name__, 
+    static_folder='static',
+    template_folder='templates')
+CORS(app)
+app.config['JSON_SORT_KEYS'] = False
+
+# Set up logging
+logger = logging.getLogger('web_interface')
+logger.setLevel(logging.INFO)
+
+
+@app.route('/')
+def index():
+    """Render the main dashboard page"""
+    return render_template('index.html')
+
+
+@app.route('/api/status')
+def status():
+    """Return the current mining status"""
+    if tdm_instance is None:
+        return jsonify({'error': 'Miner not initialized'}), 503
+    
+    # Get miner instance data
+    try:
+        twitch = tdm_instance
+        
+        # Get current state
+        state_name = str(twitch._state.name) if hasattr(twitch, '_state') else 'UNKNOWN'
+        
+        # Get current username from auth_state if available
+        username = None
+        if hasattr(twitch, '_auth_state') and hasattr(twitch._auth_state, 'user_id'):
+            username = str(twitch._auth_state.user_id)
+        
+        # Get current watching channel
+        current_channel = None
+        current_game = None
+        current_channel_status = 'NONE'
+        
+        watching_channel = twitch.watching_channel.get_with_default(None)
+        if watching_channel:
+            current_channel = watching_channel.name
+            current_channel_status = 'ONLINE' if watching_channel.online else 'OFFLINE'
+            if watching_channel.game:
+                current_game = watching_channel.game.name
+        
+        # Get active drop information
+        current_drop = None
+        drop_progress = None
+        time_remaining = None
+        
+        active_drop = twitch.get_active_drop(watching_channel)
+        if active_drop:
+            current_drop = active_drop.name
+            drop_progress = active_drop.progress
+            time_remaining = f"{active_drop.remaining_minutes} minutes"
+        
+        # Count pending drops
+        inventory_pending = 0
+        for campaign in twitch.inventory:
+            for drop in campaign.drops:
+                if drop.can_claim:
+                    inventory_pending += 1
+                    
+        current_status = {
+            'state': state_name,
+            'username': username,
+            'current_channel': current_channel,
+            'current_game': current_game,
+            'current_channel_status': current_channel_status,
+            'current_drop': current_drop,
+            'drop_progress': drop_progress,
+            'time_remaining': time_remaining,
+            'inventory_pending': inventory_pending,
+        }
+        return jsonify(current_status)
+    except Exception as e:
+        logger.error(f"Error getting status: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/campaigns')
+def campaigns():
+    """Return the available campaigns"""
+    if tdm_instance is None:
+        return jsonify({'error': 'Miner not initialized'}), 503
+    
+    try:
+        twitch = tdm_instance
+        campaigns_data = []
+        
+        # The inventory is a list of DropsCampaign objects in twitch.inventory
+        if hasattr(twitch, 'inventory') and isinstance(twitch.inventory, list):
+            for campaign in twitch.inventory:
+                campaign_data = {
+                    'id': campaign.id if hasattr(campaign, 'id') else 'unknown',
+                    'name': campaign.name if hasattr(campaign, 'name') else 'Unknown Campaign',
+                }
+                
+                # Add game info if available
+                if hasattr(campaign, 'game') and campaign.game:
+                    campaign_data['game'] = campaign.game.name if hasattr(campaign.game, 'name') else 'Unknown Game'
+                else:
+                    campaign_data['game'] = None
+                    
+                # Add status based on campaign properties
+                if hasattr(campaign, 'active'):
+                    campaign_data['status'] = 'ACTIVE' if campaign.active else 'INACTIVE'
+                elif hasattr(campaign, 'upcoming') and campaign.upcoming:
+                    campaign_data['status'] = 'UPCOMING'
+                elif hasattr(campaign, 'expired') and campaign.expired:
+                    campaign_data['status'] = 'EXPIRED'
+                else:
+                    campaign_data['status'] = 'UNKNOWN'
+                    
+                # Add time info
+                campaign_data['start_time'] = campaign.starts_at.isoformat() if hasattr(campaign, 'starts_at') and campaign.starts_at else None
+                campaign_data['end_time'] = campaign.ends_at.isoformat() if hasattr(campaign, 'ends_at') and campaign.ends_at else None
+                
+                # Add drops count and progress info
+                campaign_data['drops_count'] = len(campaign.drops) if hasattr(campaign, 'drops') else 0
+                campaign_data['claimed_drops'] = campaign.claimed_drops if hasattr(campaign, 'claimed_drops') else 0
+                campaign_data['total_drops'] = campaign.total_drops if hasattr(campaign, 'total_drops') else 0
+                campaign_data['progress'] = campaign.progress if hasattr(campaign, 'progress') else 0
+                
+                campaigns_data.append(campaign_data)
+        # Fallback for older structure if inventory is not a list
+        elif hasattr(twitch, 'inventory') and hasattr(twitch.inventory, 'campaigns'):
+            if isinstance(twitch.inventory.campaigns, dict):
+                for campaign in twitch.inventory.campaigns.values():
+                    campaign_data = {
+                        'id': campaign.id if hasattr(campaign, 'id') else 'unknown',
+                        'name': campaign.name if hasattr(campaign, 'name') else 'Unknown Campaign',
+                        'game': None,
+                        'status': 'UNKNOWN',
+                        'start_time': None,
+                        'end_time': None,
+                        'drops_count': 0
+                    }
+                    campaigns_data.append(campaign_data)
+            elif isinstance(twitch.inventory.campaigns, list):
+                for campaign in twitch.inventory.campaigns:
+                    campaign_data = {
+                        'id': campaign.id if hasattr(campaign, 'id') else 'unknown',
+                        'name': campaign.name if hasattr(campaign, 'name') else 'Unknown Campaign',
+                        'game': None,
+                        'status': 'UNKNOWN',
+                        'start_time': None,
+                        'end_time': None,
+                        'drops_count': 0
+                    }
+                    campaigns_data.append(campaign_data)
+        
+        return jsonify(campaigns_data)
+    except Exception as e:
+        logger.error(f"Error getting campaigns: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/channels')
+def channels():
+    """Return the available channels"""
+    if tdm_instance is None:
+        return jsonify({'error': 'Miner not initialized'}), 503
+    
+    try:
+        twitch = tdm_instance
+        channels_data = []
+        
+        if hasattr(twitch, 'channels'):
+            for channel in twitch.channels.values():
+                channel_data = {
+                    'id': channel.id if hasattr(channel, 'id') else 'unknown',
+                    'name': channel.name if hasattr(channel, 'name') else 'Unknown Channel',
+                    'game': channel.game.name if hasattr(channel, 'game') and channel.game else None,
+                    'status': 'ONLINE' if hasattr(channel, 'online') and channel.online else 'OFFLINE',
+                    'viewers': channel.viewers if hasattr(channel, 'viewers') and hasattr(channel, 'online') and channel.online else 0,
+                    'has_drops': channel.has_drops if hasattr(channel, 'has_drops') else False,
+                }
+                
+                # Safely add tags if they exist
+                if hasattr(channel, 'tags') and channel.tags:
+                    channel_data['tags'] = list(channel.tags)
+                else:
+                    channel_data['tags'] = []
+                
+                # Add current channel indicator
+                if hasattr(twitch, 'current_channel') and twitch.current_channel and hasattr(channel, 'id') and hasattr(twitch.current_channel, 'id'):
+                    channel_data['current'] = (channel.id == twitch.current_channel.id)
+                else:
+                    channel_data['current'] = False
+                
+                channels_data.append(channel_data)
+        
+        return jsonify(channels_data)
+    except Exception as e:
+        logger.error(f"Error getting channels: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/inventory')
+def inventory():
+    """Return the inventory (claimed and pending drops)"""
+    if tdm_instance is None:
+        return jsonify({'error': 'Miner not initialized'}), 503
+    
+    try:
+        twitch = tdm_instance
+        inventory_data = {
+            'claimed': [],
+            'pending': []
+        }
+        
+        # Process inventory if it's a list of campaigns (new structure)
+        if hasattr(twitch, 'inventory') and isinstance(twitch.inventory, list):
+            # Collect all claimed and pending drops from all campaigns
+            for campaign in twitch.inventory:
+                if not hasattr(campaign, 'drops'):
+                    continue
+                    
+                for drop in campaign.drops:
+                    drop_data = {
+                        'id': drop.id if hasattr(drop, 'id') else 'unknown',
+                        'name': drop.name if hasattr(drop, 'name') else 'Unknown Drop',
+                        'image_url': drop.image_url if hasattr(drop, 'image_url') else None,
+                    }
+                    
+                    # Add game info from the campaign
+                    if hasattr(campaign, 'game') and campaign.game:
+                        drop_data['game'] = campaign.game.name if hasattr(campaign.game, 'name') else 'Unknown Game'
+                    else:
+                        drop_data['game'] = None
+                    
+                    # Check if drop is claimed or pending
+                    if hasattr(drop, 'claimed') and drop.claimed:
+                        drop_data['claim_time'] = drop.claim_time.isoformat() if hasattr(drop, 'claim_time') and drop.claim_time else None
+                        inventory_data['claimed'].append(drop_data)
+                    else:
+                        drop_data['progress'] = drop.progress if hasattr(drop, 'progress') else 0
+                        drop_data['required_minutes'] = drop.required_minutes if hasattr(drop, 'required_minutes') else 0
+                        drop_data['current_minutes'] = drop.current_minutes if hasattr(drop, 'current_minutes') else 0
+                        inventory_data['pending'].append(drop_data)
+        
+        # Fallback to old structure
+        else:
+            # Add claimed drops
+            if hasattr(twitch, 'inventory') and hasattr(twitch.inventory, 'claimed'):
+                for drop in twitch.inventory.claimed:
+                    drop_data = {
+                        'id': drop.id if hasattr(drop, 'id') else 'unknown',
+                        'name': drop.name if hasattr(drop, 'name') else 'Unknown Drop',
+                        'image_url': drop.image_url if hasattr(drop, 'image_url') else None,
+                        'claim_time': drop.claim_time.isoformat() if hasattr(drop, 'claim_time') and drop.claim_time else None,
+                    }
+                    
+                    # Add game info if available
+                    if hasattr(drop, 'campaign') and drop.campaign and hasattr(drop.campaign, 'game') and drop.campaign.game:
+                        drop_data['game'] = drop.campaign.game.name if hasattr(drop.campaign.game, 'name') else 'Unknown Game'
+                    else:
+                        drop_data['game'] = None
+                    
+                    inventory_data['claimed'].append(drop_data)
+                    
+            # Add pending drops
+            if hasattr(twitch, 'inventory') and hasattr(twitch.inventory, 'pending'):
+                for drop in twitch.inventory.pending:
+                    drop_data = {
+                        'id': drop.id if hasattr(drop, 'id') else 'unknown',
+                        'name': drop.name if hasattr(drop, 'name') else 'Unknown Drop',
+                        'image_url': drop.image_url if hasattr(drop, 'image_url') else None,
+                        'progress': drop.current_minutes if hasattr(drop, 'current_minutes') else 0,
+                        'required_minutes': drop.required_minutes if hasattr(drop, 'required_minutes') else 0,
+                    }
+                    
+                    # Add game info if available
+                    if hasattr(drop, 'campaign') and drop.campaign and hasattr(drop.campaign, 'game') and drop.campaign.game:
+                        drop_data['game'] = drop.campaign.game.name if hasattr(drop.campaign.game, 'name') else 'Unknown Game'
+                    else:
+                        drop_data['game'] = None
+                    
+                    inventory_data['pending'].append(drop_data)
+                    
+        return jsonify(inventory_data)
+    except Exception as e:
+        logger.error(f"Error getting inventory: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    """Handle user login through the web interface"""
+    if tdm_instance is None:
+        return jsonify({'error': 'Miner not initialized'}), 503
+    
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Missing request data'}), 400
+        
+        twitch = tdm_instance
+        
+        # Check if already logged in
+        if hasattr(twitch, '_auth_state') and hasattr(twitch._auth_state, 'user_id'):
+            return jsonify({
+                'success': True,
+                'message': 'Already logged in',
+                'username': twitch.username if hasattr(twitch, 'username') else None
+            })
+            
+        # Trigger login in the app
+        if not hasattr(twitch, '_auth_state'):
+            return jsonify({'error': 'Auth state not available'}), 500
+            
+        # Since the actual login process is interactive and requires GUI,
+        # we'll just trigger a state change to force the app to attempt login
+        twitch._auth_state.invalidate()
+        twitch.change_state(State.INVENTORY_FETCH)
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Login initiated in the desktop application'
+        })
+    except Exception as e:
+        logger.error(f"Error during login: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/logout', methods=['POST'])
+def logout():
+    """Handle user logout through the web interface"""
+    if tdm_instance is None:
+        return jsonify({'error': 'Miner not initialized'}), 503
+    
+    try:
+        twitch = tdm_instance
+        
+        # Check if logged in
+        if not hasattr(twitch, '_auth_state') or not hasattr(twitch._auth_state, 'user_id'):
+            return jsonify({
+                'success': False,
+                'message': 'Not logged in'
+            })
+            
+        # Invalidate auth state to force logout
+        twitch._auth_state.invalidate()
+        twitch.change_state(State.INITIALIZING)
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Logout successful'
+        })
+    except Exception as e:
+        logger.error(f"Error during logout: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/claim/<drop_id>', methods=['POST'])
+def claim_drop(drop_id):
+    """Claim a drop with the given ID"""
+    if tdm_instance is None:
+        return jsonify({'error': 'Miner not initialized'}), 503
+    
+    try:
+        twitch = tdm_instance
+        
+        # Check if logged in
+        if not hasattr(twitch, '_auth_state') or not hasattr(twitch._auth_state, 'user_id'):
+            return jsonify({
+                'success': False,
+                'message': 'Not logged in'
+            }), 401
+            
+        # Find the drop with the given ID
+        found_drop = None
+        
+        # Search in new inventory structure (list of campaigns)
+        if hasattr(twitch, 'inventory') and isinstance(twitch.inventory, list):
+            for campaign in twitch.inventory:
+                if hasattr(campaign, 'drops'):
+                    for drop in campaign.drops:
+                        if hasattr(drop, 'id') and drop.id == drop_id and hasattr(drop, 'can_claim') and drop.can_claim:
+                            found_drop = drop
+                            break
+                    if found_drop:
+                        break
+        # Fallback to old inventory structure
+        elif hasattr(twitch, 'inventory') and hasattr(twitch.inventory, 'pending'):
+            for drop in twitch.inventory.pending:
+                if drop.id == drop_id:
+                    found_drop = drop
+                    break
+        
+        if not found_drop:
+            return jsonify({
+                'success': False,
+                'message': f'No claimable drop found with ID: {drop_id}'
+            }), 404
+            
+        # Check if drop is ready to be claimed in old structure
+        if hasattr(found_drop, 'current_minutes') and hasattr(found_drop, 'required_minutes'):
+            if found_drop.current_minutes < found_drop.required_minutes:
+                return jsonify({
+                    'success': False,
+                    'message': f'Drop is not ready to be claimed: {found_drop.current_minutes}/{found_drop.required_minutes} minutes'
+                }), 400
+        # Or check in new structure with can_claim property
+        elif hasattr(found_drop, 'can_claim') and not found_drop.can_claim:
+            return jsonify({
+                'success': False,
+                'message': 'Drop is not ready to be claimed'
+            }), 400
+        
+        # Trigger claim drop in the app
+        # This will force a state change to claim the drop
+        twitch.current_drop = found_drop
+        twitch.change_state(State.DROP_CLAIM)
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Claiming drop: {found_drop.name}'
+        })
+    except Exception as e:
+        logger.error(f"Error claiming drop: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/set_channel/<channel_name>', methods=['POST'])
+def set_channel(channel_name):
+    """Set the active channel to the specified channel name"""
+    if tdm_instance is None:
+        return jsonify({'error': 'Miner not initialized'}), 503
+    
+    try:
+        twitch = tdm_instance
+        
+        # Check if logged in
+        if not hasattr(twitch, '_auth_state') or not hasattr(twitch._auth_state, 'user_id'):
+            return jsonify({
+                'success': False,
+                'message': 'Not logged in'
+            }), 401
+            
+        # Find the channel with the given name
+        found_channel = None
+        if hasattr(twitch, 'channels'):
+            for channel in twitch.channels.values():
+                if hasattr(channel, 'name') and channel.name.lower() == channel_name.lower():
+                    found_channel = channel
+                    break
+        
+        if not found_channel:
+            return jsonify({
+                'success': False,
+                'message': f'No channel found with name: {channel_name}'
+            }), 404
+            
+        # Set the channel and change state to channel watch
+        twitch.current_channel = found_channel
+        twitch.change_state(State.CHANNEL_WATCH)
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Now watching channel: {found_channel.name}'
+        })
+    except Exception as e:
+        logger.error(f"Error setting channel: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/settings')
+def settings():
+    """Return the current settings"""
+    if tdm_instance is None:
+        return jsonify({'error': 'Miner not initialized'}), 503
+    
+    try:
+        twitch = tdm_instance
+        settings_data = {
+            'priority_mode': twitch.settings.channel_priority.name if hasattr(twitch, 'settings') and hasattr(twitch.settings, 'channel_priority') else None,
+            'priority_list': twitch.settings.priority_list if hasattr(twitch, 'settings') and hasattr(twitch.settings, 'priority_list') else [],
+            'exclusion_list': twitch.settings.exclusion_list if hasattr(twitch, 'settings') and hasattr(twitch.settings, 'exclusion_list') else []
+        }
+        
+        return jsonify(settings_data)
+    except Exception as e:
+        logger.error(f"Error getting settings: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/diagnostic')
+def diagnostic():
+    """Return diagnostic information about the miner"""
+    if tdm_instance is None:
+        return jsonify({'error': 'Miner not initialized'}), 503
+    
+    try:
+        twitch = tdm_instance
+        
+        # System information
+        system_info = {
+            'version': twitch.version if hasattr(twitch, 'version') else 'Unknown',
+            'platform': sys.platform,
+            'python_version': sys.version
+        }
+        
+        # Miner state
+        miner_state = {
+            'session_active': hasattr(twitch, '_session') and twitch._session is not None,
+            'websocket_connected': hasattr(twitch, 'websocket') and twitch.websocket and hasattr(twitch.websocket, 'connected') and twitch.websocket.connected,
+            'auth_valid': hasattr(twitch, '_auth_state') and hasattr(twitch._auth_state, 'user_id') and twitch._auth_state.user_id is not None
+        }
+          # Stats
+        stats = {
+            'channels_count': len(twitch.channels) if hasattr(twitch, 'channels') else 0,
+        }
+        
+        # Count campaigns and drops based on inventory structure
+        if hasattr(twitch, 'inventory'):
+            if isinstance(twitch.inventory, list):
+                # New inventory structure (list of campaigns)
+                stats['campaigns_count'] = len(twitch.inventory)
+                
+                # Count total drops across all campaigns
+                drops_count = 0
+                for campaign in twitch.inventory:
+                    if hasattr(campaign, 'drops'):
+                        drops_count += len(campaign.drops)
+                stats['drops_count'] = drops_count
+            else:
+                # Old inventory structure
+                stats['campaigns_count'] = len(twitch.inventory.campaigns) if hasattr(twitch.inventory, 'campaigns') else 0
+                claimed_count = len(twitch.inventory.claimed) if hasattr(twitch.inventory, 'claimed') else 0
+                pending_count = len(twitch.inventory.pending) if hasattr(twitch.inventory, 'pending') else 0
+                stats['drops_count'] = claimed_count + pending_count
+        
+        return jsonify({
+            'system_info': system_info,
+            'miner_state': miner_state,
+            'stats': stats
+        })
+    except Exception as e:
+        logger.error(f"Error getting diagnostic information: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/refresh_inventory', methods=['POST'])
+def refresh_inventory():
+    """Force a refresh of the inventory"""
+    if tdm_instance is None:
+        return jsonify({'error': 'Miner not initialized'}), 503
+    
+    try:
+        twitch = tdm_instance
+        
+        # Change state to fetch inventory
+        twitch.change_state(State.INVENTORY_FETCH)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Inventory refresh initiated'
+        })
+    except Exception as e:
+        logger.error(f"Error refreshing inventory: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/reload', methods=['POST'])
+def reload():
+    """Reload the miner"""
+    if tdm_instance is None:
+        return jsonify({'error': 'Miner not initialized'}), 503
+    
+    try:
+        twitch = tdm_instance
+        
+        # Reload the miner
+        twitch.reload()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Miner reloaded'
+        })
+    except Exception as e:
+        logger.error(f"Error reloading miner: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+def run_web_server(host, port, debug, tdm):
+    """Start the web server"""
+    global tdm_instance
+    tdm_instance = tdm
+    app.run(host=host, port=port, debug=debug)

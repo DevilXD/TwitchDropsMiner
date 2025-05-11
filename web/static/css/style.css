@@ -1,0 +1,239 @@
+/* Custom styles for Twitch Drops Miner Web Interface */
+
+/* Custom colors for status indicators */
+.status-online {
+    color: #2ecc71;
+}
+
+.status-offline {
+    color: #e74c3c;
+}
+
+.status-pending {
+    color: #f39c12;
+}
+
+.status-claimed {
+    color: #3498db;
+}
+
+/* Progress bar customization */
+.progress-wrapper {
+    margin-bottom: 10px;
+    position: relative;
+}
+
+.progress-label {
+    position: absolute;
+    right: 5px;
+    top: 0;
+    color: white;
+    font-weight: bold;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
+}
+
+/* Card hover effects */
+.card-hover {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card-hover:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+/* Custom toggle button styling */
+.toggle-button {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.toggle-button input { 
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: #6441a5;
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+/* Twitch-inspired color scheme */
+.bg-twitch {
+    background-color: #6441a5 !important;
+}
+
+.text-twitch {
+    color: #6441a5 !important;
+}
+
+.btn-twitch {
+    background-color: #6441a5;
+    border-color: #6441a5;
+    color: white;
+}
+
+.btn-twitch:hover {
+    background-color: #7d5bbe;
+    border-color: #7d5bbe;
+    color: white;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+    
+    .card {
+        margin-bottom: 15px;
+    }
+}
+
+/* Dashboard widgets */
+.widget {
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.widget-header {
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    font-weight: bold;
+}
+
+.widget-body {
+    padding: 15px;
+}
+
+/* Animations */
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+.pulse {
+    animation: pulse 1.5s infinite;
+}
+
+/* Notification styling */
+.notification {
+    padding: 10px 15px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    border-left: 4px solid;
+}
+
+.notification-info {
+    background-color: rgba(52, 152, 219, 0.1);
+    border-left-color: #3498db;
+}
+
+.notification-success {
+    background-color: rgba(46, 204, 113, 0.1);
+    border-left-color: #2ecc71;
+}
+
+.notification-warning {
+    background-color: rgba(243, 156, 18, 0.1);
+    border-left-color: #f39c12;
+}
+
+.notification-error {
+    background-color: rgba(231, 76, 60, 0.1);
+    border-left-color: #e74c3c;
+}
+
+/* Notifications */
+.notification {
+    min-width: 300px;
+    max-width: 450px;
+    animation: slide-in 0.3s ease-out;
+}
+
+@keyframes slide-in {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.notification.translate-x-full {
+    transform: translateX(100%);
+    transition: transform 0.3s ease-out;
+}
+
+/* Login button styles */
+.login-button {
+    background-color: #9146FF;
+    transition: background-color 0.3s ease;
+}
+
+.login-button:hover {
+    background-color: #7d32e4;
+}
+
+/* Current channel highlight */
+.current-channel {
+    border-left: 4px solid #9146FF;
+}
+
+/* Claimable drop highlight */
+.inventory-card.border-2 {
+    animation: pulse-border 2s infinite;
+}
+
+@keyframes pulse-border {
+    0% {
+        box-shadow: 0 0 0 0 rgba(72, 187, 120, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 6px rgba(72, 187, 120, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(72, 187, 120, 0);
+    }
+}

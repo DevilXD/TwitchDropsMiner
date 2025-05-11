@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Twitch Drops Miner - Web Interface</title>
+    
+    <!-- Fonts and icons -->
+    <link href="https://fonts.googleapis.com/css?family=Nunito:400,700,800" rel="stylesheet">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css" integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
+    
+    <!-- Tailwind CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/tailwindcss@2.2.19/dist/tailwind.min.css"/>
+      <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <style>
+        /* Loading indicator styles */
+        .loading-indicator {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 0.25rem;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 10;
+        }
+        
+        .loading-spinner {
+            border: 3px solid #e2e8f0;
+            border-radius: 50%;
+            border-top: 3px solid #805ad5;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* When data is loading, slightly dim the UI */
+        body.loading-data .card-container {
+            opacity: 0.7;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 font-sans leading-normal tracking-normal">
+    <nav id="header" class="bg-purple-900 fixed w-full z-10 top-0 shadow">
+        <div class="w-full container mx-auto flex flex-wrap items-center mt-0 pt-3 pb-3">
+            <div class="w-1/2 pl-2 md:pl-0">
+                <a class="text-white text-base xl:text-xl no-underline hover:no-underline font-bold" href="#">
+                    <i class="fas fa-gem text-purple-300 pr-3"></i> Twitch Drops Miner
+                </a>            </div>            <div class="w-1/2 pr-0">
+                <div class="flex relative inline-block float-right">
+                    <div class="relative text-sm text-white px-2 pt-1 mr-3" id="connection-status" title="Connection status">
+                        <i class="fas fa-plug mr-1"></i><span>Connecting...</span>
+                    </div>
+                    <div class="relative text-sm text-white px-2 pt-1 mr-3" id="last-refresh-time">
+                        <i class="fas fa-sync-alt mr-1"></i><span>Last updated: --:--:--</span>
+                    </div>
+                    <button id="manual-refresh" class="bg-purple-700 hover:bg-purple-600 text-white rounded px-2 py-1 mr-3" title="Manually refresh all data">
+                        <i class="fas fa-sync"></i> Refresh Now
+                    </button>
+                    <div class="relative text-sm text-white px-2 pt-1" id="user-status">
+                        <i class="fas fa-user mr-1"></i><span>Not connected</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>    <!-- Container -->
+    <div class="container w-full mx-auto pt-20">
+        <div class="w-full px-4 md:px-0 md:mt-8 mb-16 text-gray-800 leading-normal">
+            <!-- Info banner -->
+            <div class="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4 rounded shadow">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-info-circle text-blue-500 text-xl mr-2"></i>
+                    </div>
+                    <div>
+                        <p><strong>Important:</strong> This web interface connects to the Twitch Drops Miner desktop app. 
+                        The desktop app must be running for this interface to work.</p>
+                        <p class="mt-1">Login operations will open a browser window on the desktop running the app.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Refresh Button -->
+            <div class="flex justify-end mb-4">
+                <button id="refresh-button" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded flex items-center">
+                    <i class="fas fa-sync-alt mr-2"></i> Refresh Data
+                </button>
+            </div>
+              <!-- Mining Status -->
+            <div class="flex flex-wrap card-container position-relative">
+                <div class="w-full md:w-1/2 xl:w-1/3 p-3">
+                    <div class="bg-white border rounded shadow p-2">
+                        <div class="flex flex-row items-center">
+                            <div class="flex-shrink pr-4">
+                                <div class="rounded p-3 bg-purple-600" id="status-color"><i class="fas fa-gem fa-2x fa-fw fa-inverse"></i></div>
+                            </div>
+                            <div class="flex-1 text-right md:text-center">
+                                <h5 class="font-bold uppercase text-gray-500">Status</h5>
+                                <h3 class="font-bold text-lg" id="mining-status">Loading...</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="w-full md:w-1/2 xl:w-1/3 p-3">
+                    <div class="bg-white border rounded shadow p-2">
+                        <div class="flex flex-row items-center">
+                            <div class="flex-shrink pr-4">
+                                <div class="rounded p-3 bg-blue-600"><i class="fas fa-tv fa-2x fa-fw fa-inverse"></i></div>
+                            </div>
+                            <div class="flex-1 text-right md:text-center">
+                                <h5 class="font-bold uppercase text-gray-500">Current Channel</h5>
+                                <h3 class="font-bold text-lg" id="current-channel">Loading...</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="w-full md:w-1/2 xl:w-1/3 p-3">
+                    <div class="bg-white border rounded shadow p-2">
+                        <div class="flex flex-row items-center">
+                            <div class="flex-shrink pr-4">
+                                <div class="rounded p-3 bg-pink-600"><i class="fas fa-gamepad fa-2x fa-fw fa-inverse"></i></div>
+                            </div>
+                            <div class="flex-1 text-right md:text-center">
+                                <h5 class="font-bold uppercase text-gray-500">Current Game</h5>
+                                <h3 class="font-bold text-lg" id="current-game">Loading...</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Drop Progress -->
+            <div class="flex flex-wrap">
+                <div class="w-full md:w-1/2 xl:w-full p-3">
+                    <div class="bg-white border rounded shadow p-2">
+                        <div class="flex flex-row items-center">
+                            <div class="flex-shrink pr-4">
+                                <div class="rounded p-3 bg-green-600"><i class="fas fa-gift fa-2x fa-fw fa-inverse"></i></div>
+                            </div>
+                            <div class="flex-1">
+                                <h5 class="font-bold uppercase text-gray-500">Current Drop</h5>
+                                <h3 class="font-bold text-lg" id="current-drop">Loading...</h3>
+                                <div class="pt-1">
+                                    <div class="shadow w-full bg-gray-200 rounded">
+                                        <div class="bg-purple-600 text-xs leading-none py-1 text-center text-white rounded" id="drop-progress-bar" style="width: 0%">0%</div>
+                                    </div>
+                                    <p class="mt-2 text-sm text-gray-500" id="time-remaining"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mining Status -->
+            <div class="bg-white border rounded shadow p-4 mb-4">
+                <div class="flex flex-row items-center">
+                    <div class="flex-shrink-0 pr-4">
+                        <div class="p-3 bg-purple-600 rounded">
+                            <i class="fas fa-chart-line fa-2x fa-inverse"></i>
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <h5 class="font-bold uppercase text-gray-500">Mining Status</h5>
+                        <h3 class="font-bold text-2xl text-gray-800" id="mining-status">Initializing...</h3>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                    <div id="state-card" class="bg-gray-100 p-3 rounded">
+                        <div class="font-bold text-gray-600">State:</div>
+                        <div class="text-gray-800" id="state-value">Unknown</div>
+                    </div>
+                    <div id="username-card" class="bg-gray-100 p-3 rounded">
+                        <div class="font-bold text-gray-600">Username:</div>
+                        <div class="text-gray-800" id="username-value">Not logged in</div>
+                    </div>
+                    <div id="channel-card" class="bg-gray-100 p-3 rounded">
+                        <div class="font-bold text-gray-600">Current Channel:</div>
+                        <div class="text-gray-800" id="channel-value">None</div>
+                    </div>
+                    <div id="game-card" class="bg-gray-100 p-3 rounded">
+                        <div class="font-bold text-gray-600">Current Game:</div>
+                        <div class="text-gray-800" id="game-value">None</div>
+                    </div>
+                    <div id="drop-card" class="bg-gray-100 p-3 rounded">
+                        <div class="font-bold text-gray-600">Current Drop:</div>
+                        <div class="text-gray-800" id="drop-value">None</div>
+                    </div>
+                    <div id="progress-card" class="bg-gray-100 p-3 rounded">
+                        <div class="font-bold text-gray-600">Progress:</div>
+                        <div class="w-full bg-gray-200 rounded-full h-4 mt-1">
+                            <div id="progress-bar" class="bg-green-600 h-4 rounded-full" style="width: 0%"></div>
+                        </div>
+                        <div class="text-xs mt-1 text-gray-600" id="progress-text">0/0 minutes</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Diagnostic Panel -->
+            <div class="bg-white border rounded shadow p-4 mb-4">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center">
+                        <div class="p-3 bg-blue-600 rounded mr-4">
+                            <i class="fas fa-stethoscope fa-2x fa-inverse"></i>
+                        </div>
+                        <div>
+                            <h5 class="font-bold uppercase text-gray-500">Diagnostics</h5>
+                            <h3 class="font-bold text-xl text-gray-800">System Status</h3>
+                        </div>
+                    </div>
+                    <button id="fetch-diagnostics" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">
+                        <i class="fas fa-sync mr-1"></i> Check Status
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                    <div class="bg-gray-100 p-3 rounded">
+                        <div class="font-bold text-gray-600">App Version:</div>
+                        <div class="text-gray-800" id="app-version">Unknown</div>
+                    </div>
+                    <div class="bg-gray-100 p-3 rounded">
+                        <div class="font-bold text-gray-600">Connection Status:</div>
+                        <div id="connection-detail" class="text-gray-800 flex items-center">
+                            <span class="h-3 w-3 rounded-full bg-yellow-500 mr-2"></span>
+                            Checking...
+                        </div>
+                    </div>
+                    <div class="bg-gray-100 p-3 rounded">
+                        <div class="font-bold text-gray-600">Websocket Status:</div>
+                        <div id="websocket-status" class="text-gray-800 flex items-center">
+                            <span class="h-3 w-3 rounded-full bg-yellow-500 mr-2"></span>
+                            Checking...
+                        </div>
+                    </div>
+                    <div class="bg-gray-100 p-3 rounded">
+                        <div class="font-bold text-gray-600">Login Status:</div>
+                        <div id="login-status" class="text-gray-800 flex items-center">
+                            <span class="h-3 w-3 rounded-full bg-yellow-500 mr-2"></span>
+                            Checking...
+                        </div>
+                    </div>
+                    <div class="bg-gray-100 p-3 rounded">
+                        <div class="font-bold text-gray-600">Stats:</div>
+                        <div class="text-gray-800 text-sm">
+                            <div>Campaigns: <span id="campaigns-count">0</span></div>
+                            <div>Channels: <span id="channels-count">0</span></div>
+                            <div>Active Drops: <span id="drops-count">0</span></div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-100 p-3 rounded">
+                        <div class="font-bold text-gray-600 mb-1">Actions:</div>
+                        <div class="flex flex-wrap gap-2">
+                            <button id="refresh-inventory" class="bg-green-500 hover:bg-green-600 text-white text-xs px-2 py-1 rounded">
+                                <i class="fas fa-sync mr-1"></i> Refresh Inventory
+                            </button>
+                            <button id="reconnect-websocket" class="bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-1 rounded">
+                                <i class="fas fa-plug mr-1"></i> Reconnect
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Navigation -->
+            <div class="flex flex-wrap mt-4">
+                <div class="w-full p-3">
+                    <div class="bg-white border rounded shadow p-2">
+                        <div class="border-b border-gray-200">                            <nav class="flex">
+                                <button class="tab-button py-2 px-4 text-center border-b-2 font-medium text-sm leading-5 border-purple-600 text-purple-600" id="tab-btn-channels">
+                                    Channels
+                                </button>
+                                <button class="tab-button py-2 px-4 text-center border-b-2 font-medium text-sm leading-5 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" id="tab-btn-campaigns">
+                                    Campaigns
+                                </button>                                <button class="tab-button py-2 px-4 text-center border-b-2 font-medium text-sm leading-5 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" id="tab-btn-inventory">
+                                    Inventory
+                                </button>
+                                <button class="tab-button py-2 px-4 text-center border-b-2 font-medium text-sm leading-5 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" id="tab-btn-login">
+                                    Login
+                                </button>
+                                <button class="tab-button py-2 px-4 text-center border-b-2 font-medium text-sm leading-5 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" id="tab-btn-settings">
+                                    Settings
+                                </button>
+                            </nav>
+                        </div>
+                        <div class="p-3" id="tab-content">
+                            <!-- Tab content will be loaded here dynamically -->
+                            <div id="channels-tab" class="tab-panel">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h2 class="text-lg font-semibold">Available Channels</h2>
+                                    <input type="text" id="channel-search" placeholder="Search channels..." class="px-3 py-1 border rounded">
+                                </div>
+                                <div id="channels-list" class="max-h-96 overflow-y-auto">
+                                    <table class="min-w-full bg-white">
+                                        <thead>
+                                            <tr>
+                                                <th class="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                                <th class="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">Channel</th>
+                                                <th class="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">Game</th>
+                                                <th class="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">Viewers</th>
+                                                <th class="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="channels-table-body">
+                                            <!-- Channels will be loaded here dynamically -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <div id="campaigns-tab" class="tab-panel hidden">
+                                <h2 class="text-lg font-semibold mb-4">Active Drop Campaigns</h2>
+                                <div id="campaigns-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                    <!-- Campaigns will be loaded here dynamically -->
+                                </div>
+                            </div>
+                            
+                            <div id="inventory-tab" class="tab-panel hidden">
+                                <div class="flex flex-col md:flex-row">
+                                    <div class="w-full md:w-1/2 p-2">
+                                        <h2 class="text-lg font-semibold mb-2">Pending Drops</h2>
+                                        <div id="pending-drops" class="grid grid-cols-1 gap-3">
+                                            <!-- Pending drops will be loaded here dynamically -->
+                                        </div>
+                                    </div>
+                                    <div class="w-full md:w-1/2 p-2">
+                                        <h2 class="text-lg font-semibold mb-2">Claimed Drops</h2>
+                                        <div id="claimed-drops" class="grid grid-cols-1 gap-3 max-h-96 overflow-y-auto">
+                                            <!-- Claimed drops will be loaded here dynamically -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                              <div id="settings-tab" class="tab-panel hidden">
+                                <h2 class="text-lg font-semibold mb-4">Settings</h2>
+                                <div class="mb-4">
+                                    <h3 class="font-bold text-sm text-gray-700 mb-2">Priority Mode</h3>
+                                    <select id="priority-mode" class="block w-full md:w-1/3 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                        <option value="FIRST">First Available</option>
+                                        <option value="VIEWERS">Most Viewers</option>
+                                        <option value="RANDOM">Random</option>
+                                    </select>
+                                </div>
+                                <div class="mb-4">
+                                    <h3 class="font-bold text-sm text-gray-700 mb-2">Priority List</h3>
+                                    <div id="priority-list" class="max-h-48 overflow-y-auto border rounded p-2 mb-2">
+                                        <!-- Priority list will be loaded here dynamically -->
+                                    </div>
+                                </div>
+                                <div class="mb-4">
+                                    <h3 class="font-bold text-sm text-gray-700 mb-2">Exclusion List</h3>
+                                    <div id="exclusion-list" class="max-h-48 overflow-y-auto border rounded p-2 mb-2">
+                                        <!-- Exclusion list will be loaded here dynamically -->
+                                    </div>
+                                </div>                                <div class="mt-4">
+                                    <button id="reload-button" class="bg-purple-600 hover:bg-purple-800 text-white font-bold py-2 px-4 rounded">
+                                        Reload
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div id="login-tab" class="tab-panel hidden">
+                                <h2 class="text-lg font-semibold mb-4">Twitch Authentication</h2>
+                                <div id="login-status" class="mb-6">
+                                    <p id="login-message" class="text-lg mb-4">Login status will appear here...</p>
+                                    
+                                    <div id="not-logged-in" class="p-4 border rounded bg-gray-50 mb-4">
+                                        <h3 class="font-bold text-md text-gray-700 mb-2">Login to Twitch</h3>
+                                        <p class="mb-4 text-sm">
+                                            Click the button below to initiate the Twitch login process. This will open the login prompt in the desktop application.
+                                        </p>
+                                        <button id="login-button" class="bg-purple-600 hover:bg-purple-800 text-white font-bold py-2 px-4 rounded flex items-center">
+                                            <i class="fab fa-twitch mr-2"></i> Login with Twitch
+                                        </button>
+                                    </div>
+                                    
+                                    <div id="logged-in" class="hidden p-4 border rounded bg-green-50 mb-4">
+                                        <h3 class="font-bold text-md text-gray-700 mb-2">Currently logged in</h3>
+                                        <p class="mb-2 text-sm">You are currently logged in to Twitch as:</p>
+                                        <p class="font-bold text-lg mb-4" id="username-display">Username</p>
+                                        <button id="logout-button" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+                                            Logout
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="flex flex-wrap mt-4">
+                <div class="w-full p-3">
+                    <div class="bg-white border rounded shadow p-2">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-500">Twitch Drops Miner Web Interface</span>
+                            <a href="https://github.com/DevilXD/TwitchDropsMiner" target="_blank" class="text-purple-600 hover:text-purple-800">
+                                <i class="fab fa-github"></i> GitHub
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/loading.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        // Initialize loading indicators after page load
+        document.addEventListener('DOMContentLoaded', function() {
+            addLoadingIndicators();
+        });
+    </script>
+</body>
+</html>

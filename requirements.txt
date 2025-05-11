@@ -3,6 +3,11 @@ Pillow
 pystray
 PyGObject<3.51; sys_platform == "linux"  # required for better system tray support on Linux
 
+# web interface dependencies
+Flask>=2.3.0
+flask-cors>=4.0.0
+jinja2>=3.1.0
+
 # environment-dependent dependencies
 pywin32; sys_platform == "win32"
 truststore

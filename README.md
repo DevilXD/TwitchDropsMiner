@@ -16,6 +16,7 @@ Every several seconds, the application pretends to watch a particular stream by 
 - Automatic channel stream switching, when the one you were currently watching goes offline, as well as when a channel streaming a higher priority game goes online.
 - Login session is saved in a cookies file, so you don't need to login every time.
 - Mining is automatically started as new campaigns appear, and stopped when the last available drops have been mined.
+- Web interface for remote monitoring and control - access the miner from any browser.
 
 ### Usage:
 
@@ -24,6 +25,41 @@ Every several seconds, the application pretends to watch a particular stream by 
 - After a successful login, the app should fetch a list of all available campaigns and games you can mine drops for - you can then select and add games of choice to the Priority List available on the Settings tab, and then press on the `Reload` button to start processing. It will fetch a list of all applicable streams it can watch, and start mining right away. You can also manually switch to a different channel as needed.
 - If you wish to keep the miner occupied with mining anything it can, beyond what you've selected via the Priority List, you can use the Priority Mode setting to specify the mining order for the rest of the games.
 - Make sure to link your Twitch account to game accounts on the [campaigns page](https://www.twitch.tv/drops/campaigns), to enable more games to be mined.
+- To use the web interface, launch the application with the `--web` flag: `python main.py --web`. By default, the web interface will be available at http://127.0.0.1:8080. You can customize the host and port with the `--web-host` and `--web-port` options.
+
+### Web Interface:
+
+The web interface allows you to monitor and control the Twitch Drops Miner from any browser. Key features include:
+
+- Real-time monitoring of active channels and campaigns
+- View drop progress and claim completed drops directly through the web interface
+- Check your drop inventory with claimed and pending items
+- Switch channels remotely to watch different streams
+- Login to Twitch through the web interface
+- Mobile-friendly responsive design
+- Twitch-inspired user interface with status indicators
+- Notifications for successful actions and errors
+
+#### Getting Started with the Web Interface:
+
+1. Start the miner with the `--web` flag: `python main.py --web`
+2. Open your browser and navigate to http://127.0.0.1:8080
+3. For remote access, use the `--web-host 0.0.0.0` option (be cautious with security)
+
+#### Key Features:
+
+- **Authentication**: Use the Login tab to login to Twitch directly from the web interface
+- **Channel Switching**: Click the "Watch" button next to any channel in the channels list to immediately switch to that stream
+- **Claim Drops**: When a drop is ready to be claimed (100% progress), a "Claim Now" button will appear, allowing you to claim the drop directly from the web interface
+- **Inventory Management**: View your pending and claimed drops in the Inventory tab
+- **Real-time Updates**: The interface automatically refreshes every 10 seconds to show the latest status
+
+#### How to Use:
+
+1. **Login**: Go to the Login tab and click "Login with Twitch" to authenticate (the actual login prompt will appear in the desktop app)
+2. **Switch Channels**: Go to the Channels tab and click "Watch" next to any channel to start watching that stream
+3. **Claim Drops**: When a drop is ready to be claimed, go to the Inventory tab and click "Claim Now" next to the completed drop
+4. **Monitor Progress**: The dashboard shows your current mining status and drop progress in real-time
 
 ### Pictures:
 
@@ -153,4 +189,4 @@ placed past the period character at the end.
 @Sergo1217 - For the entirety of the Russian (Русский) translation.  
 @Shofuu - For the entirety of the Spanish (Español) translation and revisions.  
 @alikdb - For the entirety of the Turkish (Türkçe) translation.  
-@Nollasko - For the entirety of the Ukrainian (Українська) translation and revisions.  
+@Nollasko - For the entirety of the Ukrainian (Українська) translation and revisions.
