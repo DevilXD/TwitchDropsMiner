@@ -528,13 +528,19 @@ def diagnostic():
             'platform': sys.platform,
             'python_version': sys.version
         }
-        
-        # Miner state
+          # Miner state
         miner_state = {
             'session_active': hasattr(twitch, '_session') and twitch._session is not None,
-            'websocket_connected': hasattr(twitch, 'websocket') and twitch.websocket and hasattr(twitch.websocket, 'connected') and twitch.websocket.connected,
+            'websocket_connected': False,  # Default to false
             'auth_valid': hasattr(twitch, '_auth_state') and hasattr(twitch._auth_state, 'user_id') and twitch._auth_state.user_id is not None
         }
+        
+        # Check websocket status - looking for any connected websocket
+        if hasattr(twitch, 'websocket') and hasattr(twitch.websocket, 'websockets'):
+            for ws in twitch.websocket.websockets:
+                if ws.connected:
+                    miner_state['websocket_connected'] = True
+                    break
           # Stats
         stats = {
             'channels_count': len(twitch.channels) if hasattr(twitch, 'channels') else 0,

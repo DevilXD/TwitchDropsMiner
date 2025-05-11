@@ -91,13 +91,6 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- Refresh Button -->
-            <div class="flex justify-end mb-4">
-                <button id="refresh-button" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded flex items-center">
-                    <i class="fas fa-sync-alt mr-2"></i> Refresh Data
-                </button>
-            </div>
               <!-- Mining Status -->
             <div class="flex flex-wrap card-container position-relative">
                 <div class="w-full md:w-1/2 xl:w-1/3 p-3">
@@ -167,109 +160,68 @@
             </div>
 
             <!-- Mining Status -->
-            <div class="bg-white border rounded shadow p-4 mb-4">
-                <div class="flex flex-row items-center">
-                    <div class="flex-shrink-0 pr-4">
-                        <div class="p-3 bg-purple-600 rounded">
-                            <i class="fas fa-chart-line fa-2x fa-inverse"></i>
-                        </div>
-                    </div>
-                    <div class="flex-1">
-                        <h5 class="font-bold uppercase text-gray-500">Mining Status</h5>
-                        <h3 class="font-bold text-2xl text-gray-800" id="mining-status">Initializing...</h3>
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-                    <div id="state-card" class="bg-gray-100 p-3 rounded">
-                        <div class="font-bold text-gray-600">State:</div>
-                        <div class="text-gray-800" id="state-value">Unknown</div>
-                    </div>
-                    <div id="username-card" class="bg-gray-100 p-3 rounded">
-                        <div class="font-bold text-gray-600">Username:</div>
-                        <div class="text-gray-800" id="username-value">Not logged in</div>
-                    </div>
-                    <div id="channel-card" class="bg-gray-100 p-3 rounded">
-                        <div class="font-bold text-gray-600">Current Channel:</div>
-                        <div class="text-gray-800" id="channel-value">None</div>
-                    </div>
-                    <div id="game-card" class="bg-gray-100 p-3 rounded">
-                        <div class="font-bold text-gray-600">Current Game:</div>
-                        <div class="text-gray-800" id="game-value">None</div>
-                    </div>
-                    <div id="drop-card" class="bg-gray-100 p-3 rounded">
-                        <div class="font-bold text-gray-600">Current Drop:</div>
-                        <div class="text-gray-800" id="drop-value">None</div>
-                    </div>
-                    <div id="progress-card" class="bg-gray-100 p-3 rounded">
-                        <div class="font-bold text-gray-600">Progress:</div>
-                        <div class="w-full bg-gray-200 rounded-full h-4 mt-1">
-                            <div id="progress-bar" class="bg-green-600 h-4 rounded-full" style="width: 0%"></div>
-                        </div>
-                        <div class="text-xs mt-1 text-gray-600" id="progress-text">0/0 minutes</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Diagnostic Panel -->
-            <div class="bg-white border rounded shadow p-4 mb-4">
-                <div class="flex justify-between items-center">
-                    <div class="flex items-center">
-                        <div class="p-3 bg-blue-600 rounded mr-4">
-                            <i class="fas fa-stethoscope fa-2x fa-inverse"></i>
-                        </div>
-                        <div>
-                            <h5 class="font-bold uppercase text-gray-500">Diagnostics</h5>
-                            <h3 class="font-bold text-xl text-gray-800">System Status</h3>
-                        </div>
-                    </div>
-                    <button id="fetch-diagnostics" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">
-                        <i class="fas fa-sync mr-1"></i> Check Status
-                    </button>
-                </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-                    <div class="bg-gray-100 p-3 rounded">
-                        <div class="font-bold text-gray-600">App Version:</div>
-                        <div class="text-gray-800" id="app-version">Unknown</div>
-                    </div>
-                    <div class="bg-gray-100 p-3 rounded">
-                        <div class="font-bold text-gray-600">Connection Status:</div>
-                        <div id="connection-detail" class="text-gray-800 flex items-center">
-                            <span class="h-3 w-3 rounded-full bg-yellow-500 mr-2"></span>
-                            Checking...
-                        </div>
-                    </div>
-                    <div class="bg-gray-100 p-3 rounded">
-                        <div class="font-bold text-gray-600">Websocket Status:</div>
-                        <div id="websocket-status" class="text-gray-800 flex items-center">
-                            <span class="h-3 w-3 rounded-full bg-yellow-500 mr-2"></span>
-                            Checking...
-                        </div>
-                    </div>
-                    <div class="bg-gray-100 p-3 rounded">
-                        <div class="font-bold text-gray-600">Login Status:</div>
-                        <div id="login-status" class="text-gray-800 flex items-center">
-                            <span class="h-3 w-3 rounded-full bg-yellow-500 mr-2"></span>
-                            Checking...
-                        </div>
-                    </div>
-                    <div class="bg-gray-100 p-3 rounded">
-                        <div class="font-bold text-gray-600">Stats:</div>
-                        <div class="text-gray-800 text-sm">
-                            <div>Campaigns: <span id="campaigns-count">0</span></div>
-                            <div>Channels: <span id="channels-count">0</span></div>
-                            <div>Active Drops: <span id="drops-count">0</span></div>
-                        </div>
-                    </div>
-                    <div class="bg-gray-100 p-3 rounded">
-                        <div class="font-bold text-gray-600 mb-1">Actions:</div>
-                        <div class="flex flex-wrap gap-2">
-                            <button id="refresh-inventory" class="bg-green-500 hover:bg-green-600 text-white text-xs px-2 py-1 rounded">
-                                <i class="fas fa-sync mr-1"></i> Refresh Inventory
+            <div class="flex flex-wrap">
+                <div class="w-full md:w-1/2 xl:w-full p-3">
+                    <div class="bg-white border rounded shadow p-4 mb-4">
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center">
+                                <div class="p-3 bg-blue-600 rounded mr-4">
+                                    <i class="fas fa-stethoscope fa-2x fa-inverse"></i>
+                                </div>
+                                <div>
+                                    <h5 class="font-bold uppercase text-gray-500">Diagnostics</h5>
+                                    <h3 class="font-bold text-xl text-gray-800">System Status</h3>
+                                </div>
+                            </div>
+                            <button id="fetch-diagnostics" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">
+                                <i class="fas fa-sync mr-1"></i> Check Status
                             </button>
-                            <button id="reconnect-websocket" class="bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-1 rounded">
-                                <i class="fas fa-plug mr-1"></i> Reconnect
-                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                            <div class="bg-gray-100 p-3 rounded">
+                                <div class="font-bold text-gray-600">App Version:</div>
+                                <div class="text-gray-800" id="app-version">Unknown</div>
+                            </div>
+                            <div class="bg-gray-100 p-3 rounded">
+                                <div class="font-bold text-gray-600">Connection Status:</div>
+                                <div id="connection-detail" class="text-gray-800 flex items-center">
+                                    <span class="h-3 w-3 rounded-full bg-yellow-500 mr-2"></span>
+                                    Checking...
+                                </div>
+                            </div>
+                            <div class="bg-gray-100 p-3 rounded">
+                                <div class="font-bold text-gray-600">Websocket Status:</div>
+                                <div id="websocket-status" class="text-gray-800 flex items-center">
+                                    <span class="h-3 w-3 rounded-full bg-yellow-500 mr-2"></span>
+                                    Checking...
+                                </div>
+                            </div>
+                            <div class="bg-gray-100 p-3 rounded">
+                                <div class="font-bold text-gray-600">Login Status:</div>
+                                <div id="login-status" class="text-gray-800 flex items-center">
+                                    <span class="h-3 w-3 rounded-full bg-yellow-500 mr-2"></span>
+                                    Checking...
+                                </div>
+                            </div>
+                            <div class="bg-gray-100 p-3 rounded">
+                                <div class="font-bold text-gray-600">Stats:</div>
+                                <div class="text-gray-800 text-sm">
+                                    <div>Campaigns: <span id="campaigns-count">0</span></div>
+                                    <div>Channels: <span id="channels-count">0</span></div>
+                                    <div>Active Drops: <span id="drops-count">0</span></div>
+                                </div>
+                            </div>
+                            <div class="bg-gray-100 p-3 rounded">
+                                <div class="font-bold text-gray-600 mb-1">Actions:</div>
+                                <div class="flex flex-wrap gap-2">
+                                    <button id="refresh-inventory" class="bg-green-500 hover:bg-green-600 text-white text-xs px-2 py-1 rounded">
+                                        <i class="fas fa-sync mr-1"></i> Refresh Inventory
+                                    </button>
+                                    <button id="reconnect-websocket" class="bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-1 rounded">
+                                        <i class="fas fa-plug mr-1"></i> Reconnect
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

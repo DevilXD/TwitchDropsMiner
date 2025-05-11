@@ -803,6 +803,10 @@ function updateStatusUI(data) {
                 statusText = 'Error';
                 statusColor = 'text-red-500';
                 break;
+            case 'CHANNEL_SWITCH':
+                statusText = 'Watching Channel...';
+                statusColor = 'text-green-500';
+                break;
             default:
                 statusText = data.state || 'Unknown';
         }
