@@ -17,11 +17,43 @@ document.addEventListener('DOMContentLoaded', () => {
     setupTabNavigation();
     setupEventListeners();
     
-    // Initial data fetch
-    refreshData().then(() => {
+    // Track when the window gets focus for browsers that might not properly support visibilitychange
+    let windowBlurred = false;
+    window.addEventListener('blur', () => {
+        windowBlurred = true;
+        console.log('Window lost focus');
+    });
+      window.addEventListener('focus', () => {
+        if (windowBlurred) {
+            windowBlurred = false;
+            console.log('Window regained focus, refreshing data...');
+            
+            // Small delay to ensure the window is fully focused
+            setTimeout(() => {
+                refreshData({
+                    refreshChannels: true,
+                    refreshCampaigns: true,
+                    refreshInventory: true,
+                    refreshSettings: true,
+                    refreshLogin: true
+                });
+            }, 300);
+        }
+    });
+      
+    // Initial data fetch with full loading indicator
+    refreshData({ showLoader: true }).then(() => {
         // Set up auto-refresh every 10 seconds only after initial load completes
+        // Only auto-refresh status and channels, don't show loader
         refreshInterval = setInterval(() => {
-            refreshData().catch(error => {
+            refreshData({
+                showLoader: false,
+                refreshChannels: true,
+                refreshCampaigns: false,
+                refreshInventory: false,
+                refreshSettings: false,
+                refreshLogin: false
+            }).catch(error => {
                 console.error('Auto-refresh error:', error);
                 // Even if there's an error, we want to continue with future refreshes
             });
@@ -223,6 +255,30 @@ function setupTabNavigation() {
 
 // Set up event listeners
 function setupEventListeners() {
+    // Page visibility change event to refresh data when user returns to the tab
+    let wasHidden = false;
+      // Check if the page was hidden
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+            wasHidden = true;
+            console.log('Tab hidden, marking for refresh on return');
+        } else if (document.visibilityState === 'visible' && wasHidden) {
+            wasHidden = false;
+            console.log('Tab became visible after being hidden, refreshing data...');
+            
+            // Small delay to ensure the tab is fully active
+            setTimeout(() => {
+                refreshData({
+                    refreshChannels: true,
+                    refreshCampaigns: true,
+                    refreshInventory: true,
+                    refreshSettings: true,
+                    refreshLogin: true
+                });
+            }, 300);
+        }
+    });
+
     // Channel search
     const channelSearch = document.getElementById('channel-search');
     if (channelSearch) {
@@ -254,8 +310,7 @@ function setupEventListeners() {
     if (addExcludeButton) {
         addExcludeButton.addEventListener('click', addExclusionGame);
     }
-    
-    // Login button
+      // Login button
     const loginButton = document.getElementById('login-button');
     if (loginButton) {
         loginButton.addEventListener('click', initiateLogin);
@@ -266,7 +321,31 @@ function setupEventListeners() {
     if (logoutButton) {
         logoutButton.addEventListener('click', initiateLogout);
     }
-      // Manual refresh button in the main content
+      // Manual refresh button in header
+    const manualRefreshButton = document.getElementById('manual-refresh');
+    if (manualRefreshButton) {
+        manualRefreshButton.addEventListener('click', () => {
+            // Visual feedback for refresh
+            const icon = manualRefreshButton.querySelector('i');
+            manualRefreshButton.disabled = true;
+            icon.classList.add('fa-spin');
+            
+            // Full refresh with progress bar
+            refreshData({
+                refreshChannels: true,
+                refreshCampaigns: true,
+                refreshInventory: true,
+                refreshSettings: true,
+                refreshLogin: true
+            }).finally(() => {
+                // Reset button state after refresh completes
+                setTimeout(() => {
+                    manualRefreshButton.disabled = false;
+                    icon.classList.remove('fa-spin');
+                }, 500);
+            });
+        });
+    }// Manual refresh button in the main content
     const refreshButton = document.getElementById('refresh-button');
     if (refreshButton) {
         refreshButton.addEventListener('click', () => {
@@ -278,8 +357,15 @@ function setupEventListeners() {
             // Show toast notification
             showToast('Refreshing', 'Fetching latest data from the miner...', 'info');
             
-            // Perform refresh and handle the promise
-            refreshData()
+            // Perform full refresh with loader and handle the promise
+            refreshData({
+                showLoader: true,
+                refreshChannels: true,
+                refreshCampaigns: true,
+                refreshInventory: true,
+                refreshSettings: true,
+                refreshLogin: true
+            })
                 .catch(error => {
                     console.error('Manual refresh error:', error);
                     showToast('Refresh Error', 'There was an error refreshing the data.', 'error');
@@ -302,12 +388,18 @@ function setupEventListeners() {
             const icon = headerRefreshButton.querySelector('i');
             headerRefreshButton.disabled = true;
             icon.classList.add('fa-spin');
-            
-            // Show toast notification
+              // Show toast notification
             showToast('Refreshing', 'Fetching latest data from the miner...', 'info');
             
-            // Perform refresh and handle the promise
-            refreshData()
+            // Perform full refresh with loader and handle the promise
+            refreshData({
+                showLoader: true,
+                refreshChannels: true,
+                refreshCampaigns: true,
+                refreshInventory: true,
+                refreshSettings: true,
+                refreshLogin: true
+            })
                 .catch(error => {
                     console.error('Manual refresh error:', error);
                     showToast('Refresh Error', 'There was an error refreshing the data.', 'error');
@@ -391,29 +483,76 @@ function filterChannels(searchValue) {
     });
 }
 
-// Refresh all data
-function refreshData() {
+// Refresh all data with option to show loading indicators and refresh specific tabs
+function refreshData(options = {}) {
+    const defaults = {
+        showLoader: false,
+        refreshChannels: true,
+        refreshCampaigns: true,
+        refreshInventory: true,
+        refreshSettings: true,
+        refreshLogin: true
+    };
+    
+    const config = { ...defaults, ...options };
+    
     if (isDataLoading) return Promise.resolve(); // Prevent multiple concurrent refreshes without rejecting the promise
     
     isDataLoading = true;
     
-    // Update UI to show loading state
-    document.body.classList.add('loading-data');
-    const loadingIndicators = document.querySelectorAll('.loading-indicator');
-    loadingIndicators.forEach(indicator => {
-        indicator.style.display = 'flex';
-    });
+    // Update last refresh time indicator
+    const lastRefreshTime = document.querySelector('#last-refresh-time span');
+    if (lastRefreshTime) {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString();
+        lastRefreshTime.textContent = `Refreshing...`;
+    }
     
-    // Create a promise for each data fetch
-    // Use Promise.allSettled instead of Promise.all to handle individual failures
+    // Show the progress bar
+    const progressContainer = document.getElementById('progress-container');
+    const progressBar = document.getElementById('progress-bar');
+    if (progressContainer && progressBar) {
+        progressContainer.classList.add('visible');
+        progressBar.style.width = '15%'; // Start with small width
+        
+        // Simulate progress
+        let width = 15;
+        const interval = setInterval(() => {
+            if (width < 90) { // Only go up to 90%, will go to 100% when completed
+                width += (90 - width) / 10;
+                progressBar.style.width = `${width}%`;
+            }
+        }, 200);
+        
+        // Store the interval ID for cleanup
+        window.progressInterval = interval;
+    }
+    
+    // Create a promise for each data fetch based on config
     const fetchPromises = [
-        fetchStatus().catch(error => ({ error })),
-        fetchChannels().catch(error => ({ error })),
-        fetchCampaigns().catch(error => ({ error })),
-        fetchInventory().catch(error => ({ error })),
-        checkLoginStatus().catch(error => ({ error })),
-        fetchSettings().catch(error => ({ error }))
+        fetchStatus().catch(error => ({ error })), // Always fetch status
     ];
+    
+    // Only add these fetches if configured to do so
+    if (config.refreshChannels) {
+        fetchPromises.push(fetchChannels().catch(error => ({ error })));
+    }
+    
+    if (config.refreshCampaigns) {
+        fetchPromises.push(fetchCampaigns().catch(error => ({ error })));
+    }
+    
+    if (config.refreshInventory) {
+        fetchPromises.push(fetchInventory().catch(error => ({ error })));
+    }
+    
+    if (config.refreshLogin) {
+        fetchPromises.push(checkLoginStatus().catch(error => ({ error })));
+    }
+    
+    if (config.refreshSettings) {
+        fetchPromises.push(fetchSettings().catch(error => ({ error })));
+    }
     
     // Occasionally fetch diagnostics (every 3rd refresh)
     const refreshCount = parseInt(localStorage.getItem('refreshCount') || '0', 10) + 1;
@@ -422,28 +561,40 @@ function refreshData() {
     if (refreshCount % 3 === 0) {
         fetchPromises.push(fetchDiagnostics().catch(error => ({ error })));
     }
-    
-    // When all fetches are complete, update the state
+      // When all fetches are complete, update the state
     return Promise.all(fetchPromises)
         .catch(error => {
             // This should never happen with the individual catch handlers
             console.error('Error during data refresh:', error);
             return []; // Return empty array to allow execution to continue
-        })
-        .finally(() => {
-            // Ensure loading indicators are properly hidden
-            // Remove class first to ensure no race conditions with CSS
-            document.body.classList.remove('loading-data');
+        })        .finally(() => {
+            // Complete the progress bar
+            const progressContainer = document.getElementById('progress-container');
+            const progressBar = document.getElementById('progress-bar');
+            if (progressContainer && progressBar) {
+                // Clear any existing interval
+                if (window.progressInterval) {
+                    clearInterval(window.progressInterval);
+                    window.progressInterval = null;
+                }
+                
+                // Complete the progress
+                progressBar.style.width = '100%';
+                
+                // Hide after completion
+                setTimeout(() => {
+                    progressContainer.classList.remove('visible');
+                    // Reset progress bar for next time
+                    setTimeout(() => {
+                        progressBar.style.width = '0%';
+                    }, 300);
+                }, 500);
+            }
             
-            // Reset loading state after a small delay to ensure animations complete
-            setTimeout(() => {
-                isDataLoading = false;
-                const loadingIndicators = document.querySelectorAll('.loading-indicator');
-                loadingIndicators.forEach(indicator => {
-                    indicator.style.display = 'none';
-                });
-            }, 100);
-              // Update the last refresh time
+            // Always reset the isDataLoading flag
+            isDataLoading = false;
+            
+            // Update the last refresh time
             const lastRefreshElement = document.getElementById('last-refresh-time');
             if (lastRefreshElement && lastRefreshElement.querySelector) {
                 const lastRefreshSpan = lastRefreshElement.querySelector('span');
@@ -1003,21 +1154,30 @@ function updateCampaignsUI(data) {
         const statusClass = campaign.status === 'ACTIVE' ? 'bg-green-100 border-green-500' : 'bg-gray-100 border-gray-400';
         const statusText = campaign.status === 'ACTIVE' ? 'Active' : 'Inactive';
         const statusTextColor = campaign.status === 'ACTIVE' ? 'text-green-800' : 'text-gray-600';
-        
-        const campaignCard = document.createElement('div');
-        campaignCard.className = 'col-span-1 p-4 bg-white rounded shadow border-l-4 ' + statusClass;
+          const campaignCard = document.createElement('div');
+        campaignCard.className = 'col-span-1 p-3 bg-white rounded shadow border-l-4 ' + statusClass;
         campaignCard.innerHTML = `
-            <div class="flex justify-between items-start">
-                <div>
-                    <h3 class="font-bold text-lg text-gray-800">${campaign.name}</h3>
-                    <p class="text-gray-600">${campaign.game || 'No game specified'}</p>
+            <div class="flex items-center">
+                ${campaign.image_url ? 
+                  `<div class="mr-2 flex-shrink-0">
+                      <img src="${campaign.image_url}" alt="${campaign.name}" class="w-12 h-12 object-cover rounded">
+                   </div>` : 
+                  ''
+                }
+                <div class="flex-grow">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-bold text-base text-gray-800">${campaign.name}</h3>
+                            <p class="text-gray-600 text-xs">${campaign.game || 'No game specified'}</p>
+                        </div>
+                        <span class="px-1.5 py-0.5 rounded text-xs font-semibold ${statusTextColor} bg-opacity-50">${statusText}</span>
+                    </div>
+                    <div class="mt-2 text-xs">
+                        <p><span class="text-gray-600">Drops:</span> <span class="font-semibold">${campaign.drops_count}</span></p>
+                        ${campaign.start_time ? `<p><span class="text-gray-600">Start:</span> ${new Date(campaign.start_time).toLocaleDateString()}</p>` : ''}
+                        ${campaign.end_time ? `<p><span class="text-gray-600">End:</span> ${new Date(campaign.end_time).toLocaleDateString()}</p>` : ''}
+                    </div>
                 </div>
-                <span class="px-2 py-1 rounded text-xs font-semibold ${statusTextColor} bg-opacity-50">${statusText}</span>
-            </div>
-            <div class="mt-3 text-sm">
-                <p><span class="text-gray-600">Drops:</span> <span class="font-semibold">${campaign.drops_count}</span></p>
-                ${campaign.start_time ? `<p><span class="text-gray-600">Start:</span> ${new Date(campaign.start_time).toLocaleDateString()}</p>` : ''}
-                ${campaign.end_time ? `<p><span class="text-gray-600">End:</span> ${new Date(campaign.end_time).toLocaleDateString()}</p>` : ''}
             </div>
         `;
         
@@ -1036,15 +1196,34 @@ function updateInventoryUI(data) {
     pendingDrops.innerHTML = '';
     claimedDrops.innerHTML = '';
     
+    // Process drops - check for 100% completed drops and move them to claimed
+    const pendingItems = [];
+    const claimedItems = data.claimed ? [...data.claimed] : [];
+    
+    if (data.pending && data.pending.length > 0) {
+        data.pending.forEach(drop => {
+            // Calculate progress
+            const progress = drop.current_minutes / drop.required_minutes;
+            
+            // If progress is 1.0 (100%), treat it as claimed
+            if (progress >= 1.0) {
+                // Add additional property to show it's auto-moved
+                drop.autoMoved = true;
+                claimedItems.push(drop);
+            } else {
+                pendingItems.push(drop);
+            }
+        });
+    }
+    
     // Handle pending drops
-    if (!data.pending || data.pending.length === 0) {
+    if (pendingItems.length === 0) {
         pendingDrops.innerHTML = '<div class="p-4 bg-white rounded shadow text-center text-gray-500">No pending drops.</div>';
     } else {
-        data.pending.forEach(drop => {
+        pendingItems.forEach(drop => {
             const dropCard = document.createElement('div');
             dropCard.className = 'bg-white rounded shadow mb-4 overflow-hidden';
-            
-            // Calculate progress
+              // Calculate progress
             const progress = drop.current_minutes / drop.required_minutes;
             const percent = Math.round(progress * 100);
             const isReady = drop.current_minutes >= drop.required_minutes;
@@ -1053,62 +1232,82 @@ function updateInventoryUI(data) {
                 `<button class="claim-drop-btn bg-green-500 hover:bg-green-600 text-white py-1 px-3 rounded text-sm" data-drop-id="${drop.id}">
                     <i class="fas fa-gift mr-1"></i> Claim Now
                 </button>` : 
-                '<span class="text-blue-800 text-sm">In progress...</span>';
-            
-            dropCard.innerHTML = `
+                '';            dropCard.innerHTML = `
                 <div class="border-l-4 ${statusClass} p-4">
-                    <div class="flex justify-between items-start mb-2">
-                        <div>
-                            <h3 class="font-bold text-lg text-gray-800">${drop.name}</h3>
-                            <p class="text-gray-600">${drop.game || 'Unknown Game'}</p>
+                    <div class="flex items-center mb-2">
+                        ${drop.image_url ? 
+                          `<div class="mr-3 flex-shrink-0">
+                              <img src="${drop.image_url}" alt="${drop.name}" class="w-16 h-16 object-cover rounded">
+                           </div>` : 
+                          ''
+                        }
+                        <div class="flex-grow">
+                            <div class="flex justify-between items-start w-full">
+                                <div>
+                                    <h3 class="font-bold text-lg text-gray-800">${drop.name}</h3>
+                                    <p class="text-gray-600">${drop.game || 'Unknown Game'}</p>
+                                </div>
+                                <div>
+                                    ${actionButton}
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <div class="shadow w-full bg-gray-200 rounded">
+                                    <div class="bg-purple-600 text-xs leading-none py-1 text-center text-white rounded" style="width: ${percent}%">${percent}%</div>
+                                </div>
+                                <p class="mt-1 text-sm text-gray-500">${drop.current_minutes}/${drop.required_minutes} minutes watched</p>
+                            </div>
                         </div>
-                        <div>
-                            ${actionButton}
-                        </div>
-                    </div>
-                    <div class="mt-3">
-                        <div class="shadow w-full bg-gray-200 rounded">
-                            <div class="bg-purple-600 text-xs leading-none py-1 text-center text-white rounded" style="width: ${percent}%">${percent}%</div>
-                        </div>
-                        <p class="mt-1 text-sm text-gray-500">${drop.current_minutes}/${drop.required_minutes} minutes watched</p>
                     </div>
                 </div>
             `;
-            
-            pendingDrops.appendChild(dropCard);
+              pendingDrops.appendChild(dropCard);
         });
-        
-        // Add event listeners to claim buttons
-        document.querySelectorAll('.claim-drop-btn').forEach(button => {
-            button.addEventListener('click', () => {
-                const dropId = button.getAttribute('data-drop-id');
-                claimDrop(dropId);
-            });
-        });
-    }
-    
-    // Handle claimed drops
-    if (!data.claimed || data.claimed.length === 0) {
+    }    // Handle claimed drops
+    if (claimedItems.length === 0) {
         claimedDrops.innerHTML = '<div class="p-4 bg-white rounded shadow text-center text-gray-500">No claimed drops.</div>';
     } else {
-        data.claimed.forEach(drop => {
+        claimedItems.forEach(drop => {
             const dropCard = document.createElement('div');
-            dropCard.className = 'bg-white rounded shadow mb-4 border-l-4 border-green-500 p-4';
+            dropCard.className = 'bg-green-50 rounded shadow mb-4 border-l-4 border-green-500 p-4';
             
-            dropCard.innerHTML = `
-                <div class="flex justify-between items-start">
-                    <div>
-                        <h3 class="font-bold text-lg text-gray-800">${drop.name}</h3>
-                        <p class="text-gray-600">${drop.game || 'Unknown Game'}</p>
+            // Use the same claimed status badge for all drops in this section
+            const statusBadge = '<span class="px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-800">Claimed</span>';
+            
+            // For auto-moved drops, show completion status; for actually claimed drops, show claim time
+            const timeInfo = drop.autoMoved ?
+                `<p class="mt-2 text-sm text-gray-500">100% Complete</p>` :
+                (drop.claim_time ? `<p class="mt-2 text-sm text-gray-500">Claimed on ${new Date(drop.claim_time).toLocaleString()}</p>` : '');            dropCard.innerHTML = `
+                <div class="flex items-center">
+                    ${drop.image_url ? 
+                      `<div class="mr-3 flex-shrink-0">
+                          <img src="${drop.image_url}" alt="${drop.name}" class="w-16 h-16 object-cover rounded">
+                       </div>` : 
+                      ''
+                    }
+                    <div class="flex-grow">
+                        <div class="flex justify-between items-start w-full">
+                            <div>
+                                <h3 class="font-bold text-lg text-gray-800">${drop.name}</h3>
+                                <p class="text-gray-600">${drop.game || 'Unknown Game'}</p>
+                            </div>
+                            ${statusBadge}
+                        </div>
+                        ${timeInfo}
                     </div>
-                    <span class="px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-800">Claimed</span>
                 </div>
-                ${drop.claim_time ? `<p class="mt-2 text-sm text-gray-500">Claimed on ${new Date(drop.claim_time).toLocaleString()}</p>` : ''}
             `;
             
             claimedDrops.appendChild(dropCard);
+        });    }
+    
+    // Add event listeners to claim buttons in the pending section
+    document.querySelectorAll('.claim-drop-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            const dropId = button.getAttribute('data-drop-id');
+            claimDrop(dropId);
         });
-    }
+    });
 }
 
 // Claim a drop

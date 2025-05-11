@@ -1,29 +1,15 @@
 function addLoadingIndicators() {
-    // Find all cards and content containers that need loading indicators
-    const containers = document.querySelectorAll('.bg-white.border.rounded.shadow');
+    // This function is now a no-op since we've replaced the loading indicators
+    // with a global progress bar. Keeping it to avoid breaking existing code.
+    console.log('Loading indicators replaced with progress bar');
     
-    // Add loading indicators to each container
-    containers.forEach(container => {
-        // Only add if it doesn't already have one
-        if (!container.querySelector('.loading-indicator')) {
-            container.style.position = 'relative'; // Ensure proper positioning
-            const loadingIndicator = document.createElement('div');
-            loadingIndicator.className = 'loading-indicator';
-            loadingIndicator.innerHTML = '<div class="loading-spinner"></div>';
-            container.appendChild(loadingIndicator);
-        }
-    });
+    // Initialize the progress bar
+    const progressContainer = document.getElementById('progress-container');
+    const progressBar = document.getElementById('progress-bar');
     
-    // Add loading indicators to tables as well
-    const tables = document.querySelectorAll('table');
-    tables.forEach(table => {
-        const tableParent = table.parentElement;
-        if (tableParent && !tableParent.querySelector('.loading-indicator')) {
-            tableParent.style.position = 'relative';
-            const loadingIndicator = document.createElement('div');
-            loadingIndicator.className = 'loading-indicator';
-            loadingIndicator.innerHTML = '<div class="loading-spinner"></div>';
-            tableParent.appendChild(loadingIndicator);
-        }
-    });
+    if (progressContainer && progressBar) {
+        // Make sure it starts hidden
+        progressContainer.classList.remove('visible');
+        progressBar.style.width = '0%';
+    }
 }

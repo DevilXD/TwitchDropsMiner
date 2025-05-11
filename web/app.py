@@ -121,6 +121,7 @@ def campaigns():
                 campaign_data = {
                     'id': campaign.id if hasattr(campaign, 'id') else 'unknown',
                     'name': campaign.name if hasattr(campaign, 'name') else 'Unknown Campaign',
+                    'image_url': campaign.image_url if hasattr(campaign, 'image_url') else None,
                 }
                 
                 # Add game info if available
@@ -244,11 +245,15 @@ def inventory():
                 if not hasattr(campaign, 'drops'):
                     continue
                     
-                for drop in campaign.drops:
+                for drop in campaign.drops:                    # Get image URL from the first benefit if available
+                    image_url = None
+                    if hasattr(drop, 'benefits') and drop.benefits and len(drop.benefits) > 0:
+                        image_url = drop.benefits[0].image_url if hasattr(drop.benefits[0], 'image_url') else None
+                    
                     drop_data = {
                         'id': drop.id if hasattr(drop, 'id') else 'unknown',
                         'name': drop.name if hasattr(drop, 'name') else 'Unknown Drop',
-                        'image_url': drop.image_url if hasattr(drop, 'image_url') else None,
+                        'image_url': image_url,
                     }
                     
                     # Add game info from the campaign
@@ -270,12 +275,17 @@ def inventory():
         # Fallback to old structure
         else:
             # Add claimed drops
-            if hasattr(twitch, 'inventory') and hasattr(twitch.inventory, 'claimed'):
+            if hasattr(twitch, 'inventory') and hasattr(twitch.inventory, 'claimed'):                
                 for drop in twitch.inventory.claimed:
+                    # Get image URL from the first benefit if available
+                    image_url = None
+                    if hasattr(drop, 'benefits') and drop.benefits and len(drop.benefits) > 0:
+                        image_url = drop.benefits[0].image_url if hasattr(drop.benefits[0], 'image_url') else None
+                    
                     drop_data = {
                         'id': drop.id if hasattr(drop, 'id') else 'unknown',
                         'name': drop.name if hasattr(drop, 'name') else 'Unknown Drop',
-                        'image_url': drop.image_url if hasattr(drop, 'image_url') else None,
+                        'image_url': image_url,
                         'claim_time': drop.claim_time.isoformat() if hasattr(drop, 'claim_time') and drop.claim_time else None,
                     }
                     
@@ -286,14 +296,18 @@ def inventory():
                         drop_data['game'] = None
                     
                     inventory_data['claimed'].append(drop_data)
-                    
-            # Add pending drops
+                      # Add pending drops
             if hasattr(twitch, 'inventory') and hasattr(twitch.inventory, 'pending'):
                 for drop in twitch.inventory.pending:
+                    # Get image URL from the first benefit if available
+                    image_url = None
+                    if hasattr(drop, 'benefits') and drop.benefits and len(drop.benefits) > 0:
+                        image_url = drop.benefits[0].image_url if hasattr(drop.benefits[0], 'image_url') else None
+                    
                     drop_data = {
                         'id': drop.id if hasattr(drop, 'id') else 'unknown',
                         'name': drop.name if hasattr(drop, 'name') else 'Unknown Drop',
-                        'image_url': drop.image_url if hasattr(drop, 'image_url') else None,
+                        'image_url': image_url,
                         'progress': drop.current_minutes if hasattr(drop, 'current_minutes') else 0,
                         'required_minutes': drop.required_minutes if hasattr(drop, 'required_minutes') else 0,
                     }

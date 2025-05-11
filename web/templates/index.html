@@ -14,30 +14,29 @@
     <link rel="stylesheet" href="https://unpkg.com/tailwindcss@2.2.19/dist/tailwind.min.css"/>
       <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    
-    <style>
-        /* Loading indicator styles */
-        .loading-indicator {
-            display: none;
-            justify-content: center;
-            align-items: center;
-            background-color: rgba(255, 255, 255, 0.8);
-            border-radius: 0.25rem;
-            position: absolute;
+      <style>
+        /* Progress bar styles - Portainer style */
+        .progress-container {
+            position: fixed;
             top: 0;
             left: 0;
-            right: 0;
-            bottom: 0;
-            z-index: 10;
+            width: 100%;
+            height: 3px;
+            z-index: 9999;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease;
         }
         
-        .loading-spinner {
-            border: 3px solid #e2e8f0;
-            border-radius: 50%;
-            border-top: 3px solid #805ad5;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: #3B82F6; /* Tailwind blue-500 */
+            transition: width 0.4s ease;
+        }
+        
+        .progress-container.visible {
+            opacity: 1;
         }
         
         @keyframes spin {
@@ -53,6 +52,9 @@
 </head>
 
 <body class="bg-gray-100 font-sans leading-normal tracking-normal">
+    <div id="progress-container" class="progress-container">
+        <div id="progress-bar" class="progress-bar"></div>
+    </div>
     <nav id="header" class="bg-purple-900 fixed w-full z-10 top-0 shadow">
         <div class="w-full container mx-auto flex flex-wrap items-center mt-0 pt-3 pb-3">
             <div class="w-1/2 pl-2 md:pl-0">
@@ -255,7 +257,7 @@
                                     <h2 class="text-lg font-semibold">Available Channels</h2>
                                     <input type="text" id="channel-search" placeholder="Search channels..." class="px-3 py-1 border rounded">
                                 </div>
-                                <div id="channels-list" class="max-h-96 overflow-y-auto">
+                                <div id="channels-list" class="max-h-96 overflow-y-auto"> 
                                     <table class="min-w-full bg-white">
                                         <thead>
                                             <tr>
@@ -272,19 +274,18 @@
                                     </table>
                                 </div>
                             </div>
-                            
-                            <div id="campaigns-tab" class="tab-panel hidden">
-                                <h2 class="text-lg font-semibold mb-4">Active Drop Campaigns</h2>
-                                <div id="campaigns-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                                    <!-- Campaigns will be loaded here dynamically -->
+                              <div id="campaigns-tab" class="tab-panel hidden">  
+                                <h2 class="text-lg font-semibold mb-4">All Campaigns</h2>                                <div class="max-h-96 overflow-y-auto">
+                                    <div id="campaigns-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                                        <!-- Campaigns will be loaded here dynamically -->
+                                    </div>
                                 </div>
                             </div>
                             
                             <div id="inventory-tab" class="tab-panel hidden">
-                                <div class="flex flex-col md:flex-row">
-                                    <div class="w-full md:w-1/2 p-2">
+                                <div class="flex flex-col md:flex-row">                                    <div class="w-full md:w-1/2 p-2">
                                         <h2 class="text-lg font-semibold mb-2">Pending Drops</h2>
-                                        <div id="pending-drops" class="grid grid-cols-1 gap-3">
+                                        <div id="pending-drops" class="grid grid-cols-1 gap-3 max-h-96 overflow-y-auto">
                                             <!-- Pending drops will be loaded here dynamically -->
                                         </div>
                                     </div>
