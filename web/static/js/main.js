@@ -231,10 +231,28 @@ function setupEventListeners() {
         });
     }
     
-    // Reload button
+    // Settings-related event listeners
+    const saveSettingsButton = document.getElementById('save-settings-button');
+    if (saveSettingsButton) {
+        saveSettingsButton.addEventListener('click', () => saveSettings(false));
+    }
+    
+    // Reload button in settings tab (save and reload)
     const reloadButton = document.getElementById('reload-button');
     if (reloadButton) {
-        reloadButton.addEventListener('click', reloadMiner);
+        reloadButton.addEventListener('click', () => saveSettings(true));
+    }
+    
+    // Add priority game button
+    const addPriorityButton = document.getElementById('add-priority-game');
+    if (addPriorityButton) {
+        addPriorityButton.addEventListener('click', addPriorityGame);
+    }
+    
+    // Add exclusion game button
+    const addExcludeButton = document.getElementById('add-exclude-game');
+    if (addExcludeButton) {
+        addExcludeButton.addEventListener('click', addExclusionGame);
     }
     
     // Login button
@@ -393,7 +411,8 @@ function refreshData() {
         fetchChannels().catch(error => ({ error })),
         fetchCampaigns().catch(error => ({ error })),
         fetchInventory().catch(error => ({ error })),
-        checkLoginStatus().catch(error => ({ error }))
+        checkLoginStatus().catch(error => ({ error })),
+        fetchSettings().catch(error => ({ error }))
     ];
     
     // Occasionally fetch diagnostics (every 3rd refresh)
@@ -1239,4 +1258,448 @@ function removeToast(toast) {
     setTimeout(() => {
         toast.remove();
     }, 300);
+}
+
+// Function to fetch settings
+function fetchSettings() {
+    return new Promise((resolve) => {
+        fetch('/api/settings')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Settings API returned ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Update global settings object
+                settingsData = data;
+                
+                // Update the UI with settings information
+                updateSettingsUI(data);
+                resolve(data);
+            })
+            .catch(error => {
+                console.error('Error fetching settings:', error);
+                showToast('Error', 'Failed to fetch settings. Check console for details.', 'error');
+                resolve({ error: 'Failed to fetch settings' });
+            });
+    });
+}
+
+// Function to update settings UI
+function updateSettingsUI(data) {
+    // Update Priority Mode select
+    const priorityModeSelect = document.getElementById('priority-mode');
+    if (priorityModeSelect && data.priority_mode) {
+        priorityModeSelect.value = data.priority_mode;
+    }
+    
+    // Update Connection Quality select
+    const connectionQualitySelect = document.getElementById('connection-quality');
+    if (connectionQualitySelect && data.connection_quality) {
+        connectionQualitySelect.value = data.connection_quality.toString();
+    }
+    
+    // Update Language select
+    const languageSelect = document.getElementById('language-select');
+    if (languageSelect && data.language && data.available_languages) {
+        // Clear existing options
+        languageSelect.innerHTML = '';
+        
+        // Add available languages
+        data.available_languages.forEach(lang => {
+            const option = document.createElement('option');
+            option.value = lang;
+            option.textContent = lang;
+            languageSelect.appendChild(option);
+        });
+        
+        // Set current language
+        languageSelect.value = data.language;
+    }
+    
+    // Update proxy field
+    const proxyInput = document.getElementById('proxy-input');
+    if (proxyInput) {
+        proxyInput.value = data.proxy || '';
+    }
+    
+    // Update checkboxes
+    const autostartCheckbox = document.getElementById('autostart-checkbox');
+    if (autostartCheckbox) {
+        // This is handled separately via registry, so we don't have this info
+        // For now, leave it unchecked
+        autostartCheckbox.checked = false;
+        autostartCheckbox.disabled = true; // Disable it in web UI as it needs registry access
+    }
+    
+    const startTrayCheckbox = document.getElementById('start-tray-checkbox');
+    if (startTrayCheckbox && data.hasOwnProperty('autostart_tray')) {
+        startTrayCheckbox.checked = data.autostart_tray;
+    }
+    
+    const trayNotificationsCheckbox = document.getElementById('tray-notifications-checkbox');
+    if (trayNotificationsCheckbox && data.hasOwnProperty('tray_notifications')) {
+        trayNotificationsCheckbox.checked = data.tray_notifications;
+    }
+    
+    // Update Priority List
+    updatePriorityList(data.priority || []);
+    
+    // Update Exclusion List
+    updateExclusionList(data.exclude || []);
+    
+    // Update game dropdowns
+    updateGameSelectOptions(data.available_games || []);
+}
+
+// Function to update priority list in the UI
+function updatePriorityList(priorityList) {
+    const priorityListElement = document.getElementById('priority-list');
+    if (!priorityListElement) return;
+    
+    priorityListElement.innerHTML = '';
+    
+    if (priorityList.length === 0) {
+        const emptyItem = document.createElement('div');
+        emptyItem.className = 'py-3 px-4 text-gray-500 italic';
+        emptyItem.textContent = 'No priority games added yet';
+        priorityListElement.appendChild(emptyItem);
+        return;
+    }
+    
+    priorityList.forEach((game, index) => {
+        const item = document.createElement('div');
+        item.className = 'py-3 px-4 flex items-center justify-between';
+        
+        const gameNameSpan = document.createElement('span');
+        gameNameSpan.textContent = game;
+        gameNameSpan.className = 'font-medium text-gray-900';
+        
+        const buttonGroup = document.createElement('div');
+        buttonGroup.className = 'flex space-x-2';
+        
+        if (index > 0) {
+            const upButton = document.createElement('button');
+            upButton.innerHTML = '<i class="fas fa-arrow-up"></i>';
+            upButton.className = 'text-gray-400 hover:text-gray-600';
+            upButton.title = 'Move up';
+            upButton.onclick = () => movePriorityItem(index, 1);
+            buttonGroup.appendChild(upButton);
+        }
+        
+        if (index < priorityList.length - 1) {
+            const downButton = document.createElement('button');
+            downButton.innerHTML = '<i class="fas fa-arrow-down"></i>';
+            downButton.className = 'text-gray-400 hover:text-gray-600';
+            downButton.title = 'Move down';
+            downButton.onclick = () => movePriorityItem(index, -1);
+            buttonGroup.appendChild(downButton);
+        }
+        
+        const deleteButton = document.createElement('button');
+        deleteButton.innerHTML = '<i class="fas fa-times"></i>';
+        deleteButton.className = 'text-red-400 hover:text-red-600';
+        deleteButton.title = 'Remove';
+        deleteButton.onclick = () => removePriorityItem(index);
+        buttonGroup.appendChild(deleteButton);
+        
+        item.appendChild(gameNameSpan);
+        item.appendChild(buttonGroup);
+        priorityListElement.appendChild(item);
+    });
+}
+
+// Function to update exclusion list in the UI
+function updateExclusionList(exclusionList) {
+    const exclusionListElement = document.getElementById('exclusion-list');
+    if (!exclusionListElement) return;
+    
+    exclusionListElement.innerHTML = '';
+    
+    if (exclusionList.length === 0) {
+        const emptyItem = document.createElement('div');
+        emptyItem.className = 'py-3 px-4 text-gray-500 italic';
+        emptyItem.textContent = 'No excluded games added yet';
+        exclusionListElement.appendChild(emptyItem);
+        return;
+    }
+    
+    exclusionList.forEach(game => {
+        const item = document.createElement('div');
+        item.className = 'py-3 px-4 flex items-center justify-between';
+        
+        const gameNameSpan = document.createElement('span');
+        gameNameSpan.textContent = game;
+        gameNameSpan.className = 'font-medium text-gray-900';
+        
+        const deleteButton = document.createElement('button');
+        deleteButton.innerHTML = '<i class="fas fa-times"></i>';
+        deleteButton.className = 'text-red-400 hover:text-red-600';
+        deleteButton.title = 'Remove';
+        deleteButton.onclick = () => removeExclusionItem(game);
+        
+        item.appendChild(gameNameSpan);
+        item.appendChild(deleteButton);
+        exclusionListElement.appendChild(item);
+    });
+}
+
+// Function to update game selection dropdowns
+function updateGameSelectOptions(games) {
+    const prioritySelect = document.getElementById('game-select-priority');
+    const excludeSelect = document.getElementById('game-select-exclude');
+    
+    if (!prioritySelect || !excludeSelect) return;
+    
+    // Sort games alphabetically
+    games.sort();
+    
+    // Reset dropdowns
+    prioritySelect.innerHTML = '';
+    excludeSelect.innerHTML = '';
+    
+    // Add placeholder option
+    const priorityPlaceholder = document.createElement('option');
+    priorityPlaceholder.value = '';
+    priorityPlaceholder.textContent = 'Select a game to add to priority';
+    priorityPlaceholder.disabled = true;
+    priorityPlaceholder.selected = true;
+    prioritySelect.appendChild(priorityPlaceholder);
+    
+    const excludePlaceholder = document.createElement('option');
+    excludePlaceholder.value = '';
+    excludePlaceholder.textContent = 'Select a game to exclude';
+    excludePlaceholder.disabled = true;
+    excludePlaceholder.selected = true;
+    excludeSelect.appendChild(excludePlaceholder);
+    
+    // Add game options
+    games.forEach(game => {
+        // For priority list
+        const priorityOption = document.createElement('option');
+        priorityOption.value = game;
+        priorityOption.textContent = game;
+        prioritySelect.appendChild(priorityOption);
+        
+        // For exclusion list
+        const excludeOption = document.createElement('option');
+        excludeOption.value = game;
+        excludeOption.textContent = game;
+        excludeSelect.appendChild(excludeOption);
+    });
+}
+
+// Function to add a game to the priority list
+function addPriorityGame() {
+    const selectElement = document.getElementById('game-select-priority');
+    if (!selectElement || !selectElement.value) return;
+    
+    const game = selectElement.value;
+    
+    // Reset selection
+    selectElement.selectedIndex = 0;
+    
+    // Check if game is already in priority list
+    if (settingsData.priority && settingsData.priority.includes(game)) {
+        showToast('Info', 'This game is already in your priority list', 'info');
+        return;
+    }
+    
+    fetch('/api/settings/priority', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            action: 'add',
+            game: game
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            settingsData.priority = data.priority;
+            updatePriorityList(data.priority);
+            showToast('Success', `Added ${game} to priority list`, 'success');
+        } else {
+            throw new Error(data.error || 'Failed to add game to priority list');
+        }
+    })
+    .catch(error => {
+        console.error('Error adding to priority list:', error);
+        showToast('Error', error.message, 'error');
+    });
+}
+
+// Function to remove a game from the priority list
+function removePriorityItem(index) {
+    fetch('/api/settings/priority', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            action: 'remove',
+            index: index
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            settingsData.priority = data.priority;
+            updatePriorityList(data.priority);
+            showToast('Success', 'Removed game from priority list', 'success');
+        } else {
+            throw new Error(data.error || 'Failed to remove game from priority list');
+        }
+    })
+    .catch(error => {
+        console.error('Error removing from priority list:', error);
+        showToast('Error', error.message, 'error');
+    });
+}
+
+// Function to move an item in the priority list
+function movePriorityItem(index, direction) {
+    fetch('/api/settings/priority', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            action: 'move',
+            index: index,
+            direction: direction
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            settingsData.priority = data.priority;
+            updatePriorityList(data.priority);
+        } else {
+            throw new Error(data.error || 'Failed to move game in priority list');
+        }
+    })
+    .catch(error => {
+        console.error('Error moving item in priority list:', error);
+        showToast('Error', error.message, 'error');
+    });
+}
+
+// Function to add a game to the exclusion list
+function addExclusionGame() {
+    const selectElement = document.getElementById('game-select-exclude');
+    if (!selectElement || !selectElement.value) return;
+    
+    const game = selectElement.value;
+    
+    // Reset selection
+    selectElement.selectedIndex = 0;
+    
+    // Check if game is already in exclusion list
+    if (settingsData.exclude && settingsData.exclude.includes(game)) {
+        showToast('Info', 'This game is already in your exclusion list', 'info');
+        return;
+    }
+    
+    fetch('/api/settings/exclude', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            action: 'add',
+            game: game
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            settingsData.exclude = data.exclude;
+            updateExclusionList(data.exclude);
+            showToast('Success', `Added ${game} to exclusion list`, 'success');
+        } else {
+            throw new Error(data.error || 'Failed to add game to exclusion list');
+        }
+    })
+    .catch(error => {
+        console.error('Error adding to exclusion list:', error);
+        showToast('Error', error.message, 'error');
+    });
+}
+
+// Function to remove a game from the exclusion list
+function removeExclusionItem(game) {
+    fetch('/api/settings/exclude', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            action: 'remove',
+            game: game
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            settingsData.exclude = data.exclude;
+            updateExclusionList(data.exclude);
+            showToast('Success', 'Removed game from exclusion list', 'success');
+        } else {
+            throw new Error(data.error || 'Failed to remove game from exclusion list');
+        }
+    })
+    .catch(error => {
+        console.error('Error removing from exclusion list:', error);
+        showToast('Error', error.message, 'error');
+    });
+}
+
+// Function to save all settings
+function saveSettings(reloadAfterSave = false) {
+    // Collect data from the form
+    const settings = {
+        priority_mode: document.getElementById('priority-mode').value,
+        proxy: document.getElementById('proxy-input').value,
+        language: document.getElementById('language-select').value,
+        connection_quality: parseInt(document.getElementById('connection-quality').value, 10),
+        autostart_tray: document.getElementById('start-tray-checkbox').checked,
+        tray_notifications: document.getElementById('tray-notifications-checkbox').checked,
+        reload: reloadAfterSave
+    };
+    
+    // Send to the API
+    fetch('/api/settings', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(settings)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Success', reloadAfterSave ? 'Settings saved and miner reloaded' : 'Settings saved successfully', 'success');
+            
+            // If we're reloading, refresh the data after a delay to reflect changes
+            if (reloadAfterSave) {
+                setTimeout(() => {
+                    refreshData();
+                }, 2000);
+            }
+        } else {
+            throw new Error(data.error || 'Failed to save settings');
+        }
+    })
+    .catch(error => {
+        console.error('Error saving settings:', error);
+        showToast('Error', error.message, 'error');
+    });
 }

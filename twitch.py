@@ -1504,6 +1504,13 @@ class Twitch:
             drops.sort(key=lambda d: d.remaining_minutes)
             return drops[0]
         return None
+        
+    def inventory_games(self) -> list[Game]:
+        """Get the list of all games in inventory for settings UI"""
+        games = []
+        for campaign in self.inventory:
+            games.append(campaign.game)
+        return games
 
     async def get_live_streams(
         self, game: Game, *, limit: int = 20, drops_enabled: bool = True

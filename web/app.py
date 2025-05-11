@@ -502,14 +502,166 @@ def settings():
     try:
         twitch = tdm_instance
         settings_data = {
-            'priority_mode': twitch.settings.channel_priority.name if hasattr(twitch, 'settings') and hasattr(twitch.settings, 'channel_priority') else None,
-            'priority_list': twitch.settings.priority_list if hasattr(twitch, 'settings') and hasattr(twitch.settings, 'priority_list') else [],
-            'exclusion_list': twitch.settings.exclusion_list if hasattr(twitch, 'settings') and hasattr(twitch.settings, 'exclusion_list') else []
+            'proxy': str(twitch.settings.proxy) if hasattr(twitch, 'settings') else '',
+            'language': twitch.settings.language if hasattr(twitch, 'settings') else '',
+            'exclude': list(twitch.settings.exclude) if hasattr(twitch, 'settings') else [],
+            'priority': twitch.settings.priority if hasattr(twitch, 'settings') else [],
+            'autostart_tray': twitch.settings.autostart_tray if hasattr(twitch, 'settings') else False,
+            'connection_quality': twitch.settings.connection_quality if hasattr(twitch, 'settings') else 1,
+            'tray_notifications': twitch.settings.tray_notifications if hasattr(twitch, 'settings') else True,
+            'priority_mode': twitch.settings.priority_mode.name if hasattr(twitch, 'settings') else 'PRIORITY_ONLY',
+            'available_languages': list(twitch.gui._._languages) if hasattr(twitch, 'gui') and hasattr(twitch.gui, '_') else [],
+            'available_games': list(set(game.name for game in twitch.inventory_games())) if hasattr(twitch, 'inventory_games') else []
         }
         
         return jsonify(settings_data)
     except Exception as e:
         logger.error(f"Error getting settings: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/settings', methods=['POST'])
+def update_settings():
+    """Update settings"""
+    if tdm_instance is None:
+        return jsonify({'error': 'Miner not initialized'}), 503
+
+    try:
+        twitch = tdm_instance
+        data = request.json
+        
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        if 'priority_mode' in data:
+            try:
+                from constants import PriorityMode
+                mode = PriorityMode[data['priority_mode']]
+                twitch.settings.priority_mode = mode
+            except (KeyError, ValueError) as e:
+                return jsonify({'error': f'Invalid priority mode: {str(e)}'}), 400
+                
+        if 'proxy' in data:
+            from yarl import URL
+            twitch.settings.proxy = URL(data['proxy'])
+            
+        if 'language' in data:
+            twitch.settings.language = data['language']
+            
+        if 'autostart_tray' in data:
+            twitch.settings.autostart_tray = bool(data['autostart_tray'])
+            
+        if 'tray_notifications' in data:
+            twitch.settings.tray_notifications = bool(data['tray_notifications'])
+            
+        if 'connection_quality' in data:
+            try:
+                quality = int(data['connection_quality'])
+                if 1 <= quality <= 6:
+                    twitch.settings.connection_quality = quality
+            except ValueError:
+                pass
+        
+        if 'priority' in data and isinstance(data['priority'], list):
+            twitch.settings.priority = data['priority']
+            
+        if 'exclude' in data and isinstance(data['exclude'], list):
+            twitch.settings.exclude = set(data['exclude'])
+        
+        # Save settings to file
+        twitch.settings.save()
+        
+        # If reload requested, trigger inventory fetch
+        if data.get('reload', False):
+            from constants import State
+            twitch.change_state(State.INVENTORY_FETCH)
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        logger.error(f"Error updating settings: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/settings/priority', methods=['POST'])
+def update_priority():
+    """Update priority list"""
+    if tdm_instance is None:
+        return jsonify({'error': 'Miner not initialized'}), 503
+        
+    try:
+        twitch = tdm_instance
+        data = request.json
+        
+        if not data or 'action' not in data:
+            return jsonify({'error': 'Invalid data'}), 400
+            
+        action = data['action']
+        
+        if action == 'add' and 'game' in data:
+            game_name = data['game']
+            if game_name not in twitch.settings.priority:
+                twitch.settings.priority.append(game_name)
+                twitch.settings.save()
+                
+        elif action == 'remove' and 'index' in data:
+            try:
+                index = int(data['index'])
+                if 0 <= index < len(twitch.settings.priority):
+                    del twitch.settings.priority[index]
+                    twitch.settings.save()
+            except (ValueError, IndexError):
+                return jsonify({'error': 'Invalid index'}), 400
+                
+        elif action == 'move' and 'index' in data and 'direction' in data:
+            try:
+                index = int(data['index'])
+                direction = int(data['direction'])  # 1 for up, -1 for down
+                
+                if 0 <= index < len(twitch.settings.priority):
+                    new_index = index - direction  # Subtract because up means lower index
+                    
+                    if 0 <= new_index < len(twitch.settings.priority):
+                        item = twitch.settings.priority.pop(index)
+                        twitch.settings.priority.insert(new_index, item)
+                        twitch.settings.save()
+            except (ValueError, IndexError):
+                return jsonify({'error': 'Invalid index or direction'}), 400
+        
+        return jsonify({'success': True, 'priority': twitch.settings.priority})
+    except Exception as e:
+        logger.error(f"Error updating priority: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/settings/exclude', methods=['POST'])
+def update_exclude():
+    """Update exclusion list"""
+    if tdm_instance is None:
+        return jsonify({'error': 'Miner not initialized'}), 503
+        
+    try:
+        twitch = tdm_instance
+        data = request.json
+        
+        if not data or 'action' not in data:
+            return jsonify({'error': 'Invalid data'}), 400
+            
+        action = data['action']
+        
+        if action == 'add' and 'game' in data:
+            game_name = data['game']
+            twitch.settings.exclude.add(game_name)
+            twitch.settings.save()
+                
+        elif action == 'remove' and 'game' in data:
+            game_name = data['game']
+            if game_name in twitch.settings.exclude:
+                twitch.settings.exclude.remove(game_name)
+                twitch.settings.save()
+        
+        return jsonify({'success': True, 'exclude': list(twitch.settings.exclude)})
+    except Exception as e:
+        logger.error(f"Error updating exclusion list: {e}")
         return jsonify({'error': str(e)}), 500
 
 

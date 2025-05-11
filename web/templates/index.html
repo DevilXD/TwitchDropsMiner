@@ -295,31 +295,148 @@
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                              <div id="settings-tab" class="tab-panel hidden">
+                            </div>                            <div id="settings-tab" class="tab-panel hidden">
                                 <h2 class="text-lg font-semibold mb-4">Settings</h2>
-                                <div class="mb-4">
-                                    <h3 class="font-bold text-sm text-gray-700 mb-2">Priority Mode</h3>
-                                    <select id="priority-mode" class="block w-full md:w-1/3 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                                        <option value="FIRST">First Available</option>
-                                        <option value="VIEWERS">Most Viewers</option>
-                                        <option value="RANDOM">Random</option>
-                                    </select>
-                                </div>
-                                <div class="mb-4">
-                                    <h3 class="font-bold text-sm text-gray-700 mb-2">Priority List</h3>
-                                    <div id="priority-list" class="max-h-48 overflow-y-auto border rounded p-2 mb-2">
-                                        <!-- Priority list will be loaded here dynamically -->
+                                
+                                <!-- General Settings Section -->
+                                <div class="bg-white shadow overflow-hidden rounded-md mb-6">
+                                    <div class="px-4 py-5 sm:px-6 bg-gray-50">
+                                        <h3 class="text-lg leading-6 font-medium text-gray-900">General Settings</h3>
+                                    </div>
+                                    <div class="border-t border-gray-200 px-4 py-5 sm:p-6">
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <!-- Language Setting -->
+                                            <div>
+                                                <label for="language-select" class="block text-sm font-medium text-gray-700">Language 🌐 (requires restart)</label>
+                                                <select id="language-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                                                    <!-- Will be populated dynamically -->
+                                                </select>
+                                            </div>
+                                            
+                                            <!-- Connection Quality Setting -->
+                                            <div>
+                                                <label for="connection-quality" class="block text-sm font-medium text-gray-700">Connection Quality</label>
+                                                <select id="connection-quality" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                                                    <option value="1">1 (Fastest)</option>
+                                                    <option value="2">2</option>
+                                                    <option value="3">3</option>
+                                                    <option value="4">4</option>
+                                                    <option value="5">5</option>
+                                                    <option value="6">6 (Most reliable)</option>
+                                                </select>
+                                            </div>
+                                            
+                                            <!-- Proxy Setting -->
+                                            <div class="md:col-span-2">
+                                                <label for="proxy-input" class="block text-sm font-medium text-gray-700">Proxy URL</label>
+                                                <input type="text" id="proxy-input" placeholder="http://username:password@address:port" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                                            </div>
+                                            
+                                            <!-- Checkboxes -->
+                                            <div class="md:col-span-2">
+                                                <div class="space-y-4">
+                                                    <div class="flex items-start">
+                                                        <div class="flex items-center h-5">
+                                                            <input id="autostart-checkbox" type="checkbox" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded">
+                                                        </div>
+                                                        <div class="ml-3 text-sm">
+                                                            <label for="autostart-checkbox" class="font-medium text-gray-700">Auto-start on system startup</label>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="flex items-start">
+                                                        <div class="flex items-center h-5">
+                                                            <input id="start-tray-checkbox" type="checkbox" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded">
+                                                        </div>
+                                                        <div class="ml-3 text-sm">
+                                                            <label for="start-tray-checkbox" class="font-medium text-gray-700">Start minimized to tray</label>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="flex items-start">
+                                                        <div class="flex items-center h-5">
+                                                            <input id="tray-notifications-checkbox" type="checkbox" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded">
+                                                        </div>
+                                                        <div class="ml-3 text-sm">
+                                                            <label for="tray-notifications-checkbox" class="font-medium text-gray-700">Show tray notifications</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="mb-4">
-                                    <h3 class="font-bold text-sm text-gray-700 mb-2">Exclusion List</h3>
-                                    <div id="exclusion-list" class="max-h-48 overflow-y-auto border rounded p-2 mb-2">
-                                        <!-- Exclusion list will be loaded here dynamically -->
+                                
+                                <!-- Priority Settings Section -->
+                                <div class="bg-white shadow overflow-hidden rounded-md mb-6">
+                                    <div class="px-4 py-5 sm:px-6 bg-gray-50">
+                                        <h3 class="text-lg leading-6 font-medium text-gray-900">Priority Settings</h3>
                                     </div>
-                                </div>                                <div class="mt-4">
-                                    <button id="reload-button" class="bg-purple-600 hover:bg-purple-800 text-white font-bold py-2 px-4 rounded">
-                                        Reload
+                                    <div class="border-t border-gray-200 px-4 py-5 sm:p-6">
+                                        <!-- Priority Mode -->
+                                        <div class="mb-4">
+                                            <label for="priority-mode" class="block text-sm font-medium text-gray-700">Priority Mode</label>
+                                            <select id="priority-mode" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                                                <option value="PRIORITY_ONLY">Priority Only</option>
+                                                <option value="ENDING_SOONEST">Ending Soonest</option>
+                                                <option value="LOW_AVBL_FIRST">Low Availability First</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <!-- Priority List -->
+                                        <div class="mb-6">
+                                            <div class="flex justify-between items-center mb-2">
+                                                <h4 class="text-sm font-medium text-gray-700">Priority List</h4>
+                                                <div class="flex space-x-2">
+                                                    <div class="relative flex items-center">
+                                                        <select id="game-select-priority" class="block w-64 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                                                            <!-- Will be populated dynamically -->
+                                                        </select>
+                                                        <button id="add-priority-game" class="ml-2 inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                                            Add
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="border rounded-md overflow-hidden">
+                                                <div id="priority-list" class="max-h-48 overflow-y-auto divide-y divide-gray-200">
+                                                    <!-- Priority list will be loaded here dynamically -->
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Exclusion List -->
+                                        <div>
+                                            <div class="flex justify-between items-center mb-2">
+                                                <h4 class="text-sm font-medium text-gray-700">Exclusion List</h4>
+                                                <div class="flex space-x-2">
+                                                    <div class="relative flex items-center">
+                                                        <select id="game-select-exclude" class="block w-64 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                                                            <!-- Will be populated dynamically -->
+                                                        </select>
+                                                        <button id="add-exclude-game" class="ml-2 inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                                            Add
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="border rounded-md overflow-hidden">
+                                                <div id="exclusion-list" class="max-h-48 overflow-y-auto divide-y divide-gray-200">
+                                                    <!-- Exclusion list will be loaded here dynamically -->
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Save and Reload Buttons -->
+                                <div class="flex items-center justify-between">
+                                    <button id="save-settings-button" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                        Save Settings
+                                    </button>
+                                    
+                                    <button id="reload-button" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+                                        Save & Reload
                                     </button>
                                 </div>
                             </div>
