@@ -784,8 +784,7 @@ function fetchChannels() {
             })
             .then(data => {
                 if (data.error) {
-                    console.error('Error from channels API:', data.error);
-                    const channelsTable = document.getElementById('channels-table-body');
+                    console.error('Error from channels API:', data.error);                    const channelsTable = document.getElementById('channels-table-body');
                     if (channelsTable) {
                         channelsTable.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-red-500">Error: ${data.error}</td></tr>`;
                     }
@@ -1065,8 +1064,7 @@ function updateChannelsUI(data) {
     
     // Clear existing content
     channelsTable.innerHTML = '';
-    
-    if (!data || data.length === 0) {
+      if (!data || data.length === 0) {
         channelsTable.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">No channels available.</td></tr>';
         return;
     }
@@ -1079,8 +1077,7 @@ function updateChannelsUI(data) {
         if (channel.current) {
             row.classList.add('bg-purple-100');
         }
-        
-        // Channel name with status indicator
+          // Channel name with status indicator
         const statusClass = channel.status === 'ONLINE' ? 'bg-green-500' : 'bg-gray-400';
         row.innerHTML = `
             <td class="px-4 py-3 border-b border-gray-200">
@@ -1091,22 +1088,20 @@ function updateChannelsUI(data) {
             </td>
             <td class="px-4 py-3 border-b border-gray-200 game-name">${channel.game || 'Unknown'}</td>
             <td class="px-4 py-3 border-b border-gray-200 text-right">${channel.status === 'ONLINE' ? channel.viewers.toLocaleString() : '-'}</td>
-            <td class="px-4 py-3 border-b border-gray-200 text-center">${channel.has_drops ? '<span class="text-green-500"><i class="fas fa-check"></i></span>' : '<span class="text-gray-400"><i class="fas fa-times"></i></span>'}</td>
-            <td class="px-4 py-3 border-b border-gray-200 text-right">
+            <td class="px-4 py-3 border-b border-gray-200 text-center">${channel.has_drops ? '<span class="text-green-500"><i class="fas fa-check"></i></span>' : ''}</td>            <td class="px-4 py-3 border-b border-gray-200 text-right">
                 <button class="watch-channel-btn bg-blue-500 hover:bg-blue-700 text-white py-1 px-2 rounded text-xs" data-channel="${channel.name}">
-                    <i class="fas fa-tv mr-1"></i> Watch
+                    <i class="fas fa-tv mr-1"></i> Watch <i class="fas fa-external-link-alt text-xs"></i>
                 </button>
             </td>
         `;
         
         channelsTable.appendChild(row);
-    });
-    
-    // Add event listeners to watch buttons
+    });    // Add event listeners to watch buttons
     document.querySelectorAll('.watch-channel-btn').forEach(button => {
         button.addEventListener('click', () => {
             const channelName = button.getAttribute('data-channel');
-            watchChannel(channelName);
+            // Only open the URL directly, don't call watchChannel function to avoid errors
+            window.open(`https://www.twitch.tv/${channelName}`, '_blank');
         });
     });
 }
