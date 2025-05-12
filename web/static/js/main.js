@@ -17,6 +17,15 @@ document.addEventListener('DOMContentLoaded', () => {
     setupTabNavigation();
     setupEventListeners();
     
+    // Restore scroll positions on initial load
+    const activeTabButton = document.querySelector('.tab-button.border-purple-600');
+    if (activeTabButton) {
+        const tabId = activeTabButton.id.replace('tab-btn-', '');
+        if (tabId === 'campaigns' || tabId === 'inventory') {
+            setTimeout(() => restoreScrollPosition(tabId), 500); // Delay for content to load
+        }
+    }
+    
     // Track when the window gets focus for browsers that might not properly support visibilitychange
     let windowBlurred = false;
     window.addEventListener('blur', () => {
@@ -26,31 +35,42 @@ document.addEventListener('DOMContentLoaded', () => {
       window.addEventListener('focus', () => {
         if (windowBlurred) {
             windowBlurred = false;
-            console.log('Window regained focus, refreshing data...');
+            console.log('Window regained focus, refreshing only status and channels...');
+            
+            // Save scroll position first
+            if (window.saveCurrentScrollPosition) {
+                window.saveCurrentScrollPosition();
+            }
             
             // Small delay to ensure the window is fully focused
             setTimeout(() => {
+                // Only refresh status and channels, not campaigns or inventory to prevent scroll jump
                 refreshData({
                     refreshChannels: true,
-                    refreshCampaigns: true,
-                    refreshInventory: true,
-                    refreshSettings: true,
+                    refreshCampaigns: false,  // Don't auto-refresh campaigns on focus
+                    refreshInventory: false,  // Don't auto-refresh inventory on focus
+                    refreshSettings: false,
                     refreshLogin: true
                 });
             }, 300);
         }
     });
-      
-    // Initial data fetch with full loading indicator
+        // Initial data fetch with full loading indicator
     refreshData({ showLoader: true }).then(() => {
         // Set up auto-refresh every 10 seconds only after initial load completes
         // Only auto-refresh status and channels, don't show loader
         refreshInterval = setInterval(() => {
+            // Save scroll position first if needed (especially for active campaign/inventory tabs)
+            if (window.saveCurrentScrollPosition && 
+                (window.currentTab === 'campaigns' || window.currentTab === 'inventory')) {
+                window.saveCurrentScrollPosition();
+            }
+            
             refreshData({
                 showLoader: false,
                 refreshChannels: true,
-                refreshCampaigns: false,
-                refreshInventory: false,
+                refreshCampaigns: false,  // Never auto-refresh campaigns in background
+                refreshInventory: false,  // Never auto-refresh inventory in background
                 refreshSettings: false,
                 refreshLogin: false
             }).catch(error => {
@@ -60,6 +80,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 10000);
     });
 });
+
+// The scroll position preservation is now handled by scroll-position.js
 
 // Function to reload the miner
 function reloadMiner() {
@@ -239,6 +261,11 @@ function setupTabNavigation() {
                 preloadData('channels');
             }
             
+            // Save scroll position for current tab before switching
+            if (currentTab === 'campaigns' || currentTab === 'inventory') {
+                saveScrollPosition(currentTab);
+            }
+            
             // Update active tab button
             tabButtons.forEach(btn => {
                 if (btn === button) {
@@ -257,6 +284,11 @@ function setupTabNavigation() {
                     
                     // When a tab becomes visible, make sure lazy loading is set up
                     setTimeout(() => setupLazyLoading(), 100);
+                    
+                    // Restore scroll position for the tab we're switching to
+                    if (tabId === 'campaigns' || tabId === 'inventory') {
+                        restoreScrollPosition(tabId);
+                    }
                 } else {
                     panel.classList.add('hidden');
                 }
@@ -271,23 +303,27 @@ function setupTabNavigation() {
 // Set up event listeners
 function setupEventListeners() {
     // Page visibility change event to refresh data when user returns to the tab
-    let wasHidden = false;
-      // Check if the page was hidden
+    let wasHidden = false;      // Check if the page was hidden
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {
             wasHidden = true;
             console.log('Tab hidden, marking for refresh on return');
         } else if (document.visibilityState === 'visible' && wasHidden) {
             wasHidden = false;
-            console.log('Tab became visible after being hidden, refreshing data...');
+            console.log('Tab became visible after being hidden, refreshing status and channels only...');
+            
+            // Save scroll position first
+            if (window.saveCurrentScrollPosition) {
+                window.saveCurrentScrollPosition();
+            }
             
             // Small delay to ensure the tab is fully active
             setTimeout(() => {
                 refreshData({
                     refreshChannels: true,
-                    refreshCampaigns: true,
-                    refreshInventory: true,
-                    refreshSettings: true,
+                    refreshCampaigns: false,  // Don't auto-refresh campaigns on visibility change
+                    refreshInventory: false,  // Don't auto-refresh inventory on visibility change 
+                    refreshSettings: false,
                     refreshLogin: true
                 });
             }, 300);
@@ -475,12 +511,11 @@ function setupEventListeners() {
                         reconnectWebsocketButton.innerHTML = originalText;
                         
                         // Fetch diagnostics to update connection status
-                        fetchDiagnostics();
-                    }, 2000);
+                        fetchDiagnostics();                    }, 2000);
                 });
         });
     }
-}
+} // End of setupEventListeners function
 
 // Filter channels based on search input
 function filterChannels(searchValue) {
@@ -512,6 +547,8 @@ function refreshData(options = {}) {
     const config = { ...defaults, ...options };
     
     if (isDataLoading) return Promise.resolve(); // Prevent multiple concurrent refreshes without rejecting the promise
+    
+    // Scroll position saving is now handled by scroll-position.js
     
     isDataLoading = true;
     
@@ -604,9 +641,7 @@ function refreshData(options = {}) {
                         progressBar.style.width = '0%';
                     }, 300);
                 }, 500);
-            }
-            
-            // Always reset the isDataLoading flag
+            }            // Always reset the isDataLoading flag
             isDataLoading = false;
             
             // Update the last refresh time
@@ -619,6 +654,8 @@ function refreshData(options = {}) {
                     lastRefreshSpan.textContent = `Last updated: ${timeString}`;
                 }
             }
+            
+            // Scroll position restoration is now handled by scroll-position.js
         });
 }
 
@@ -1234,6 +1271,8 @@ function updateCampaignsUI(data) {
     if (data.length > initialRenderCount) {
         setupVirtualRendering(campaignsList, data, initialRenderCount);
     }
+    
+    // Scroll position restoration is now handled by scroll-position.js
 }
 
 // Helper function to create a campaign card
@@ -1316,9 +1355,7 @@ function updateInventoryUI(data) {
     claimedDrops.appendChild(claimedFragment);
     
     // Setup lazy loading for images
-    setupLazyLoading();
-    
-    // Setup virtual rendering if needed
+    setupLazyLoading();    // Setup virtual rendering if needed
     if (pendingItems.length > 10) {
         setupDropsVirtualRendering(pendingDrops, pendingItems, 10, 'pending');
     }
@@ -1326,6 +1363,8 @@ function updateInventoryUI(data) {
     if (claimedItems.length > 10) {
         setupDropsVirtualRendering(claimedDrops, claimedItems, 10, 'claimed');
     }
+    
+    // Scroll position restoration is now handled by scroll-position.js
 }
 
 // Helper function to create a drop card - moved to lazy-loader.js

@@ -485,15 +485,22 @@
                 </div>
             </div>
         </div>
-    </div>    <!-- JavaScript -->
-    <script src="{{ url_for('static', filename='js/loading.js') }}"></script>    <script src="{{ url_for('static', filename='js/lazy-loader.js') }}"></script>
+    </div>    <!-- JavaScript -->    <script src="{{ url_for('static', filename='js/loading.js') }}"></script>    <script src="{{ url_for('static', filename='js/lazy-loader.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/global-exports.js') }}"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/scroll-position.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/manual-refresh.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/auto-refresh-prevention.js') }}"></script>
     <script>
         // Initialize loading indicators after page load
         document.addEventListener('DOMContentLoaded', function() {
             addLoadingIndicators();
             // Start preloading data in the background after initial load
             setTimeout(() => preloadAllData(), 2000);
+            // Setup scroll position tracking - must be called after the DOM is loaded
+            if (typeof setupScrollTracking === 'function') {
+                setupScrollTracking();
+            }
         });
     </script>
 </body>

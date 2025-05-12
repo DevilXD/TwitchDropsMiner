@@ -31,8 +31,28 @@ function setupLazyLoading() {
     });
 }
 
+// Scroll position management is now handled by scroll-position.js
+
+// These functions are provided for backwards compatibility
+// They will be overridden by the scroll-position.js implementations
+function saveScrollPosition(tabId) {
+    // This is now handled by scroll-position.js
+    console.log('[Lazy Loader] saveScrollPosition called - this function is now in scroll-position.js');
+}
+
+function restoreScrollPosition(tabId) {
+    // This is now handled by scroll-position.js
+    console.log('[Lazy Loader] restoreScrollPosition called - this function is now in scroll-position.js');
+}
+
+// This will be replaced by the implementation in scroll-position.js
+function setupScrollTracking() {
+    console.log('[Lazy Loader] setupScrollTracking called - this function is now in scroll-position.js');
+}
+
 // Preload data in the background
-let preloadedData = {
+// Make preloadedData available globally for other scripts
+window.preloadedData = {
     campaigns: null,
     inventory: null,
     channels: null,
@@ -42,6 +62,9 @@ let preloadedData = {
         channels: 0
     }
 };
+
+// For backwards compatibility
+let preloadedData = window.preloadedData;
 
 // Preload data for a specific type with cache invalidation
 function preloadData(dataType) {
@@ -109,12 +132,15 @@ function preloadAllData() {
     setTimeout(() => preloadData('channels'), 1500);
 }
 
-// Check if we have valid preloaded data
+// Check if we have valid preloaded data - make it globally available
 function hasValidPreloadedData(dataType) {
     const now = Date.now();
     const cacheTime = 60000; // 1 minute cache
     return preloadedData[dataType] && (now - preloadedData.lastPreloadTime[dataType] < cacheTime);
 }
+
+// Make this function available globally for other scripts
+window.hasValidPreloadedData = hasValidPreloadedData;
 
 // Get preloaded data if available, otherwise fetch it
 function getDataWithPreload(dataType, fetchFunction) {
