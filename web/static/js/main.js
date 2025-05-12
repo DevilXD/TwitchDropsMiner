@@ -227,6 +227,18 @@ function setupTabNavigation() {
             // Get the tab ID from the button ID
             const tabId = button.id.replace('tab-btn-', '');
             
+            // Start preloading data for the selected tab
+            if (tabId === 'campaigns') {
+                // If we're switching to campaigns, preload campaigns data
+                preloadData('campaigns');
+            } else if (tabId === 'inventory') {
+                // If we're switching to inventory, preload inventory data
+                preloadData('inventory');
+            } else if (tabId === 'channels') {
+                // If we're switching to channels, preload channels data
+                preloadData('channels');
+            }
+            
             // Update active tab button
             tabButtons.forEach(btn => {
                 if (btn === button) {
@@ -242,6 +254,9 @@ function setupTabNavigation() {
             tabPanels.forEach(panel => {
                 if (panel.id === `${tabId}-tab`) {
                     panel.classList.remove('hidden');
+                    
+                    // When a tab becomes visible, make sure lazy loading is set up
+                    setTimeout(() => setupLazyLoading(), 100);
                 } else {
                     panel.classList.add('hidden');
                 }
@@ -775,6 +790,17 @@ function updateDiagnosticUIError() {
 // Fetch available channels
 function fetchChannels() {
     return new Promise((resolve) => {
+        // Check if we have valid preloaded data
+        if (hasValidPreloadedData('channels')) {
+            console.log('Using preloaded channels data');
+            channelsData = preloadedData.channels;
+            updateChannelsUI(preloadedData.channels);
+            resolve(preloadedData.channels);
+            // After using preloaded data, refresh it in background to keep it updated
+            setTimeout(() => preloadData('channels'), 100);
+            return;
+        }
+        
         fetch('/api/channels')
             .then(response => {
                 if (!response.ok) {
@@ -784,13 +810,18 @@ function fetchChannels() {
             })
             .then(data => {
                 if (data.error) {
-                    console.error('Error from channels API:', data.error);                    const channelsTable = document.getElementById('channels-table-body');
+                    console.error('Error from channels API:', data.error);                    
+                    const channelsTable = document.getElementById('channels-table-body');
                     if (channelsTable) {
                         channelsTable.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-red-500">Error: ${data.error}</td></tr>`;
                     }
                     throw new Error(data.error);
                 }
                 channelsData = data;
+                // Update preloaded data
+                preloadedData.channels = data;
+                preloadedData.lastPreloadTime.channels = Date.now();
+                
                 updateChannelsUI(data);
                 resolve(data);
             })
@@ -809,6 +840,19 @@ function fetchChannels() {
 // Fetch drop campaigns
 function fetchCampaigns() {
     return new Promise((resolve) => {
+        // Check if we have valid preloaded data
+        if (hasValidPreloadedData('campaigns')) {
+            console.log('Using preloaded campaigns data');
+            campaignsData = preloadedData.campaigns;
+            updateCampaignsUI(preloadedData.campaigns);
+            resolve(preloadedData.campaigns);
+            // After using preloaded data, refresh it in background to keep it updated
+            setTimeout(() => {
+                preloadData('campaigns');
+            }, 100);
+            return;
+        }
+        
         fetch('/api/campaigns')
             .then(response => {
                 if (!response.ok) {
@@ -826,6 +870,10 @@ function fetchCampaigns() {
                     throw new Error(data.error);
                 }
                 campaignsData = data;
+                // Update preloaded data
+                preloadedData.campaigns = data;
+                preloadedData.lastPreloadTime.campaigns = Date.now();
+                
                 updateCampaignsUI(data);
                 resolve(data);
             })
@@ -844,6 +892,17 @@ function fetchCampaigns() {
 // Fetch inventory (claimed and pending drops)
 function fetchInventory() {
     return new Promise((resolve) => {
+        // Check if we have valid preloaded data
+        if (hasValidPreloadedData('inventory')) {
+            console.log('Using preloaded inventory data');
+            inventoryData = preloadedData.inventory;
+            updateInventoryUI(preloadedData.inventory);
+            resolve(preloadedData.inventory);
+            // After using preloaded data, refresh it in background to keep it updated
+            setTimeout(() => preloadData('inventory'), 100);
+            return;
+        }
+        
         fetch('/api/inventory')
             .then(response => {
                 if (!response.ok) {
@@ -867,6 +926,10 @@ function fetchInventory() {
                     throw new Error(data.error);
                 }
                 inventoryData = data;
+                // Update preloaded data
+                preloadedData.inventory = data;
+                preloadedData.lastPreloadTime.inventory = Date.now();
+                
                 updateInventoryUI(data);
                 resolve(data);
             })
@@ -1144,41 +1207,40 @@ function updateCampaignsUI(data) {
         return;
     }
     
-    // Add campaigns cards
-    data.forEach(campaign => {
-        const statusClass = campaign.status === 'ACTIVE' ? 'bg-green-100 border-green-500' : 'bg-gray-100 border-gray-400';
-        const statusText = campaign.status === 'ACTIVE' ? 'Active' : 'Inactive';
-        const statusTextColor = campaign.status === 'ACTIVE' ? 'text-green-800' : 'text-gray-600';
-          const campaignCard = document.createElement('div');
-        campaignCard.className = 'col-span-1 p-3 bg-white rounded shadow border-l-4 ' + statusClass;
-        campaignCard.innerHTML = `
-            <div class="flex items-center">
-                ${campaign.image_url ? 
-                  `<div class="mr-2 flex-shrink-0">
-                      <img src="${campaign.image_url}" alt="${campaign.name}" class="w-12 h-12 object-cover rounded">
-                   </div>` : 
-                  ''
-                }
-                <div class="flex-grow">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h3 class="font-bold text-base text-gray-800">${campaign.name}</h3>
-                            <p class="text-gray-600 text-xs">${campaign.game || 'No game specified'}</p>
-                        </div>
-                        <span class="px-1.5 py-0.5 rounded text-xs font-semibold ${statusTextColor} bg-opacity-50">${statusText}</span>
-                    </div>
-                    <div class="mt-2 text-xs">
-                        <p><span class="text-gray-600">Drops:</span> <span class="font-semibold">${campaign.drops_count}</span></p>
-                        ${campaign.start_time ? `<p><span class="text-gray-600">Start:</span> ${new Date(campaign.start_time).toLocaleDateString()}</p>` : ''}
-                        ${campaign.end_time ? `<p><span class="text-gray-600">End:</span> ${new Date(campaign.end_time).toLocaleDateString()}</p>` : ''}
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        campaignsList.appendChild(campaignCard);
-    });
+    // Create a document fragment for better performance
+    const fragment = document.createDocumentFragment();
+    
+    // Calculate how many campaigns to render initially (just visible ones plus a few more)
+    // Determine approximately how many campaigns fit in the viewport
+    const containerHeight = campaignsList.clientHeight;
+    const approxCardHeight = 120; // Estimated height of a campaign card
+    const visibleCards = Math.ceil(containerHeight / approxCardHeight) * 3; // Multiply by columns
+    const initialRenderCount = Math.min(visibleCards + 10, data.length); // Render visible + 10 more
+    
+    // Add campaigns cards using virtual rendering approach
+    for (let i = 0; i < initialRenderCount; i++) {
+        const campaign = data[i];
+        const card = createCampaignCard(campaign);
+        fragment.appendChild(card);
+    }
+    
+    // Append all cards at once for better performance
+    campaignsList.appendChild(fragment);
+    
+    // Setup intersection observer for lazy loading images
+    setupLazyLoading();
+    
+    // Setup intersection observer for virtual rendering
+    if (data.length > initialRenderCount) {
+        setupVirtualRendering(campaignsList, data, initialRenderCount);
+    }
 }
+
+// Helper function to create a campaign card
+// Helper function to create campaign card - moved to lazy-loader.js
+
+// This function is now moved to lazy-loader.js
+// function setupVirtualRendering(container, data, startIndex)
 
 // Update the inventory UI with data
 function updateInventoryUI(data) {
@@ -1211,99 +1273,72 @@ function updateInventoryUI(data) {
         });
     }
     
+    // Create document fragments for better performance
+    const pendingFragment = document.createDocumentFragment();
+    const claimedFragment = document.createDocumentFragment();
+    
     // Handle pending drops
     if (pendingItems.length === 0) {
-        pendingDrops.innerHTML = '<div class="p-4 bg-white rounded shadow text-center text-gray-500">No pending drops.</div>';
+        const emptyMessage = document.createElement('div');
+        emptyMessage.className = 'p-4 bg-white rounded shadow text-center text-gray-500';
+        emptyMessage.textContent = 'No pending drops.';
+        pendingFragment.appendChild(emptyMessage);
     } else {
-        pendingItems.forEach(drop => {
-            const dropCard = document.createElement('div');
-            dropCard.className = 'bg-white rounded shadow mb-4 overflow-hidden';
-              // Calculate progress
-            const progress = drop.current_minutes / drop.required_minutes;
-            const percent = Math.round(progress * 100);
-            const isReady = drop.current_minutes >= drop.required_minutes;
-            const statusClass = isReady ? 'bg-green-100 border-green-500' : 'bg-blue-100 border-blue-500';
-            const actionButton = isReady ? 
-                `<button class="claim-drop-btn bg-green-500 hover:bg-green-600 text-white py-1 px-3 rounded text-sm" data-drop-id="${drop.id}">
-                    <i class="fas fa-gift mr-1"></i> Claim Now
-                </button>` : 
-                '';            dropCard.innerHTML = `
-                <div class="border-l-4 ${statusClass} p-4">
-                    <div class="flex items-center mb-2">
-                        ${drop.image_url ? 
-                          `<div class="mr-3 flex-shrink-0">
-                              <img src="${drop.image_url}" alt="${drop.name}" class="w-16 h-16 object-cover rounded">
-                           </div>` : 
-                          ''
-                        }
-                        <div class="flex-grow">
-                            <div class="flex justify-between items-start w-full">
-                                <div>
-                                    <h3 class="font-bold text-lg text-gray-800">${drop.name}</h3>
-                                    <p class="text-gray-600">${drop.game || 'Unknown Game'}</p>
-                                </div>
-                                <div>
-                                    ${actionButton}
-                                </div>
-                            </div>
-                            <div class="mt-3">
-                                <div class="shadow w-full bg-gray-200 rounded">
-                                    <div class="bg-purple-600 text-xs leading-none py-1 text-center text-white rounded" style="width: ${percent}%">${percent}%</div>
-                                </div>
-                                <p class="mt-1 text-sm text-gray-500">${drop.current_minutes}/${drop.required_minutes} minutes watched</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-              pendingDrops.appendChild(dropCard);
-        });
-    }    // Handle claimed drops
-    if (claimedItems.length === 0) {
-        claimedDrops.innerHTML = '<div class="p-4 bg-white rounded shadow text-center text-gray-500">No claimed drops.</div>';
-    } else {
-        claimedItems.forEach(drop => {
-            const dropCard = document.createElement('div');
-            dropCard.className = 'bg-green-50 rounded shadow mb-4 border-l-4 border-green-500 p-4';
-            
-            // Use the same claimed status badge for all drops in this section
-            const statusBadge = '<span class="px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-800">Claimed</span>';
-            
-            // For auto-moved drops, show completion status; for actually claimed drops, show claim time
-            const timeInfo = drop.autoMoved ?
-                `<p class="mt-2 text-sm text-gray-500">100% Complete</p>` :
-                (drop.claim_time ? `<p class="mt-2 text-sm text-gray-500">Claimed on ${new Date(drop.claim_time).toLocaleString()}</p>` : '');            dropCard.innerHTML = `
-                <div class="flex items-center">
-                    ${drop.image_url ? 
-                      `<div class="mr-3 flex-shrink-0">
-                          <img src="${drop.image_url}" alt="${drop.name}" class="w-16 h-16 object-cover rounded">
-                       </div>` : 
-                      ''
-                    }
-                    <div class="flex-grow">
-                        <div class="flex justify-between items-start w-full">
-                            <div>
-                                <h3 class="font-bold text-lg text-gray-800">${drop.name}</h3>
-                                <p class="text-gray-600">${drop.game || 'Unknown Game'}</p>
-                            </div>
-                            ${statusBadge}
-                        </div>
-                        ${timeInfo}
-                    </div>
-                </div>
-            `;
-            
-            claimedDrops.appendChild(dropCard);
-        });    }
+        // Only render the first batch of items initially
+        const initialRenderCount = Math.min(10, pendingItems.length);
+        
+        for (let i = 0; i < initialRenderCount; i++) {
+            const drop = pendingItems[i];
+            const dropCard = createDropCard(drop, 'pending');
+            pendingFragment.appendChild(dropCard);
+        }
+    }
     
-    // Add event listeners to claim buttons in the pending section
-    document.querySelectorAll('.claim-drop-btn').forEach(button => {
-        button.addEventListener('click', () => {
-            const dropId = button.getAttribute('data-drop-id');
-            claimDrop(dropId);
-        });
-    });
+    pendingDrops.appendChild(pendingFragment);
+    
+    // Handle claimed drops
+    if (claimedItems.length === 0) {
+        const emptyMessage = document.createElement('div');
+        emptyMessage.className = 'p-4 bg-white rounded shadow text-center text-gray-500';
+        emptyMessage.textContent = 'No claimed drops.';
+        claimedFragment.appendChild(emptyMessage);
+    } else {
+        // Only render the first batch of items initially
+        const initialRenderCount = Math.min(10, claimedItems.length);
+        
+        for (let i = 0; i < initialRenderCount; i++) {
+            const drop = claimedItems[i];
+            const dropCard = createDropCard(drop, 'claimed');
+            claimedFragment.appendChild(dropCard);
+        }
+    }
+    
+    claimedDrops.appendChild(claimedFragment);
+    
+    // Setup lazy loading for images
+    setupLazyLoading();
+    
+    // Setup virtual rendering if needed
+    if (pendingItems.length > 10) {
+        setupDropsVirtualRendering(pendingDrops, pendingItems, 10, 'pending');
+    }
+    
+    if (claimedItems.length > 10) {
+        setupDropsVirtualRendering(claimedDrops, claimedItems, 10, 'claimed');
+    }
 }
+
+// Helper function to create a drop card - moved to lazy-loader.js
+
+// Set up virtual rendering for drops lists - Now defined in lazy-loader.js
+    
+// Add event listeners to claim buttons in the pending section
+document.querySelectorAll('.claim-drop-btn').forEach(button => {
+    button.addEventListener('click', () => {
+        const dropId = button.getAttribute('data-drop-id');
+        claimDrop(dropId);
+    });
+});
 
 // Claim a drop
 function claimDrop(dropId) {
@@ -1897,3 +1932,11 @@ function saveSettings(reloadAfterSave = false) {
         showToast('Error', error.message, 'error');
     });
 }
+
+// These functions are now moved to lazy-loader.js
+// setupLazyLoading()
+// setupVirtualRendering()
+// setupDropsVirtualRendering()
+// preloadData()
+// preloadAllData()
+// hasValidPreloadedData()
