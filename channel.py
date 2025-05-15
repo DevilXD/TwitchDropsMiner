@@ -129,7 +129,8 @@ class Channel:
         acl_based: bool = False,
     ):
         self._twitch: Twitch = twitch
-        self._gui_channels: ChannelList = twitch.gui.channels
+        if self._twitch.gui_enabled:
+            self._gui_channels: ChannelList = twitch.gui.channels
         self.id: int = int(id)
         self._login: str = login
         self._display_name: str | None = display_name
@@ -245,13 +246,16 @@ class Channel:
         return False
 
     def display(self, *, add: bool = False):
-        self._gui_channels.display(self, add=add)
+        print(f"Channel.display({self._login})")
+        if self._twitch.gui_enabled:
+            self._gui_channels.display(self, add=add)
 
     def remove(self):
         if self._pending_stream_up is not None:
             self._pending_stream_up.cancel()
             self._pending_stream_up = None
-        self._gui_channels.remove(self)
+            if self._twitch.gui_enabled:
+                self._gui_channels.remove(self)
 
     def external_update(self, channel_data: JsonType, available_drops: list[JsonType]):
         """

@@ -20,6 +20,7 @@ class SettingsFile(TypedDict):
     connection_quality: int
     tray_notifications: bool
     priority_mode: PriorityMode
+    gui_enabled: bool
 
 
 default_settings: SettingsFile = {
@@ -31,6 +32,7 @@ default_settings: SettingsFile = {
     "language": DEFAULT_LANG,
     "tray_notifications": True,
     "priority_mode": PriorityMode.PRIORITY_ONLY,
+    "gui_enabled": False,
 }
 
 
@@ -52,7 +54,7 @@ class Settings:
     connection_quality: int
     tray_notifications: bool
     priority_mode: PriorityMode
-
+    gui_enabled : bool
     PASSTHROUGH = ("_settings", "_args", "_altered")
 
     def __init__(self, args: ParsedArgs):

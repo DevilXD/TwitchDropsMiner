@@ -68,7 +68,6 @@ if __name__ == "__main__":
         log: bool
         tray: bool
         dump: bool
-        
         # Web interface options
         enable_web: bool = False
         web_host: str = "127.0.0.1"
@@ -166,10 +165,10 @@ if __name__ == "__main__":
     # dummy window isn't needed anymore
     root.destroy()
     # get rid of unneeded objects
-    del root, parser    # client run
+    del root, parser    
+    # client run
     async def main() -> None:
         global exit_status
-        
         # setup logging
         log_level = LOGGING_LEVELS[args.log_level]
         LOG_PATH.parent.mkdir(exist_ok=True)
@@ -209,7 +208,10 @@ if __name__ == "__main__":
                 daemon=True
             )
             web_thread.start()
-
+            # Disable GUI if web interface is enabled
+            client.settings.gui_enabled = False
+        else:
+            client.settings.gui_enabled = True
         if sys.platform == "linux":
             loop.add_signal_handler(signal.SIGINT, lambda *_: client.gui.close())
             loop.add_signal_handler(signal.SIGTERM, lambda *_: client.gui.close())
@@ -230,20 +232,21 @@ if __name__ == "__main__":
                 loop.remove_signal_handler(signal.SIGTERM)
             client.print(_("gui", "status", "exiting"))
             await client.shutdown()
-        if not client.gui.close_requested:
-            # user didn't request the closure
-            client.gui.tray.change_icon("error")
-            client.print(_("status", "terminated"))
-            client.gui.status.update(_("gui", "status", "terminated"))
-            # notify the user about the closure
-            client.gui.grab_attention(sound=True)
-        await client.gui.wait_until_closed()
+        if not client.settings.gui_enabled:
+            if not client.gui.close_requested:
+                # user didn't request the closure
+                client.gui.tray.change_icon("error")
+                client.print(_("status", "terminated"))
+                client.gui.status.update(_("gui", "status", "terminated"))
+                # notify the user about the closure
+                client.gui.grab_attention(sound=True)
+            await client.gui.wait_until_closed()
         # save the application state
         # NOTE: we have to do it after wait_until_closed,
         # because the user can alter some settings between app termination and closing the window
         client.save(force=True)
-        client.gui.stop()
-        client.gui.close_window()
+        ##client.gui.stop()
+        ##client.gui.close_window()
         sys.exit(exit_status)
 
     try:

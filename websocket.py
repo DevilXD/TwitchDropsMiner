@@ -39,7 +39,8 @@ class Websocket:
     def __init__(self, pool: WebsocketPool, index: int):
         self._pool: WebsocketPool = pool
         self._twitch: Twitch = pool._twitch
-        self._ws_gui: WebsocketStatus = self._twitch.gui.websockets
+        if self._twitch.gui_enabled:
+            self._ws_gui: WebsocketStatus = self._twitch.gui.websockets
         self._state_lock = asyncio.Lock()
         # websocket index
         self._idx: int = index
@@ -69,9 +70,11 @@ class Websocket:
         return self._ws.wait()
 
     def set_status(self, status: str | None = None, refresh_topics: bool = False):
-        self._twitch.gui.websockets.update(
-            self._idx, status=status, topics=(len(self.topics) if refresh_topics else None)
-        )
+        print(f"Websocket[{self._idx}] status: {status}, topics: {len(self.topics)}")
+        if self._twitch.gui_enabled:
+            self._twitch.gui.websockets.update(
+                self._idx, status=status, topics=(len(self.topics) if refresh_topics else None)
+            )
 
     def request_reconnect(self):
         # reset our ping interval, so we send a PING after reconnect right away
@@ -103,7 +106,8 @@ class Websocket:
             if remove:
                 self.topics.clear()
                 self._topics_changed.set()
-                self._twitch.gui.websockets.remove(self._idx)
+                if self._twitch.gui_enabled:
+                    self._twitch.gui.websockets.remove(self._idx)
 
     def stop_nowait(self, *, remove: bool = False):
         # weird syntax but that's what we get for using a decorator for this

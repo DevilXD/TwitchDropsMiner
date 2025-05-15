@@ -175,7 +175,8 @@ class BaseDrop:
             self._twitch.print(
                 _("status", "claimed_drop").format(drop=claim_text.replace('\n', ' '))
             )
-            self._twitch.gui.tray.notify(claim_text, _("gui", "tray", "notification_title"))
+            if self._twitch.gui_enabled:
+                self._twitch.gui.tray.notify(claim_text, _("gui", "tray", "notification_title"))
         else:
             logger.error(f"Drop claim has potentially failed! Drop ID: {self.id}")
         return result
@@ -217,8 +218,9 @@ class TimedDrop(BaseDrop):
         self, campaign: DropsCampaign, data: JsonType, claimed_benefits: dict[str, datetime]
     ):
         super().__init__(campaign, data, claimed_benefits)
-        self._manager: GUIManager = self._twitch.gui
-        self._gui_inv: InventoryOverview = self._manager.inv
+        if self._twitch.gui_enabled:
+            self._manager: GUIManager = self._twitch.gui
+            self._gui_inv: InventoryOverview = self._manager.inv
         self.current_minutes: int = "self" in data and data["self"]["currentMinutesWatched"] or 0
         self.required_minutes: int = data["requiredMinutesWatched"]
         if self.is_claimed:
@@ -282,13 +284,15 @@ class TimedDrop(BaseDrop):
 
     def _on_claim(self) -> None:
         result = super()._on_claim()
-        self._gui_inv.update_drop(self)
+        if self._twitch.gui_enabled:
+            self._gui_inv.update_drop(self)
         return result
 
     def _on_minutes_changed(self) -> None:
         invalidate_cache(self, "progress", "remaining_minutes")
         self.campaign._on_minutes_changed()
-        self._gui_inv.update_drop(self)
+        if self._twitch.gui_enabled:
+            self._gui_inv.update_drop(self)
 
     def _on_total_minutes_changed(self) -> None:
         invalidate_cache(self, "total_required_minutes", "total_remaining_minutes")
@@ -310,7 +314,12 @@ class TimedDrop(BaseDrop):
         self.display()
 
     def display(self, *, countdown: bool = True, subone: bool = False):
-        self._manager.display_drop(self, countdown=countdown, subone=subone)
+        if self._twitch.gui_enabled:
+            self._manager.display_drop(self, countdown=countdown, subone=subone)
+        print(
+            f"{self.campaign.game.name} - {self.name}: "
+            f"{self.current_minutes}/{self.required_minutes} minutes"
+        )
 
     def bump_minutes(self):
         if self.current_minutes < self.required_minutes:
