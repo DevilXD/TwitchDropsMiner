@@ -466,7 +466,6 @@ class Twitch:
             # prevent state changing once we switch to exit state
             self._state = state
         self._state_change.set()
-        self.print(f"State changed to {state.name}")
 
     def state_change(self, state: State) -> abc.Callable[[], None]:
         # this is identical to change_state, but defers the call
@@ -487,7 +486,6 @@ class Twitch:
         """
         if self.gui_enabled:
             self.gui.prevent_close()
-        print("Preventing close")
 
     def print(self, message: str):
         """
@@ -495,7 +493,6 @@ class Twitch:
         """
         if self.gui_enabled:
            self.gui.print(message)
-        print(message)
 
     def save(self, *, force: bool = False) -> None:
         """
@@ -503,7 +500,6 @@ class Twitch:
         """
         if self.gui_enabled:
             self.gui.save(force=force)
-        print("Saving state")
         self.settings.save(force=force)
 
     def get_priority(self, channel: Channel) -> int:
@@ -528,14 +524,12 @@ class Twitch:
         return -1
 
     async def run(self):
-        self.print("Starting application")
         if self.settings.dump:
             with open(DUMP_PATH, 'w', encoding="utf8"):
                 # replace the existing file with an empty one
                 pass
         while True:
             try:
-                self.print("loop running")
                 await self._run()
                 break
             except ReloadRequest:
@@ -553,7 +547,6 @@ class Twitch:
         • Selecting a stream to watch, and watching it
         • Changing the stream that's being watched if necessary
         """
-        self.print("Starting run")
         if self.gui_enabled:
             self.gui.start()
         auth_state = await self.get_auth()
@@ -584,7 +577,6 @@ class Twitch:
         channels: Final[OrderedDict[int, Channel]] = self.channels
         self.change_state(State.INVENTORY_FETCH)
         while True:
-            self.print("state : %s" % self._state.name)
             if self._state is State.IDLE:
                 if self.settings.dump:
                     if self.gui_enabled:
@@ -1013,7 +1005,6 @@ class Twitch:
         self.watching_channel.set(channel)
         if update_status:
             status_text = _("status", "watching").format(channel=channel.name)
-            self.print(status_text)
             ##self.gui.status.update(status_text)
 
     def stop_watching(self):

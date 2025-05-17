@@ -790,15 +790,15 @@ function updateDiagnosticUIError() {
 function fetchChannels() {
     return new Promise((resolve) => {
         // Check if we have valid preloaded data
-        if (hasValidPreloadedData('channels')) {
-            console.log('Using preloaded channels data');
-            channelsData = preloadedData.channels;
-            updateChannelsUI(preloadedData.channels);
-            resolve(preloadedData.channels);
-            // After using preloaded data, refresh it in background to keep it updated
-            setTimeout(() => preloadData('channels'), 100);
-            return;
-        }
+        // if (hasValidPreloadedData('channels')) {
+        //     console.log('Using preloaded channels data');
+        //     channelsData = preloadedData.channels;
+        //     updateChannelsUI(preloadedData.channels);
+        //     resolve(preloadedData.channels);
+        //     // After using preloaded data, refresh it in background to keep it updated
+        //     setTimeout(() => preloadData('channels'), 100);
+        //     return;
+        // }
         
         fetch('/api/channels')
             .then(response => {
@@ -840,17 +840,17 @@ function fetchChannels() {
 function fetchCampaigns() {
     return new Promise((resolve) => {
         // Check if we have valid preloaded data
-        if (hasValidPreloadedData('campaigns')) {
-            console.log('Using preloaded campaigns data');
-            campaignsData = preloadedData.campaigns;
-            updateCampaignsUI(preloadedData.campaigns);
-            resolve(preloadedData.campaigns);
-            // After using preloaded data, refresh it in background to keep it updated
-            setTimeout(() => {
-                preloadData('campaigns');
-            }, 100);
-            return;
-        }
+        // if (hasValidPreloadedData('campaigns')) {
+        //     console.log('Using preloaded campaigns data');
+        //     campaignsData = preloadedData.campaigns;
+        //     updateCampaignsUI(preloadedData.campaigns);
+        //     resolve(preloadedData.campaigns);
+        //     // After using preloaded data, refresh it in background to keep it updated
+        //     setTimeout(() => {
+        //         preloadData('campaigns');
+        //     }, 100);
+        //     return;
+        // }
         
         fetch('/api/campaigns')
             .then(response => {
@@ -892,15 +892,15 @@ function fetchCampaigns() {
 function fetchInventory() {
     return new Promise((resolve) => {
         // Check if we have valid preloaded data
-        if (hasValidPreloadedData('inventory')) {
-            console.log('Using preloaded inventory data');
-            inventoryData = preloadedData.inventory;
-            updateInventoryUI(preloadedData.inventory);
-            resolve(preloadedData.inventory);
-            // After using preloaded data, refresh it in background to keep it updated
-            setTimeout(() => preloadData('inventory'), 100);
-            return;
-        }
+        // if (hasValidPreloadedData('inventory')) {
+        //     console.log('Using preloaded inventory data');
+        //     inventoryData = preloadedData.inventory;
+        //     updateInventoryUI(preloadedData.inventory);
+        //     resolve(preloadedData.inventory);
+        //     // After using preloaded data, refresh it in background to keep it updated
+        //     setTimeout(() => preloadData('inventory'), 100);
+        //     return;
+        // }
         
         fetch('/api/inventory')
             .then(response => {

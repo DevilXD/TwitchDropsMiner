@@ -70,7 +70,6 @@ class Websocket:
         return self._ws.wait()
 
     def set_status(self, status: str | None = None, refresh_topics: bool = False):
-        print(f"Websocket[{self._idx}] status: {status}, topics: {len(self.topics)}")
         if self._twitch.gui_enabled:
             self._twitch.gui.websockets.update(
                 self._idx, status=status, topics=(len(self.topics) if refresh_topics else None)

@@ -246,7 +246,6 @@ class Channel:
         return False
 
     def display(self, *, add: bool = False):
-        print(f"Channel.display({self._login})")
         if self._twitch.gui_enabled:
             self._gui_channels.display(self, add=add)
 
