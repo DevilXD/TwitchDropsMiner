@@ -390,6 +390,7 @@ class Twitch:
         self.websocket = WebsocketPool(self)
         # Maintenance task
         self._mnt_task: asyncio.Task[None] | None = None
+        self._last_drop_update = None  # To store the latest WebSocket drop update
 
     async def get_session(self) -> aiohttp.ClientSession:
         if (session := self._session) is not None:
@@ -1180,8 +1181,18 @@ class Twitch:
                 f"{message['data']['required_progress_min']})"
             )
         else:
-            drop_text = "<Unknown>"
-        logger.log(CALL, f"Drop update from websocket: {drop_text}")
+            drop_text = "<Unknown>"        
+            logger.log(CALL, f"Drop update from websocket: {drop_text}")
+        
+        # Store the latest drop update for the web API
+        self._last_drop_update = {
+            "drop": drop,
+            "drop_id": drop_id,
+            "current_minutes": message["data"]["current_progress_min"],
+            "required_minutes": message["data"]["required_progress_min"],
+            "timestamp": datetime.now(timezone.utc)
+        }
+        
         if drop is not None and drop.can_earn(self.watching_channel.get_with_default(None)):
             # the received payload is for the drop we expected
             drop.update_minutes(message["data"]["current_progress_min"])

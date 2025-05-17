@@ -8,7 +8,8 @@ import logging
 import requests
 from pathlib import Path
 from typing import Dict, Any, Optional
-from time import sleep 
+from time import sleep
+from datetime import datetime, timezone
 from flask import Flask, render_template, jsonify, request, redirect, url_for
 from flask_cors import CORS
 import threading
@@ -83,17 +84,31 @@ def status():
             current_channel_status = 'ONLINE' if watching_channel.online else 'OFFLINE'
             if watching_channel.game:
                 current_game = watching_channel.game.name
-        
-        # Get active drop information
+          # Get active drop information
         current_drop = None
         drop_progress = None
         time_remaining = None
+
+        # First check the latest WebSocket drop update (which is more accurate)
+        if hasattr(twitch, '_last_drop_update') and twitch._last_drop_update:
+            drop_update = twitch._last_drop_update
+            websocket_drop = drop_update['drop']
+            
+            if websocket_drop:
+                # Use the more accurate WebSocket data
+                current_drop = websocket_drop.name
+                drop_progress = f"{drop_update['current_minutes']}/{drop_update['required_minutes']}"
+                time_remaining = f"{websocket_drop.remaining_minutes} minutes"
+                logger.info(f"Using WebSocket drop data: {current_drop} - {drop_progress}")
         
-        active_drop = twitch.get_active_drop(watching_channel)
-        if active_drop:
-            current_drop = active_drop.name
-            drop_progress = active_drop.progress
-            time_remaining = f"{active_drop.remaining_minutes} minutes"
+        # Fall back to get_active_drop if no WebSocket data is available
+        if current_drop is None:
+            active_drop = twitch.get_active_drop(watching_channel)
+            if active_drop:
+                current_drop = active_drop.name
+                drop_progress = active_drop.progress
+                time_remaining = f"{active_drop.remaining_minutes} minutes"
+                logger.info(f"Using fallback drop data: {current_drop} - {drop_progress}")
         
         # Count pending drops
         inventory_pending = 0
@@ -1184,6 +1199,74 @@ def cancel_auth():
         })
     except Exception as e:
         logger.error(f"Error handling auth cancellation: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/active_drop')
+def active_drop():
+    """Return the most accurate information about the currently active drop via WebSocket updates"""
+    if tdm_instance is None:
+        return jsonify({'error': 'Miner not initialized'}), 503
+    
+    try:
+        twitch = tdm_instance
+        
+        # Check for WebSocket drop update data
+        if hasattr(twitch, '_last_drop_update') and twitch._last_drop_update:
+            drop_update = twitch._last_drop_update
+            websocket_drop = drop_update['drop']
+            
+            if websocket_drop:
+                # Convert to a friendly format                # Get image URL from the first benefit if available
+                image_url = None
+                if hasattr(websocket_drop, 'benefits') and websocket_drop.benefits and len(websocket_drop.benefits) > 0:
+                    image_url = websocket_drop.benefits[0].image_url if hasattr(websocket_drop.benefits[0], 'image_url') else None
+                
+                result = {
+                    'source': 'websocket',
+                    'name': websocket_drop.name,
+                    'campaign_name': websocket_drop.campaign.name if hasattr(websocket_drop.campaign, 'name') else None,
+                    'game': websocket_drop.campaign.game.name if hasattr(websocket_drop.campaign, 'game') else None, 
+                    'current_minutes': drop_update['current_minutes'],
+                    'required_minutes': drop_update['required_minutes'],
+                    'remaining_minutes': websocket_drop.remaining_minutes,
+                    'progress_percentage': round((drop_update['current_minutes'] / drop_update['required_minutes']) * 100),
+                    'last_update': drop_update['timestamp'].isoformat(),
+                    'drop_id': drop_update['drop_id'],
+                    'image_url': image_url
+                }
+                
+                return jsonify(result)
+        
+        # Fall back to get_active_drop if no WebSocket data is available
+        watching_channel = twitch.watching_channel.get_with_default(None)
+        active_drop = twitch.get_active_drop(watching_channel)
+        
+        if active_drop:            # Get image URL from the first benefit if available
+            image_url = None
+            if hasattr(active_drop, 'benefits') and active_drop.benefits and len(active_drop.benefits) > 0:
+                image_url = active_drop.benefits[0].image_url if hasattr(active_drop.benefits[0], 'image_url') else None
+            
+            result = {
+                'source': 'gql',
+                'name': active_drop.name,
+                'campaign_name': active_drop.campaign.name if hasattr(active_drop.campaign, 'name') else None,
+                'game': active_drop.campaign.game.name if hasattr(active_drop.campaign, 'game') else None,
+                'current_minutes': active_drop.current_minutes,
+                'required_minutes': active_drop.required_minutes,
+                'remaining_minutes': active_drop.remaining_minutes,
+                'progress_percentage': active_drop.progress_percentage,
+                'last_update': datetime.now(timezone.utc).isoformat(),
+                'drop_id': active_drop.id,
+                'image_url': image_url
+            }
+            
+            return jsonify(result)
+            
+        return jsonify({'active_drop': None})
+        
+    except Exception as e:
+        logger.error(f"Error getting active drop: {e}")
         return jsonify({'error': str(e)}), 500
 
 

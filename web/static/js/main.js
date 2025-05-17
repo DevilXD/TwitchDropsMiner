@@ -1065,11 +1065,27 @@ function updateStatusUI(data) {
     // Update drop value
     const dropValue = document.getElementById('drop-value');
     if (dropValue) dropValue.textContent = data.current_drop || 'None';
-    
-    // Update progress bar
+      // Update progress bar
     const progressBar = document.getElementById('drop-progress-bar');
     if (progressBar && data.drop_progress !== undefined && data.drop_progress !== null) {
-        const percent = Math.round(data.drop_progress * 100);
+        let percent = 0;
+        
+        // Handle the format "67/120" (current/required) that comes from the API
+        if (typeof data.drop_progress === 'string' && data.drop_progress.includes('/')) {
+            const [current, required] = data.drop_progress.split('/').map(num => parseInt(num, 10));
+            if (!isNaN(current) && !isNaN(required) && required > 0) {
+                percent = Math.round((current / required) * 100);
+            }
+        } else {
+            // Fallback to the old behavior in case format changes
+            percent = Math.round(parseFloat(data.drop_progress) * 100);
+        }
+        
+        // Make sure we have a valid percentage
+        if (isNaN(percent)) percent = 0;
+        if (percent < 0) percent = 0;
+        if (percent > 100) percent = 100;
+        
         progressBar.style.width = `${percent}%`;
         progressBar.textContent = `${percent}%`;
     } else if (progressBar) {

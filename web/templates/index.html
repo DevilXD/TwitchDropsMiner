@@ -106,19 +106,6 @@
     </nav>    <!-- Container -->
     <div class="container w-full mx-auto pt-20">
         <div class="w-full px-4 md:px-0 md:mt-8 mb-16 text-gray-800 leading-normal">
-            <!-- Info banner -->
-            <div class="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4 rounded shadow">
-                <div class="flex">
-                    <div class="flex-shrink-0">
-                        <i class="fas fa-info-circle text-blue-500 text-xl mr-2"></i>
-                    </div>
-                    <div>
-                        <p><strong>Important:</strong> This web interface connects to the Twitch Drops Miner desktop app. 
-                        The desktop app must be running for this interface to work.</p>
-                        <p class="mt-1">Login operations will open a browser window on the desktop running the app.</p>
-                    </div>
-                </div>
-            </div>
               <!-- Mining Status -->
             <div class="flex flex-wrap card-container position-relative">
                 <div class="w-full md:w-1/2 xl:w-1/3 p-3">
@@ -168,17 +155,21 @@
             <div class="flex flex-wrap">
                 <div class="w-full md:w-1/2 xl:w-full p-3">
                     <div class="bg-white border rounded shadow p-2">
-                        <div class="flex flex-row items-center">
-                            <div class="flex-shrink pr-4">
-                                <div class="rounded p-3 bg-green-600"><i class="fas fa-gift fa-2x fa-fw fa-inverse"></i></div>
+                        <div class="flex flex-row items-center">                            <div class="flex-shrink pr-4">
+                                <div id="drop-image-container" class="rounded p-2 bg-green-600 flex items-center justify-center" style="width: 48px; height: 48px;">
+                                    <!-- The drop image will be loaded here by JavaScript -->
+                                    <i id="drop-image-fallback" class="fas fa-gift fa-2x fa-fw fa-inverse"></i>
+                                    <img id="drop-image" class="w-full h-full object-cover rounded hidden" alt="Drop image">
+                                </div>
                             </div>
                             <div class="flex-1">
-                                <h5 class="font-bold uppercase text-gray-500">Current Drop</h5>
-                                <h3 class="font-bold text-lg" id="current-drop">Loading...</h3>
-                                <div class="pt-1">
+                                <h5 class="font-bold uppercase text-gray-500">Current Drop</h5>                                <h3 class="font-bold text-lg" id="current-drop">Loading...</h3>
+                                <div class="pt-1" id="drop-progress-container">
                                     <div class="shadow w-full bg-gray-200 rounded">
                                         <div class="bg-purple-600 text-xs leading-none py-1 text-center text-white rounded" id="drop-progress-bar" style="width: 0%">0%</div>
                                     </div>
+                                    <div class="text-sm mt-1 text-gray-600" id="drop-progress-text"></div>
+                                    <!-- Removed timestamp display that showed "Updated X seconds ago (websocket)" -->
                                     <p class="mt-2 text-sm text-gray-500" id="time-remaining"></p>
                                 </div>
                             </div>
@@ -515,6 +506,7 @@
     <script src="{{ url_for('static', filename='js/global-exports.js') }}"></script>
     <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/drop-progress.js') }}"></script>
     <script src="{{ url_for('static', filename='js/scroll-position.js') }}"></script>
     <script src="{{ url_for('static', filename='js/manual-refresh.js') }}"></script>
     <script src="{{ url_for('static', filename='js/auto-refresh-prevention.js') }}"></script>

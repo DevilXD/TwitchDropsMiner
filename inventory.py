@@ -271,6 +271,14 @@ class TimedDrop(BaseDrop):
         elif self.current_minutes >= self.required_minutes:
             return 1.0
         return self.current_minutes / self.required_minutes
+        
+    @property
+    def progress_percentage(self) -> int:
+        """Returns the progress as a percentage (0-100)"""
+        if self.required_minutes <= 0:
+            return 0
+        progress = (self.current_minutes / self.required_minutes) * 100
+        return round(progress)
 
     @property
     def availability(self) -> float:
