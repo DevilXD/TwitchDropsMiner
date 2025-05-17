@@ -23,3 +23,5 @@ settings.json
 /appimage-build
 /*.AppImage
 /*.AppImage.zsync
+# IDE files
+/.idea
