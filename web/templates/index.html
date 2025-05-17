@@ -38,8 +38,7 @@
         .progress-container.visible {
             opacity: 1;
         }
-        
-        @keyframes spin {
+          @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
@@ -47,6 +46,33 @@
         /* When data is loading, slightly dim the UI */
         body.loading-data .card-container {
             opacity: 0.7;
+        }
+          /* Auth modal styles */
+        #auth-modal {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+        
+        #auth-modal.opacity-100 {
+            opacity: 1;
+        }
+        
+        /* Code display style */
+        .code-block {
+            font-family: monospace;
+            letter-spacing: 2px;
+            padding: 10px 15px;
+            background: #f8f9fa;
+            border: 2px solid #6b46c1;
+            border-radius: 6px;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            color: #6b46c1;
         }
     </style>
 </head>
@@ -487,6 +513,7 @@
         </div>
     </div>    <!-- JavaScript -->    <script src="{{ url_for('static', filename='js/loading.js') }}"></script>    <script src="{{ url_for('static', filename='js/lazy-loader.js') }}"></script>
     <script src="{{ url_for('static', filename='js/global-exports.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     <script src="{{ url_for('static', filename='js/scroll-position.js') }}"></script>
     <script src="{{ url_for('static', filename='js/manual-refresh.js') }}"></script>

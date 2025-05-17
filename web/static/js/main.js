@@ -122,46 +122,8 @@ function reloadMiner() {
     }
 }
 
-// Function to initiate Twitch login
-function initiateLogin() {
-    // Visual feedback for login button
-    const loginButton = document.getElementById('login-button');
-    if (loginButton) {
-        const originalText = loginButton.innerHTML;
-        loginButton.disabled = true;
-        loginButton.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-1"></i> Initiating Login...';
-        
-        // Show toast notification
-        showToast('Login', 'Starting Twitch login process...', 'info');
-        
-        // Call the login API endpoint
-        fetch('/api/login', {
-            method: 'POST'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showToast('Success', 'Login process initiated. Please check the desktop application window.', 'success');
-                // Refresh data after a short delay
-                setTimeout(refreshData, 5000);
-            } else {
-                showToast('Error', data.error || 'Failed to initiate login', 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error initiating login:', error);
-            showToast('Error', 'Failed to initiate login. Check console for details.', 'error');
-        })
-        .finally(() => {
-            setTimeout(() => {
-                loginButton.disabled = false;
-                loginButton.innerHTML = originalText;
-            }, 2000);
-        });
-    }
-}
-
 // Function to manually refresh inventory
+
 function manualRefreshInventory() {
     // Visual feedback for refresh button
     const refreshButton = document.getElementById('refresh-inventory');

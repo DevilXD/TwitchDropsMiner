@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TwitchDropsMiner - Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #0e0e10;
+            color: #efeff1;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: #18181b;
+            border-radius: 8px;
+            padding: 30px;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #9147ff;
+            margin-top: 0;
+        }
+        .code {
+            font-size: 2em;
+            letter-spacing: 5px;
+            font-weight: bold;
+            color: #9147ff;
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #0e0e10;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        .btn {
+            background-color: #9147ff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 10px;
+        }
+        .btn:hover {
+            background-color: #772ce8;
+        }
+        .status {
+            margin: 20px 0;
+            font-size: 1.2em;
+        }
+        .hidden {
+            display: none;
+        }
+        .status-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #9147ff;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        #success-message {
+            color: #3fac50;
+        }
+        #error-message {
+            color: #ec4040;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TwitchDropsMiner Login</h1>
+        
+        <div id="step1" class="">
+            <p>Click the button below to start the login process.</p>
+            <button id="start-auth" class="btn">Start Login</button>
+        </div>
+        
+        <div id="step2" class="hidden">
+            <p>Go to <a id="verification-link" href="#" target="_blank" class="btn">www.twitch.tv/activate</a></p>
+            <p>And enter this code:</p>
+            <div class="code" id="user-code">------</div>
+            <p>This code will expire in <span id="expires">10:00</span>.</p>
+            <div class="status">
+                <div class="status-spinner"></div>
+                <span id="status-message">Waiting for authorization...</span>
+            </div>
+        </div>
+        
+        <div id="step3-success" class="hidden">
+            <p id="success-message">Login successful!</p>
+            <p>You can now close this window and return to the app.</p>
+            <button id="close-window" class="btn">Close</button>
+        </div>
+        
+        <div id="step3-error" class="hidden">
+            <p id="error-message">An error occurred.</p>
+            <button id="try-again" class="btn">Try Again</button>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const startAuthBtn = document.getElementById('start-auth');
+            const step1 = document.getElementById('step1');
+            const step2 = document.getElementById('step2');
+            const step3Success = document.getElementById('step3-success');
+            const step3Error = document.getElementById('step3-error');
+            const userCodeEl = document.getElementById('user-code');
+            const verificationLink = document.getElementById('verification-link');
+            const expiresEl = document.getElementById('expires');
+            const statusMessage = document.getElementById('status-message');
+            const errorMessage = document.getElementById('error-message');
+            const successMessage = document.getElementById('success-message');
+            const closeWindowBtn = document.getElementById('close-window');
+            const tryAgainBtn = document.getElementById('try-again');
+            
+            let pollInterval;
+            let sessionId;
+            let countdownInterval;
+            
+            startAuthBtn.addEventListener('click', startAuth);
+            closeWindowBtn.addEventListener('click', () => window.close());
+            tryAgainBtn.addEventListener('click', resetAuth);
+            
+            function resetAuth() {
+                clearInterval(pollInterval);
+                clearInterval(countdownInterval);
+                step3Error.classList.add('hidden');
+                step1.classList.remove('hidden');
+            }
+            
+            async function startAuth() {
+                try {
+                    step1.classList.add('hidden');
+                    
+                    const response = await fetch('/api/device_code', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok && data.success) {
+                        userCodeEl.textContent = data.user_code;
+                        verificationLink.href = data.verification_uri;
+                        
+                        // Set up countdown
+                        const expiresIn = data.expires_in;
+                        updateExpiresText(expiresIn);
+                        
+                        countdownInterval = setInterval(() => {
+                            const remaining = parseInt(expiresEl.dataset.seconds) - 1;
+                            if (remaining <= 0) {
+                                clearInterval(countdownInterval);
+                                showError('Code expired. Please try again.');
+                                return;
+                            }
+                            updateExpiresText(remaining);
+                        }, 1000);
+                        
+                        step2.classList.remove('hidden');
+                        
+                        // Start polling for auth status
+                        pollInterval = setInterval(pollAuthStatus, 5000);
+                        
+                    } else {
+                        showError(data.error || 'Failed to start authentication');
+                    }
+                } catch (error) {
+                    showError('Network error: ' + error.message);
+                }
+            }
+            
+            function updateExpiresText(seconds) {
+                const minutes = Math.floor(seconds / 60);
+                const remainingSeconds = seconds % 60;
+                expiresEl.textContent = `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+                expiresEl.dataset.seconds = seconds;
+            }
+            
+            async function pollAuthStatus() {
+                try {
+                    const response = await fetch('/api/poll_auth', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        if (data.success) {
+                            // Authentication successful
+                            clearInterval(pollInterval);
+                            clearInterval(countdownInterval);
+                            successMessage.textContent = `Login successful! (User ID: ${data.user_id})`;
+                            step2.classList.add('hidden');
+                            step3Success.classList.remove('hidden');
+                            
+                            // Notify the parent window if this is in a popup
+                            try {
+                                if (window.opener && !window.opener.closed) {
+                                    window.opener.postMessage({ 
+                                        type: 'AUTH_SUCCESS', 
+                                        userId: data.user_id 
+                                    }, '*');
+                                    
+                                    // Auto close after 3 seconds
+                                    setTimeout(() => window.close(), 3000);
+                                }
+                            } catch (e) {
+                                console.error('Error posting message to parent:', e);
+                            }
+                            
+                        } else if (!data.keep_polling) {
+                            // Error occurred
+                            clearInterval(pollInterval);
+                            clearInterval(countdownInterval);
+                            showError(data.message);
+                        } else {
+                            // Still waiting
+                            statusMessage.textContent = data.message;
+                        }
+                    } else {
+                        // API error
+                        clearInterval(pollInterval);
+                        clearInterval(countdownInterval);
+                        showError(data.error || 'API error');
+                    }
+                } catch (error) {
+                    console.error('Error polling auth status:', error);
+                    statusMessage.textContent = 'Network error, retrying...';
+                }
+            }
+            
+            function showError(message) {
+                errorMessage.textContent = message;
+                step2.classList.add('hidden');
+                step3Error.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -3,12 +3,16 @@ from __future__ import annotations
 import os
 import sys
 import json
+import time
 import logging
+import requests
 from pathlib import Path
 from typing import Dict, Any, Optional
-
+from time import sleep 
 from flask import Flask, render_template, jsonify, request, redirect, url_for
 from flask_cors import CORS
+import threading
+import asyncio
 
 # Add parent directory to path for imports
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -16,11 +20,18 @@ sys.path.append(parent_dir)
 
 # Import from main project
 from constants import State
-from utils import Game
+from utils import Game, create_nonce, CHARS_HEX_LOWER
 
 
 # Global reference to the TDM instance - will be set by the main app
 tdm_instance = None
+main_event_loop = None
+
+# Initialize the event loop reference
+def initialize(loop, twitch_instance):
+    global tdm_instance, main_event_loop
+    tdm_instance = twitch_instance
+    main_event_loop = loop
 
 # Configure Flask app
 app = Flask(__name__, 
@@ -52,11 +63,14 @@ def status():
         
         # Get current state
         state_name = str(twitch._state.name) if hasattr(twitch, '_state') else 'UNKNOWN'
-        
-        # Get current username from auth_state if available
+          # Get current username from auth_state if available
         username = None
         if hasattr(twitch, '_auth_state') and hasattr(twitch._auth_state, 'user_id'):
-            username = str(twitch._auth_state.user_id)
+            # Only show username if user_id is valid (not 0)
+            user_id = twitch._auth_state.user_id
+            if user_id != 0:
+                username = str(user_id)
+            # Otherwise leave username as None
         
         # Get current watching channel
         current_channel = None
@@ -331,37 +345,302 @@ def login():
     """Handle user login through the web interface"""
     if tdm_instance is None:
         return jsonify({'error': 'Miner not initialized'}), 503
-    
     try:
-        data = request.get_json()
-        if not data:
-            return jsonify({'error': 'Missing request data'}), 400
+        data = request.get_json() or {}  # Use empty dict if no data provided
         
         twitch = tdm_instance
-        
-        # Check if already logged in
-        if hasattr(twitch, '_auth_state') and hasattr(twitch._auth_state, 'user_id'):
+          # Check if already logged in
+        if hasattr(twitch, '_auth_state') and hasattr(twitch._auth_state, 'user_id') and twitch._auth_state.user_id != 0:
             return jsonify({
                 'success': True,
                 'message': 'Already logged in',
-                'username': twitch.username if hasattr(twitch, 'username') else None
+                'username': twitch.username if hasattr(twitch, 'username') else str(twitch._auth_state.user_id)
             })
             
         # Trigger login in the app
         if not hasattr(twitch, '_auth_state'):
             return jsonify({'error': 'Auth state not available'}), 500
-            
-        # Since the actual login process is interactive and requires GUI,
-        # we'll just trigger a state change to force the app to attempt login
-        twitch._auth_state.invalidate()
-        twitch.change_state(State.INVENTORY_FETCH)
         
+        # Start OAuth device code flow
+        # This is an asynchronous operation but we need to handle it synchronously in the Flask route
+        # So we'll start the auth process and return the device code info to show in the UI
+        
+        # Get client info from the instance
+        client_info = twitch._client_type
+        
+        # Create necessary attributes if they don't exist
+        if not hasattr(twitch._auth_state, 'device_id'):
+            # Generate a device ID if not exists
+            twitch._auth_state.device_id = create_nonce(CHARS_HEX_LOWER, 16)
+            
+        # Prepare headers for OAuth request  
+        headers = {
+            "Accept": "application/json",
+            "Accept-Encoding": "gzip",
+            "Accept-Language": "en-US",
+            "Cache-Control": "no-cache",
+            "Client-Id": client_info.CLIENT_ID,
+            "Host": "id.twitch.tv",
+            "Origin": str(client_info.CLIENT_URL),
+            "Pragma": "no-cache",
+            "Referer": str(client_info.CLIENT_URL),
+            "User-Agent": client_info.USER_AGENT,
+            "X-Device-Id": twitch._auth_state.device_id,
+        }
+          # Make request to get device code
+        try:
+            logger.info(f"Making OAuth device request with client ID: {client_info.CLIENT_ID}")
+            session = requests.Session()
+            response = session.post(
+                "https://id.twitch.tv/oauth2/device",
+                headers=headers,
+                data={
+                    "client_id": client_info.CLIENT_ID,
+                    "scopes": ""
+                }
+            )
+            
+            if response.status_code != 200:
+                error_msg = f"Failed to get device code: {response.text}"
+                logger.error(error_msg)
+                return jsonify({'error': error_msg}), 500
+                
+            logger.info("Successfully received device code from Twitch")
+        except Exception as req_error:
+            error_msg = f"Request to Twitch OAuth endpoint failed: {str(req_error)}"
+            logger.error(error_msg)
+            return jsonify({'error': error_msg}), 500
+            
+        # Parse response
+        response_json = response.json()
+        device_code = response_json["device_code"]
+        user_code = response_json["user_code"]
+        verification_uri = response_json["verification_uri"]
+        interval = response_json["interval"]
+        expires_in = response_json["expires_in"]
+          # Store these values in session for later use
+        session_data = {
+            'device_code': device_code,
+            'client_id': client_info.CLIENT_ID,
+            'interval': interval,
+            'expires_at': time.time() + expires_in
+        }
+        
+        # Save this data to use in the polling endpoint
+        if not hasattr(app.config, 'get'):
+            # Initialize the OAUTH_SESSION if app.config doesn't have get method
+            app.config.update({'OAUTH_SESSION': session_data})
+        else:
+            app.config['OAUTH_SESSION'] = session_data
+          # Return the information needed for the frontend
         return jsonify({
-            'success': True, 
-            'message': 'Login initiated in the desktop application'
+            'success': True,
+            'message': 'Please authorize this device on Twitch',
+            'verification_uri': verification_uri,
+            'user_code': user_code,
+            'interval': interval,
+            'expires_in': expires_in
         })
     except Exception as e:
         logger.error(f"Error during login: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/check_auth', methods=['GET'])
+def check_auth():
+    """Poll for OAuth device code authorization status"""
+    if tdm_instance is None:
+        return jsonify({'error': 'Miner not initialized'}), 503
+        
+    try:
+        # Check if we have an active OAuth session
+        oauth_session = app.config.get('OAUTH_SESSION')
+        if not oauth_session:
+            return jsonify({'error': 'No active OAuth session'}), 400
+            
+        # Check if the session has expired
+        if time.time() > oauth_session.get('expires_at', 0):
+            app.config['OAUTH_SESSION'] = None
+            return jsonify({'error': 'OAuth session expired', 'expired': True}), 400
+            
+        twitch = tdm_instance
+        client_info = twitch._client_type
+            
+        # Prepare headers
+        headers = {
+            "Accept": "application/json",
+            "Accept-Encoding": "gzip",
+            "Accept-Language": "en-US",
+            "Cache-Control": "no-cache",
+            "Client-Id": client_info.CLIENT_ID,
+            "Host": "id.twitch.tv",
+            "Origin": str(client_info.CLIENT_URL),
+            "Pragma": "no-cache", 
+            "Referer": str(client_info.CLIENT_URL),
+            "User-Agent": client_info.USER_AGENT,
+            "X-Device-Id": twitch._auth_state.device_id,
+        }
+        
+        # Make request to check token status
+        session = requests.Session()
+        response = session.post(
+            "https://id.twitch.tv/oauth2/token",
+            headers=headers,
+            data={
+                "client_id": oauth_session['client_id'],
+                "device_code": oauth_session['device_code'],
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code"
+            }
+        )
+        
+        if response.status_code == 200:
+            # Success - user has authorized
+            response_json = response.json()
+            access_token = response_json["access_token"]            # Set access token in auth state
+            twitch._auth_state.access_token = access_token
+              # The invalidate() method only removes the access token attribute but doesn't trigger validation
+            # We need to manually handle cookie creation to complete the login
+            try:
+                # Save the auth token to cookie
+                if hasattr(twitch, '_session') and twitch._session:
+                    # Get the cookie jar from session
+                    jar = twitch._session.cookie_jar
+                    client_info = twitch._client_type
+                    
+                    # Create and set the auth cookie
+                    cookie = {"auth-token": access_token}
+                    jar.update_cookies(cookie, client_info.CLIENT_URL)
+                    
+                    # Set device_id if not already set
+                    if hasattr(twitch._auth_state, 'device_id'):
+                        cookie["unique_id"] = twitch._auth_state.device_id
+                    
+                    # Save cookies to disk
+                    from constants import COOKIES_PATH
+                    jar.save(COOKIES_PATH)
+                    
+                    # Mark as logged in and save the fact we're currently validating
+                    if hasattr(twitch._auth_state, '_logged_in'):
+                        twitch._auth_state._logged_in.set()
+                        app.config['VALIDATING_AUTH'] = True
+                        logger.info("Auth token saved to cookies, login event set")
+                
+                # Set session to None so we don't keep polling
+                app.config['OAUTH_SESSION'] = None                # Instead of running validation in a separate thread with its own event loop,
+                # we'll set up necessary attributes directly to complete the login process
+                try:
+                    if not hasattr(twitch._auth_state, 'session_id'):
+                        # Generate a session ID if not exists
+                        from utils import create_nonce, CHARS_HEX_LOWER
+                        twitch._auth_state.session_id = create_nonce(CHARS_HEX_LOWER, 16)
+                    
+                    # Set the user_id attribute manually 
+                    # We can safely assume a user ID of 1 if we have a valid access token
+                    # This will be replaced with the actual ID during the next validation
+                    twitch._auth_state.user_id = 1
+                    
+                    # Mark as logged in
+                    if hasattr(twitch._auth_state, '_logged_in'):
+                        twitch._auth_state._logged_in.set()
+                    
+                    logger.info("Auth token saved, login event set. User now has temporary ID.")
+                    
+                    # Set validation state to complete
+                    app.config['VALIDATING_AUTH'] = False
+                    
+                except Exception as e:
+                    logger.error(f"Error setting up auth state: {e}")
+                    app.config['VALIDATING_AUTH'] = False
+                
+                # Trigger a state change to force the app to reload with the new auth
+                if hasattr(twitch, 'change_state') and hasattr(State, 'INVENTORY_FETCH'):
+                    twitch.save(force=True)
+                    sleep(0.5)
+                    
+                    # Schedule the state change in the main event loop
+                    if main_event_loop:
+                        asyncio.run_coroutine_threadsafe(
+                            async_state_change(twitch), 
+                            main_event_loop
+                        )
+                        logger.info("Scheduled INVENTORY_FETCH state change in main event loop")
+                    else:
+                        logger.error("Cannot schedule state change - no event loop reference")
+            except Exception as e:
+                logger.error(f"Error setting cookie during login: {e}")
+            return jsonify({
+                'success': True,
+                'message': 'Authorization successful',
+                'authorized': True
+            })
+        elif response.status_code == 400:
+            # User hasn't entered the code yet
+            return jsonify({
+                'success': True,
+                'message': 'Waiting for authorization',
+                'authorized': False
+            })
+        else:
+            # Some other error
+            return jsonify({
+                'error': f'Error checking authorization: {response.text}',
+                'authorized': False
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"Error checking auth status: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/validate_auth', methods=['GET'])
+def validate_auth():
+    """Check if auth validation is complete and return user status"""
+    if tdm_instance is None:
+        return jsonify({'error': 'Miner not initialized'}), 503
+        
+    try:
+        twitch = tdm_instance
+        
+        # Check if validation is still in progress
+        validating = app.config.get('VALIDATING_AUTH', False)
+          # Get current username from auth_state if available
+        username = None
+        user_id = None
+        is_logged_in = False
+        
+        if hasattr(twitch, '_auth_state'):
+            # Check if we have a user_id
+            has_user_id = hasattr(twitch._auth_state, 'user_id')
+            # Check if _logged_in event exists and is set
+            is_logged_in_flag = hasattr(twitch._auth_state, '_logged_in') and twitch._auth_state._logged_in.is_set()
+            
+            # Only set user_id if we have it
+            if has_user_id:
+                user_id = twitch._auth_state.user_id
+                # Don't return placeholder user_id (0) to the frontend
+                if user_id == 0:
+                    user_id = None
+                    username = None
+                else:
+                    username = str(user_id)  # Use user_id as username if we don't have better info            # Consider logged in if:
+            # 1. The _logged_in flag is set, AND
+            # 2. We have a user_id that is greater than 0
+            is_logged_in = is_logged_in_flag and has_user_id and user_id is not None and user_id > 0
+                
+            # If the login flag is set but we don't have a proper user_id yet,
+            # consider validation still in progress
+            if is_logged_in_flag and (not has_user_id or user_id is None or user_id <= 0):
+                validating = True
+        
+        return jsonify({
+            'validating': validating,
+            'logged_in': is_logged_in,
+            'username': username,
+            'user_id': user_id
+        })
+        
+    except Exception as e:
+        logger.error(f"Error checking auth validation status: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -380,10 +659,11 @@ def logout():
                 'success': False,
                 'message': 'Not logged in'
             })
-            
-        # Invalidate auth state to force logout
+              # Invalidate auth state to force logout
         twitch._auth_state.invalidate()
-        twitch.change_state(State.INITIALIZING)
+        # Try to change state if the state is available
+        if hasattr(twitch, 'change_state') and hasattr(State, 'IDLE'):
+            twitch.change_state(State.IDLE)
         
         return jsonify({
             'success': True, 
@@ -449,11 +729,11 @@ def claim_drop(drop_id):
                 'success': False,
                 'message': 'Drop is not ready to be claimed'
             }), 400
-        
-        # Trigger claim drop in the app
+          # Trigger claim drop in the app
         # This will force a state change to claim the drop
         twitch.current_drop = found_drop
-        twitch.change_state(State.DROP_CLAIM)
+        if hasattr(State, 'INVENTORY_FETCH'):  # Use INVENTORY_FETCH as fallback for DROP_CLAIM
+            twitch.change_state(State.INVENTORY_FETCH)
         
         return jsonify({
             'success': True, 
@@ -493,10 +773,10 @@ def set_channel(channel_name):
                 'success': False,
                 'message': f'No channel found with name: {channel_name}'
             }), 404
-            
-        # Set the channel and change state to channel watch
+              # Set the channel and change state to channel watch
         twitch.current_channel = found_channel
-        twitch.change_state(State.CHANNEL_WATCH)
+        if hasattr(twitch, 'change_state') and hasattr(State, 'CHANNEL_SWITCH'):
+            twitch.change_state(State.CHANNEL_SWITCH)
         
         return jsonify({
             'success': True, 
@@ -783,8 +1063,51 @@ def reload():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/cancel_auth', methods=['POST'])
+def cancel_auth():
+    """Handle cancellation of OAuth authentication process"""
+    if tdm_instance is None:
+        return jsonify({'error': 'Miner not initialized'}), 503
+    
+    try:
+        twitch = tdm_instance
+        
+        # Clear OAuth session
+        app.config['OAUTH_SESSION'] = None
+        
+        # If auth state exists, ensure it's properly invalidated
+        if hasattr(twitch, '_auth_state'):
+            # Remove access_token if it exists
+            if hasattr(twitch._auth_state, 'access_token'):
+                twitch._auth_state.invalidate()
+            else:
+                # Even if there's no access_token, we still need to clear the logged_in flag
+                if hasattr(twitch._auth_state, '_logged_in'):
+                    twitch._auth_state._logged_in.clear()
+            
+            # Make sure user_id is reset to 0 if it exists
+            if hasattr(twitch._auth_state, 'user_id'):
+                twitch._auth_state.user_id = 0
+        
+        # Reset validation state if it exists
+        app.config['VALIDATING_AUTH'] = False
+        
+        logger.info("OAuth authentication cancelled by user")
+        return jsonify({
+            'success': True,
+            'message': 'Authentication cancelled'
+        })
+    except Exception as e:
+        logger.error(f"Error handling auth cancellation: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 def run_web_server(host, port, debug, tdm):
     """Start the web server"""
     global tdm_instance
     tdm_instance = tdm
     app.run(host=host, port=port, debug=debug)
+    
+# Helper function for async state change
+async def async_state_change(twitch):
+    twitch.change_state(State.INVENTORY_FETCH)

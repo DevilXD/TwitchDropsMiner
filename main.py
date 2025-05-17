@@ -20,6 +20,11 @@ if __name__ == "__main__":
     from typing import IO, NoReturn, Optional
 
     try:
+        from web.app import run_web_server, initialize  # Add 'initialize' to the import
+        HAS_WEB_INTERFACE = True
+    except ImportError:
+        HAS_WEB_INTERFACE = False
+    try:
         import truststore
         truststore.inject_into_ssl()
     except ImportError:
@@ -202,6 +207,11 @@ if __name__ == "__main__":
         if HAS_WEB_INTERFACE and args.enable_web:
             log.info(f"Starting web interface on {args.web_host}:{args.web_port}")
             client.print(f"Starting web interface on http://{args.web_host}:{args.web_port}")
+            
+            # Initialize the web app with the event loop and client instance
+            initialize(loop, client)
+            
+            # Start the web server in a separate thread
             web_thread = threading.Thread(
                 target=run_web_server,
                 args=(args.web_host, args.web_port, False, client),
