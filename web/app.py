@@ -496,6 +496,7 @@ def check_auth():
         if response.status_code == 200:
             # Success - user has authorized
             response_json = response.json()
+            twitch.print(response_json)
             access_token = response_json["access_token"]            # Set access token in auth state
             twitch._auth_state.access_token = access_token
               # The invalidate() method only removes the access token attribute but doesn't trigger validation
@@ -533,11 +534,26 @@ def check_auth():
                         # Generate a session ID if not exists
                         from utils import create_nonce, CHARS_HEX_LOWER
                         twitch._auth_state.session_id = create_nonce(CHARS_HEX_LOWER, 16)
-                    
-                    # Set the user_id attribute manually 
-                    # We can safely assume a user ID of 1 if we have a valid access token
-                    # This will be replaced with the actual ID during the next validation
-                    twitch._auth_state.user_id = 1
+                     # Get the actual user_id by validating the access token
+                    access_token = twitch._auth_state.access_token
+                    validation_headers = {"Authorization": f"OAuth {access_token}"}
+                    validation_session = requests.Session()
+                    validation_response = validation_session.get(
+                        "https://id.twitch.tv/oauth2/validate",
+                        headers=validation_headers
+                    )
+                    twitch.print(validation_response)
+                    if validation_response.status_code == 200:
+                        validation_data = validation_response.json()
+                        twitch.print(validation_data)
+                        # Set the actual user_id from the validation response
+                        twitch._auth_state.user_id = int(validation_data["user_id"])
+                        logger.info(f"Got actual user ID: {twitch._auth_state.user_id}")
+                    else:
+                        # Fall back to temporary ID if validation fails
+                        twitch._auth_state.user_id = 1
+                        logger.warning("Could not validate token, using temporary ID")
+    
                     
                     # Mark as logged in
                     if hasattr(twitch._auth_state, '_logged_in'):
@@ -659,16 +675,53 @@ def logout():
                 'success': False,
                 'message': 'Not logged in'
             })
-              # Invalidate auth state to force logout
-        twitch._auth_state.invalidate()
-        # Try to change state if the state is available
-        if hasattr(twitch, 'change_state') and hasattr(State, 'IDLE'):
-            twitch.change_state(State.IDLE)
         
-        return jsonify({
-            'success': True, 
-            'message': 'Logout successful'
-        })
+        # Properly clear authentication state
+        try:
+            # Clear access token
+            if hasattr(twitch._auth_state, 'access_token'):
+                delattr(twitch._auth_state, 'access_token')
+            
+            # Clear user_id or set to 0
+            if hasattr(twitch._auth_state, 'user_id'):
+                twitch._auth_state.user_id = 0
+            
+            # Clear the logged_in flag if it exists
+            if hasattr(twitch._auth_state, '_logged_in'):
+                twitch._auth_state._logged_in.clear()
+            
+            # Clear cookies related to authentication
+            if hasattr(twitch, '_session') and twitch._session is not None:
+                cookie_jar = twitch._session.cookie_jar
+                client_info = twitch._client_type
+                twitch._auth_state.invalidate()
+                # Clear the auth token from cookies
+                if client_info.CLIENT_URL.host:
+                    cookie_jar.clear_domain(client_info.CLIENT_URL.host)
+                
+                # Save the updated cookies
+                from constants import COOKIES_PATH
+                cookie_jar.save(COOKIES_PATH)
+                
+                logger.info("Auth cookies cleared during logout")
+            
+            # Call invalidate if it exists (for any other cleanup it might do)
+            if hasattr(twitch._auth_state, 'invalidate'):
+                twitch._auth_state.invalidate()
+                
+            # Change state to IDLE
+            if hasattr(twitch, 'change_state') and hasattr(State, 'IDLE'):
+                twitch.change_state(State.IDLE)
+                
+            logger.info("Logout completed successfully")
+            
+            return jsonify({
+                'success': True, 
+                'message': 'Logout successful'
+            })
+        except Exception as e:
+            logger.error(f"Error during logout cleanup: {e}")
+            return jsonify({'error': f"Error during logout: {str(e)}"}), 500
     except Exception as e:
         logger.error(f"Error during logout: {e}")
         return jsonify({'error': str(e)}), 500
