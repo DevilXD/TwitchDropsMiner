@@ -190,6 +190,27 @@ def campaigns():
                     if hasattr(twitch.settings, 'exclude') and campaign.game.name in twitch.settings.exclude:
                         campaign_data['excluded'] = True
                 
+                # Add detailed drop information for each campaign
+                campaign_data['drops'] = []
+                if hasattr(campaign, 'drops'):
+                    for drop in campaign.drops:
+                        # Get image URL from the first benefit if available
+                        image_url = None
+                        if hasattr(drop, 'benefits') and drop.benefits and len(drop.benefits) > 0:
+                            image_url = drop.benefits[0].image_url if hasattr(drop.benefits[0], 'image_url') else None
+                        
+                        drop_data = {
+                            'id': drop.id if hasattr(drop, 'id') else 'unknown',
+                            'name': drop.name if hasattr(drop, 'name') else 'Unknown Drop',
+                            'image_url': image_url,
+                            'claimed': drop.claimed if hasattr(drop, 'claimed') else False,
+                            'current_minutes': drop.current_minutes if hasattr(drop, 'current_minutes') else 0,
+                            'required_minutes': drop.required_minutes if hasattr(drop, 'required_minutes') else 0,
+                            'remaining_minutes': drop.remaining_minutes if hasattr(drop, 'remaining_minutes') else 0,
+                            'progress': drop.progress if hasattr(drop, 'progress') else 0
+                        }
+                        campaign_data['drops'].append(drop_data)
+                
                 campaigns_data.append(campaign_data)
         # Fallback for older structure if inventory is not a list
         elif hasattr(twitch, 'inventory') and hasattr(twitch.inventory, 'campaigns'):
@@ -202,7 +223,8 @@ def campaigns():
                         'status': 'UNKNOWN',
                         'start_time': None,
                         'end_time': None,
-                        'drops_count': 0
+                        'drops_count': 0,
+                        'drops': []
                     }
                     campaigns_data.append(campaign_data)
             elif isinstance(twitch.inventory.campaigns, list):
@@ -214,7 +236,8 @@ def campaigns():
                         'status': 'UNKNOWN',
                         'start_time': None,
                         'end_time': None,
-                        'drops_count': 0
+                        'drops_count': 0,
+                        'drops': []
                     }
                     campaigns_data.append(campaign_data)
         

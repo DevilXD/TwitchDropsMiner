@@ -158,40 +158,81 @@ function getDataWithPreload(dataType, fetchFunction) {
 // Set up virtual rendering for campaigns list
 // Helper function to create a campaign card - moved from main.js
 function createCampaignCard(campaign) {
+    // Determine status display information
     const statusClass = campaign.status === 'ACTIVE' ? 'bg-green-100 border-green-500' : 'bg-gray-100 border-gray-400';
-    const statusText = campaign.status === 'ACTIVE' ? 'Active' : 'Inactive';
+    let statusText = campaign.status === 'ACTIVE' ? 'Active' : 'Inactive';
     const statusTextColor = campaign.status === 'ACTIVE' ? 'text-green-800' : 'text-gray-600';
     
+    // Add "Not Linked" indicator in status if the campaign is not linked
+    if (!campaign.linked) {
+        statusText += ' (Not Linked)';
+    }
+    
     const campaignCard = document.createElement('div');
-    campaignCard.className = 'col-span-1 p-3 bg-white rounded shadow border-l-4 ' + statusClass;
+    campaignCard.className = 'w-full p-4 bg-blue-50 rounded shadow';
     
-    // Use data placeholder for images that will be lazy loaded
-    const imageHtml = campaign.image_url ? 
-        `<div class="mr-2 flex-shrink-0">
-            <img data-src="${campaign.image_url}" alt="${campaign.name}" class="w-12 h-12 object-cover rounded lazy-image" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E">
-         </div>` : 
-        '';
-    
-    campaignCard.innerHTML = `
-        <div class="flex items-center">
-            ${imageHtml}
-            <div class="flex-grow">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <h3 class="font-bold text-base text-gray-800">${campaign.name}</h3>
-                        <p class="text-gray-600 text-xs">${campaign.game || 'No game specified'}</p>
+    // Prepare HTML structure for the campaign card
+    let cardHTML = `
+        <div class="flex flex-col w-full">
+            <div class="flex">
+                <!-- Left side with campaign info -->
+                <div class="w-1/4 flex flex-col items-center pr-3">
+                    ${campaign.image_url ? 
+                    `<div class="mb-2">
+                        <img data-src="${campaign.image_url}" alt="${campaign.name}" class="w-24 h-24 object-cover rounded lazy-image" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E">
+                    </div>` : 
+                    `<div class="mb-2 w-24 h-24 bg-gray-200 rounded flex items-center justify-center">
+                        <i class="fas fa-gamepad text-gray-400 text-2xl"></i>
+                    </div>`}
+                    
+                    <h3 class="font-bold text-sm text-center text-gray-800 mb-2">${campaign.game || 'Unknown Game'}</h3>
+                    <div class="text-xs text-center">
+                        ${campaign.start_time ? `<p class="text-gray-600">Starts: ${new Date(campaign.start_time).toLocaleDateString()}</p>` : ''}
+                        ${campaign.end_time ? `<p class="text-gray-600">Ends: ${new Date(campaign.end_time).toLocaleDateString()}</p>` : ''}
                     </div>
-                    <span class="px-1.5 py-0.5 rounded text-xs font-semibold ${statusTextColor} bg-opacity-50">${statusText}</span>
+                    <div class="mt-2">
+                        <span class="px-2 py-1 rounded text-xs font-semibold ${statusTextColor} bg-opacity-70 ${statusClass}">${statusText}</span>
+                    </div>
                 </div>
-                <div class="mt-2 text-xs">
-                    <p><span class="text-gray-600">Drops:</span> <span class="font-semibold">${campaign.drops_count}</span></p>
-                    ${campaign.start_time ? `<p><span class="text-gray-600">Start:</span> ${new Date(campaign.start_time).toLocaleDateString()}</p>` : ''}
-                    ${campaign.end_time ? `<p><span class="text-gray-600">End:</span> ${new Date(campaign.end_time).toLocaleDateString()}</p>` : ''}
+                
+                <!-- Right side with drops -->
+                <div class="w-3/4 pl-3 border-l">
+                    <h3 class="font-bold text-base text-gray-800 mb-3">${campaign.name}</h3>
+                    
+                    ${campaign.drops && campaign.drops.length > 0 ? 
+                    `<div class="flex flex-wrap overflow-x-auto pb-2">
+                        ${campaign.drops.map(drop => {
+                            // Calculate progress percentage and format for display
+                            const progressPct = drop.required_minutes > 0 ? 
+                                Math.round((drop.current_minutes / drop.required_minutes) * 100) : 0;
+                            
+                            return `
+                            <div class="mr-4 mb-2 flex flex-col items-center" style="min-width: 100px">
+                                ${drop.image_url ? 
+                                `<img data-src="${drop.image_url}" alt="${drop.name}" class="w-16 h-16 object-cover rounded lazy-image" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E">` : 
+                                `<div class="w-16 h-16 bg-gray-200 rounded flex items-center justify-center">
+                                    <i class="fas fa-gift text-gray-400"></i>
+                                </div>`}
+                                <div class="mt-1 text-xs text-center">
+                                    <p class="font-semibold">${drop.name}</p>
+                                    ${!drop.claimed ? 
+                                    `<p class="text-xs text-gray-600">${progressPct}% of ${drop.required_minutes} min</p>
+                                    <div class="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                                        <div class="bg-green-600 h-1.5 rounded-full" style="width: ${progressPct}%"></div>
+                                    </div>` : 
+                                    `<p class="text-xs text-green-600 font-semibold">Claimed</p>`}
+                                </div>
+                            </div>
+                            `;
+                        }).join('')}
+                    </div>` : 
+                    `<p class="text-gray-500 text-sm">No drops available</p>`}
                 </div>
             </div>
         </div>
     `;
     
+    campaignCard.innerHTML = cardHTML;
     return campaignCard;
 }
 
