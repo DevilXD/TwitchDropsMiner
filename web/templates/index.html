@@ -273,15 +273,12 @@
                                 <div class="flex justify-between items-center mb-4">
                                     <h2 class="text-lg font-semibold">Available Channels</h2>
                                     <input type="text" id="channel-search" placeholder="Search channels..." class="px-3 py-1 border rounded">
-                                </div>
-                                <div id="channels-list" class="max-h-96 overflow-y-auto"> 
-                                    <table class="min-w-full bg-white">
-                                        <thead>
+                                </div>                                <div id="channels-list" class="max-h-96 overflow-y-auto">                                    <table class="min-w-full bg-white">                                        <thead>
                                             <tr>                                                
-                                                <th class="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">Channel</th>
-                                                <th class="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">Game</th>
-                                                <th class="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">Viewers</th>
-                                                <th class="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                                <th class="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider w-2/5">Channel</th>
+                                                <th class="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider w-1/5">Game</th>
+                                                <th class="py-2 px-4 border-b border-gray-200 bg-gray-50 text-right text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider w-1/5">Viewers</th>
+                                                <th class="py-2 px-4 border-b border-gray-200 bg-gray-50 text-right text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider w-1/5">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody id="channels-table-body">
@@ -290,8 +287,36 @@
                                     </table>
                                 </div>
                             </div>
-                              <div id="campaigns-tab" class="tab-panel hidden">  
-                                <h2 class="text-lg font-semibold mb-4">All Campaigns</h2>                                <div class="max-h-96 overflow-y-auto">
+                <div id="campaigns-tab" class="tab-panel hidden">  
+                                <div class="flex justify-between items-center mb-4">
+                                    <h2 class="text-lg font-semibold">All Campaigns</h2>
+                                    <div id="campaign-filters" class="flex items-center space-x-4">
+                                        <div class="flex items-center space-x-1">
+                                            <input type="checkbox" id="filter-not-linked" class="campaign-filter" checked>
+                                            <label for="filter-not-linked" class="text-sm">Not linked</label>
+                                        </div>
+                                        <div class="flex items-center space-x-1">
+                                            <input type="checkbox" id="filter-upcoming" class="campaign-filter" checked>
+                                            <label for="filter-upcoming" class="text-sm">Upcoming</label>
+                                        </div>
+                                        <div class="flex items-center space-x-1">
+                                            <input type="checkbox" id="filter-expired" class="campaign-filter">
+                                            <label for="filter-expired" class="text-sm">Expired</label>
+                                        </div>
+                                        <div class="flex items-center space-x-1">
+                                            <input type="checkbox" id="filter-excluded" class="campaign-filter">
+                                            <label for="filter-excluded" class="text-sm">Excluded</label>
+                                        </div>
+                                        <div class="flex items-center space-x-1">
+                                            <input type="checkbox" id="filter-finished" class="campaign-filter">
+                                            <label for="filter-finished" class="text-sm">Finished</label>
+                                        </div>
+                                        <button id="refresh-campaigns" class="bg-purple-600 hover:bg-purple-700 text-white text-xs px-2 py-1 rounded">
+                                            <i class="fas fa-sync mr-1"></i> Refresh
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="max-h-96 overflow-y-auto">
                                     <div id="campaigns-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                                         <!-- Campaigns will be loaded here dynamically -->
                                     </div>
@@ -503,13 +528,14 @@
             </div>
         </div>
     </div>    <!-- JavaScript -->    <script src="{{ url_for('static', filename='js/loading.js') }}"></script>    <script src="{{ url_for('static', filename='js/lazy-loader.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     <script src="{{ url_for('static', filename='js/global-exports.js') }}"></script>
     <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     <script src="{{ url_for('static', filename='js/drop-progress.js') }}"></script>
     <script src="{{ url_for('static', filename='js/scroll-position.js') }}"></script>
     <script src="{{ url_for('static', filename='js/manual-refresh.js') }}"></script>
     <script src="{{ url_for('static', filename='js/auto-refresh-prevention.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/campaign-filters.js') }}"></script>
     <script>
         // Initialize loading indicators after page load
         document.addEventListener('DOMContentLoaded', function() {

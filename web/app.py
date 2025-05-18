@@ -143,8 +143,7 @@ def campaigns():
     try:
         twitch = tdm_instance
         campaigns_data = []
-        
-        # The inventory is a list of DropsCampaign objects in twitch.inventory
+          # The inventory is a list of DropsCampaign objects in twitch.inventory
         if hasattr(twitch, 'inventory') and isinstance(twitch.inventory, list):
             for campaign in twitch.inventory:
                 campaign_data = {
@@ -172,12 +171,24 @@ def campaigns():
                 # Add time info
                 campaign_data['start_time'] = campaign.starts_at.isoformat() if hasattr(campaign, 'starts_at') and campaign.starts_at else None
                 campaign_data['end_time'] = campaign.ends_at.isoformat() if hasattr(campaign, 'ends_at') and campaign.ends_at else None
-                
-                # Add drops count and progress info
+                  # Add drops count and progress info
                 campaign_data['drops_count'] = len(campaign.drops) if hasattr(campaign, 'drops') else 0
                 campaign_data['claimed_drops'] = campaign.claimed_drops if hasattr(campaign, 'claimed_drops') else 0
                 campaign_data['total_drops'] = campaign.total_drops if hasattr(campaign, 'total_drops') else 0
                 campaign_data['progress'] = campaign.progress if hasattr(campaign, 'progress') else 0
+                
+                # Add properties needed for filtering
+                campaign_data['active'] = campaign.active if hasattr(campaign, 'active') else False
+                campaign_data['upcoming'] = campaign.upcoming if hasattr(campaign, 'upcoming') else False
+                campaign_data['expired'] = campaign.expired if hasattr(campaign, 'expired') else False
+                campaign_data['linked'] = campaign.linked if hasattr(campaign, 'linked') else False
+                campaign_data['eligible'] = campaign.eligible if hasattr(campaign, 'eligible') else False
+                campaign_data['finished'] = campaign.finished if hasattr(campaign, 'finished') else False
+                  # Check if the campaign is excluded based on settings
+                campaign_data['excluded'] = False
+                if hasattr(twitch, 'settings') and hasattr(campaign, 'game') and hasattr(campaign.game, 'name'):
+                    if hasattr(twitch.settings, 'exclude') and campaign.game.name in twitch.settings.exclude:
+                        campaign_data['excluded'] = True
                 
                 campaigns_data.append(campaign_data)
         # Fallback for older structure if inventory is not a list

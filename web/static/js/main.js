@@ -211,6 +211,9 @@ function setupTabNavigation() {
             // Get the tab ID from the button ID
             const tabId = button.id.replace('tab-btn-', '');
             
+            // Update currentTab global variable for other functions to use
+            window.currentTab = tabId;
+            
             // Start preloading data for the selected tab
             if (tabId === 'campaigns') {
                 // If we're switching to campaigns, preload campaigns data
@@ -873,6 +876,17 @@ function fetchCampaigns() {
                 preloadedData.campaigns = data;
                 preloadedData.lastPreloadTime.campaigns = Date.now();
                 
+                // Store original data for filtering if the storeCampaignsData function exists
+                if (typeof storeCampaignsData === 'function') {
+                    storeCampaignsData(data);
+                    
+                    // Apply filters if we're currently on the campaigns tab
+                    if (window.currentTab === 'campaigns' && typeof applyCampaignFilters === 'function') {
+                        applyCampaignFilters();
+                        return resolve(data); // Return early since applyCampaignFilters will call updateCampaignsUI
+                    }
+                }
+                
                 updateCampaignsUI(data);
                 resolve(data);
             })
@@ -1141,9 +1155,8 @@ function updateChannelsUI(data) {
     if (!channelsTable) return;
     
     // Clear existing content
-    channelsTable.innerHTML = '';
-      if (!data || data.length === 0) {
-        channelsTable.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">No channels available.</td></tr>';
+    channelsTable.innerHTML = '';      if (!data || data.length === 0) {
+        channelsTable.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-500">No channels available.</td></tr>';
         return;
     }
     
@@ -1165,8 +1178,8 @@ function updateChannelsUI(data) {
                 </div>
             </td>
             <td class="px-4 py-3 border-b border-gray-200 game-name">${channel.game || 'Unknown'}</td>
-            <td class="px-4 py-3 border-b border-gray-200 text-right">${channel.status === 'ONLINE' ? channel.viewers.toLocaleString() : '-'}</td>
-            <td class="px-4 py-3 border-b border-gray-200 text-center">${channel.has_drops ? '<span class="text-green-500"><i class="fas fa-check"></i></span>' : ''}</td>            <td class="px-4 py-3 border-b border-gray-200 text-right">
+            <td class="px-4 py-3 border-b border-gray-200 text-right">${channel.status === 'ONLINE' ? channel.viewers.toLocaleString() : '-'}</td>            <td class="px-4 py-3 border-b border-gray-200 text-right">
+                ${channel.has_drops ? '<span class="text-green-500 mr-1"><i class="fas fa-gift"></i></span>' : ''}
                 <button class="watch-channel-btn bg-blue-500 hover:bg-blue-700 text-white py-1 px-2 rounded text-xs" data-channel="${channel.name}">
                     <i class="fas fa-tv mr-1"></i> Watch <i class="fas fa-external-link-alt text-xs"></i>
                 </button>
