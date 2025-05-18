@@ -7,8 +7,6 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('[Auto-Refresh Prevention] Initializing...');
-    
     /**
      * Override auto-refresh behaviors that could cause scroll jumping
      */
@@ -25,7 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (window.currentTab === 'campaigns' || window.currentTab === 'inventory') {
                         if (window.saveCurrentScrollPosition) {
                             window.saveCurrentScrollPosition();
-                            console.log(`[Auto-Refresh Prevention] Saved scroll position for ${window.currentTab} before auto-refresh`);
                         }
                     }
                     
@@ -57,7 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // Handle visibility change events
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'visible') {
-                    console.log('[Auto-Refresh Prevention] Page visibility changed to visible');
                     
                     // Save current scroll position if needed
                     if (window.saveCurrentScrollPosition && 
@@ -67,7 +63,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }, true);
             
-            console.log('[Auto-Refresh Prevention] Initialized successfully');
         } catch (err) {
             console.error('[Auto-Refresh Prevention] Error during initialization:', err);
         }
@@ -86,11 +81,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!window.manualRefreshInProgress) {
                 if (window.currentTab === 'campaigns') {
                     options.refreshCampaigns = false;
-                    console.log('[Auto-Refresh Prevention] Prevented campaigns auto-refresh');
                 }
                 if (window.currentTab === 'inventory') {
                     options.refreshInventory = false;
-                    console.log('[Auto-Refresh Prevention] Prevented inventory auto-refresh');
                 }
             }
             
@@ -98,7 +91,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return originalRefreshData.call(this, options);
         };
         
-        console.log('[Auto-Refresh Prevention] Successfully patched refreshData function');
     } else {
         console.warn('[Auto-Refresh Prevention] Could not find refreshData function to override');
     }

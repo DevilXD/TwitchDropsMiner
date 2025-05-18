@@ -6,7 +6,7 @@
 
 // Override the manual refresh button handler to properly preserve scroll positions
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('[Manual Refresh] Setting up manual refresh handlers');
+    // Manual Refresh - Setting up handlers
     
     // Find all manual refresh buttons
     const manualRefreshButtons = document.querySelectorAll('#manual-refresh, #refresh-button');
@@ -19,24 +19,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const originalClickHandler = button.onclick;
         
         // Replace with our enhanced version
-        button.onclick = function(event) {
-            // Save the current state before refreshing
+        button.onclick = function(event) {            // Save the current state before refreshing
             const currentTab = window.currentTab;
             
-            console.log(`[Manual Refresh] Manual refresh triggered on ${currentTab} tab`);
+            // Manual refresh triggered on current tab
             window.manualRefreshInProgress = true;
             
             // Save scroll position if the function exists
             if (window.saveCurrentScrollPosition) {
-                console.log(`[Manual Refresh] Saving scroll position for tab: ${currentTab}`);
+                // Saving scroll position for current tab
                 window.saveCurrentScrollPosition();
-            } else {
-                console.warn('[Manual Refresh] saveCurrentScrollPosition function not available');
             }
-            
-            // If there was an original handler, call it
+              // If there was an original handler, call it
             if (typeof originalClickHandler === 'function') {
-                console.log('[Manual Refresh] Calling original click handler');
+                // Calling original click handler
                 originalClickHandler.call(this, event);
             }
             
@@ -51,12 +47,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         // This will detect when the refresh is complete based on the progress bar being hidden
                         const observer = new MutationObserver((mutationsList) => {
                             for (const mutation of mutationsList) {
-                                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                                    if (!progressContainer.classList.contains('visible')) {
+                                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {                                    if (!progressContainer.classList.contains('visible')) {
                                         observer.disconnect();
                                         // After refresh completes, restore position
                                         setTimeout(() => {
-                                            console.log(`[Manual Refresh] Refreshing complete, restoring scroll for ${currentTab}`);
+                                            // Refreshing complete, restoring scroll position
                                             window.restoreScrollPosition(currentTab);
                                             window.manualRefreshInProgress = false;
                                         }, 150);
@@ -69,9 +64,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         
                         // Safety timeout - restore scroll after 5 seconds no matter what
                         setTimeout(() => {
-                            observer.disconnect();
-                            if (window.manualRefreshInProgress) {
-                                console.log(`[Manual Refresh] Safety timeout reached, restoring scroll for ${currentTab}`);
+                            observer.disconnect();                            if (window.manualRefreshInProgress) {
+                                // Safety timeout reached, restoring scroll position
                                 window.restoreScrollPosition(currentTab);
                                 window.manualRefreshInProgress = false;
                             }
@@ -79,11 +73,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     };
                     
                     if (progressContainer) {
-                        watchProgressBar();
-                    } else {
+                        watchProgressBar();                    } else {
                         // If progress container isn't found, use a simpler timeout approach
                         setTimeout(() => {
-                            console.log(`[Manual Refresh] No progress bar found, using timeout for ${currentTab}`);
+                            // No progress bar found, using timeout approach
                             window.restoreScrollPosition(currentTab);
                             window.manualRefreshInProgress = false;
                         }, 1500);
@@ -94,10 +87,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 checkForRefreshCompletion();
             } else {
                 window.manualRefreshInProgress = false;
-                console.warn(`[Manual Refresh] Can't restore scroll - tab: ${currentTab}, restoreScrollPosition available: ${!!window.restoreScrollPosition}`);
+                // Can't restore scroll - either not on a scrollable tab or restore function not available
             }
         };
     });
     
-    console.log('[Manual Refresh] Manual refresh handlers initialized');
+    // Manual refresh handlers initialized
 });

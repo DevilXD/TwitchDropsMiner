@@ -34,7 +34,6 @@ function initCampaignFilters() {
                 window.saveCurrentScrollPosition();
             }            // Refresh campaigns data
             if (typeof window.fetchCampaigns !== 'function') {
-                console.error('fetchCampaigns function is not available');
                 window.showToast('Error', 'Refresh functionality not available', 'error');
                 refreshCampaignsButton.disabled = false;
                 refreshCampaignsButton.innerHTML = originalText;
@@ -45,9 +44,7 @@ function initCampaignFilters() {
                 .then(data => {
                     window.originalCampaignsData = [...data]; // Keep original data for filtering
                     applyCampaignFilters(); // Apply filters to the new data
-                })
-                .catch(error => {
-                    console.error('Error refreshing campaigns:', error);
+                })                .catch(error => {
                     if (typeof window.showToast === 'function') {
                         window.showToast('Error', 'Failed to refresh campaigns', 'error');
                     }
@@ -60,9 +57,8 @@ function initCampaignFilters() {
                     }, 500);
                 });
         });
-    }
-    
-    console.log('[Campaign Filters] Initialized');
+    }    
+    // Campaign Filters initialized
 }
 
 // Apply campaign filters based on checkbox states
@@ -112,9 +108,8 @@ function applyCampaignFilters() {
     // Update campaigns UI with filtered data
     if (typeof window.updateCampaignsUI === 'function') {
         window.updateCampaignsUI(filteredData);
-    } else {
-        console.error('updateCampaignsUI function is not available');
-    }
+    } 
+    // If function not available, silently fail
 }
 
 // Override the global placeholder function

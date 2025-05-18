@@ -27,10 +27,9 @@ window.restoreScrollPosition = restoreScrollPosition;
         if (inventoryPos) {
             scrollPositions.inventory = parseInt(inventoryPos, 10);
         }
-        
-        console.log('[Scroll] Loaded saved positions:', scrollPositions);
+          // Loaded saved positions
     } catch (err) {
-        console.error('[Scroll] Error loading saved positions:', err);
+        // Error loading saved positions
     }
 })();
 
@@ -47,9 +46,8 @@ function getScrollContainer(tabId) {
         } else if (tabId === 'inventory') {
             const tab = document.getElementById('inventory-tab');
             return tab?.querySelector('.overflow-y-auto') || null;
-        }
-    } catch (err) {
-        console.error(`[Scroll] Error getting container for ${tabId}:`, err);
+        }    } catch (err) {
+        // Error getting container for tab
     }
     
     return null;
@@ -68,13 +66,12 @@ function saveCurrentScrollPosition() {
         
         // Only save if the scroll position actually changed
         const currentPos = container.scrollTop;
-        if (scrollPositions[currentTabId] !== currentPos) {
-            scrollPositions[currentTabId] = currentPos;
+        if (scrollPositions[currentTabId] !== currentPos) {            scrollPositions[currentTabId] = currentPos;
             localStorage.setItem(`${STORAGE_KEY_PREFIX}-${currentTabId}-scroll`, currentPos.toString());
-            console.log(`[Scroll] Saved ${currentTabId} position: ${currentPos}px`);
+            // Saved scroll position
         }
     } catch (err) {
-        console.error('[Scroll] Error saving scroll position:', err);
+        // Error saving scroll position
     }
 }
 
@@ -91,13 +88,12 @@ function restoreScrollPosition(tabId) {
         const savedPos = scrollPositions[tabId];
         if (savedPos > 0) {
             // Use a single attempt to restore scroll position to prevent excessive updates
-            setTimeout(() => {
-                container.scrollTop = savedPos;
-                console.log(`[Scroll] Restored ${tabId} to ${savedPos}px`);
+            setTimeout(() => {                container.scrollTop = savedPos;
+                // Restored scroll position
             }, 100);
         }
     } catch (err) {
-        console.error(`[Scroll] Error restoring ${tabId} position:`, err);
+        // Error restoring scroll position
     }
 }
 
@@ -212,10 +208,9 @@ function setupScrollTracking() {
                     restoreScrollPosition(tab);
                 }
             }, 300);
-        });
-        
-        console.log('[Scroll] Position tracking initialized');
+        });        
+        // Position tracking initialized
     } catch (err) {
-        console.error('[Scroll] Error setting up scroll tracking:', err);
+        // Error setting up scroll tracking
     }
 }

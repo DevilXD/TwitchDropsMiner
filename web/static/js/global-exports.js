@@ -23,10 +23,6 @@ window.storeCampaignsData = function(data) {
 };
 
 window.applyCampaignFilters = function() {
-    // This function will be overridden by the real implementation in campaign-filters.js
-    // This is just a placeholder to avoid errors if called before campaign-filters.js loads
-    console.log('Campaign filters not yet loaded');
+    // Campaign filters not yet loaded
     return false;
 };
-
-// Make sure we don't overwrite existing exports

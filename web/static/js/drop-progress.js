@@ -31,9 +31,8 @@ function fetchActiveDropData() {
         .then(response => response.json())
         .then(data => {
             updateDropProgressUI(data);
-        })
-        .catch(error => {
-            console.error('Error fetching active drop data:', error);
+        })        .catch(error => {
+            // Silent error handling for active drop data fetch errors
         });
 }
 
@@ -144,8 +143,6 @@ function updateDropImage(imageUrl) {
     const fallbackIcon = document.getElementById('drop-image-fallback');
     
     if (imageUrl) {
-        console.log("Setting drop image URL:", imageUrl); // Debug log
-        
         // Use the actual drop image
         dropImage.onload = function() {
             // Only show the image after it's loaded
@@ -155,12 +152,13 @@ function updateDropImage(imageUrl) {
             // Change the background color to better match the Twitch theme
             imageContainer.classList.remove('bg-green-600');
             imageContainer.classList.add('bg-purple-700');
-            console.log("Image loaded successfully");
+            
+            // Ensure proper sizing and centering of the image
+            dropImage.style.width = '32px';
+            dropImage.style.height = '32px';
         };
-        
-        dropImage.onerror = function() {
+          dropImage.onerror = function() {
             // If image fails to load, show the fallback
-            console.log("Image failed to load");
             dropImage.classList.add('hidden');
             fallbackIcon.classList.remove('hidden');
             

@@ -27,15 +27,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Track when the window gets focus for browsers that might not properly support visibilitychange
-    let windowBlurred = false;
-    window.addEventListener('blur', () => {
+    let windowBlurred = false;    window.addEventListener('blur', () => {
         windowBlurred = true;
-        console.log('Window lost focus');
+        // Window lost focus
     });
       window.addEventListener('focus', () => {
         if (windowBlurred) {
             windowBlurred = false;
-            console.log('Window regained focus, refreshing only status and channels...');
+            // Window regained focus, refreshing only status and channels
             
             // Save scroll position first
             if (window.saveCurrentScrollPosition) {
@@ -74,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 refreshSettings: false,
                 refreshLogin: false
             }).catch(error => {
-                console.error('Auto-refresh error:', error);
+                // Error handled silently;
                 // Even if there's an error, we want to continue with future refreshes
             });
         }, 10000);
@@ -110,7 +109,7 @@ function reloadMiner() {
             }
         })
         .catch(error => {
-            console.error('Error reloading the miner:', error);
+            // Error handled silently;
             showToast('Error', 'Failed to reload the miner. Check console for details.', 'error');
         })
         .finally(() => {
@@ -150,7 +149,7 @@ function manualRefreshInventory() {
             }
         })
         .catch(error => {
-            console.error('Error refreshing inventory:', error);
+            // Error handled silently;
             showToast('Error', 'Failed to refresh inventory. Check console for details.', 'error');
         })
         .finally(() => {
@@ -189,7 +188,7 @@ function initiateLogout() {
             }
         })
         .catch(error => {
-            console.error('Error during logout:', error);
+            // Error handled silently;
             showToast('Error', 'Failed to logout. Check console for details.', 'error');
         })
         .finally(() => {
@@ -269,13 +268,12 @@ function setupTabNavigation() {
 function setupEventListeners() {
     // Page visibility change event to refresh data when user returns to the tab
     let wasHidden = false;      // Check if the page was hidden
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'hidden') {
+    document.addEventListener('visibilitychange', () => {        if (document.visibilityState === 'hidden') {
             wasHidden = true;
-            console.log('Tab hidden, marking for refresh on return');
+            // Tab hidden, marking for refresh on return
         } else if (document.visibilityState === 'visible' && wasHidden) {
             wasHidden = false;
-            console.log('Tab became visible after being hidden, refreshing status and channels only...');
+            // Tab became visible after being hidden, refreshing status and channels only
             
             // Save scroll position first
             if (window.saveCurrentScrollPosition) {
@@ -383,7 +381,7 @@ function setupEventListeners() {
                 refreshLogin: true
             })
                 .catch(error => {
-                    console.error('Manual refresh error:', error);
+                    // Error handled silently;
                     showToast('Refresh Error', 'There was an error refreshing the data.', 'error');
                 })
                 .finally(() => {
@@ -417,7 +415,7 @@ function setupEventListeners() {
                 refreshLogin: true
             })
                 .catch(error => {
-                    console.error('Manual refresh error:', error);
+                    // Error handled silently;
                     showToast('Refresh Error', 'There was an error refreshing the data.', 'error');
                 })
                 .finally(() => {
@@ -582,7 +580,7 @@ function refreshData(options = {}) {
     return Promise.all(fetchPromises)
         .catch(error => {
             // This should never happen with the individual catch handlers
-            console.error('Error during data refresh:', error);
+            // Error handled silently;
             return []; // Return empty array to allow execution to continue
         })        .finally(() => {
             // Complete the progress bar
@@ -659,7 +657,7 @@ function fetchStatus() {
                 
                 resolve(data);
             })            .catch(error => {
-                console.error('Error fetching status:', error);
+                // Error handled silently;
                   // Update UI to show error
                 updateStatusUIError();
                 
@@ -674,7 +672,7 @@ function fetchStatus() {
                 // Handle automatic reconnection attempts
                 statusRetryCount++;
                 if (statusRetryCount <= maxStatusRetries) {                    
-                    console.log(`Retry attempt ${statusRetryCount}/${maxStatusRetries} in 2 seconds...`);
+                    // Retry attempt in 2 seconds
                     const connectionStatus = document.getElementById('connection-status');
                     if (connectionStatus) {
                         connectionStatus.textContent = `Reconnecting (${statusRetryCount}/${maxStatusRetries})`;
@@ -757,7 +755,7 @@ function fetchDiagnostics() {
                 resolve(data);
             })
             .catch(error => {
-                console.error('Error fetching diagnostics:', error);
+                // Error handled silently;
                 updateDiagnosticUIError();
                 // Still resolve the promise to avoid cascading failures
                 resolve({ error: 'Failed to fetch diagnostics' });
@@ -812,7 +810,7 @@ function fetchChannels() {
             })
             .then(data => {
                 if (data.error) {
-                    console.error('Error from channels API:', data.error);                    
+                    // Error handled silently;                    
                     const channelsTable = document.getElementById('channels-table-body');
                     if (channelsTable) {
                         channelsTable.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-red-500">Error: ${data.error}</td></tr>`;
@@ -828,7 +826,7 @@ function fetchChannels() {
                 resolve(data);
             })
             .catch(error => {
-                console.error('Error fetching channels:', error);
+                // Error handled silently;
                 const channelsTable = document.getElementById('channels-table-body');
                 if (channelsTable) {
                     channelsTable.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-red-500">Failed to load channels. Please check your connection.</td></tr>';
@@ -864,7 +862,7 @@ function fetchCampaigns() {
             })
             .then(data => {
                 if (data.error) {
-                    console.error('Error from campaigns API:', data.error);
+                    // Error handled silently;
                     const campaignsList = document.getElementById('campaigns-list');
                     if (campaignsList) {
                         campaignsList.innerHTML = `<div class="col-span-full p-4 bg-white rounded shadow text-red-500">Error: ${data.error}</div>`;
@@ -891,7 +889,7 @@ function fetchCampaigns() {
                 resolve(data);
             })
             .catch(error => {
-                console.error('Error fetching campaigns:', error);
+                // Error handled silently;
                 const campaignsList = document.getElementById('campaigns-list');
                 if (campaignsList) {
                     campaignsList.innerHTML = '<div class="col-span-full p-4 bg-white rounded shadow text-red-500">Failed to load campaigns. Please check your connection.</div>';
@@ -925,7 +923,7 @@ function fetchInventory() {
             })
             .then(data => {
                 if (data.error) {
-                    console.error('Error from inventory API:', data.error);
+                    // Error handled silently;
                     const pendingDrops = document.getElementById('pending-drops');
                     const claimedDrops = document.getElementById('claimed-drops');
                     
@@ -947,7 +945,7 @@ function fetchInventory() {
                 resolve(data);
             })
             .catch(error => {
-                console.error('Error fetching inventory:', error);
+                // Error handled silently;
                 const pendingDrops = document.getElementById('pending-drops');
                 const claimedDrops = document.getElementById('claimed-drops');
                 
@@ -1012,7 +1010,7 @@ function checkLoginStatus() {
                 resolve(data);
             })
             .catch(error => {
-                console.error('Error checking login status:', error);
+                // Error handled silently;
                 // Still resolve the promise to avoid cascading failures
                 resolve({ error: 'Failed to check login status' });
             });
@@ -1217,7 +1215,7 @@ function watchChannel(channelName) {
         }
     })
     .catch(error => {
-        console.error('Error switching channel:', error);
+        // Error handled silently;
         showToast('Error', `Failed to switch to ${channelName}. Check console for details.`, 'error');
     });
 }
@@ -1390,7 +1388,7 @@ function claimDrop(dropId) {
         }
     })
     .catch(error => {
-        console.error('Error claiming drop:', error);
+        // Error handled silently;
         showToast('Error', 'Failed to claim drop. Check console for details.', 'error');
     });
 }
@@ -1542,7 +1540,7 @@ function fetchSettings() {
                 resolve(data);
             })
             .catch(error => {
-                console.error('Error fetching settings:', error);
+                // Error handled silently;
                 showToast('Error', 'Failed to fetch settings. Check console for details.', 'error');
                 resolve({ error: 'Failed to fetch settings' });
             });
@@ -1790,7 +1788,7 @@ function addPriorityGame() {
         }
     })
     .catch(error => {
-        console.error('Error adding to priority list:', error);
+        // Error handled silently;
         showToast('Error', error.message, 'error');
     });
 }
@@ -1818,7 +1816,7 @@ function removePriorityItem(index) {
         }
     })
     .catch(error => {
-        console.error('Error removing from priority list:', error);
+        // Error handled silently;
         showToast('Error', error.message, 'error');
     });
 }
@@ -1846,7 +1844,7 @@ function movePriorityItem(index, direction) {
         }
     })
     .catch(error => {
-        console.error('Error moving item in priority list:', error);
+        // Error handled silently;
         showToast('Error', error.message, 'error');
     });
 }
@@ -1888,7 +1886,7 @@ function addExclusionGame() {
         }
     })
     .catch(error => {
-        console.error('Error adding to exclusion list:', error);
+        // Error handled silently;
         showToast('Error', error.message, 'error');
     });
 }
@@ -1916,7 +1914,7 @@ function removeExclusionItem(game) {
         }
     })
     .catch(error => {
-        console.error('Error removing from exclusion list:', error);
+        // Error handled silently;
         showToast('Error', error.message, 'error');
     });
 }
@@ -1958,7 +1956,7 @@ function saveSettings(reloadAfterSave = false) {
         }
     })
     .catch(error => {
-        console.error('Error saving settings:', error);
+        // Error handled silently;
         showToast('Error', error.message, 'error');
     });
 }

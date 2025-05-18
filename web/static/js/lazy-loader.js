@@ -37,17 +37,17 @@ function setupLazyLoading() {
 // They will be overridden by the scroll-position.js implementations
 function saveScrollPosition(tabId) {
     // This is now handled by scroll-position.js
-    console.log('[Lazy Loader] saveScrollPosition called - this function is now in scroll-position.js');
+    // Empty implementation for backward compatibility
 }
 
 function restoreScrollPosition(tabId) {
     // This is now handled by scroll-position.js
-    console.log('[Lazy Loader] restoreScrollPosition called - this function is now in scroll-position.js');
+    // Empty implementation for backward compatibility
 }
 
 // This will be replaced by the implementation in scroll-position.js
 function setupScrollTracking() {
-    console.log('[Lazy Loader] setupScrollTracking called - this function is now in scroll-position.js');
+    // Empty implementation for backward compatibility
 }
 
 // Preload data in the background
@@ -117,9 +117,8 @@ function preloadData(dataType) {
         default:
             return Promise.reject('Invalid data type');
     }
-    
-    return fetchPromise.catch(error => {
-        console.error(`Failed to preload ${dataType} data:`, error);
+      return fetchPromise.catch(error => {
+        // Failed to preload data, silently handle error
         return null;
     });
 }
@@ -145,7 +144,7 @@ window.hasValidPreloadedData = hasValidPreloadedData;
 // Get preloaded data if available, otherwise fetch it
 function getDataWithPreload(dataType, fetchFunction) {
     if (hasValidPreloadedData(dataType)) {
-        console.log(`Using preloaded ${dataType} data`);
+        // Using preloaded data
         return Promise.resolve(preloadedData[dataType]);
     } else {
         return fetchFunction().then(data => {
