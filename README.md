@@ -1,6 +1,8 @@
-# Twitch Drops Miner
+# Twitch Drops Miner Web
 
 This application allows you to AFK mine timed Twitch drops, without having to worry about switching channels when the one you were watching goes offline, claiming the drops, or even receiving the stream data itself. This helps you save on bandwidth and hassle.
+
+> **Note**: This is a fork of the original [TwitchDropsMiner](https://github.com/DevilXD/TwitchDropsMiner) by DevilXD, with enhanced web interface features and Docker support.
 
 ### How It Works:
 
@@ -16,7 +18,7 @@ Every several seconds, the application pretends to watch a particular stream by 
 - Automatic channel stream switching, when the one you were currently watching goes offline, as well as when a channel streaming a higher priority game goes online.
 - Login session is saved in a cookies file, so you don't need to login every time.
 - Mining is automatically started as new campaigns appear, and stopped when the last available drops have been mined.
-- Web interface for remote monitoring and control - access the miner from any browser.
+- **Enhanced Web Interface** for remote monitoring and control - access the miner from any browser. See [Web Interface Details](WEB.md).
 
 ### Usage:
 
@@ -190,3 +192,12 @@ placed past the period character at the end.
 @Shofuu - For the entirety of the Spanish (Español) translation and revisions.  
 @alikdb - For the entirety of the Turkish (Türkçe) translation.  
 @Nollasko - For the entirety of the Ukrainian (Українська) translation and revisions.
+
+## Docker Support
+
+This project includes Docker support for easy deployment in containers. See the [Docker Usage Guide](DOCKER.md) for detailed instructions on how to:
+
+- Run the application using the pre-built Docker image from GitHub Container Registry
+- Use Docker Compose for easy setup and configuration
+- Build the Docker image locally
+- Set up initial configuration through the web interface

@@ -226,6 +226,35 @@ jobs:
           if-no-files-found: error
           name: Twitch.Drops.Miner.Linux.AppImage
           path: Twitch.Drops.Miner.Linux.AppImage.zip
+  docker:
+    name: Docker Test
+    runs-on: ubuntu-latest
+    needs:
+      - validate
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          load: true
+          tags: test-twitch-drops-miner:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: Test Docker image
+        run: |
+          docker run --rm test-twitch-drops-miner python -c "import sys; print(f'Python version: {sys.version}')"
+          # Verify that all necessary packages are installed
+          docker run --rm test-twitch-drops-miner pip freeze
+          # Test that Flask web interface can be imported
+          docker run --rm test-twitch-drops-miner python -c "from web.app import app; print('Web interface imported successfully')"
 
   update_releases_page:
     name: Upload builds to Releases
@@ -234,6 +263,7 @@ jobs:
       - windows
       - linux-pyinstaller
       - linux-appimage
+      - docker
     runs-on: ubuntu-latest
     permissions:
       contents: write

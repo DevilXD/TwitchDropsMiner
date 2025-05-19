@@ -1,0 +1,59 @@
+name: Update Dependencies
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'  # Run every Monday at midnight
+  workflow_dispatch:  # Allow manual triggers
+
+jobs:
+  check-dependencies:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+          
+      - name: Install pip-tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pip-tools
+          
+      - name: Check for updates
+        id: check-updates
+        run: |
+          # Create a requirements.in file from requirements.txt
+          cp requirements.txt requirements.in
+          
+          # Generate new requirements with updated versions
+          python -m piptools compile --upgrade requirements.in -o requirements.new.txt
+          
+          # Compare old and new requirements
+          if ! diff -q requirements.txt requirements.new.txt > /dev/null; then
+            echo "UPDATES_AVAILABLE=true" >> $GITHUB_OUTPUT
+          else
+            echo "UPDATES_AVAILABLE=false" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Create Pull Request
+        if: steps.check-updates.outputs.UPDATES_AVAILABLE == 'true'
+        uses: peter-evans/create-pull-request@v4
+        with:
+          commit-message: "build(deps): update Python dependencies"          title: "Automated Dependencies Update"
+          body: |
+            This PR updates Python dependencies to their latest versions.
+            
+            Generated automatically by the Update Dependencies workflow.
+          branch: automated-deps-update
+          base: master
+          labels: dependencies
+          delete-branch: true
+          add-paths: |
+            requirements.new.txt:requirements.txt

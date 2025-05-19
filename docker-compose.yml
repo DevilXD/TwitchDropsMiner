@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:  twitch-drops-miner:
+    # Use the image from GitHub Container Registry or build from local Dockerfile
+    image: ${DOCKER_REGISTRY:-ghcr.io}/kaysharp42/twitchdropsminer-web:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: twitchdropsminer-web
+    # Automatically restart container unless manually stopped
+    restart: unless-stopped
+    # Expose the web interface port (configurable via .env)
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+    # Persistent storage for app data
+    volumes:
+      # Application logs
+      - ${DATA_DIR:-./data}/logs:/app/logs
+      # Cache for downloaded images
+      - ${DATA_DIR:-./data}/cache:/app/cache
+      # User settings
+      - ${DATA_DIR:-./data}/settings.json:/app/settings.json
+      # Authentication cookies
+      - ${DATA_DIR:-./data}/cookies.jar:/app/cookies.jar
+    environment:
+      # Timezone configuration
+      - TZ=${TIMEZONE:-UTC}
+    # Healthcheck to ensure the web interface is responding
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    # Optional resource constraints - uncomment and adjust as needed
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '0.50'
+    #       memory: 256M
+    #     reservations:
+    #       cpus: '0.25'
+    #       memory: 128M
