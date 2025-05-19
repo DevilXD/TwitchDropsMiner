@@ -246,15 +246,15 @@ jobs:
           load: true
           tags: test-twitch-drops-miner:latest
           cache-from: type=gha
-          cache-to: type=gha,mode=max
-      
-      - name: Test Docker image
+          cache-to: type=gha,mode=max      - name: Test Docker image
         run: |
           docker run --rm test-twitch-drops-miner python -c "import sys; print(f'Python version: {sys.version}')"
           # Verify that all necessary packages are installed
           docker run --rm test-twitch-drops-miner pip freeze
-          # Test that Flask web interface can be imported
+          # Test that web.app module can be imported
           docker run --rm test-twitch-drops-miner python -c "from web.app import app; print('Web interface imported successfully')"
+          # Test that the app can be started in web mode (non-blocking, so it will exit immediately)
+          docker run --rm test-twitch-drops-miner python -c "import subprocess; subprocess.run(['python', 'main.py', '--web', '--help'], check=True)"
 
   update_releases_page:
     name: Upload builds to Releases

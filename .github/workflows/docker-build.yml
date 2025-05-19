@@ -12,7 +12,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  # Convert repository name to lowercase for GHCR compatibility
+  IMAGE_NAME: ${{ format('{0}', github.repository) | lower }}
 
 jobs:
   security-scan:

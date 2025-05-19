@@ -15,7 +15,7 @@ The web interface allows you to:
 
 ## Docker Deployment
 
-This fork adds comprehensive Docker support for easy deployment in containers:
+This fork adds comprehensive Docker support for easy deployment in containers. The app automatically runs in web-only mode when deployed in Docker:
 
 1. **Quick Start:**
    ```powershell

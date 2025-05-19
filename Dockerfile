@@ -42,6 +42,8 @@ RUN apt-get update && apt-get install -y \
     gir1.2-gtk-3.0 \
     gir1.2-ayatanaappindicator3-0.1 \
     wget \
+    tk \
+    python3-tk \
     --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
@@ -52,6 +54,9 @@ COPY --from=builder /root/.local /root/.local
 
 # Make sure scripts in .local are usable
 ENV PATH=/root/.local/bin:$PATH
+
+# Set display variable to prevent tkinter from trying to use X server
+ENV DISPLAY=''
 
 # Copy source code
 COPY *.py ./

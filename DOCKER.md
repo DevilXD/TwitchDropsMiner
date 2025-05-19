@@ -83,7 +83,7 @@ If you prefer to build the image yourself:
 
 ```bash
 # Build the image
-docker build -t twitch-drops-miner .
+docker build -t twitchdropsminer-web .
 
 # Run the container
 docker run -d \
