@@ -242,7 +242,8 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .          load: true
+          context: .
+          load: true
           tags: test-twitch-drops-miner:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max

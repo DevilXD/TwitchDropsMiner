@@ -12,15 +12,15 @@ jobs:
       contents: write
       pull-requests: write
       
-    steps:
-      - name: Checkout repository
+    steps:      - name: Checkout repository
         uses: actions/checkout@v4
-        
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.12'
-            - name: Install pip-tools
+          
+      - name: Install pip-tools
         run: |
           python -m pip install --upgrade pip
           python -m pip install pip-tools

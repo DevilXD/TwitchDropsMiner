@@ -11,9 +11,8 @@ on:
     - cron: '0 0 * * 0'  # Run weekly to check for security updates
 
 env:
-  REGISTRY: ghcr.io
-  # Convert repository name to lowercase for GHCR compatibility
-  IMAGE_NAME: ${{ github.repository_owner }}/twitchdropsminer-web
+  REGISTRY: ghcr.io  # Convert repository name to lowercase for GHCR compatibility
+  IMAGE_NAME: ${{ format('{0}/twitchdropsminer-web', github.repository_owner) }}
 
 jobs:
   security-scan:
@@ -68,8 +67,7 @@ jobs:
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
-        with:
-          context: .
+        with:          context: .
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -77,15 +75,13 @@ jobs:
           cache-to: type=gha,mode=max
           # Build args
           build-args: |
-            BUILD_DATE=${{ github.event.repository.updated_at }}
+            BUILD_DATE=${{ fromJSON(github.event.repository.updated_at || '""') }}
             VCS_REF=${{ github.sha }}
-            VERSION=${{ github.ref_name }}
-
-      - name: Scan Docker image
+            VERSION=${{ github.ref_name }}      - name: Scan Docker image
         if: github.event_name != 'pull_request'
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          image-ref: ${{ env.REGISTRY }}/${{ format('{0}/twitchdropsminer-web', github.repository_owner) }}:${{ github.sha }}
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'

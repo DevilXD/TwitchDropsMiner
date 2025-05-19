@@ -1,6 +1,8 @@
+# Docker Compose configuration for TwitchDropsMinerWeb
 version: '3.8'
 
-services:  twitch-drops-miner:
+services:  
+  twitch-drops-miner:
     # Use the image from GitHub Container Registry or build from local Dockerfile
     image: ${DOCKER_REGISTRY:-ghcr.io}/kaysharp42/twitchdropsminer-web:${TAG:-latest}
     build:
