@@ -242,11 +242,12 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .
-          load: true
+          context: .          load: true
           tags: test-twitch-drops-miner:latest
           cache-from: type=gha
-          cache-to: type=gha,mode=max      - name: Test Docker image
+          cache-to: type=gha,mode=max
+          
+      - name: Test Docker image
         run: |
           docker run --rm test-twitch-drops-miner python -c "import sys; print(f'Python version: {sys.version}')"
           # Verify that all necessary packages are installed

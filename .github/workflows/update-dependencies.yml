@@ -20,12 +20,12 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.12'
-          
-      - name: Install pip-tools
+            - name: Install pip-tools
         run: |
           python -m pip install --upgrade pip
           python -m pip install pip-tools
-            - name: Check for updates
+          
+      - name: Check for updates
         id: check-updates
         run: |
           # Create a requirements.in file from requirements.txt

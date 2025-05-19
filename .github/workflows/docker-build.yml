@@ -13,7 +13,7 @@ on:
 env:
   REGISTRY: ghcr.io
   # Convert repository name to lowercase for GHCR compatibility
-  IMAGE_NAME: ${{ format('{0}', github.repository) | lower }}
+  IMAGE_NAME: ${{ github.repository_owner }}/twitchdropsminer-web
 
 jobs:
   security-scan:
