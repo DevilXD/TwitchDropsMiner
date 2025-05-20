@@ -83,7 +83,7 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ format('{0}/twitchdropsminer-web', github.repository_owner) }}:${{ github.sha }}
+          image-ref: ${{ steps.meta.outputs.tags }}
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
