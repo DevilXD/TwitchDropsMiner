@@ -16,8 +16,6 @@ services:
     ports:
       - "${WEB_PORT:-8080}:8080"
     volumes:
-      - ${DATA_DIR:-./data}/logs:/app/logs
-      - ${DATA_DIR:-./data}/cache:/app/cache
       - ${DATA_DIR:-./data}/settings.json:/app/settings.json
     environment:
       - TZ=${TIMEZONE:-UTC}
