@@ -79,11 +79,15 @@ jobs:
             VCS_REF=${{ github.sha }}
             VERSION=${{ github.ref_name }}
             
+      - name: Get short SHA
+        id: get_sha
+        run: echo "sha_short=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
       - name: Scan Docker image
         if: github.event_name != 'pull_request'
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ghcr.io/${{ github.repository_owner }}/twitchdropsminer-web:sha-${{ github.sha::0:7 }}
+          image-ref: ghcr.io/${{ github.repository_owner }}/twitchdropsminer-web:sha-${{ steps.get_sha.outputs.sha_short }}
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
