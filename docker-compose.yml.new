@@ -18,8 +18,7 @@ services:
     volumes:
       - ${DATA_DIR:-./data}/logs:/app/logs
       - ${DATA_DIR:-./data}/cache:/app/cache
-      - ${DATA_DIR:-./data}/settings.json:/app/settings.json
-      - ${DATA_DIR:-./data}/cookies.jar:/app/cookies.jar
+      - ${DATA_DIR:-./data}:/data
     environment:
       - TZ=${TIMEZONE:-UTC}
     # Optional resource constraints - uncomment and adjust as needed

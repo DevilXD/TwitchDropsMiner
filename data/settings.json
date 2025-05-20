@@ -1,0 +1,20 @@
+{
+    "autostart_tray": false,
+    "connection_quality": 1,
+    "exclude": {
+        "__type": "set",
+        "data": []
+    },
+    "gui_enabled": false,
+    "language": "",
+    "priority": [],
+    "priority_mode": {
+        "__type": "PriorityMode",
+        "data": 1
+    },
+    "proxy": {
+        "__type": "URL",
+        "data": ""
+    },
+    "tray_notifications": true
+}

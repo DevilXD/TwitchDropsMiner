@@ -74,10 +74,11 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           # Build args
-          build-args: |
-            BUILD_DATE=${{ fromJSON(github.event.repository.updated_at || '""') }}
-            VCS_REF=${{ github.sha }}
-            VERSION=${{ github.ref_name }}      - name: Scan Docker image
+        build-args: |
+          BUILD_DATE=${{ fromJSON(github.event.repository.updated_at || '""') }}
+          VCS_REF=${{ github.sha }}
+          VERSION=${{ github.ref_name }}      
+      - name: Scan Docker image
         if: github.event_name != 'pull_request'
         uses: aquasecurity/trivy-action@master
         with:

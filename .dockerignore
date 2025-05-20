@@ -52,7 +52,28 @@ pack.bat
 setup_env.bat
 setup_env.sh
 
-# Docker
-Dockerfile
-docker-compose.yml
-.dockerignore
+# Docker - don't exclude these from the build context
+# Dockerfile
+# docker-compose.yml
+# .dockerignore
+
+# Documentation and non-code files
+*.md
+*.txt
+!requirements.txt
+LICENSE
+CHANGELOG.md
+CONTRIBUTING.md
+docs/
+appimage/
+
+# Cache directories
+cache/
+
+# Images and large binary files
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ico
+*.pdf
