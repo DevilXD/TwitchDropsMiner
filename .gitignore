@@ -26,3 +26,4 @@ log.txt
 /*.AppImage.zsync
 # IDE files
 /.idea
+"data/cookies.jar" 
