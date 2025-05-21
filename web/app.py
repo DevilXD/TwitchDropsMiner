@@ -653,16 +653,8 @@ def check_auth():
                 if hasattr(twitch, 'change_state') and hasattr(State, 'INVENTORY_FETCH'):
                     twitch.save(force=True)
                     sleep(0.5)
-                    
-                    # Schedule the state change in the main event loop
-                    if main_event_loop:
-                        asyncio.run_coroutine_threadsafe(
-                            async_state_change(twitch, reload=True),
-                            main_event_loop
-                        )
-                        logger.info("Scheduled INVENTORY_FETCH state change in main event loop")
-                    else:
-                        logger.error("Cannot schedule state change - no event loop reference")
+                    # Reload the app state
+                    twitch.reload()
             except Exception as e:
                 logger.error(f"Error setting cookie during login: {e}")
             return jsonify({
@@ -683,7 +675,7 @@ def check_auth():
                 'error': f'Error checking authorization: {response.text}',
                 'authorized': False
             }), 500
-            
+
     except Exception as e:
         logger.error(f"Error checking auth status: {e}")
         return jsonify({'error': str(e)}), 500

@@ -242,7 +242,7 @@ if __name__ == "__main__":
                 loop.remove_signal_handler(signal.SIGTERM)
             client.print(_("gui", "status", "exiting"))
             await client.shutdown()
-        if not client.settings.gui_enabled:
+        if client.settings.gui_enabled:
             if not client.gui.close_requested:
                 # user didn't request the closure
                 client.gui.tray.change_icon("error")
@@ -255,8 +255,9 @@ if __name__ == "__main__":
         # NOTE: we have to do it after wait_until_closed,
         # because the user can alter some settings between app termination and closing the window
         client.save(force=True)
-        ##client.gui.stop()
-        ##client.gui.close_window()
+        if client.settings.gui_enabled:
+            client.gui.stop()
+            client.gui.close_window()
         sys.exit(exit_status)
 
     try:

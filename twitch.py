@@ -35,35 +35,35 @@ if WEB_MODE:
             self._messages = []
             self._status = "Initialized"
             self._close_event = asyncio.Event()
-            
+
         async def initialize(self):
             """Initialize GUI components"""
             self.log.info("Web GUI initialized")
             return self
-            
+
         def print(self, text):
             """Print text to log"""
             self.log.info(text)
             self._messages.append(text)
             return True
-            
+
         def update_window_title(self, *args):
             """Dummy method for window title updates"""
             pass
-            
+
         def close(self):
             """Signal the application to close"""
             self.close_requested = True
             self._close_event.set()
-            
+
         async def wait_until_closed(self):
             """Wait until the application is closed"""
             await self._close_event.wait()
-            
+
         def grab_attention(self, sound=False):
             """Dummy method for grabbing attention"""
             pass
-        
+
         def change_icon(self, icon_name):
             """Dummy method for changing icon"""
             pass
@@ -72,12 +72,12 @@ if WEB_MODE:
         def tray(self):
             """Return a dummy tray object"""
             return self
-            
+
         @property
         def status(self):
             """Return a dummy status object"""
             return self
-            
+
         def update(self, status):
             """Update status"""
             self._status = status
@@ -125,7 +125,6 @@ if TYPE_CHECKING:
     from settings import Settings
     from inventory import TimedDrop
     from constants import ClientInfo, JsonType, GQLOperation
-
 
 logger = logging.getLogger("TwitchDrops")
 gql_logger = logging.getLogger("TwitchDrops.gql")
@@ -195,7 +194,7 @@ class _AuthState:
             try:
                 now = datetime.now(timezone.utc)
                 async with self._twitch.request(
-                    "POST", "https://id.twitch.tv/oauth2/device", headers=headers, data=payload
+                        "POST", "https://id.twitch.tv/oauth2/device", headers=headers, data=payload
                 ) as response:
                     # {
                     #     "device_code": "40 chars [A-Za-z0-9]",
@@ -224,11 +223,11 @@ class _AuthState:
                     # sleep first, not like the user is gonna enter the code *that* fast
                     await asyncio.sleep(interval)
                     async with self._twitch.request(
-                        "POST",
-                        "https://id.twitch.tv/oauth2/token",
-                        headers=headers,
-                        data=payload,
-                        invalidate_after=expires_at,
+                            "POST",
+                            "https://id.twitch.tv/oauth2/token",
+                            headers=headers,
+                            data=payload,
+                            invalidate_after=expires_at,
                     ) as response:
                         # 200 means success, 400 means the user haven't entered the code yet
                         if response.status != 200:
@@ -245,12 +244,12 @@ class _AuthState:
             except RequestInvalid:
                 # the device_code has expired, request a new code
                 continue
-            
+
     # This fucntion is not used, but it is here for future reference
     async def _login(self) -> str:
         logger.info("Login flow started")
         client_info: ClientInfo = self._twitch._client_type
-    
+
         token_kind: str = ''
         use_chrome: bool = False
         payload: JsonType = {
@@ -262,7 +261,7 @@ class _AuthState:
             "undelete_user": False,  # purpose unknown
             "remember_me": True,  # persist the session via the cookie
         }
-    
+
         # use fancy headers to mimic the twitch android app
         headers = {
             "Accept": "application/vnd.twitchtv.v3+json",
@@ -274,10 +273,11 @@ class _AuthState:
             "User-Agent": client_info.USER_AGENT,
             "X-Device-Id": self.device_id,
         }
-    
+
         # Fall back to OAuth login instead of handling all the GUI-dependent cases
         logger.info("Skipping password login, using OAuth device code flow")
-        return await self._oauth_login()    
+        return await self._oauth_login()
+
     def headers(self, *, user_agent: str = '', gql: bool = False) -> JsonType:
         client_info: ClientInfo = self._twitch._client_type
         headers = {
@@ -293,9 +293,9 @@ class _AuthState:
         if hasattr(self, "session_id"):
             headers["Client-Session-Id"] = self.session_id
         # if hasattr(self, "client_version"):
-            # headers["Client-Version"] = self.client_version
+        # headers["Client-Version"] = self.client_version
         if hasattr(self, "device_id"):
-            headers["X-Device-Id"] = self.device_id        
+            headers["X-Device-Id"] = self.device_id
         if gql:
             headers["Origin"] = str(client_info.CLIENT_URL)
             headers["Referer"] = str(client_info.CLIENT_URL)
@@ -306,6 +306,7 @@ class _AuthState:
                 logger.warning("Missing access_token in auth state during headers creation")
                 # Don't add Authorization header when we have no token
         return headers
+
     async def validate(self):
         try:
             # We use a timeout here to prevent deadlocks when called from different threads
@@ -316,16 +317,16 @@ class _AuthState:
             # If we get a timeout or "Event loop is closed" error, we're likely being called from a different thread
             # or the event loop is already busy. Just log the issue and continue without validation.
             logger.warning(f"Skipping validation due to lock acquisition error: {e}")
-            
+
             # Ensure we at least have basic attributes set
             if not hasattr(self, "session_id"):
                 self.session_id = create_nonce(CHARS_HEX_LOWER, 16)
-                
+
             # If we have an access token but no user_id, set a placeholder
             if hasattr(self, "access_token") and not hasattr(self, "user_id"):
                 # Set temporary user_id that will be updated on next validation
                 self.user_id = 0
-                
+
             # Make sure logged_in is set if we have an access token
             if hasattr(self, "access_token"):
                 self._logged_in.set()
@@ -339,7 +340,7 @@ class _AuthState:
             client_info: ClientInfo = self._twitch._client_type
         if not self._hasattrs("device_id"):
             async with self._twitch.request(
-                "GET", client_info.CLIENT_URL, headers=self.headers()
+                    "GET", client_info.CLIENT_URL, headers=self.headers()
             ) as response:
                 page_html = await response.text("utf8")
                 assert page_html is not None
@@ -364,7 +365,7 @@ class _AuthState:
                         cookie["auth-token"] = self.access_token
                     elif not hasattr(self, "access_token"):
                         logger.info("Restoring session from cookie")
-                        self.access_token = cookie["auth-token"].value                    # validate the auth token, by obtaining user_id
+                        self.access_token = cookie["auth-token"].value  # validate the auth token, by obtaining user_id
                     auth_headers = {}
                     if hasattr(self, "access_token"):
                         auth_headers["Authorization"] = f"OAuth {self.access_token}"
@@ -372,11 +373,11 @@ class _AuthState:
                         logger.warning("Missing access_token during validation")
                         # Break from the loop if no access_token is present
                         break
-                        
+
                     async with self._twitch.request(
-                        "GET",
-                        "https://id.twitch.tv/oauth2/validate",
-                        headers=auth_headers
+                            "GET",
+                            "https://id.twitch.tv/oauth2/validate",
+                            headers=auth_headers
                     ) as response:
                         if response.status == 401:
                             # the access token we have is invalid - clear the cookie and reauth
@@ -405,18 +406,18 @@ class _AuthState:
                 login_form.update(_("gui", "login", "logged_in"), self.user_id)
             # update our cookie and save it
             jar.update_cookies(cookie, client_info.CLIENT_URL)
-            jar.save(COOKIES_PATH)         
+            jar.save(COOKIES_PATH)
         self._logged_in.set()
-          
+
     def invalidate(self):
         self._delattrs("access_token")
         # Also clear the logged-in flag
         self._logged_in.clear()
-        
+
         # Set user_id to 0 (placeholder) if it exists
         if hasattr(self, "user_id"):
             self.user_id = 0
-            
+
         # Log the invalidation
         logger.info("Auth state invalidated")
 
@@ -478,8 +479,8 @@ class Twitch:
         elif connection_quality > 6:
             connection_quality = self.settings.connection_quality = 6
         timeout = aiohttp.ClientTimeout(
-            sock_connect=5*connection_quality,
-            total=10*connection_quality,
+            sock_connect=5 * connection_quality,
+            total=10 * connection_quality,
         )
         # create session, limited to 50 connections at maximum
         connector = aiohttp.TCPConnector(limit=50)
@@ -557,7 +558,7 @@ class Twitch:
         Can be used to print messages within the GUI.
         """
         if self.gui_enabled:
-           self.gui.print(message)
+            self.gui.print(message)
 
     def save(self, *, force: bool = False) -> None:
         """
@@ -576,8 +577,8 @@ class Twitch:
         MAX_INT (a really big number) signifies the lowest possible priority.
         """
         if (
-            (game := channel.game) is None  # None when OFFLINE or no game set
-            or game not in self.wanted_games  # we don't care about the played game
+                (game := channel.game) is None  # None when OFFLINE or no game set
+                or game not in self.wanted_games  # we don't care about the played game
         ):
             return MAX_INT
         return self.wanted_games.index(game)
@@ -602,7 +603,12 @@ class Twitch:
             except ExitRequest:
                 break
             except aiohttp.ContentTypeError as exc:
-                raise RequestException(_("login", "unexpected_content")) from exc    
+                raise RequestException(_("login", "unexpected_content")) from exc
+
+    def reload(self):
+        """Signal the application to reload"""
+        self.change_state(State.RELOAD)
+
     async def _run(self):
         """
         Main method that runs the whole client.
@@ -642,6 +648,8 @@ class Twitch:
         channels: Final[OrderedDict[int, Channel]] = self.channels
         self.change_state(State.INVENTORY_FETCH)
         while True:
+            if self._state is State.RELOAD:
+                raise ReloadRequest()
             if self._state is State.IDLE:
                 if self.settings.dump:
                     if self.gui_enabled:
@@ -652,28 +660,28 @@ class Twitch:
                     self.gui.status.update(_("gui", "status", "idle"))
                 self.stop_watching()
                 # clear the flag and wait until it's set again
-                self._state_change.clear()            
+                self._state_change.clear()
             elif self._state is State.INVENTORY_FETCH:
                 if self.gui_enabled:
                     self.gui.tray.change_icon("maint")
                 # ensure the websocket is running
                 await self.websocket.start()
-                
+
                 # Check if we have a valid auth token before proceeding
                 if not hasattr(self._auth_state, "access_token"):
                     logger.warning("Cannot fetch inventory - no auth token. Reverting to IDLE state.")
                     self.change_state(State.IDLE)
                     continue
-                
+
                 # Try to fetch inventory
                 await self.fetch_inventory()
-                
+
                 # Check if we managed to get any inventory data
                 if not self.inventory:
                     logger.warning("No inventory data retrieved. Authentication might be incomplete.")
                     self.change_state(State.IDLE)
                     continue
-                    
+
                 if self.gui_enabled:
                     self.gui.set_games(set(campaign.game for campaign in self.inventory))
                 # Save state on every inventory fetch
@@ -708,12 +716,12 @@ class Twitch:
                 for campaign in sorted_campaigns:
                     game: Game = campaign.game
                     if (
-                        game not in self.wanted_games  # isn't already there
-                        # and isn't excluded by list or priority mode
-                        and game.name not in exclude
-                        and (not priority_only or game.name in priority)
-                        # and can be progressed within the next hour
-                        and campaign.can_earn_within(next_hour)
+                            game not in self.wanted_games  # isn't already there
+                            # and isn't excluded by list or priority mode
+                            and game.name not in exclude
+                            and (not priority_only or game.name in priority)
+                            # and can be progressed within the next hour
+                            and campaign.can_earn_within(next_hour)
                     ):
                         # non-excluded games with no priority are placed last, below priority ones
                         self.wanted_games.append(game)
@@ -732,12 +740,12 @@ class Twitch:
                         channel
                         for channel in channels.values()
                         if (
-                            not channel.acl_based  # aren't ACL-based
-                            and (
-                                channel.offline  # and are offline
-                                # or online but aren't streaming the game we want anymore
-                                or (channel.game is None or channel.game not in self.wanted_games)
-                            )
+                                not channel.acl_based  # aren't ACL-based
+                                and (
+                                        channel.offline  # and are offline
+                                        # or online but aren't streaming the game we want anymore
+                                        or (channel.game is None or channel.game not in self.wanted_games)
+                                )
                         )
                     ]
                 full_cleanup = False
@@ -777,8 +785,8 @@ class Twitch:
                 next_hour = datetime.now(timezone.utc) + timedelta(hours=1)
                 for campaign in self.inventory:
                     if (
-                        campaign.game in self.wanted_games
-                        and campaign.can_earn_within(next_hour)
+                            campaign.game in self.wanted_games
+                            and campaign.can_earn_within(next_hour)
                     ):
                         if campaign.allowed_channels:
                             acl_channels.update(campaign.allowed_channels)
@@ -931,17 +939,17 @@ class Twitch:
         interval: float = WATCH_INTERVAL.total_seconds()
         last_update_time: float = 0
         update_timeout: float = 60  # seconds before considering update as timed out
-        
+
         while True:
             channel: Channel = await self.watching_channel.get()
             if not channel.online:
                 # if the channel isn't online anymore, we stop watching it
                 self.stop_watching()
                 continue
-            
+
             current_time = time()
             succeeded: bool = await channel.send_watch()
-            
+
             if not succeeded:
                 logger.log(CALL, f"Watch requested failed for channel: {channel.name}")
             elif current_time - last_update_time > update_timeout:
@@ -992,7 +1000,7 @@ class Twitch:
             else:
                 # Update was successful and recent
                 last_update_time = current_time
-                
+
             await self._watch_sleep(interval)
 
     @task_wrapper(critical=True)
@@ -1040,8 +1048,8 @@ class Twitch:
         channel_game_valid: bool = channel.game is not None and channel.game in self.wanted_games
         for campaign in self.inventory:
             if (
-                campaign.can_earn(channel)
-                and (channel_game_valid or campaign.has_badge_or_emote)
+                    campaign.can_earn(channel)
+                    and (channel_game_valid or campaign.has_badge_or_emote)
             ):
                 return True
         return False
@@ -1057,10 +1065,10 @@ class Twitch:
         watching_order = self.get_priority(watching_channel)
         return (
             # this channel's game is higher order than the watching one's
-            channel_order < watching_order
-            or channel_order == watching_order  # or the order is the same
-            # and this channel is ACL-based and the watching channel isn't
-            and channel.acl_based > watching_channel.acl_based
+                channel_order < watching_order
+                or channel_order == watching_order  # or the order is the same
+                # and this channel is ACL-based and the watching channel isn't
+                and channel.acl_based > watching_channel.acl_based
         )
 
     def watch(self, channel: Channel, *, update_status: bool = True):
@@ -1138,7 +1146,7 @@ class Twitch:
         channel.check_online()
 
     def on_channel_update(
-        self, channel: Channel, stream_before: Stream | None, stream_after: Stream | None
+            self, channel: Channel, stream_before: Stream | None, stream_after: Stream | None
     ):
         """
         Called by a Channel when it's status is updated (ONLINE, OFFLINE, title/tags change).
@@ -1245,9 +1253,9 @@ class Twitch:
                 f"{message['data']['required_progress_min']})"
             )
         else:
-            drop_text = "<Unknown>"        
+            drop_text = "<Unknown>"
             logger.log(CALL, f"Drop update from websocket: {drop_text}")
-        
+
         # Store the latest drop update for the web API
         self._last_drop_update = {
             "drop": drop,
@@ -1256,7 +1264,7 @@ class Twitch:
             "required_minutes": message["data"]["required_progress_min"],
             "timestamp": datetime.now(timezone.utc)
         }
-        
+
         if drop is not None and drop.can_earn(self.watching_channel.get_with_default(None)):
             # the received payload is for the drop we expected
             drop.update_minutes(message["data"]["current_progress_min"])
@@ -1271,7 +1279,8 @@ class Twitch:
                     GQL_OPERATIONS["NotificationsDelete"].with_variables(
                         {"input": {"id": data["id"]}}
                     )
-                )    
+                )
+
     async def get_auth(self) -> _AuthState:
         await self._auth_state.validate()
         # Ensure user_id is set to avoid AttributeError
@@ -1280,24 +1289,24 @@ class Twitch:
             # This will be replaced with the actual value when auth completes
             self._auth_state.user_id = 0
             logger.warning("Auth state user_id not set, using temporary placeholder")
-        
+
         # If we don't have an access_token, log a warning but don't set one
         # This will cause graceful handling in the _run method
         if not hasattr(self._auth_state, "access_token"):
             logger.warning("Auth state access_token not set. Authentication incomplete.")
-            
+
         return self._auth_state
         # This won't work for actual authentication but will prevent AttributeError
         if not hasattr(self._auth_state, "access_token"):
             # This is just a placeholder to prevent crashes
             self._auth_state.access_token = ""
             logger.warning("Auth state access_token not set, using empty placeholder")
-            
+
         return self._auth_state
 
     @asynccontextmanager
     async def request(
-        self, method: str, url: URL | str, *, invalidate_after: datetime | None = None, **kwargs
+            self, method: str, url: URL | str, *, invalidate_after: datetime | None = None, **kwargs
     ) -> abc.AsyncIterator[aiohttp.ClientResponse]:
         session = await self.get_session()
         method = method.upper()
@@ -1305,21 +1314,21 @@ class Twitch:
             kwargs["proxy"] = self.settings.proxy
         logger.debug(f"Request: ({method=}, {url=}, {kwargs=})")
         session_timeout = timedelta(seconds=session.timeout.total or 0)
-        backoff = ExponentialBackoff(maximum=3*60)
+        backoff = ExponentialBackoff(maximum=3 * 60)
         for delay in backoff:
             # Check if an exit has been requested
             if self._state is State.EXIT:
                 raise ExitRequest()
             elif (
-                invalidate_after is not None
-                # account for the expiration landing during the request
-                and datetime.now(timezone.utc) >= (invalidate_after - session_timeout)
+                    invalidate_after is not None
+                    # account for the expiration landing during the request
+                    and datetime.now(timezone.utc) >= (invalidate_after - session_timeout)
             ):
                 raise RequestInvalid()
             try:
                 response: aiohttp.ClientResponse | None = None
                 response = await session.request(method, url, **kwargs)
-                
+
                 logger.debug(f"Response: {response.status}: {response}")
                 if response.status < 500:
                     # pre-read the response to avoid getting errors outside of the context manager
@@ -1331,7 +1340,7 @@ class Twitch:
                 # for a case where SSL verification fails
                 raise
             except (
-                aiohttp.ClientConnectionError, asyncio.TimeoutError, aiohttp.ClientPayloadError
+                    aiohttp.ClientConnectionError, asyncio.TimeoutError, aiohttp.ClientPayloadError
             ):
                 # connection problems, retry
                 if backoff.steps > 1:
@@ -1349,10 +1358,10 @@ class Twitch:
 
     @overload
     async def gql_request(self, ops: list[GQLOperation]) -> list[JsonType]:
-        ...    
-        
+        ...
+
     async def gql_request(
-        self, ops: GQLOperation | list[GQLOperation]
+            self, ops: GQLOperation | list[GQLOperation]
     ) -> JsonType | list[JsonType]:
         gql_logger.debug(f"GQL Request: {ops}")
         backoff = ExponentialBackoff(maximum=60)
@@ -1362,17 +1371,17 @@ class Twitch:
             async with self._qgl_limiter:
                 try:
                     auth_state = await self.get_auth()
-                    
+
                     # Check if we have the access_token needed for GQL requests
                     if not hasattr(auth_state, "access_token"):
                         logger.warning("No access token available - unable to perform GQL request")
                         return {"data": {}, "errors": [{"message": "Not authenticated"}]}
-                        
+
                     async with self.request(
-                        "POST",
-                        "https://gql.twitch.tv/gql",
-                        json=ops,
-                        headers=auth_state.headers(user_agent=self._client_type.USER_AGENT, gql=True),
+                            "POST",
+                            "https://gql.twitch.tv/gql",
+                            json=ops,
+                            headers=auth_state.headers(user_agent=self._client_type.USER_AGENT, gql=True),
                     ) as response:
                         response_json: JsonType | list[JsonType] = await response.json()
                 except AttributeError as e:
@@ -1394,11 +1403,11 @@ class Twitch:
                     for error_dict in response_json["errors"]:
                         if "message" in error_dict:
                             if (
-                                single_retry
-                                and error_dict["message"] in (
+                                    single_retry
+                                    and error_dict["message"] in (
                                     "service error"
                                     "PersistedQueryNotFound"
-                                )
+                            )
                             ):
                                 logger.error(
                                     f"Retrying a {error_dict['message']} for "
@@ -1411,11 +1420,11 @@ class Twitch:
                                 force_retry = True
                                 break
                             elif (
-                                error_dict["message"] in (
+                                    error_dict["message"] in (
                                     "service timeout",
                                     "service unavailable",
                                     "context deadline exceeded",
-                                )
+                            )
                             ):
                                 force_retry = True
                                 break
@@ -1454,7 +1463,7 @@ class Twitch:
         return merged
 
     async def fetch_campaigns(
-        self, campaigns_chunk: list[tuple[str, JsonType]]
+            self, campaigns_chunk: list[tuple[str, JsonType]]
     ) -> dict[str, JsonType]:
         campaign_ids: dict[str, JsonType] = dict(campaigns_chunk)
         auth_state = await self.get_auth()
@@ -1470,25 +1479,26 @@ class Twitch:
             (campaign_data := response_json["data"]["user"]["dropCampaign"])["id"]: campaign_data
             for response_json in response_list
         }
-        return self._merge_data(campaign_ids, fetched_data)    
+        return self._merge_data(campaign_ids, fetched_data)
+
     async def fetch_inventory(self) -> None:
         logger.info("Fetching inventory and available campaigns")
-        
+
         # Check if we're logged in by verifying access_token exists
         if not hasattr(self._auth_state, "access_token"):
             logger.warning("No access token available - unable to fetch inventory. Please complete login first.")
             return
-            
+
         try:
             # fetch in-progress campaigns (inventory)
             response = await self.gql_request(GQL_OPERATIONS["Inventory"])
-            
+
             # Check if we got an error response
             if "errors" in response:
                 error_msg = response.get("errors", [{"message": "Unknown error"}])[0].get("message")
                 logger.error(f"Error fetching inventory: {error_msg}")
                 return
-                
+
             inventory: JsonType = response["data"]["currentUser"]["inventory"]
             ongoing_campaigns: list[JsonType] = inventory["dropCampaignsInProgress"] or []
             # this contains claimed benefit edge IDs, not drop IDs
@@ -1524,7 +1534,7 @@ class Twitch:
             for task in fetch_campaigns_tasks:
                 task.cancel()
             raise
-    
+
         if self.settings.dump:
             # dump the campaigns data to the dump file
             with open(DUMP_PATH, 'a', encoding="utf8") as file:
@@ -1533,9 +1543,9 @@ class Twitch:
                 for campaign_data in dump_data.values():
                     # replace ACL lists with a simple text description
                     if (
-                        campaign_data["allow"]
-                        and campaign_data["allow"].get("isEnabled", True)
-                        and campaign_data["allow"]["channels"]
+                            campaign_data["allow"]
+                            and campaign_data["allow"].get("isEnabled", True)
+                            and campaign_data["allow"]["channels"]
                     ):
                         # simply count the channels included in the ACL
                         campaign_data["allow"]["channels"] = (
@@ -1548,7 +1558,7 @@ class Twitch:
                 json.dump(dump_data, file, indent=4, sort_keys=True)
                 file.write("\n\n")  # add 2x new line spacer
                 json.dump(claimed_benefits, file, indent=4, sort_keys=True, default=str)
-    
+
         # use the merged data to create campaign objects
         campaigns: list[DropsCampaign] = [
             DropsCampaign(self, campaign_data, claimed_benefits)
@@ -1557,7 +1567,7 @@ class Twitch:
         campaigns.sort(key=lambda c: c.active, reverse=True)
         campaigns.sort(key=lambda c: c.upcoming and c.starts_at or c.ends_at)
         campaigns.sort(key=lambda c: c.eligible, reverse=True)
-    
+
         self._drops.clear()
         self.inventory.clear()
         self._mnt_triggers.clear()
@@ -1569,7 +1579,7 @@ class Twitch:
             if campaign.can_earn_within(next_hour):
                 switch_triggers.update(campaign.time_triggers)
             self.inventory.append(campaign)
-        
+
         self._mnt_triggers.extend(sorted(switch_triggers))
         # trim out all triggers that we're already past
         now = datetime.now(timezone.utc)
@@ -1579,7 +1589,7 @@ class Twitch:
         if self._mnt_task is not None and not self._mnt_task.done():
             self._mnt_task.cancel()
         self._mnt_task = asyncio.create_task(self._maintenance_task())
-        
+
         logger.info(f"Processed {len(campaigns)} campaigns with {len(self._drops)} drops")
 
     def get_active_drop(self, channel: Channel | None = None) -> TimedDrop | None:
@@ -1599,7 +1609,7 @@ class Twitch:
             drops.sort(key=lambda d: d.remaining_minutes)
             return drops[0]
         return None
-        
+
     def inventory_games(self) -> list[Game]:
         """Get the list of all games in inventory for settings UI"""
         games = []
@@ -1608,7 +1618,7 @@ class Twitch:
         return games
 
     async def get_live_streams(
-        self, game: Game, *, limit: int = 20, drops_enabled: bool = True
+            self, game: Game, *, limit: int = 20, drops_enabled: bool = True
     ) -> list[Channel]:
         filters: list[str] = []
         if drops_enabled:
@@ -1680,7 +1690,7 @@ class Twitch:
                 for response_json in response_list:
                     available_info: JsonType = response_json["data"]["channel"]
                     acl_available_drops_map[int(available_info["id"])] = (
-                        available_info["viewerDropCampaigns"] or []
+                            available_info["viewerDropCampaigns"] or []
                     )
         except Exception:
             # asyncio.as_completed doesn't cancel tasks on errors
