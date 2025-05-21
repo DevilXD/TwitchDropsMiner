@@ -657,7 +657,7 @@ def check_auth():
                     # Schedule the state change in the main event loop
                     if main_event_loop:
                         asyncio.run_coroutine_threadsafe(
-                            async_state_change(twitch), 
+                            async_state_change(twitch, reload=True),
                             main_event_loop
                         )
                         logger.info("Scheduled INVENTORY_FETCH state change in main event loop")
@@ -1311,5 +1311,9 @@ def run_web_server(host, port, debug, tdm):
     app.run(host=host, port=port, debug=debug)
     
 # Helper function for async state change
-async def async_state_change(twitch):
-    twitch.change_state(State.INVENTORY_FETCH)
+async def async_state_change(twitch, reload=False):
+    if reload:
+        from exceptions import ReloadRequest  # Import from wherever it's defined 
+        raise ReloadRequest()
+    else:
+        twitch.change_state(State.INVENTORY_FETCH)

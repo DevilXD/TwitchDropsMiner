@@ -620,7 +620,7 @@ class Twitch:
         if self._watching_task is not None:
             self._watching_task.cancel()
         self._watching_task = asyncio.create_task(self._watch_loop())
-          # Add default topics - but only if we have a valid user_id
+        # Add default topics - but only if we have a valid user_id
         if hasattr(auth_state, "user_id"):
             try:
                 user_id = auth_state.user_id
