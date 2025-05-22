@@ -36,15 +36,21 @@ if [ ! -f /data/cookies.jar ]; then
     touch /data/cookies.jar
 fi
 
-# Ensure proper permissions on the data files
-chmod 644 /data/settings.json /data/cookies.jar
-
 # Remove existing files if they exist to avoid symbolic link errors
 rm -f /app/settings.json /app/cookies.jar
+
+# Ensure proper permissions on the data files
+chmod 755 /data/settings.json /data/cookies.jar
 
 # Create symbolic links
 ln -sf /data/settings.json /app/settings.json
 ln -sf /data/cookies.jar /app/cookies.jar
+
+# Debug permissions
+echo "Current user: $(whoami)"
+echo "File permissions:"
+ls -la /data/
+ls -la /app/settings.json /app/cookies.jar
 
 echo "Verifying Python imports..."
 python -c "import sys; print(sys.path)"
