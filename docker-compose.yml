@@ -16,7 +16,7 @@ services:
     ports:
       - "${WEB_PORT:-8080}:8080"
     volumes:
-      - ${DATA_DIR:-./data}/settings.json:/app/settings.json
+      - ${DATA_DIR:-./data}:/data
     environment:
       - TZ=${TIMEZONE:-UTC}
     # Optional resource constraints - uncomment and adjust as needed

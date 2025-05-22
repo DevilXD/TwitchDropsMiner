@@ -599,6 +599,7 @@ class Twitch:
                 await self._run()
                 break
             except ReloadRequest:
+                logger.info("shutting down for reload")
                 await self.shutdown()
             except ExitRequest:
                 break
@@ -648,7 +649,9 @@ class Twitch:
         channels: Final[OrderedDict[int, Channel]] = self.channels
         self.change_state(State.INVENTORY_FETCH)
         while True:
+            logger.info(f"Waiting for state change. Current state: {self._state}")
             if self._state is State.RELOAD:
+                logger.info("Reloading application state")
                 raise ReloadRequest()
             if self._state is State.IDLE:
                 if self.settings.dump:
@@ -926,6 +929,8 @@ class Twitch:
                     self.gui.status.update(_("gui", "status", "exiting"))
                 # we've been requested to exit the application
                 break
+            logger.info(f"State change completed. Current state: {self._state}")
+            logger.info("Waiting for next state change")
             await self._state_change.wait()
 
     async def _watch_sleep(self, delay: float) -> None:
