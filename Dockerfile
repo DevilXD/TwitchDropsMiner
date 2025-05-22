@@ -79,7 +79,7 @@ COPY icons/ ./icons/
 COPY lang/ ./lang/
 
 # Create a non-root user to run the application
-RUN groupadd -r miner && useradd -r -g miner miner \
+RUN groupadd -r miner && useradd -r -g miner miner
 
 RUN mkdir -p /data && \
     chown -R miner:miner /data && \
