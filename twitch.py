@@ -608,7 +608,10 @@ class Twitch:
 
     def reload(self):
         """Signal the application to reload"""
+        logger.info("Changing state to RELOAD")
         self.change_state(State.RELOAD)
+        self._state_change.set()
+        logger.info("Reloading application state")
 
     async def _run(self):
         """
