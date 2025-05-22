@@ -10,9 +10,7 @@ WEB_PORT="8080"
 
 # Create directories if they don't exist
 setup_directories() {
-    touch "$DATA_DIR/settings.json"
-    touch "$DATA_DIR/cookies.jar"
-    echo "Created data directories in $DATA_DIR"
+    mkdir -p "$DATA_DIR"
 }
 
 # Show usage information

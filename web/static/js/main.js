@@ -161,6 +161,55 @@ function manualRefreshInventory() {
     }
 }
 
+// Function to clear UI data
+function clearUIData() {
+    // Clear channels table
+    const channelsTableBody = document.getElementById('channels-table-body');
+    if (channelsTableBody) {
+        channelsTableBody.innerHTML = '';
+    }
+
+    // Clear campaigns list
+    const campaignsList = document.getElementById('campaigns-list');
+    if (campaignsList) {
+        campaignsList.innerHTML = '<div class="col-span-full p-4 bg-white rounded shadow text-gray-500 text-center">No campaigns available.</div>';
+    }
+    
+    // Clear inventory data
+    const pendingDrops = document.getElementById('pending-drops');
+    const claimedDrops = document.getElementById('claimed-drops');
+    
+    if (pendingDrops) {
+        pendingDrops.innerHTML = '<div class="p-4 bg-white rounded shadow text-center text-gray-500">No pending drops.</div>';
+    }
+    
+    if (claimedDrops) {
+        claimedDrops.innerHTML = '<div class="p-4 bg-white rounded shadow text-center text-gray-500">No claimed drops.</div>';
+    }
+    
+    // Reset counts
+    const campaignsCount = document.getElementById('campaigns-count');
+    const channelsCount = document.getElementById('channels-count');
+    const dropsCount = document.getElementById('drops-count');
+    
+    if (campaignsCount) campaignsCount.textContent = '0';
+    if (channelsCount) channelsCount.textContent = '0';
+    if (dropsCount) dropsCount.textContent = '0';
+    
+    // Clear any stored data
+    if (window.originalCampaignsData) {
+        window.originalCampaignsData = [];
+    }
+    
+    if (window.campaignsData) {
+        window.campaignsData = [];
+    }
+    
+    if (window.inventoryData) {
+        window.inventoryData = { pending: [], claimed: [] };
+    }
+}
+
 // Function to initiate Twitch logout
 function initiateLogout() {
     // Visual feedback for logout button
@@ -179,10 +228,21 @@ function initiateLogout() {
         })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                showToast('Success', 'Successfully logged out', 'success');
-                // Refresh data after a short delay
-                setTimeout(refreshData, 2000);
+            if (data.success) {                showToast('Success', 'Successfully logged out. All data has been cleared.', 'success');
+                
+                // Clear UI data
+                clearUIData();
+                
+                // Refresh data after a short delay (just for login status)
+                setTimeout(() => {
+                    refreshData({
+                        refreshChannels: false,
+                        refreshCampaigns: false,
+                        refreshInventory: false,
+                        refreshSettings: false,
+                        refreshLogin: true
+                    });
+                }, 1000);
             } else {
                 showToast('Error', data.error || 'Failed to logout', 'error');
             }
@@ -223,6 +283,15 @@ function setupTabNavigation() {
             } else if (tabId === 'channels') {
                 // If we're switching to channels, preload channels data
                 preloadData('channels');
+            } else if (tabId === 'login') {
+                // If we're switching to login tab, refresh login status
+                // This ensures the UI is properly updated for login state
+                checkLoginStatus().then(data => {
+                    // If not logged in, clear any remaining data
+                    if (!data.username) {
+                        clearUIData();
+                    }
+                });
             }
             
             // Save scroll position for current tab before switching
@@ -992,8 +1061,7 @@ function checkLoginStatus() {
                         notLoggedInDiv.classList.add('hidden');
                         if (usernameDisplay) usernameDisplay.textContent = data.username;
                         if (loginMessage) loginMessage.textContent = `You are currently logged in to Twitch as ${data.username}`;
-                    }
-                } else {
+                    }                } else {
                     // User is not logged in
                     if (userStatus) {
                         userStatus.innerHTML = `<i class="fas fa-user mr-1"></i><span>Not logged in</span>`;
@@ -1006,7 +1074,18 @@ function checkLoginStatus() {
                         notLoggedInDiv.classList.remove('hidden');
                         if (loginMessage) loginMessage.textContent = 'You are not currently logged in to Twitch';
                     }
+                    
+                    // If the user was previously logged in but now isn't,
+                    // make sure UI data is cleared (in case logout was triggered from a different tab/window)
+                    const wasLoggedIn = localStorage.getItem('was_logged_in') === 'true';
+                    if (wasLoggedIn) {
+                        clearUIData();
+                        localStorage.setItem('was_logged_in', 'false');
+                    }
                 }
+                
+                // Keep track of login state for next time
+                localStorage.setItem('was_logged_in', data.username ? 'true' : 'false');
                 resolve(data);
             })
             .catch(error => {
