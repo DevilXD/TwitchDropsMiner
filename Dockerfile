@@ -78,15 +78,14 @@ COPY web/ ./web/
 COPY icons/ ./icons/
 COPY lang/ ./lang/
 
-RUN mkdir -p /data && \
-    chown -R miner:miner /data && \
-    chmod 755 /data \
-
 # Create a non-root user to run the application
 RUN groupadd -r miner && useradd -r -g miner miner \
-    && chown -R miner:miner /app \
-    # Set proper permissions for the virtual environment
-    && chown -R miner:miner /opt/venv
+
+RUN mkdir -p /data && \
+    chown -R miner:miner /data && \
+    chmod 755 /data && \
+    chown -R miner:miner /app && \
+    chown -R miner:miner /opt/venv
 
 # Clean up unnecessary cache files to reduce image size
 RUN find /opt/venv -name __pycache__ -type d -exec rm -rf {} +  2>/dev/null || true && \
