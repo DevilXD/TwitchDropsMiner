@@ -36,6 +36,9 @@ if [ ! -f /data/cookies.jar ]; then
     touch /data/cookies.jar
 fi
 
+# Ensure proper permissions on the data files
+chmod 644 /data/settings.json /data/cookies.jar
+
 # Remove existing files if they exist to avoid symbolic link errors
 rm -f /app/settings.json /app/cookies.jar
 
