@@ -78,14 +78,9 @@ COPY web/ ./web/
 COPY icons/ ./icons/
 COPY lang/ ./lang/
 
-# Create a non-root user to run the application
-RUN groupadd -r miner && useradd -r -g miner miner
-
+# Create data directory with appropriate permissions
 RUN mkdir -p /data && \
-    chown -R miner:miner /data && \
-    chmod 755 /data && \
-    chown -R miner:miner /app && \
-    chown -R miner:miner /opt/venv
+    chmod 755 /data
 
 # Clean up unnecessary cache files to reduce image size
 RUN find /opt/venv -name __pycache__ -type d -exec rm -rf {} +  2>/dev/null || true && \
@@ -102,11 +97,7 @@ EXPOSE 8080
 # Copy entrypoint script that handles data persistence
 COPY docker-entrypoint.sh /app/
 RUN chmod +x /app/docker-entrypoint.sh && \
-    chown miner:miner /app/docker-entrypoint.sh && \
     ls -la /app/docker-entrypoint.sh
-
-# Switch to non-root user for better security
-USER miner
 
 # Set the entrypoint with web interface enabled and accessible from outside
 ENTRYPOINT ["/app/docker-entrypoint.sh"]

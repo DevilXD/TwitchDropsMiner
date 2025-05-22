@@ -40,7 +40,7 @@ fi
 rm -f /app/settings.json /app/cookies.jar
 
 # Ensure proper permissions on the data files
-chmod 666 /data/settings.json /data/cookies.jar
+chmod 755 /data/settings.json /data/cookies.jar
 
 # Create symbolic links
 ln -sf /data/settings.json /app/settings.json
