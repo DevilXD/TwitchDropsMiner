@@ -1,0 +1,128 @@
+/* Application mode styles for Twitch Drops Miner */
+
+/**
+ * Normal Mode (Default)
+ * Standard view with all features
+ */
+body.mode-normal {
+    /* Default styles, no additional changes needed */
+}
+
+/**
+ * Compact Mode
+ * Streamlined interface for smaller screens and simpler view
+ */
+body.mode-compact {
+    /* Reduce padding and margins */
+    .container {
+        padding: 0 0.5rem;
+    }
+    
+    .p-3, .p-4 {
+        padding: 0.5rem !important;
+    }
+    
+    .mb-4, .mb-6 {
+        margin-bottom: 0.75rem !important;
+    }
+    
+    /* Make cards more compact */
+    .card-container > div {
+        padding: 0.25rem !important;
+    }
+    
+    /* Smaller text */
+    .text-lg {
+        font-size: 0.95rem !important;
+    }
+    
+    .text-base {
+        font-size: 0.85rem !important;
+    }
+    
+    .text-sm {
+        font-size: 0.75rem !important;
+    }
+    
+    /* Simplify some UI elements */
+    #drop-progress-container .text-sm {
+        display: none;
+    }
+    
+    /* Hide certain elements that aren't essential */
+    .bg-gray-100.p-3.rounded:nth-child(5) {
+        display: none;
+    }
+    
+    /* Compact tables */
+    table th, table td {
+        padding: 0.25rem 0.5rem !important;
+    }
+}
+
+/**
+ * Advanced Mode
+ * Additional options and more detailed information
+ */
+body.mode-advanced {
+    /* More detailed information panels */
+    .diagnostics-extra-info {
+        display: block !important;
+    }
+    
+    /* Show advanced settings */
+    .advanced-setting {
+        display: flex !important;
+    }
+    
+    /* More detailed progress info */
+    .drop-advanced-info {
+        display: block !important;
+    }
+    
+    /* Additional columns in tables */
+    .advanced-column {
+        display: table-cell !important;
+    }
+    
+    /* Add more visual cues for technical users */
+    .technical-detail {
+        display: block !important;
+    }
+}
+
+/* Default state - hide advanced elements */
+.diagnostics-extra-info,
+.advanced-setting,
+.drop-advanced-info,
+.advanced-column,
+.technical-detail {
+    display: none !important;
+}
+
+/* Responsive adjustments for compact mode */
+@media (max-width: 768px) {
+    body.mode-normal {
+        /* Automatically switch to some compact mode styles on small screens */
+        .container {
+            padding: 0 0.25rem;
+        }
+    }
+}
+
+/* Mode-specific theme adjustments */
+body.dark-mode.mode-compact {
+    /* Dark mode adjustments for compact mode */
+    .card, .bg-white {
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+    }
+}
+
+body.dark-mode.mode-advanced {
+    /* Dark mode adjustments for advanced mode */
+    .diagnostics-extra-info,
+    .technical-detail {
+        background-color: #252525 !important;
+        border: 1px solid #333 !important;
+    }
+}

@@ -523,6 +523,12 @@ function setupEventListeners() {
         refreshInventoryButton.addEventListener('click', manualRefreshInventory);
     }
     
+    // Switch channel button
+    const switchChannelButton = document.getElementById('switch-channel');
+    if (switchChannelButton) {
+        switchChannelButton.addEventListener('click', switchChannel);
+    }
+    
     // Reconnect websocket button
     const reconnectWebsocketButton = document.getElementById('reconnect-websocket');
     if (reconnectWebsocketButton) {
@@ -2038,6 +2044,45 @@ function saveSettings(reloadAfterSave = false) {
         // Error handled silently;
         showToast('Error', error.message, 'error');
     });
+}
+
+// Function to manually switch to the next channel
+function switchChannel() {
+    // Visual feedback for switch channel button
+    const switchButton = document.getElementById('switch-channel');
+    if (switchButton) {
+        const originalText = switchButton.innerHTML;
+        switchButton.disabled = true;
+        switchButton.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-1"></i> Switching...';
+        
+        // Show toast notification
+        showToast('Switching', 'Switching to the next channel...', 'info');
+        
+        // Call the switch channel API endpoint
+        fetch('/api/switch_channel', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Success', data.message || 'Channel switch initiated', 'success');
+                // Refresh data after a short delay to see the new channel
+                setTimeout(() => refreshData(), 2000);
+            } else {
+                showToast('Error', data.error || 'Failed to switch channel', 'error');
+            }
+        })
+        .catch(error => {
+            showToast('Error', 'Failed to switch channel. Check console for details.', 'error');
+            console.error('Switch channel error:', error);
+        })
+        .finally(() => {
+            setTimeout(() => {
+                switchButton.disabled = false;
+                switchButton.innerHTML = originalText;
+            }, 2000);
+        });
+    }
 }
 
 // These functions are now moved to lazy-loader.js

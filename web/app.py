@@ -912,6 +912,31 @@ def set_channel(channel_name):
         logger.error(f"Error setting channel: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/switch_channel', methods=['POST'])
+def switch_channel():
+    """Switch to the next channel in the list"""
+    if tdm_instance is None:
+        return jsonify({'error': 'Miner not initialized'}), 503
+    try:
+        twitch = tdm_instance
+        
+        # Check if logged in
+        if not hasattr(twitch, '_auth_state') or not hasattr(twitch._auth_state, 'user_id') or twitch._auth_state.user_id == 0:
+            return jsonify({
+                'success': False,
+                'message': 'Not logged in'
+            }), 401
+        
+        # Change state to channel watch
+        twitch.switch_channel()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Switching to the next channel'
+        })
+    except Exception as e:
+        logger.error(f"Error switching channel: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/settings')
 def settings():

@@ -1,0 +1,250 @@
+/* Dark mode styles for Twitch Drops Miner Web Interface */
+
+:root {
+    --dark-bg: #121212;
+    --dark-card-bg: #1e1e1e;
+    --dark-text: #e4e4e4;
+    --dark-border: #333;
+    --dark-header: #1a1625;
+    --dark-highlight: #3a2465;
+    --dark-code-bg: #2d2d2d;
+    --dark-hover: #2a2a2a;
+    --dark-tabs-bg: #252525;
+}
+
+body.dark-mode {
+    background-color: var(--dark-bg);
+    color: var(--dark-text);
+}
+
+/* Header and navigation */
+body.dark-mode #header {
+    background-color: var(--dark-header);
+}
+
+body.dark-mode .bg-white,
+body.dark-mode .bg-gray-100,
+body.dark-mode .bg-gray-50 {
+    background-color: var(--dark-card-bg);
+}
+
+body.dark-mode .text-gray-800,
+body.dark-mode .text-gray-700,
+body.dark-mode .text-gray-600,
+body.dark-mode .text-gray-500 {
+    color: var(--dark-text);
+}
+
+body.dark-mode .border {
+    border-color: var(--dark-border);
+}
+
+/* Cards and content */
+body.dark-mode .card,
+body.dark-mode .shadow {
+    background-color: var(--dark-card-bg);
+    color: var(--dark-text);
+    border-color: var(--dark-border);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+}
+
+/* Buttons and interactive elements */
+body.dark-mode .bg-purple-700 {
+    background-color: var(--dark-highlight);
+}
+
+body.dark-mode .bg-purple-700:hover {
+    background-color: #4c2d7d;
+}
+
+body.dark-mode .bg-purple-600 {
+    background-color: #4b2d8a;
+}
+
+body.dark-mode .bg-purple-500 {
+    background-color: #5c3a9e;
+}
+
+/* Code blocks */
+body.dark-mode .code-block {
+    background-color: var(--dark-code-bg);
+    color: #b39ddb;
+    border-color: #6b46c1;
+}
+
+/* Preserve status colors */
+body.dark-mode .status-online {
+    color: #4ade80; /* Brighter green for dark mode */
+}
+
+body.dark-mode .status-offline {
+    color: #f87171; /* Brighter red for dark mode */
+}
+
+body.dark-mode .status-pending {
+    color: #fbbf24; /* Brighter yellow for dark mode */
+}
+
+body.dark-mode .status-claimed {
+    color: #60a5fa; /* Brighter blue for dark mode */
+}
+
+/* Login section background */
+body.dark-mode #logged-in.bg-green-50 {
+    background-color: #1a2e22 !important;
+    border-color: #2d503a !important;
+}
+
+body.dark-mode #not-logged-in.bg-gray-50 {
+    background-color: var(--dark-card-bg) !important;
+    border-color: var(--dark-border) !important;
+}
+
+/* Inventory - Pending drops section */
+body.dark-mode #pending-drops .bg-green-50,
+body.dark-mode #pending-drops .bg-green-100 {
+    background-color: #1a2e22 !important;
+    border-color: #2d503a !important;
+}
+
+/* Status indicators */
+body.dark-mode .shadow-glow {
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
+/* Tables */
+body.dark-mode table {
+    color: var(--dark-text);
+}
+
+body.dark-mode table th {
+    background-color: var(--dark-header) !important;
+    color: #e4e4e4 !important;
+    border-color: var(--dark-border);
+}
+
+body.dark-mode table td {
+    border-color: var(--dark-border);
+}
+
+body.dark-mode table tr:nth-child(even) {
+    background-color: #282828;
+}
+
+body.dark-mode table tr:hover {
+    background-color: #333333;
+}
+
+/* Inputs and forms */
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea {
+    background-color: #2d2d2d;
+    color: var(--dark-text);
+    border-color: var(--dark-border);
+}
+
+/* Priority and Exclusion lists */
+body.dark-mode #priority-list,
+body.dark-mode #exclusion-list {
+    background-color: #252525;
+    border-color: var(--dark-border);
+}
+
+body.dark-mode #priority-list .divide-y,
+body.dark-mode #exclusion-list .divide-y {
+    border-color: #444;
+}
+
+body.dark-mode .text-indigo-700 {
+    color: #a78bfa !important;
+}
+
+body.dark-mode .bg-indigo-100 {
+    background-color: #3b3363 !important;
+}
+
+body.dark-mode .bg-indigo-100:hover {
+    background-color: #4b3d7a !important;
+}
+
+/* Settings section */
+body.dark-mode .px-4.py-5.sm\:px-6.bg-gray-50 h3.text-lg.leading-6.font-medium.text-gray-900 {
+    color: #c3b1ff !important;
+}
+
+/* Tab navigation */
+body.dark-mode .tab-button {
+    color: #a0aec0;
+    border-color: transparent;
+}
+
+body.dark-mode .tab-button:hover {
+    color: #e2e8f0;
+    border-color: #4c4c4c;
+}
+
+body.dark-mode .tab-button.border-purple-600 {
+    color: #a78bfa;
+    border-color: #6b46c1;
+}
+
+/* Progress bars */
+body.dark-mode .bg-gray-200 {
+    background-color: #2c2c2c;
+}
+
+body.dark-mode .text-gray-600 {
+    color: #a0aec0;
+}
+
+/* Modal and overlays */
+body.dark-mode #auth-modal {
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+body.dark-mode .progress-container {
+    background-color: var(--dark-bg);
+}
+
+/* Specific component styles */
+body.dark-mode #drop-progress-container .shadow {
+    background-color: #2c2c2c;
+}
+
+/* Priority list items */
+body.dark-mode #priority-list .flex,
+body.dark-mode #exclusion-list .flex {
+    border-color: #444;
+    padding: 8px 12px;
+}
+
+body.dark-mode #priority-list .flex:hover,
+body.dark-mode #exclusion-list .flex:hover {
+    background-color: #333;
+}
+
+/* Fix for section headers */
+body.dark-mode .text-gray-900 {
+    color: #e4e4e4 !important;
+}
+
+/* Fix for green buttons */
+body.dark-mode .bg-green-600 {
+    background-color: #166534;
+}
+
+body.dark-mode .bg-green-600:hover {
+    background-color: #15803d;
+}
+
+/* Fix for colored drop backgrounds */
+body.dark-mode .bg-blue-100,
+body.dark-mode .bg-orange-100,
+body.dark-mode .bg-yellow-100,
+body.dark-mode .bg-indigo-100,
+body.dark-mode .bg-red-100,
+body.dark-mode .bg-purple-100 {
+    background-color: #2c2c2c !important;
+    border-color: var(--dark-border) !important;
+}

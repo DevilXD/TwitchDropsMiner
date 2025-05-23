@@ -8,12 +8,16 @@
     
     <!-- Fonts and icons -->
     <link href="https://fonts.googleapis.com/css?family=Nunito:400,700,800" rel="stylesheet">
-    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css" integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
-    
-    <!-- Tailwind CSS -->
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css" integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">    <!-- Tailwind CSS -->
     <link rel="stylesheet" href="https://unpkg.com/tailwindcss@2.2.19/dist/tailwind.min.css"/>
       <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Dark Mode CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dark-mode.css') }}">
+    <!-- Application Mode CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mode-styles.css') }}">
+    <!-- Toggle Switch CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/toggle-switch.css') }}">
       <style>
         /* Progress bar styles - Portainer style */
         .progress-container {
@@ -77,30 +81,44 @@
     </style>
 </head>
 
-<body class="bg-gray-100 font-sans leading-normal tracking-normal">
-    <div id="progress-container" class="progress-container">
+<body class="bg-gray-100 font-sans leading-normal tracking-normal">    <div id="progress-container" class="progress-container">
         <div id="progress-bar" class="progress-bar"></div>
-    </div>
-    <nav id="header" class="bg-purple-900 fixed w-full z-10 top-0 shadow">
-        <div class="w-full container mx-auto flex flex-wrap items-center mt-0 pt-3 pb-3">
-            <div class="w-1/2 pl-2 md:pl-0">
+    </div>    <nav id="header" class="bg-purple-900 fixed w-full z-10 top-0 shadow">
+        <div class="w-full container mx-auto flex flex-wrap items-center mt-0 pt-2 pb-2">            <div class="w-1/2 pl-2 md:pl-0">
                 <a class="text-white text-base xl:text-xl no-underline hover:no-underline font-bold" href="#">
                     <i class="fas fa-gem text-purple-300 pr-3"></i> Twitch Drops Miner
-                </a>            </div>            <div class="w-1/2 pr-0">
-                <div class="flex relative inline-block float-right">
-                    <div class="relative text-sm text-white px-2 pt-1 mr-3" id="connection-status" title="Connection status">
-                        <i class="fas fa-plug mr-1"></i><span>Connecting...</span>
-                    </div>
-                    <div class="relative text-sm text-white px-2 pt-1 mr-3" id="last-refresh-time">
-                        <i class="fas fa-sync-alt mr-1"></i><span>Last updated: --:--:--</span>
-                    </div>
-                    <button id="manual-refresh" class="bg-purple-700 hover:bg-purple-600 text-white rounded px-2 py-1 mr-3" title="Manually refresh all data">
-                        <i class="fas fa-sync"></i> Refresh Now
-                    </button>
+                </a>
+            </div>
+            <div class="w-1/2 pr-0">
+                <div class="header-controls">
+                    <!-- User status - most important, kept at the right -->
                     <div class="relative text-sm text-white px-2 pt-1" id="user-status">
                         <i class="fas fa-user mr-1"></i><span>Not connected</span>
                     </div>
-                </div>
+                    
+                    <!-- Control buttons group -->
+                    <div class="header-group">
+                        <!-- Theme toggle switch -->
+                        <div class="theme-switch-wrapper toggle-tooltip" data-tooltip="Toggle dark mode">
+                            <label class="switch mx-1">
+                                <input type="checkbox" id="theme-toggle-checkbox">
+                                <span class="slider">
+                                    <i class="fas fa-sun icon-light"></i>
+                                    <i class="fas fa-moon icon-dark"></i>
+                                </span>
+                            </label>
+                        </div>
+                        
+                        <!-- Mode switch button -->
+                        <button id="mode-switch-btn" class="header-button" title="Switch application mode">
+                            <i class="fas fa-layer-group"></i><span>Mode</span>
+                        </button>
+                        
+                        <!-- Refresh button -->
+                        <button id="manual-refresh" class="header-button" title="Manually refresh all data">
+                            <i class="fas fa-sync"></i><span>Refresh</span>
+                        </button>
+                    </div>                </div>
             </div>
         </div>
     </nav>    <!-- Container -->
@@ -167,10 +185,29 @@
                                 <div class="pt-1" id="drop-progress-container">
                                     <div class="shadow w-full bg-gray-200 rounded">
                                         <div class="bg-purple-600 text-xs leading-none py-1 text-center text-white rounded" id="drop-progress-bar" style="width: 0%">0%</div>
-                                    </div>
-                                    <div class="text-sm mt-1 text-gray-600" id="drop-progress-text"></div>
+                                    </div>                                    <div class="text-sm mt-1 text-gray-600" id="drop-progress-text"></div>
                                     <!-- Removed timestamp display that showed "Updated X seconds ago (websocket)" -->
                                     <p class="mt-2 text-sm text-gray-500" id="time-remaining"></p>
+                                    
+                                    <!-- Advanced mode information -->
+                                    <div class="drop-advanced-info mt-3 text-xs border-t border-gray-200 pt-2">
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">Data Source:</span>
+                                            <span class="text-gray-800" id="drop-data-source">Unknown</span>
+                                        </div>
+                                        <div class="flex justify-between mt-1">
+                                            <span class="text-gray-600">Drop ID:</span>
+                                            <span class="text-gray-800" id="drop-id">--</span>
+                                        </div>
+                                        <div class="flex justify-between mt-1">
+                                            <span class="text-gray-600">Raw Progress:</span>
+                                            <span class="text-gray-800" id="drop-raw-progress">--</span>
+                                        </div>
+                                        <div class="flex justify-between mt-1">
+                                            <span class="text-gray-600">Last Update:</span>
+                                            <span class="text-gray-800" id="drop-last-update">--</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -186,8 +223,7 @@
                             <div class="flex items-center">
                                 <div class="p-3 bg-blue-600 rounded mr-4">
                                     <i class="fas fa-stethoscope fa-2x fa-inverse"></i>
-                                </div>
-                                <div>
+                                </div>                                <div>
                                     <h5 class="font-bold uppercase text-gray-500">Diagnostics</h5>
                                     <h3 class="font-bold text-xl text-gray-800">System Status</h3>
                                 </div>
@@ -196,16 +232,24 @@
                                 <i class="fas fa-sync mr-1"></i> Check Status
                             </button>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-                            <div class="bg-gray-100 p-3 rounded">
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4"><div class="bg-gray-100 p-3 rounded">
                                 <div class="font-bold text-gray-600">App Version:</div>
                                 <div class="text-gray-800" id="app-version">Unknown</div>
+                                <div class="diagnostics-extra-info mt-2 text-xs border-t pt-2">
+                                    <div class="text-gray-600">Build: <span class="text-gray-800" id="build-info">--</span></div>
+                                    <div class="text-gray-600">Platform: <span class="text-gray-800" id="platform-info">--</span></div>
+                                </div>
                             </div>
                             <div class="bg-gray-100 p-3 rounded">
                                 <div class="font-bold text-gray-600">Connection Status:</div>
                                 <div id="connection-detail" class="text-gray-800 flex items-center">
                                     <span class="h-3 w-3 rounded-full bg-yellow-500 mr-2"></span>
                                     Checking...
+                                </div>
+                                <div class="diagnostics-extra-info mt-2 text-xs border-t pt-2">
+                                    <div class="text-gray-600">Ping: <span class="text-gray-800" id="connection-ping">--</span></div>
+                                    <div class="text-gray-600">Last Error: <span class="text-gray-800" id="last-error">None</span></div>
                                 </div>
                             </div>
                             <div class="bg-gray-100 p-3 rounded">
@@ -238,6 +282,9 @@
                                     </button>
                                     <button id="reconnect-websocket" class="bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-1 rounded">
                                         <i class="fas fa-plug mr-1"></i> Reconnect
+                                    </button>
+                                    <button id="switch-channel" class="bg-purple-500 hover:bg-purple-600 text-white text-xs px-2 py-1 rounded">
+                                        <i class="fas fa-exchange-alt mr-1"></i> Switch Channel
                                     </button>
                                 </div>
                             </div>
@@ -545,8 +592,10 @@
             // Setup scroll position tracking - must be called after the DOM is loaded
             if (typeof setupScrollTracking === 'function') {
                 setupScrollTracking();
-            }
-        });
-    </script>
+            }        });    </script>    <!-- Theme and Mode Manager Scripts -->
+    <script src="{{ url_for('static', filename='js/theme-manager.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/mode-manager.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/advanced-mode.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/responsive-header.js') }}"></script>
 </body>
 </html>

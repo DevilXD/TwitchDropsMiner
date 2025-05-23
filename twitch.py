@@ -21,6 +21,8 @@ from channel import Channel
 from websocket import WebsocketPool
 from inventory import DropsCampaign
 
+from time import time, sleep
+
 # Check if we're in web mode
 WEB_MODE = any(arg == "--web" for arg in sys.argv)
 
@@ -610,8 +612,18 @@ class Twitch:
         """Signal the application to reload"""
         logger.info("Changing state to RELOAD")
         self.change_state(State.RELOAD)
+        # sometimes the state change doesn't get triggered, so we wait and set the event manually
+        sleep(1)
         self._state_change.set()
         logger.info("Reloading application state")
+
+    def switch_channel(self):
+        """
+        Switch to the selected channel in the GUI.
+        """
+        logger.info("Switching channel")
+        self.change_state(State.CHANNEL_SWITCH)
+        
 
     async def _run(self):
         """
@@ -886,7 +898,8 @@ class Twitch:
                     if self.gui_enabled:
                         self.gui.close()
                     continue
-                ##self.gui.status.update(_("gui", "status", "switching"))
+                if self.gui_enabled:
+                    self.gui.status.update(_("gui", "status", "switching"))
                 # Change into the selected channel, stay in the watching channel,
                 # or select a new channel that meets the required conditions
                 new_watching = None
@@ -1086,7 +1099,8 @@ class Twitch:
         self.watching_channel.set(channel)
         if update_status:
             status_text = _("status", "watching").format(channel=channel.name)
-            ##self.gui.status.update(status_text)
+            if self.gui_enabled:
+                self.gui.status.update(status_text)
 
     def stop_watching(self):
         if self.gui_enabled:
