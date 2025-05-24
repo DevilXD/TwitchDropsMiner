@@ -650,11 +650,7 @@ def check_auth():
                     app.config['VALIDATING_AUTH'] = False
                 
                 # Trigger a state change to force the app to reload with the new auth
-                if hasattr(twitch, 'change_state') and hasattr(State, 'INVENTORY_FETCH'):
-                    twitch.save(force=True)
-                    sleep(0.5)
-                    # Reload the app state
-                    twitch.reload()
+                twitch.save(force=True)
             except Exception as e:
                 logger.error(f"Error setting cookie during login: {e}")
             return jsonify({

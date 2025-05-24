@@ -215,7 +215,9 @@ class _AuthState:
                 # Print the code to the user, open them the activate page so they can type it in
                 if self._twitch.gui_enabled:
                     await login_form.ask_enter_code(verification_uri, user_code)
-
+                else:
+                    await self._twitch.wait_until_login()
+                    raise ReloadRequest()
                 payload = {
                     "client_id": self._twitch._client_type.CLIENT_ID,
                     "device_code": device_code,
@@ -310,28 +312,8 @@ class _AuthState:
         return headers
 
     async def validate(self):
-        try:
-            # We use a timeout here to prevent deadlocks when called from different threads
-            async with asyncio.timeout(5):  # 5-second timeout for acquiring the lock
-                async with self._lock:
-                    await self._validate()
-        except (asyncio.TimeoutError, RuntimeError) as e:
-            # If we get a timeout or "Event loop is closed" error, we're likely being called from a different thread
-            # or the event loop is already busy. Just log the issue and continue without validation.
-            logger.warning(f"Skipping validation due to lock acquisition error: {e}")
-
-            # Ensure we at least have basic attributes set
-            if not hasattr(self, "session_id"):
-                self.session_id = create_nonce(CHARS_HEX_LOWER, 16)
-
-            # If we have an access token but no user_id, set a placeholder
-            if hasattr(self, "access_token") and not hasattr(self, "user_id"):
-                # Set temporary user_id that will be updated on next validation
-                self.user_id = 0
-
-            # Make sure logged_in is set if we have an access token
-            if hasattr(self, "access_token"):
-                self._logged_in.set()
+        async with self._lock:
+            await self._validate()
 
     async def _validate(self):
         if not hasattr(self, "session_id"):
@@ -612,10 +594,6 @@ class Twitch:
         """Signal the application to reload"""
         logger.info("Changing state to RELOAD")
         self.change_state(State.RELOAD)
-        # sometimes the state change doesn't get triggered, so we wait and set the event manually
-        sleep(1)
-        self._state_change.set()
-        logger.info("Reloading application state")
 
     def switch_channel(self):
         """
@@ -637,6 +615,7 @@ class Twitch:
         if self.gui_enabled:
             self.gui.start()
         auth_state = await self.get_auth()
+
         await self.websocket.start()
         # NOTE: watch task is explicitly restarted on each new run
         if self._watching_task is not None:
@@ -1271,8 +1250,8 @@ class Twitch:
         if drop is not None:
             drop_text = (
                 f"{drop.name} ({drop.campaign.game}, "
-                f"{message['data']['current_progress_min']}/"
-                f"{message['data']['required_progress_min']})"
+                f"{message["data"]["current_progress_min"]}/"
+                f"{message["data"]["required_progress_min"]})"
             )
         else:
             drop_text = "<Unknown>"
@@ -1305,25 +1284,6 @@ class Twitch:
 
     async def get_auth(self) -> _AuthState:
         await self._auth_state.validate()
-        # Ensure user_id is set to avoid AttributeError
-        if not hasattr(self._auth_state, "user_id"):
-            # Set a default ID of 0 to avoid AttributeError in _run
-            # This will be replaced with the actual value when auth completes
-            self._auth_state.user_id = 0
-            logger.warning("Auth state user_id not set, using temporary placeholder")
-
-        # If we don't have an access_token, log a warning but don't set one
-        # This will cause graceful handling in the _run method
-        if not hasattr(self._auth_state, "access_token"):
-            logger.warning("Auth state access_token not set. Authentication incomplete.")
-
-        return self._auth_state
-        # This won't work for actual authentication but will prevent AttributeError
-        if not hasattr(self._auth_state, "access_token"):
-            # This is just a placeholder to prevent crashes
-            self._auth_state.access_token = ""
-            logger.warning("Auth state access_token not set, using empty placeholder")
-
         return self._auth_state
 
     @asynccontextmanager
