@@ -1250,8 +1250,8 @@ class Twitch:
         if drop is not None:
             drop_text = (
                 f"{drop.name} ({drop.campaign.game}, "
-                f"{message["data"]["current_progress_min"]}/"
-                f"{message["data"]["required_progress_min"]})"
+                f"{message['data']['current_progress_min']}/"
+                f"{message['data']['required_progress_min']})"
             )
         else:
             drop_text = "<Unknown>"
