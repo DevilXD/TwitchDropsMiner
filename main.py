@@ -200,7 +200,13 @@ if __name__ == "__main__":
         # suppress py warning coming from browser.py (from obviated dependency of aiohttp)
         warnings.filterwarnings("ignore", "unclosed", ResourceWarning)
         warnings.filterwarnings("ignore", "Unclosed.*<ssl.SSLSocket.*>", ResourceWarning)
-
+        
+        # Update settings with web interface status before creating Twitch instance
+        if HAS_WEB_INTERFACE and args.enable_web:
+            settings.gui_enabled = False
+        else:
+            settings.gui_enabled = True
+            
         client = Twitch(settings)
         
         # Start web server if enabled and available
@@ -218,10 +224,7 @@ if __name__ == "__main__":
                 daemon=True
             )
             web_thread.start()
-            # Disable GUI if web interface is enabled
-            client.settings.gui_enabled = False
-        else:
-            client.settings.gui_enabled = True
+            
         if sys.platform == "linux":
             loop.add_signal_handler(signal.SIGINT, lambda *_: client.gui.close())
             loop.add_signal_handler(signal.SIGTERM, lambda *_: client.gui.close())
