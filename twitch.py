@@ -614,6 +614,9 @@ class Twitch:
         """
         if self.gui_enabled:
             self.gui.start()
+
+        self.change_state(State.IDLE)
+
         auth_state = await self.get_auth()
 
         await self.websocket.start()

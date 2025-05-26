@@ -196,6 +196,59 @@ function clearUIData() {
     if (channelsCount) channelsCount.textContent = '0';
     if (dropsCount) dropsCount.textContent = '0';
     
+    // Clear drop progress UI elements
+    const dropValue = document.getElementById('drop-value');
+    if (dropValue) dropValue.textContent = 'None';
+
+    const progressBar = document.getElementById('drop-progress-bar');
+    if (progressBar) {
+        progressBar.style.width = '0%';
+        progressBar.textContent = '0%';
+    }
+
+    // Clear drop progress text
+    const progressText = document.getElementById('drop-progress-text');
+    if (progressText) {
+        progressText.textContent = '';
+    }
+
+    // Clear time remaining text
+    const timeRemaining = document.getElementById('time-remaining');
+    if (timeRemaining) {
+        timeRemaining.textContent = '';
+    }
+
+    // Reset drop image
+    const dropImage = document.getElementById('drop-image');
+    if (dropImage) {
+        dropImage.classList.add('hidden');
+        dropImage.src = '';
+    }
+
+    // Show fallback icon
+    const dropImageFallback = document.getElementById('drop-image-fallback');
+    if (dropImageFallback) {
+        dropImageFallback.classList.remove('hidden');
+    }
+
+    // Reset drop image container
+    const dropImageContainer = document.getElementById('drop-image-container');
+    if (dropImageContainer) {
+        dropImageContainer.classList.remove('bg-purple-700');
+        dropImageContainer.classList.add('bg-green-600');
+    }
+
+    // Clear advanced drop info
+    const dropDataSource = document.getElementById('drop-data-source');
+    const dropId = document.getElementById('drop-id');
+    const dropRawProgress = document.getElementById('drop-raw-progress');
+    const dropLastUpdate = document.getElementById('drop-last-update');
+
+    if (dropDataSource) dropDataSource.textContent = 'Unknown';
+    if (dropId) dropId.textContent = '--';
+    if (dropRawProgress) dropRawProgress.textContent = '--';
+    if (dropLastUpdate) dropLastUpdate.textContent = '--';
+
     // Clear any stored data
     if (window.originalCampaignsData) {
         window.originalCampaignsData = [];
@@ -228,7 +281,8 @@ function initiateLogout() {
         })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {                showToast('Success', 'Successfully logged out. All data has been cleared.', 'success');
+            if (data.success) {
+                showToast('Success', 'Successfully logged out.', 'success');
                 
                 // Clear UI data
                 clearUIData();
@@ -530,27 +584,43 @@ function setupEventListeners() {
     }
     
     // Reconnect websocket button
-    const reconnectWebsocketButton = document.getElementById('reconnect-websocket');
-    if (reconnectWebsocketButton) {
-        reconnectWebsocketButton.addEventListener('click', () => {
+    const _reloadButton = document.getElementById('reload-tdm');
+    if (_reloadButton) {
+        _reloadButton.addEventListener('click', () => {
             // Visual feedback
-            const originalText = reconnectWebsocketButton.innerHTML;
-            reconnectWebsocketButton.disabled = true;
-            reconnectWebsocketButton.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-1"></i> Reconnecting...';
-            
+            const originalText = _reloadButton.innerHTML;
+            _reloadButton.disabled = true;
+            _reloadButton.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-1"></i> Reloading...';
+
             // Show toast notification
-            showToast('Reconnecting', 'Attempting to reconnect to the miner...', 'info');
-            
-            // Force a refresh to trigger reconnection
-            refreshData()
-                .finally(() => {
-                    setTimeout(() => {
-                        reconnectWebsocketButton.disabled = false;
-                        reconnectWebsocketButton.innerHTML = originalText;
-                        
-                        // Fetch diagnostics to update connection status
-                        fetchDiagnostics();                    }, 2000);
-                });
+            showToast('Reloading', 'Reloading the Twitch Drops Miner...', 'info');
+
+            // Call the reload API endpoint
+            fetch('/api/reload', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Success', 'Miner successfully reloaded', 'success');
+                    // Refresh data after a short delay
+                    setTimeout(refreshData, 2000);
+                } else {
+                    showToast('Error', data.error || 'Failed to reload the miner', 'error');
+                }
+            })
+            .catch(error => {
+                showToast('Error', 'Failed to reload the miner. Check console for details.', 'error');
+            })
+            .finally(() => {
+                setTimeout(() => {
+                    _reloadButton.disabled = false;
+                    _reloadButton.innerHTML = originalText;
+
+                    // Fetch diagnostics to update connection status
+                    fetchDiagnostics();
+                }, 2000);
+            });
         });
     }
 } // End of setupEventListeners function
@@ -579,7 +649,8 @@ function refreshData(options = {}) {
         refreshCampaigns: true,
         refreshInventory: true,
         refreshSettings: true,
-        refreshLogin: true
+        refreshLogin: true,
+        refreshActiveDrop: true
     };
     
     const config = { ...defaults, ...options };
@@ -644,6 +715,11 @@ function refreshData(options = {}) {
         fetchPromises.push(fetchSettings().catch(error => ({ error })));
     }
     
+    // Add active drop refresh if the option is enabled and the function exists
+    if (config.refreshActiveDrop && typeof window.fetchActiveDropData === 'function') {
+        fetchPromises.push(window.fetchActiveDropData().catch(error => ({ error })));
+    }
+
     // Occasionally fetch diagnostics (every 3rd refresh)
     const refreshCount = parseInt(localStorage.getItem('refreshCount') || '0', 10) + 1;
     localStorage.setItem('refreshCount', refreshCount.toString());
@@ -1111,29 +1187,37 @@ function updateStatusUI(data) {
         let statusColor = 'text-gray-800';
         
         switch (data.state) {
-            case 'INITIALIZING':
-                statusText = 'Initializing...';
-                statusColor = 'text-blue-500';
+            case 'IDLE':
+                statusText = 'Idle';
+                statusColor = 'text-gray-500';
                 break;
             case 'INVENTORY_FETCH':
                 statusText = 'Fetching Inventory...';
                 statusColor = 'text-blue-500';
                 break;
-            case 'CHANNEL_WATCH':
-                statusText = 'Watching Channel';
+            case 'GAMES_UPDATE':
+                statusText = 'Updating Games...';
                 statusColor = 'text-green-500';
                 break;
-            case 'DROP_CLAIM':
-                statusText = 'Claiming Drop';
+            case 'CHANNELS_FETCH':
+                statusText = 'Fetching Channels...';
                 statusColor = 'text-purple-500';
                 break;
-            case 'ERROR':
-                statusText = 'Error';
-                statusColor = 'text-red-500';
+            case 'CHANNELS_CLEANUP':
+                statusText = 'Cleaning Up Channels...';
+                statusColor = 'text-orange-500';
                 break;
             case 'CHANNEL_SWITCH':
                 statusText = 'Watching Channel...';
                 statusColor = 'text-green-500';
+                break;
+            case 'RELOAD':
+                statusText = 'Reloading...';
+                statusColor = 'text-yellow-500';
+                break;
+            case 'EXIT':
+                statusText = 'Exiting...';
+                statusColor = 'text-red-500';
                 break;
             default:
                 statusText = data.state || 'Unknown';
@@ -2016,7 +2100,7 @@ function saveSettings(reloadAfterSave = false) {
         tray_notifications: document.getElementById('tray-notifications-checkbox').checked,
         reload: reloadAfterSave
     };
-    
+
     // Send to the API
     fetch('/api/settings', {
         method: 'POST',
@@ -2029,7 +2113,7 @@ function saveSettings(reloadAfterSave = false) {
     .then(data => {
         if (data.success) {
             showToast('Success', reloadAfterSave ? 'Settings saved and miner reloaded' : 'Settings saved successfully', 'success');
-            
+
             // If we're reloading, refresh the data after a delay to reflect changes
             if (reloadAfterSave) {
                 setTimeout(() => {
@@ -2054,10 +2138,10 @@ function switchChannel() {
         const originalText = switchButton.innerHTML;
         switchButton.disabled = true;
         switchButton.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-1"></i> Switching...';
-        
+
         // Show toast notification
         showToast('Switching', 'Switching to the next channel...', 'info');
-        
+
         // Call the switch channel API endpoint
         fetch('/api/switch_channel', {
             method: 'POST'

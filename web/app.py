@@ -780,10 +780,10 @@ def logout():
                 
             # Change state to IDLE
             if hasattr(twitch, 'change_state') and hasattr(State, 'IDLE'):
-                twitch.change_state(State.IDLE)
+                twitch.change_state(State.RELOAD)
                 
             logger.info("Logout completed successfully")
-            
+
             return jsonify({
                 'success': True, 
                 'message': 'Logout successful'
@@ -1322,11 +1322,3 @@ def run_web_server(host, port, debug, tdm):
     global tdm_instance
     tdm_instance = tdm
     app.run(host=host, port=port, debug=debug)
-    
-# Helper function for async state change
-async def async_state_change(twitch, reload=False):
-    if reload:
-        from exceptions import ReloadRequest  # Import from wherever it's defined 
-        raise ReloadRequest()
-    else:
-        twitch.change_state(State.INVENTORY_FETCH)

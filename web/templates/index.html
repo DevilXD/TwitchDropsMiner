@@ -177,9 +177,9 @@
                 <div class="w-full md:w-1/2 xl:w-full p-3">
                     <div class="bg-white border rounded shadow p-2">
                         <div class="flex flex-row items-center">                            <div class="flex-shrink pr-4">
-                                <div id="drop-image-container" class="rounded p-3 bg-green-600">
+                                <div id="drop-image-container" class="rounded bg-green-600 flex items-center justify-center" style="width: 64px; height: 64px;">
                                     <!-- The drop image will be loaded here by JavaScript -->
-                                    <i id="drop-image-fallback" class="fas fa-gift fa-2x fa-fw fa-inverse"></i>
+                                    <i id="drop-image-fallback" class="fas fa-gift fa-3x fa-fw fa-inverse"></i>
                                     <img id="drop-image" class="w-full h-full object-cover rounded hidden" alt="Drop image">
                                 </div>
                             </div>
@@ -189,9 +189,7 @@
                                     <div class="shadow w-full bg-gray-200 rounded">
                                         <div class="bg-purple-600 text-xs leading-none py-1 text-center text-white rounded" id="drop-progress-bar" style="width: 0%">0%</div>
                                     </div>                                    <div class="text-sm mt-1 text-gray-600" id="drop-progress-text"></div>
-                                    <!-- Removed timestamp display that showed "Updated X seconds ago (websocket)" -->
-                                    <p class="mt-2 text-sm text-gray-500" id="time-remaining"></p>
-                                    
+
                                     <!-- Advanced mode information -->
                                     <div class="drop-advanced-info mt-3 text-xs border-t border-gray-200 pt-2">
                                         <div class="flex justify-between">
@@ -283,8 +281,8 @@
                                     <button id="refresh-inventory" class="bg-green-500 hover:bg-green-600 text-white text-xs px-2 py-1 rounded">
                                         <i class="fas fa-sync mr-1"></i> Refresh Inventory
                                     </button>
-                                    <button id="reconnect-websocket" class="bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-1 rounded">
-                                        <i class="fas fa-plug mr-1"></i> Reconnect
+                                    <button id="reload-tdm" class="bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-1 rounded">
+                                        <i class="fas fa-plug mr-1"></i> Reload
                                     </button>
                                     <button id="switch-channel" class="bg-purple-500 hover:bg-purple-600 text-white text-xs px-2 py-1 rounded">
                                         <i class="fas fa-exchange-alt mr-1"></i> Switch Channel
@@ -569,7 +567,7 @@
                     <div class="bg-white border rounded shadow p-2">
                         <div class="flex justify-between items-center">
                             <span class="text-sm text-gray-500">Twitch Drops Miner Web Interface</span>
-                            <a href="https://github.com/DevilXD/TwitchDropsMiner" target="_blank" class="text-purple-600 hover:text-purple-800">
+                            <a href="https://github.com/Kaysharp42/TwitchDropsMinerWeb" target="_blank" class="text-purple-600 hover:text-purple-800">
                                 <i class="fab fa-github"></i> GitHub
                             </a>
                         </div>

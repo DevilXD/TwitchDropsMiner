@@ -24,17 +24,23 @@ function initializeDropProgress() {
 function fetchActiveDropData() {
     // Skip if page is not visible to save resources
     if (document.hidden) {
-        return;
+        return Promise.resolve({ active_drop: null });
     }
     
-    fetch('/api/active_drop')
+    return fetch('/api/active_drop')
         .then(response => response.json())
         .then(data => {
             updateDropProgressUI(data);
-        })        .catch(error => {
+            return data;
+        })
+        .catch(error => {
             // Silent error handling for active drop data fetch errors
+            return { active_drop: null, error: error.message };
         });
 }
+
+// Expose the function to the window object for access from main.js
+window.fetchActiveDropData = fetchActiveDropData;
 
 // Update the UI with drop progress data
 function updateDropProgressUI(data) {
@@ -77,21 +83,13 @@ function updateDropProgressUI(data) {
         }
     }
     
-    // Update the progress text separately to show fractions
+    // Update time remaining in the drop-progress-text element
     const progressText = document.getElementById('drop-progress-text');
-    if (progressText) {
-        progressText.textContent = `${data.current_minutes}/${data.required_minutes} minutes`;
-    } else {
-        // Create progress text element if it doesn't exist
-        createProgressTextElement();
+    if (progressText && data.remaining_minutes !== undefined) {
+        progressText.textContent = `Time remaining: ${data.remaining_minutes} minutes`;
     }
     
-    // Update time remaining
-    const timeRemaining = document.getElementById('time-remaining');
-    if (timeRemaining && data.remaining_minutes !== undefined) {
-        timeRemaining.textContent = `Time remaining: ${data.remaining_minutes} minutes`;
-    }
-      // We've removed the timestamp display that showed "Updated X seconds ago (websocket)"
+    // We've removed the timestamp display that showed "Updated X seconds ago (websocket)"
     const lastSyncElement = document.getElementById('last-drop-sync');
     if (lastSyncElement) {
         // Hide the element completely
@@ -105,13 +103,11 @@ function createProgressTextElement() {
     const progressContainer = document.getElementById('drop-progress-container');
     if (!progressContainer) return;
     
-    // Create text element
+    // Create text element for time remaining
     const progressText = document.createElement('div');
     progressText.id = 'drop-progress-text';
     progressText.className = 'text-sm mt-1 text-gray-600';
     progressContainer.appendChild(progressText);
-    
-    // We no longer create the last-sync element as we've removed the timestamp display
 }
 
 // Adjust progress bar labels based on available width
@@ -153,9 +149,8 @@ function updateDropImage(imageUrl) {
             imageContainer.classList.remove('bg-green-600');
             imageContainer.classList.add('bg-purple-700');
             
-            // Ensure proper sizing and centering of the image
-            dropImage.style.width = '32px';
-            dropImage.style.height = '32px';
+            // No need to set explicit width/height on the image, it will fill the container
+            // thanks to the w-full h-full object-cover classes on the img element
         };
           dropImage.onerror = function() {
             // If image fails to load, show the fallback

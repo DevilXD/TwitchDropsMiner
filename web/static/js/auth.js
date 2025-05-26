@@ -198,6 +198,14 @@ window.startAuthPolling = function(interval, expiresIn) {
                     // Close the modal after a short delay
                     setTimeout(() => {
                         closeDeviceCodeModal();
+
+                        // Trigger manual refresh to update all data after successful login
+                        setTimeout(() => {
+                            const manualRefreshButton = document.getElementById('manual-refresh');
+                            if (manualRefreshButton) {
+                                manualRefreshButton.click();
+                            }
+                        }, 500); // Small delay to ensure modal is fully closed
                     }, 2000);
                     
                     // Stop polling
