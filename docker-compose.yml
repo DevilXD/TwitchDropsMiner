@@ -1,6 +1,3 @@
-# Docker Compose configuration for TwitchDropsMinerWeb
-version: '3.8'
-
 services:  
   twitch-drops-miner: 
     image: ${DOCKER_REGISTRY:-ghcr.io}/kaysharp42/twitchdropsminer-web:${TAG:-latest}
@@ -19,6 +16,7 @@ services:
       - ${DATA_DIR:-./data}:/data
     environment:
       - TZ=${TIMEZONE:-UTC}
+      - DOCKER_CONTAINER=true
     # Optional resource constraints - uncomment and adjust as needed
     # deploy:
     #   resources:

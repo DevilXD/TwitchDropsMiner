@@ -42,6 +42,26 @@ if %errorlevel% NEQ 0 (
     exit /b 1
 )
 
+REM Copy .env.example to .env if .env doesn't exist
+if not exist "%dirpath%\.env" (
+    if exist "%dirpath%\.env.example" (
+        echo:
+        echo Creating .env from .env.example...
+        copy "%dirpath%\.env.example" "%dirpath%\.env" > nul
+        echo .env file created successfully.
+    ) else (
+        echo:
+        echo Warning: .env.example not found. Skipping .env creation.
+    )
+) else (
+    echo:
+    echo .env file already exists, skipping copy.
+)
+
+echo:
+echo Generating JWT secret...
+"%dirpath%\env\scripts\python" "%dirpath%\generate_jwt_secret.py"
+
 echo:
 echo Environment setup completed successfully.
 echo:

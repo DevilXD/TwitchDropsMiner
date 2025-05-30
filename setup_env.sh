@@ -39,6 +39,26 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# Copy .env.example to .env if .env doesn't exist
+if [ ! -f "$dirpath/.env" ]; then
+    if [ -f "$dirpath/.env.example" ]; then
+        echo
+        echo "Creating .env from .env.example..."
+        cp "$dirpath/.env.example" "$dirpath/.env"
+        echo ".env file created successfully."
+    else
+        echo
+        echo "Warning: .env.example not found. Skipping .env creation."
+    fi
+else
+    echo
+    echo ".env file already exists, skipping copy."
+fi
+
+echo
+echo "Generating JWT secret..."
+"$dirpath/env/bin/python" "$dirpath/generate_jwt_secret.py"
+
 echo
 echo "Environment setup completed successfully."
 echo

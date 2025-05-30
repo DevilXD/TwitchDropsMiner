@@ -27,14 +27,28 @@ function fetchActiveDropData() {
         return Promise.resolve({ active_drop: null });
     }
     
-    return fetch('/api/active_drop')
-        .then(response => response.json())
+    return fetch('/api/active_drop', {
+        headers: getAuthHeaders()
+    })
+        .then(response => {
+            // Handle authentication errors
+            if (handleUnauthorizedResponse(response)) {
+                return { active_drop: null, error: 'Authentication required' };
+            }
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            return response.json();
+        })
         .then(data => {
             updateDropProgressUI(data);
             return data;
         })
         .catch(error => {
             // Silent error handling for active drop data fetch errors
+            console.log('Drop progress fetch error:', error.message);
             return { active_drop: null, error: error.message };
         });
 }

@@ -28,6 +28,20 @@ function Setup-Directories {
     if (-not (Test-Path "$DATA_DIR/cookies.jar")) {
         New-Item -ItemType File -Path "$DATA_DIR/cookies.jar" | Out-Null
     }
+    
+    # Copy .env.example to .env if .env doesn't exist
+    if (-not (Test-Path ".env")) {
+        if (Test-Path ".env.example") {
+            Write-Host "Creating .env from .env.example..."
+            Copy-Item ".env.example" ".env"
+            Write-Host ".env file created successfully."
+        } else {
+            Write-Host "Warning: .env.example not found. Skipping .env creation." -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host ".env file already exists, skipping copy."
+    }
+    
     Write-Host "Created data directories in $DATA_DIR"
 }
 

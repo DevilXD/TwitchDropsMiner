@@ -117,12 +117,12 @@ class ModeSwitcher {
         
         loadingModal.appendChild(loadingContent);
         document.body.appendChild(loadingModal);
-        
-        // Make API request to switch mode
+          // Make API request to switch mode
         fetch('/api/switch_mode', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                ...getAuthHeaders()
             },
             body: JSON.stringify({ mode: modeId })
         })

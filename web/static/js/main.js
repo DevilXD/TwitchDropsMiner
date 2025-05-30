@@ -12,8 +12,43 @@ let inventoryData = { claimed: [], pending: [] };
 let settingsData = {};
 let isDataLoading = false;
 
+// Helper function to get auth headers
+function getAuthHeaders() {
+    const token = localStorage.getItem('auth_token');
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
+
+// Function to handle unauthorized responses
+function handleUnauthorizedResponse(response) {
+    if (response.status === 401) {
+        // Show toast message if showToast function exists
+        if (typeof showToast === 'function') {
+            showToast('Authentication Error', 'Your session has expired. Please log in again.', 'error');
+        }
+        
+        // Clear token 
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('username');
+        
+        // Redirect to login page after a short delay (to allow toast to be seen)
+        setTimeout(() => {
+            window.location.href = '/login';
+        }, 1500);
+        
+        return false;
+    }
+    return true;
+}
+
 // Initialize the application when the page loads
 document.addEventListener('DOMContentLoaded', () => {
+    // Check if user is authenticated
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+        window.location.href = '/login';
+        return;
+    }
+
     setupTabNavigation();
     setupEventListeners();
     
@@ -96,7 +131,8 @@ function reloadMiner() {
         
         // Call the reload API endpoint
         fetch('/api/reload', {
-            method: 'POST'
+            method: 'POST',
+            headers: getAuthHeaders()
         })
         .then(response => response.json())
         .then(data => {
@@ -136,7 +172,8 @@ function manualRefreshInventory() {
         
         // Call the refresh inventory API endpoint
         fetch('/api/refresh_inventory', {
-            method: 'POST'
+            method: 'POST',
+            headers: getAuthHeaders()
         })
         .then(response => response.json())
         .then(data => {
@@ -276,8 +313,9 @@ function initiateLogout() {
         showToast('Logout', 'Logging out from Twitch...', 'info');
         
         // Call the logout API endpoint
-        fetch('/api/logout', {
-            method: 'POST'
+        fetch('/api/twitch_logout', {
+            method: 'POST',
+            headers: getAuthHeaders()
         })
         .then(response => response.json())
         .then(data => {
@@ -597,7 +635,8 @@ function setupEventListeners() {
 
             // Call the reload API endpoint
             fetch('/api/reload', {
-                method: 'POST'
+                method: 'POST',
+                headers: getAuthHeaders()
             })
             .then(response => response.json())
             .then(data => {
@@ -779,9 +818,16 @@ const maxStatusRetries = 3; // Max number of consecutive retries
 
 function fetchStatus() {
     return new Promise((resolve) => {
-        fetch('/api/status')
+        fetch('/api/status', {
+            headers: getAuthHeaders()
+        })
             .then(response => {
                 if (!response.ok) {
+                    // Check if it's an authentication error
+                    if (!handleUnauthorizedResponse(response)) {
+                        return Promise.reject(new Error('Unauthorized'));
+                    }
+                    
                     throw new Error(`Status API returned ${response.status}: ${response.statusText}`);
                 }
                 // Reset retry count on success
@@ -795,7 +841,8 @@ function fetchStatus() {
                 
                 // Update the UI with status information
                 updateStatusUI(data);
-                  // Update connection status indicator
+                
+                // Update connection status indicator
                 const connectionStatus = document.getElementById('connection-status');
                 if (connectionStatus) {
                     connectionStatus.textContent = 'Connected';
@@ -807,7 +854,8 @@ function fetchStatus() {
                 localStorage.setItem('lastStatusUpdate', new Date().toISOString());
                 
                 resolve(data);
-            })            .catch(error => {
+            })
+            .catch(error => {
                 // Error handled silently;
                   // Update UI to show error
                 updateStatusUIError();
@@ -889,7 +937,9 @@ function updateStatusUIError() {
 // Fetch diagnostic information
 function fetchDiagnostics() {
     return new Promise((resolve) => {
-        fetch('/api/diagnostic')
+        fetch('/api/diagnostic', {
+            headers: getAuthHeaders()
+        })
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`Diagnostic API returned ${response.status}: ${response.statusText}`);
@@ -952,9 +1002,16 @@ function fetchChannels() {
         //     return;
         // }
         
-        fetch('/api/channels')
+        fetch('/api/channels', {
+            headers: getAuthHeaders()
+        })
             .then(response => {
                 if (!response.ok) {
+                    // Check if it's an authentication error
+                    if (!handleUnauthorizedResponse(response)) {
+                        return Promise.reject(new Error('Unauthorized'));
+                    }
+                    
                     throw new Error(`Channels API returned ${response.status}: ${response.statusText}`);
                 }
                 return response.json();
@@ -991,22 +1048,16 @@ function fetchChannels() {
 // Fetch drop campaigns
 function fetchCampaigns() {
     return new Promise((resolve) => {
-        // Check if we have valid preloaded data
-        // if (hasValidPreloadedData('campaigns')) {
-        //     console.log('Using preloaded campaigns data');
-        //     campaignsData = preloadedData.campaigns;
-        //     updateCampaignsUI(preloadedData.campaigns);
-        //     resolve(preloadedData.campaigns);
-        //     // After using preloaded data, refresh it in background to keep it updated
-        //     setTimeout(() => {
-        //         preloadData('campaigns');
-        //     }, 100);
-        //     return;
-        // }
-        
-        fetch('/api/campaigns')
+        fetch('/api/campaigns', {
+            headers: getAuthHeaders()
+        })
             .then(response => {
                 if (!response.ok) {
+                    // Check if it's an authentication error
+                    if (!handleUnauthorizedResponse(response)) {
+                        return Promise.reject(new Error('Unauthorized'));
+                    }
+                    
                     throw new Error(`Campaigns API returned ${response.status}: ${response.statusText}`);
                 }
                 return response.json();
@@ -1065,9 +1116,14 @@ function fetchInventory() {
         //     return;
         // }
         
-        fetch('/api/inventory')
-            .then(response => {
-                if (!response.ok) {
+        fetch('/api/inventory', {
+            headers: getAuthHeaders()
+        })
+            .then(response => {                if (!response.ok) {
+                    // Check if it's an authentication error
+                    if (!handleUnauthorizedResponse(response)) {
+                        return Promise.reject(new Error('Unauthorized'));
+                    }
                     throw new Error(`Inventory API returned ${response.status}: ${response.statusText}`);
                 }
                 return response.json();
@@ -1116,9 +1172,14 @@ function fetchInventory() {
 // Check login status
 function checkLoginStatus() {
     return new Promise((resolve) => {
-        fetch('/api/status')
-            .then(response => {
-                if (!response.ok) {
+        fetch('/api/status', {
+            headers: getAuthHeaders()
+        })
+            .then(response => {                if (!response.ok) {
+                    // Check if it's an authentication error
+                    if (!handleUnauthorizedResponse(response)) {
+                        return Promise.reject(new Error('Unauthorized'));
+                    }
                     throw new Error(`Status API returned ${response.status}: ${response.statusText}`);
                 }
                 return response.json();
@@ -1129,11 +1190,10 @@ function checkLoginStatus() {
                 const notLoggedInDiv = document.getElementById('not-logged-in');
                 const usernameDisplay = document.getElementById('username-display');
                 const loginMessage = document.getElementById('login-message');
-                
-                if (data.username) {
+                  if (data.username) {
                     // User is logged in
                     if (userStatus) {
-                        userStatus.innerHTML = `<i class="fas fa-user mr-1"></i><span>Logged in as: ${data.username}</span>`;
+                        userStatus.innerHTML = `<i class="fab fa-twitch mr-1"></i><span>Logged in as: ${data.username}</span>`;
                         userStatus.classList.add('text-green-400');
                         userStatus.classList.remove('text-yellow-400');
                     }
@@ -1146,7 +1206,7 @@ function checkLoginStatus() {
                     }                } else {
                     // User is not logged in
                     if (userStatus) {
-                        userStatus.innerHTML = `<i class="fas fa-user mr-1"></i><span>Not logged in</span>`;
+                        userStatus.innerHTML = `<i class="fab fa-twitch mr-1"></i><span>Not logged in</span>`;
                         userStatus.classList.add('text-yellow-400');
                         userStatus.classList.remove('text-green-400');
                     }
@@ -1371,7 +1431,8 @@ function watchChannel(channelName) {
     
     // Call the API
     fetch(`/api/set_channel/${channelName}`, {
-        method: 'POST'
+        method: 'POST',
+        headers: getAuthHeaders()
     })
     .then(response => response.json())
     .then(data => {
@@ -1544,7 +1605,8 @@ function claimDrop(dropId) {
     
     // Call the API
     fetch(`/api/claim/${dropId}`, {
-        method: 'POST'
+        method: 'POST',
+        headers: getAuthHeaders()
     })
     .then(response => response.json())
     .then(data => {
@@ -1689,9 +1751,14 @@ function removeToast(toast) {
 // Function to fetch settings
 function fetchSettings() {
     return new Promise((resolve) => {
-        fetch('/api/settings')
-            .then(response => {
-                if (!response.ok) {
+        fetch('/api/settings', {
+            headers: getAuthHeaders()
+        })
+            .then(response => {                if (!response.ok) {
+                    // Check if it's an authentication error
+                    if (!handleUnauthorizedResponse(response)) {
+                        return Promise.reject(new Error('Unauthorized'));
+                    }
                     throw new Error(`Settings API returned ${response.status}: ${response.statusText}`);
                 }
                 return response.json();
@@ -1939,7 +2006,8 @@ function addPriorityGame() {
     fetch('/api/settings/priority', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            ...getAuthHeaders()
         },
         body: JSON.stringify({
             action: 'add',
@@ -1967,7 +2035,8 @@ function removePriorityItem(index) {
     fetch('/api/settings/priority', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            ...getAuthHeaders()
         },
         body: JSON.stringify({
             action: 'remove',
@@ -1995,7 +2064,8 @@ function movePriorityItem(index, direction) {
     fetch('/api/settings/priority', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            ...getAuthHeaders()
         },
         body: JSON.stringify({
             action: 'move',
@@ -2015,13 +2085,13 @@ function movePriorityItem(index, direction) {
     .catch(error => {
         // Error handled silently;
         showToast('Error', error.message, 'error');
-    });
+       });
 }
 
 // Function to add a game to the exclusion list
 function addExclusionGame() {
     const selectElement = document.getElementById('game-select-exclude');
-    if (!selectElement || !selectElement.value) return;
+       if (!selectElement || !selectElement.value) return;
     
     const game = selectElement.value;
     
@@ -2037,7 +2107,8 @@ function addExclusionGame() {
     fetch('/api/settings/exclude', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            ...getAuthHeaders()
         },
         body: JSON.stringify({
             action: 'add',
@@ -2065,7 +2136,8 @@ function removeExclusionItem(game) {
     fetch('/api/settings/exclude', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            ...getAuthHeaders()
         },
         body: JSON.stringify({
             action: 'remove',
@@ -2105,7 +2177,8 @@ function saveSettings(reloadAfterSave = false) {
     fetch('/api/settings', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            ...getAuthHeaders()
         },
         body: JSON.stringify(settings)
     })
@@ -2144,9 +2217,19 @@ function switchChannel() {
 
         // Call the switch channel API endpoint
         fetch('/api/switch_channel', {
-            method: 'POST'
+            method: 'POST',
+            headers: getAuthHeaders()
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                // Check if it's an authentication error
+                if (!handleUnauthorizedResponse(response)) {
+                    return Promise.reject(new Error('Unauthorized'));
+                }
+                throw new Error(`API returned ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 showToast('Success', data.message || 'Channel switch initiated', 'success');

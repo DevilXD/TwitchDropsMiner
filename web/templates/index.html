@@ -12,8 +12,7 @@
     <!-- Fonts and icons -->
     <link href="https://fonts.googleapis.com/css?family=Nunito:400,700,800" rel="stylesheet">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css" integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">    <!-- Tailwind CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/tailwindcss@2.2.19/dist/tailwind.min.css"/>
-      <!-- Custom CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/tailwindcss@2.2.19/dist/tailwind.min.css"/>    <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <!-- Dark Mode CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dark-mode.css') }}">
@@ -21,6 +20,9 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mode-styles.css') }}">
     <!-- Toggle Switch CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/toggle-switch.css') }}">
+    
+    <!-- Authentication Utilities -->
+    <script src="{{ url_for('static', filename='js/auth_utils.js') }}"></script>
       <style>
         /* Progress bar styles - Portainer style */
         .progress-container {
@@ -91,12 +93,20 @@
                 <a class="text-white text-base xl:text-xl no-underline hover:no-underline font-bold" href="#">
                     <i class="fas fa-gem text-purple-300 pr-3"></i> Twitch Drops Miner
                 </a>
-            </div>
-            <div class="w-1/2 pr-0">
+            </div>            <div class="w-1/2 pr-0">
                 <div class="header-controls">
-                    <!-- User status - most important, kept at the right -->
+                    <!-- Admin status - show current logged in admin user -->
+                    <div class="relative text-sm text-green-300 px-2 pt-1">
+                        <i class="fas fa-user-shield mr-1"></i><span>Admin: {{ username }}</span>
+                    </div>
+                    
+                    <!-- Admin logout button -->
+                    <button id="local-logout-btn" class="text-red-300 hover:text-red-100 px-2 pt-1" title="Logout">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                      <!-- User status - Twitch connection status -->
                     <div class="relative text-sm text-white px-2 pt-1" id="user-status">
-                        <i class="fas fa-user mr-1"></i><span>Not connected</span>
+                        <i class="fab fa-twitch mr-1"></i><span>Not connected</span>
                     </div>
                     
                     <!-- Control buttons group -->

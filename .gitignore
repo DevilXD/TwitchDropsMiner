@@ -27,3 +27,8 @@ log.txt
 # IDE files
 /.idea
 data/cookies.jar
+data/credentials.json
+data/blacklist.json
+.env
+credentials.json
+blacklist.json

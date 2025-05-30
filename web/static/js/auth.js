@@ -3,6 +3,14 @@
  * Displays the Twitch OAuth device code login UI
  */
 
+// Ensure getAuthHeaders function is available (fallback if not loaded from main.js)
+if (typeof getAuthHeaders === 'undefined') {
+    function getAuthHeaders() {
+        const token = localStorage.getItem('auth_token');
+        return token ? { 'Authorization': `Bearer ${token}` } : {};
+    }
+}
+
 // Global variables for keeping track of the auth flow state
 let authCheckInterval = null;
 let authExpiresAt = null;
@@ -16,14 +24,14 @@ window.initiateLogin = function() {
         const originalText = loginButton.innerHTML;
         loginButton.disabled = true;
         loginButton.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-1"></i> Initiating Login...';
-        
-        // Show toast notification
+          // Show toast notification
         showToast('Login', 'Starting Twitch login process...', 'info');
           // Call the login API endpoint
-        fetch('/api/login', {
+        fetch('/api/twitch_login', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                ...getAuthHeaders()
             },
             body: JSON.stringify({initiate: true})
         })
@@ -174,9 +182,10 @@ window.startAuthPolling = function(interval, expiresIn) {
         // Update progress bar
         const remainingSeconds = Math.max(0, Math.floor((authExpiresAt - Date.now()) / 1000));
         updateAuthProgress(remainingSeconds, expiresIn);
-        
-        // Poll the server for auth status
-        fetch('/api/check_auth')
+          // Poll the server for auth status
+        fetch('/api/twitch_check_auth', {
+            headers: getAuthHeaders()
+        })
             .then(response => response.json())
             .then(data => {
                 if (data.error && data.expired) {

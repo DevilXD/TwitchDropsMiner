@@ -77,6 +77,7 @@ COPY *.py ./
 COPY web/ ./web/
 COPY icons/ ./icons/
 COPY lang/ ./lang/
+COPY .env.example ./
 
 # Create data directory with appropriate permissions
 RUN mkdir -p /data && \

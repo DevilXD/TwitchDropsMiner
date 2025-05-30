@@ -1,19 +1,16 @@
 from __future__ import annotations
-
-import os
-import sys
-import json
-import time
-import logging
-import requests
 from pathlib import Path
 from typing import Dict, Any, Optional
 from time import sleep
 from datetime import datetime, timezone
-from flask import Flask, render_template, jsonify, request, redirect, url_for
+from flask import Flask, render_template, jsonify, request, redirect, url_for, make_response
 from flask_cors import CORS
-import threading
-import asyncio
+import os
+import sys
+import logging
+import time
+import requests
+import json
 
 # Add parent directory to path for imports
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -22,6 +19,12 @@ sys.path.append(parent_dir)
 # Import from main project
 from constants import State
 from utils import Game, create_nonce, CHARS_HEX_LOWER
+
+# Make sure the current directory is in the path so we can import auth.py
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Import auth module (from the web directory)
+from auth import is_setup_needed, create_user, validate_credentials, generate_token, validate_token, revoke_token, auth_required, login_required
 
 
 # Global reference to the TDM instance - will be set by the main app
@@ -46,14 +49,93 @@ logger = logging.getLogger('web_interface')
 logger.setLevel(logging.INFO)
 
 
+@app.route('/login')
+def login():
+    """Render the login page"""
+    return render_template('login.html')
+
 @app.route('/')
-def index():
+@login_required
+def index(username=None):
     """Render the main dashboard page"""
-    return render_template('index.html')
+    return render_template('index.html', username=username)
+    
+@app.route('/api/auth/check-setup')
+def check_setup():
+    """Check if setup is needed"""
+    return jsonify({
+        'needsSetup': is_setup_needed()
+    })
+
+@app.route('/api/auth/login', methods=['POST'])
+def auth_login():
+    """Handle local authentication"""
+    data = request.get_json() or {}
+    
+    username = data.get('username')
+    password = data.get('password')
+    
+    # Check if this is a first-time setup
+    if is_setup_needed():
+        success, message = create_user(username, password)
+        if not success:
+            return jsonify({
+                'success': False,
+                'message': message
+            }), 400
+    else:
+        # Regular login
+        success, message = validate_credentials(username, password)
+        if not success:
+            return jsonify({
+                'success': False,
+                'message': message
+            }), 401
+    
+    # Generate token for API access
+    token, expiry = generate_token(username)
+    
+    response = jsonify({
+        'success': True,
+        'message': 'Login successful',
+        'token': token,
+        'expires': expiry,
+        'username': username
+    })
+    
+    # Set cookie for web interface
+    response.set_cookie(
+        'auth_token', 
+        token,
+        httponly=True,
+        max_age=expiry - int(time.time()),
+        path='/'
+    )
+    
+    return response
+
+@app.route('/api/auth/logout', methods=['POST'])
+@auth_required
+def auth_logout(username=None):
+    """Handle logout"""
+    token = request.cookies.get('auth_token')
+    if token:
+        revoke_token(token)
+        
+    response = jsonify({
+        'success': True,
+        'message': 'Logout successful'
+    })
+    
+    # Clear auth cookie
+    response.delete_cookie('auth_token', path='/')
+    
+    return response
 
 
 @app.route('/api/status')
-def status():
+@auth_required
+def status(username=None):
     """Return the current mining status"""
     if tdm_instance is None:
         return jsonify({'error': 'Miner not initialized'}), 503
@@ -135,7 +217,8 @@ def status():
 
 
 @app.route('/api/campaigns')
-def campaigns():
+@auth_required
+def campaigns(username=None):
     """Return the available campaigns"""
     if tdm_instance is None:
         return jsonify({'error': 'Miner not initialized'}), 503
@@ -248,7 +331,8 @@ def campaigns():
 
 
 @app.route('/api/channels')
-def channels():
+@auth_required
+def channels(username=None):
     """Return the available channels"""
     if tdm_instance is None:
         return jsonify({'error': 'Miner not initialized'}), 503
@@ -289,7 +373,8 @@ def channels():
 
 
 @app.route('/api/inventory')
-def inventory():
+@auth_required
+def inventory(username=None):
     """Return the inventory (claimed and pending drops)"""
     if tdm_instance is None:
         return jsonify({'error': 'Miner not initialized'}), 503
@@ -389,8 +474,9 @@ def inventory():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/login', methods=['POST'])
-def login():
+@app.route('/api/twitch_login', methods=['POST'])
+@auth_required
+def twitch_login(username=None):
     """Handle user login through the web interface"""
     if tdm_instance is None:
         return jsonify({'error': 'Miner not initialized'}), 503
@@ -495,8 +581,9 @@ def login():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/check_auth', methods=['GET'])
-def check_auth():
+@app.route('/api/twitch_check_auth', methods=['GET'])
+@auth_required
+def twitch_check_auth(username=None):
     """Poll for OAuth device code authorization status"""
     if tdm_instance is None:
         return jsonify({'error': 'Miner not initialized'}), 503
@@ -677,8 +764,9 @@ def check_auth():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/validate_auth', methods=['GET'])
-def validate_auth():
+@app.route('/api/twitch_validate_auth', methods=['GET'])
+@auth_required
+def twitch_validate_auth(username=None):
     """Check if auth validation is complete and return user status"""
     if tdm_instance is None:
         return jsonify({'error': 'Miner not initialized'}), 503
@@ -729,8 +817,9 @@ def validate_auth():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/logout', methods=['POST'])
-def logout():
+@app.route('/api/twitch_logout', methods=['POST'])
+@auth_required
+def twitch_logout(username=None):
     """Handle user logout through the web interface"""
     if tdm_instance is None:
         return jsonify({'error': 'Miner not initialized'}), 503
@@ -797,7 +886,8 @@ def logout():
 
 
 @app.route('/api/claim/<drop_id>', methods=['POST'])
-def claim_drop(drop_id):
+@auth_required
+def claim_drop(drop_id, username=None):
     """Claim a drop with the given ID"""
     if tdm_instance is None:
         return jsonify({'error': 'Miner not initialized'}), 503
@@ -867,7 +957,8 @@ def claim_drop(drop_id):
 
 
 @app.route('/api/set_channel/<channel_name>', methods=['POST'])
-def set_channel(channel_name):
+@auth_required
+def set_channel(channel_name, username=None):
     """Set the active channel to the specified channel name"""
     if tdm_instance is None:
         return jsonify({'error': 'Miner not initialized'}), 503
@@ -909,7 +1000,8 @@ def set_channel(channel_name):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/switch_channel', methods=['POST'])
-def switch_channel():
+@auth_required
+def switch_channel(username=None):
     """Switch to the next channel in the list"""
     if tdm_instance is None:
         return jsonify({'error': 'Miner not initialized'}), 503
@@ -935,7 +1027,8 @@ def switch_channel():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/settings')
-def settings():
+@auth_required
+def settings(username=None):
     """Return the current settings"""
     if tdm_instance is None:
         return jsonify({'error': 'Miner not initialized'}), 503
@@ -962,7 +1055,8 @@ def settings():
 
 
 @app.route('/api/settings', methods=['POST'])
-def update_settings():
+@auth_required
+def update_settings(username=None):
     """Update settings"""
     if tdm_instance is None:
         return jsonify({'error': 'Miner not initialized'}), 503
@@ -1024,7 +1118,8 @@ def update_settings():
 
 
 @app.route('/api/settings/priority', methods=['POST'])
-def update_priority():
+@auth_required
+def update_priority(username=None):
     """Update priority list"""
     if tdm_instance is None:
         return jsonify({'error': 'Miner not initialized'}), 503
@@ -1075,7 +1170,8 @@ def update_priority():
 
 
 @app.route('/api/settings/exclude', methods=['POST'])
-def update_exclude():
+@auth_required
+def update_exclude(username=None):
     """Update exclusion list"""
     if tdm_instance is None:
         return jsonify({'error': 'Miner not initialized'}), 503
@@ -1107,7 +1203,8 @@ def update_exclude():
 
 
 @app.route('/api/diagnostic')
-def diagnostic():
+@auth_required
+def diagnostic(username=None):
     """Return diagnostic information about the miner"""
     if tdm_instance is None:
         return jsonify({'error': 'Miner not initialized'}), 503
@@ -1169,7 +1266,8 @@ def diagnostic():
 
 
 @app.route('/api/refresh_inventory', methods=['POST'])
-def refresh_inventory():
+@auth_required
+def refresh_inventory(username=None):
     """Force a refresh of the inventory"""
     if tdm_instance is None:
         return jsonify({'error': 'Miner not initialized'}), 503
@@ -1190,7 +1288,8 @@ def refresh_inventory():
 
 
 @app.route('/api/reload', methods=['POST'])
-def reload():
+@auth_required
+def reload(username=None):
     """Reload the miner"""
     if tdm_instance is None:
         return jsonify({'error': 'Miner not initialized'}), 503
@@ -1210,8 +1309,9 @@ def reload():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/cancel_auth', methods=['POST'])
-def cancel_auth():
+@app.route('/api/twitch_cancel_auth', methods=['POST'])
+@auth_required
+def twitch_cancel_auth(username=None):
     """Handle cancellation of OAuth authentication process"""
     if tdm_instance is None:
         return jsonify({'error': 'Miner not initialized'}), 503
@@ -1250,7 +1350,8 @@ def cancel_auth():
 
 
 @app.route('/api/active_drop')
-def active_drop():
+@auth_required
+def active_drop(username=None):
     """Return the most accurate information about the currently active drop via WebSocket updates"""
     if tdm_instance is None:
         return jsonify({'error': 'Miner not initialized'}), 503
@@ -1315,6 +1416,37 @@ def active_drop():
     except Exception as e:
         logger.error(f"Error getting active drop: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/auth/validate')
+def auth_validate():
+    """Validate if a token is valid - no auth_required decorator as this endpoint checks token validity"""
+    token = None
+    if 'Authorization' in request.headers:
+        auth = request.headers['Authorization']
+        if auth.startswith('Bearer '):
+            token = auth[7:]  # Remove 'Bearer ' prefix
+    
+    if not token:
+        token = request.cookies.get('auth_token')
+    
+    if not token:
+        return jsonify({
+            'success': False,
+            'message': 'No token provided'
+        }), 401
+    
+    valid, username_or_error = validate_token(token)
+    if not valid:
+        return jsonify({
+            'success': False,
+            'message': username_or_error
+        }), 401
+    
+    return jsonify({
+        'success': True,
+        'username': username_or_error
+    })
 
 
 def run_web_server(host, port, debug, tdm):

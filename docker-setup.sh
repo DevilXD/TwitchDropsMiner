@@ -11,6 +11,19 @@ WEB_PORT="8080"
 # Create directories if they don't exist
 setup_directories() {
     mkdir -p "$DATA_DIR"
+    
+    # Copy .env.example to .env if .env doesn't exist
+    if [ ! -f ".env" ]; then
+        if [ -f ".env.example" ]; then
+            echo "Creating .env from .env.example..."
+            cp ".env.example" ".env"
+            echo ".env file created successfully."
+        else
+            echo "Warning: .env.example not found. Skipping .env creation."
+        fi
+    else
+        echo ".env file already exists, skipping copy."
+    fi
 }
 
 # Show usage information
