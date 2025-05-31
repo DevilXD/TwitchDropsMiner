@@ -295,7 +295,7 @@ function createDropCard(drop, type) {
         const statusClass = isReady ? 'bg-green-100 border-green-500' : 'bg-blue-100 border-blue-500';
         const actionButton = isReady ? 
             `<button class="claim-drop-btn bg-green-500 hover:bg-green-600 text-white py-1 px-3 rounded text-sm" data-drop-id="${drop.id}">
-                <i class="fas fa-gift mr-1"></i> Claim Now
+                <i class="fas fa-gift mr-1"></i> Claimed
             </button>` : 
             '';
         

@@ -18,7 +18,7 @@ Every several seconds, the application pretends to watch a particular stream by 
 - Automatic channel stream switching, when the one you were currently watching goes offline, as well as when a channel streaming a higher priority game goes online.
 - Login session is saved in a cookies file, so you don't need to login every time.
 - Mining is automatically started as new campaigns appear, and stopped when the last available drops have been mined.
-- **Enhanced Web Interface** for remote monitoring and control - access the miner from any browser. See [Web Interface Details](WEB.md).
+- **Enhanced Dashboard** for remote monitoring and control - access the miner from any browser. See [Dashboard Details](WEB.md).
 
 ### Usage:
 
@@ -27,22 +27,63 @@ Every several seconds, the application pretends to watch a particular stream by 
 - After a successful login, the app should fetch a list of all available campaigns and games you can mine drops for - you can then select and add games of choice to the Priority List available on the Settings tab, and then press on the `Reload` button to start processing. It will fetch a list of all applicable streams it can watch, and start mining right away. You can also manually switch to a different channel as needed.
 - If you wish to keep the miner occupied with mining anything it can, beyond what you've selected via the Priority List, you can use the Priority Mode setting to specify the mining order for the rest of the games.
 - Make sure to link your Twitch account to game accounts on the [campaigns page](https://www.twitch.tv/drops/campaigns), to enable more games to be mined.
-- To use the web interface, launch the application with the `--web` flag: `python main.py --web`. By default, the web interface will be available at http://127.0.0.1:8080. You can customize the host and port with the `--web-host` and `--web-port` options.
+- To use the dashboard, launch the application with the `--web` flag: `python main.py --web`. By default, the dashboard will be available at http://127.0.0.1:8080. You can customize the host and port with the `--web-host` and `--web-port` options.
 
-### Web Interface:
+#### Running with Docker:
 
-The web interface allows you to monitor and control the Twitch Drops Miner from any browser. Key features include:
+1. **Using Docker Compose (Recommended)**:
+   ```bash
+   # Clone the repository or download the docker-compose.yml file
+   git clone https://github.com/DevilXD/TwitchDropsMiner.git
+   cd TwitchDropsMiner
+   
+   # Start the container
+   docker-compose up -d
+   ```
+   
+   The dashboard will be available at http://localhost:8080
+
+2. **Using Docker directly**:
+   ```bash
+   # Pull and run the latest image
+   docker run -d \
+     --name twitchdropsminer-web \
+     --restart unless-stopped \
+     -p 8080:8080 \
+     -v ./data:/data \
+     ghcr.io/kaysharp42/twitchdropsminer-web:latest
+   ```
+
+3. **Docker Compose Configuration Example**:
+   ```yaml
+   services:  
+     twitch-drops-miner: 
+       image: ghcr.io/kaysharp42/twitchdropsminer-web:latest
+       container_name: twitchdropsminer-web
+       restart: unless-stopped
+       ports:
+         - "8080:8080"
+       volumes:
+         - ./data:/data
+       environment:
+         - TZ=UTC
+         - DOCKER_CONTAINER=true
+   ```
+
+### Dashboard:
+
+The dashboard allows you to monitor and control the Twitch Drops Miner from any browser. Key features include:
 
 - Real-time monitoring of active channels and campaigns
-- View drop progress and claim completed drops directly through the web interface
+- View drop progress and claim completed drops directly through the dashboard
 - Check your drop inventory with claimed and pending items
 - Switch channels remotely to watch different streams
-- Login to Twitch through the web interface
+- Login to Twitch through the dashboard
 - Mobile-friendly responsive design
 - Twitch-inspired user interface with status indicators
 - Notifications for successful actions and errors
 
-#### Getting Started with the Web Interface:
+#### Getting Started with the Dashboard:
 
 1. Start the miner with the `--web` flag: `python main.py --web`
 2. Open your browser and navigate to http://127.0.0.1:8080
@@ -50,9 +91,9 @@ The web interface allows you to monitor and control the Twitch Drops Miner from 
 
 #### Key Features:
 
-- **Authentication**: Use the Login tab to login to Twitch directly from the web interface
+- **Authentication**: Use the Login tab to login to Twitch directly from the dashboard
 - **Channel Switching**: Click the "Watch" button next to any channel in the channels list to immediately switch to that stream
-- **Claim Drops**: When a drop is ready to be claimed (100% progress), a "Claim Now" button will appear, allowing you to claim the drop directly from the web interface
+- **Claim Drops**: When a drop is ready to be claimed (100% progress), a "Claim Now" button will appear, allowing you to claim the drop directly from the dashboard
 - **Inventory Management**: View your pending and claimed drops in the Inventory tab
 - **Real-time Updates**: The interface automatically refreshes every 10 seconds to show the latest status
 
@@ -68,6 +109,11 @@ The web interface allows you to monitor and control the Twitch Drops Miner from 
 ![Main](https://user-images.githubusercontent.com/4180725/164298155-c0880ad7-6423-4419-8d73-f3c053730a1b.png)
 ![Inventory](https://user-images.githubusercontent.com/4180725/164298315-81cae0d2-24a4-4822-a056-154fd763c284.png)
 ![Settings](https://user-images.githubusercontent.com/4180725/164298391-b13ad40d-3881-436c-8d4c-34e2bbe33a78.png)
+
+#### Dashboard Screenshots:
+
+![Dashboard - Light Mode](appimage/TDM_white-mode.png)
+![Dashboard - Dark Mode](appimage/TDM_dark-mode.png)
 
 ### Notes:
 
