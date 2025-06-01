@@ -103,7 +103,7 @@ class ImageCache:
                 else:
                     try:
                         self._images[img_hash] = image = Image_module.open(CACHE_PATH / img_hash)
-                    except FileNotFoundError:
+                    except (FileNotFoundError, Image_module.UnidentifiedImageError):
                         pass
             if image is None:
                 async with self._twitch.request("GET", url) as response:
