@@ -4,7 +4,8 @@ on:
   push:
     branches:
       - 'master'
-  pull_request:
+    tags:
+      - 'v*.*.*'
   workflow_dispatch:
 
 env:
@@ -247,10 +248,9 @@ jobs:
           tags: test-twitch-drops-miner:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
   update_releases_page:
     name: Upload builds to Releases
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && !startsWith(github.ref, 'refs/tags/')
     needs:
       - windows
       - linux-pyinstaller
@@ -293,3 +293,39 @@ jobs:
           prerelease: true
           removeArtifacts: true
           tag: dev-build
+          
+  upload_to_release:
+    name: Upload Artifacts to Release
+    if: startsWith(github.ref, 'refs/tags/')
+    needs:
+      - windows
+      - linux-pyinstaller
+      - linux-appimage
+      - docker
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Extract version from tag
+        id: get-version
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG_NAME#v}
+          echo "VERSION=${VERSION}" >> "${GITHUB_ENV}"
+          echo "TAG_NAME=${TAG_NAME}" >> "${GITHUB_ENV}"
+
+      - name: Download build artifacts from previous jobs
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      # Upload the artifacts to the GitHub release
+      - name: Upload artifacts to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: artifacts/*/*
+          tag_name: ${{ env.TAG_NAME }}
+          name: Release ${{ env.TAG_NAME }}
+          draft: false
+          prerelease: false

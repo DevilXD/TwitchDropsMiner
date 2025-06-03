@@ -19,6 +19,7 @@ sys.path.append(parent_dir)
 # Import from main project
 from constants import State
 from utils import Game, create_nonce, CHARS_HEX_LOWER
+from version import __version__
 
 # Make sure the current directory is in the path so we can import auth.py
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -1210,13 +1211,13 @@ def diagnostic(username=None):
         return jsonify({'error': 'Miner not initialized'}), 503
     
     try:
-        twitch = tdm_instance
-        
-        # System information
+        twitch = tdm_instance          # System information
         system_info = {
-            'version': twitch.version if hasattr(twitch, 'version') else 'Unknown',
+            'version': __version__,
             'platform': sys.platform,
-            'python_version': sys.version
+            'python_version': sys.version,
+            'build_date': datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            'is_release': os.environ.get("RELEASE_BUILD") == "true"
         }
           # Miner state
         miner_state = {

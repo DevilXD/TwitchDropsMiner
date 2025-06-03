@@ -1,0 +1,55 @@
+name: Create Release
+
+on:
+  push:
+    branches:
+      - 'master'
+    paths:
+      - 'version.py'
+
+jobs:
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.extract-version.outputs.version }}
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Extract version
+        id: extract-version
+        run: |
+          VERSION=$(python -c "exec(open('version.py').read()); print(__version__)")
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+      
+      # Create a tag for the release
+      - name: Create Tag
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git tag -a "v${{ env.VERSION }}" -m "Release v${{ env.VERSION }}"
+          git push origin "v${{ env.VERSION }}"
+
+      # Create the initial release (artifacts will be added later)
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: Release v${{ env.VERSION }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+            build/dist/*.AppImage

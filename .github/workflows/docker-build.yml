@@ -2,10 +2,8 @@ name: Build and Publish Docker Image
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ master ]
     tags: [ 'v*.*.*' ]
-  pull_request:
-    branches: [ main, master ]
   workflow_dispatch:
   schedule:
     - cron: '0 0 * * 0'  # Run weekly to check for security updates
