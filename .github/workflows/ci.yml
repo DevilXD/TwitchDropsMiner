@@ -325,16 +325,22 @@ jobs:
           find artifacts -type f -name "*.zip" | sort
           echo "Artifact structure:"
           ls -la artifacts/
+          echo "Preparing artifacts for upload..."
+          mkdir -p release_artifacts
+          cp artifacts/*/Twitch*.zip release_artifacts/ || echo "No zip files found"
+          ls -la release_artifacts/
 
-      # Upload the artifacts to the GitHub release
+      # Upload the artifacts to the GitHub release with a different action
       - name: Upload artifacts to release
-        uses: softprops/action-gh-release@v1
+        uses: ncipollo/release-action@v1
         with:
-          files: |
-            artifacts/Twitch.Drops.Miner.Windows/Twitch.Drops.Miner.Windows.zip
-            artifacts/Twitch.Drops.Miner.Linux.PyInstaller/Twitch.Drops.Miner.Linux.PyInstaller.zip
-            artifacts/Twitch.Drops.Miner.Linux.AppImage/Twitch.Drops.Miner.Linux.AppImage.zip
-          tag_name: ${{ env.TAG_NAME }}
-          name: Release ${{ env.VERSION }}
+          artifacts: "release_artifacts/*.zip"
+          token: ${{ github.token }}
+          tag: ${{ env.TAG_NAME }}
+          name: "Release ${{ env.VERSION }}"
+          allowUpdates: true
           draft: false
           prerelease: false
+          omitBodyDuringUpdate: true
+          omitNameDuringUpdate: true
+          omitPrereleaseDuringUpdate: true

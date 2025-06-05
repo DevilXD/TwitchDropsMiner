@@ -33,23 +33,11 @@ jobs:
           VERSION=$(python -c "exec(open('version.py').read()); print(__version__)")
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
-      
-      # Create a tag for the release
+        # Create a tag for the release
       - name: Create Tag
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git tag -a "v${{ env.VERSION }}" -m "Release v${{ env.VERSION }}"
           git push origin "v${{ env.VERSION }}"
-
-      # Create the initial release (artifacts will be added later)
-      - name: Create Release
-        id: create_release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ env.VERSION }}
-          name: Release v${{ env.VERSION }}
-          draft: false
-          prerelease: false
-          generate_release_notes: true
             build/dist/*.AppImage
