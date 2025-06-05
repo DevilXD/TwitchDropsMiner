@@ -313,34 +313,30 @@ jobs:
           VERSION=${TAG_NAME#v}
           echo "VERSION=${VERSION}" >> "${GITHUB_ENV}"
           echo "TAG_NAME=${TAG_NAME}" >> "${GITHUB_ENV}"
+          echo "Tag Name: ${TAG_NAME}"
+          echo "Version: ${VERSION}"
 
       - name: Download build artifacts from previous jobs
         uses: actions/download-artifact@v4
         with:
           path: artifacts
 
-      - name: List all downloaded artifacts for debugging
+      - name: Debug artifacts
         run: |
           echo "Downloaded artifacts:"
-          find artifacts -type f -name "*.zip" | sort
-          echo "Artifact structure:"
+          find artifacts -type f | sort
+          echo "Artifact directories:"
           ls -la artifacts/
-          echo "Preparing artifacts for upload..."
-          mkdir -p release_artifacts
-          cp artifacts/*/Twitch*.zip release_artifacts/ || echo "No zip files found"
-          ls -la release_artifacts/
 
-      # Upload the artifacts to the GitHub release with a different action
+      # Use exactly the same approach as the development build
       - name: Upload artifacts to release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "release_artifacts/*.zip"
+          allowUpdates: true
+          artifactErrorsFailBuild: true
+          artifacts: "artifacts/*/*"
           token: ${{ github.token }}
           tag: ${{ env.TAG_NAME }}
           name: "Release ${{ env.VERSION }}"
-          allowUpdates: true
           draft: false
           prerelease: false
-          omitBodyDuringUpdate: true
-          omitNameDuringUpdate: true
-          omitPrereleaseDuringUpdate: true
