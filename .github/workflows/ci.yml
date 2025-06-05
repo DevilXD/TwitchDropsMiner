@@ -285,15 +285,14 @@ jobs:
           body: |
             **This is an automatically generated in-development pre-release version of the application, that includes the latest master branch changes.**
             **⚠️ This build is not stable and may end up terminating with a fatal error. ⚠️**
-            **Use at your own risk.**
-
+            **Use at your own risk.**           
             - Last build date: `${{steps.vars.outputs.date_now}}`
             - Reference commit: ${{github.sha}}
           name: Development build
           prerelease: true
           removeArtifacts: true
           tag: dev-build
-          
+
   upload_to_release:
     name: Upload Artifacts to Release
     if: startsWith(github.ref, 'refs/tags/')
@@ -320,12 +319,22 @@ jobs:
         with:
           path: artifacts
 
+      - name: List all downloaded artifacts for debugging
+        run: |
+          echo "Downloaded artifacts:"
+          find artifacts -type f -name "*.zip" | sort
+          echo "Artifact structure:"
+          ls -la artifacts/
+
       # Upload the artifacts to the GitHub release
       - name: Upload artifacts to release
         uses: softprops/action-gh-release@v1
         with:
-          files: artifacts/*/*
+          files: |
+            artifacts/Twitch.Drops.Miner.Windows/Twitch.Drops.Miner.Windows.zip
+            artifacts/Twitch.Drops.Miner.Linux.PyInstaller/Twitch.Drops.Miner.Linux.PyInstaller.zip
+            artifacts/Twitch.Drops.Miner.Linux.AppImage/Twitch.Drops.Miner.Linux.AppImage.zip
           tag_name: ${{ env.TAG_NAME }}
-          name: Release ${{ env.TAG_NAME }}
+          name: Release ${{ env.VERSION }}
           draft: false
           prerelease: false
