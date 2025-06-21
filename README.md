@@ -147,7 +147,7 @@ placed past the period character at the end.
 @ThisIsCyreX - For the entirety of the German (Deutsch) translation.  
 @Eriza-Z - For the entirety of the Indonesian translation.  
 @casungo - For the entirety of the Italian (Italiano) translation.  
-@ShimadaNanaki - For the entirety of the Japanese (日本語) translation.
+@ShimadaNanaki - For the entirety of the Japanese (日本語) translation.  
 @Patriot99 - For the Polish (Polski) translation and revisions (co-authored with @DevilXD).  
 @zarigata - For the entirety of the Portuguese (Português) translation.  
 @Sergo1217 - For the entirety of the Russian (Русский) translation.  
