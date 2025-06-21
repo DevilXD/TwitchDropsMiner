@@ -2245,7 +2245,7 @@ class GUIManager:
 
     def grab_attention(self, *, sound: bool = True):
         self.tray.restore()
-        self._root.focus_force()
+        self._root.focus_set()
         if sound:
             self._root.bell()
 
