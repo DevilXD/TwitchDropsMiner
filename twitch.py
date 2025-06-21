@@ -1404,6 +1404,14 @@ class Twitch:
                                     delay = 5
                                 force_retry = True
                                 break
+                            elif error_dict["message"] == "server error":
+                                # nullify the key the error path points to
+                                data_dict: JsonType = response_json["data"]
+                                path: list[str] = error_dict.get("path", [])
+                                for key in path[:-1]:
+                                    data_dict = data_dict[key]
+                                data_dict[path[-1]] = None
+                                break
                             elif (
                                     error_dict["message"] in (
                                     "service timeout",
