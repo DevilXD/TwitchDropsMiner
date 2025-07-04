@@ -54,10 +54,10 @@ hiddenimports: list[str] = [
 
 if sys.platform == "linux":
     # Needed files for better system tray support on Linux via pystray (AppIndicator backend).
-    libraries_path: Path = Path("/usr/lib64")
+    arch: str = platform.machine()
+    libraries_path: Path = Path(f"/usr/lib/{arch}-linux-gnu")
     if not libraries_path.exists():
-        arch: str = platform.machine()
-        libraries_path = Path("/usr/lib/{arch}-linux-gnu")
+        libraries_path = Path("/usr/lib64")
     datas.append(
         (libraries_path / "girepository-1.0/AyatanaAppIndicator3-0.1.typelib", "gi_typelibs")
     )
