@@ -302,7 +302,7 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
     # returns all in-progress campaigns
     "Inventory": GQLOperation(
         "Inventory",
-        "09acb7d3d7e605a92bdfdcc465f6aa481b71c234d8686a9ba38ea5ed51507592",
+        "d86775d0ef16a63a33ad52e80eaff963b2d5b72fada7c991504a57496e1d8e4b",
         variables={
             "fetchRewardCampaigns": False,
         }
