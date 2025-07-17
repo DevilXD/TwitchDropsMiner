@@ -16,7 +16,7 @@
             "no_token": "Aucun jeton d'autorisation (authorization token) n'a pu être trouvé.",
             "closed_window": "La fenêtre Chrome a été fermée avant la fin de la procédure de connexion."
         },
-        "error_code": "Code d'erreur de connexion: {error_code}",
+        "error_code": "Code d'erreur de connexion : {error_code}",
         "unexpected_content": "Type de contenu inattendu renvoyé, généralement dû à une redirection. Avez-vous besoin de vous connecter pour accéder à Internet ?",
         "incorrect_login_pass": "Le nom d'utilisateur ou le mot de passe saisi est incorrect.",
         "incorrect_email_code": "Le code de vérification de l'e-mail est incorrect.",
@@ -69,8 +69,8 @@
             "button": "Se connecter"
         },
         "websocket": {
-            "name": "État du  Websocket",
-            "websocket": "Websocket #{id}:",
+            "name": "État du Websocket",
+            "websocket": "Websocket #{id} :",
             "initializing": "Initialisation...",
             "connected": "Connecté",
             "disconnected": "Déconnecté",
@@ -134,8 +134,13 @@
                 "autostart": "Démarrage automatique :",
                 "tray": "Démarrage automatique dans la barre des tâches :",
                 "tray_notifications": "Notifications dans la barre des tâches :",
-                "priority_only": "Priorité uniquement :",
+                "priority_mode": "Mode de priorité :",
                 "proxy": "Proxy (nécessite un redémarrage) :"
+            },
+            "priority_modes": {
+                "priority_only": "Liste de priorité uniquement",
+                "ending_soonest": "Se termine le plus tôt",
+                "low_availability": "Faible disponibilité en premier"
             },
             "game_name": "Nom du jeu",
             "priority": "Priorité",
@@ -150,9 +155,9 @@
                 "campaigns": "Afficher toutes les campagnes et gérer les comptes associés"
             },
             "how_it_works": "Comment ça fonctionne",
-            "how_it_works_text": "Environ toutes les ~60 secondes, l'application envoie un événement \"minute regardée\" à la chaîne qui est actuellement en cours de visionnage - ce qui suffit pour faire avancer les drops. Notez que cela contourne complètement le besoin de télécharger la vidéo et le son du flux réel. Pour maintenir à jour le statut (EN LIGNE ou HORS LIGNE) des chaînes, une connexion websocket est établie pour recevoir des événements sur les flux qui montent ou descendent, ou des mises à jour concernant le nombre actuel de spectateurs.",
+            "how_it_works_text": "Toutes les quelques secondes, l'application fait semblant de regarder un flux particulier en récupérant les métadonnées du flux - ce qui suffit pour faire avancer les drops. Notez que cela contourne complètement le besoin de télécharger la vidéo et le son du flux réel. Pour maintenir à jour le statut (EN LIGNE ou HORS LIGNE) des chaînes, une connexion websocket est établie pour recevoir des événements sur les flux qui montent ou descendent, ou des mises à jour concernant le nombre actuel de spectateurs.",
             "getting_started": "Premiers pas",
-            "getting_started_text": "1. Connectez-vous à l'application.\n2. Assurez-vous que votre compte Twitch est lié à toutes les campagnes qui vous intéressent.\n3. Si vous voulez simplement miner tout, décochez \"Priorité uniquement\" et appuyez sur \"Recharger\".\n4. Si vous souhaitez miner d'abord certains jeux, utilisez la liste \"Priorité\" pour définir une liste ordonnée des jeux de votre choix. Les jeux en haut de la liste seront tentés d'être minés en premier, avant ceux plus bas dans la liste.\n5. Laissez l'option \"Priorité uniquement\" cochée pour éviter de miner des jeux qui ne sont pas dans la liste de priorité. Ou pas - c'est à vous de décider.\n6. Utilisez la liste \"Exclure\" pour indiquer à l'application les jeux qui ne doivent jamais être minés.\n7. Modifier le contenu de l'une des listes ou changer l'état de l'option \"Priorité uniquement\" nécessite d'appuyer sur \"Recharger\" pour que les changements prennent effet."
+            "getting_started_text": "1. Connectez-vous à l'application.\n2. Assurez-vous que votre compte Twitch est lié à toutes les campagnes qui vous intéressent.\n3. Si vous souhaitez miner tout ce qui est possible, modifiez le mode de priorité en autre chose que \"Liste de priorité uniquement\" et appuyez sur \"Recharger\".\n4. Si vous souhaitez miner certains jeux en priorité, utilisez la liste \"Priorité\" pour définir un ordre de préférence des jeux de votre choix. Les jeux en haut de la liste seront minés en premier, avant ceux qui se trouvent plus bas dans la liste.\n5. Gardez le mode de priorité sur \"Liste de priorité uniquement\" pour éviter de miner des jeux qui ne sont pas dans la liste de priorité. Ou pas - c'est à vous de décider.\n6. Utilisez la liste \"Exclure\" pour indiquer à l'application les jeux qui ne doivent jamais être minés.\n7. Toute modification du contenu des listes ou du mode de priorité nécessite d'appuyer sur \"Recharger\" pour que les changements prennent effet."
         }
     }
 }
