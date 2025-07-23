@@ -164,7 +164,7 @@ class ClientType:
         "kimne78kx3ncx6brgo4mv6wki5h1ko",
         (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-            "(KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36"
+            "(KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
         ),
     )
     MOBILE_WEB = ClientInfo(
@@ -174,49 +174,75 @@ class ClientType:
             # Chrome versioning is done fully on android only,
             # other platforms only use the major version
             (
-                "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/136.0.7103.60 Mobile Safari/537.36"
+                "Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/138.0.7204.158 Mobile Safari/537.36"
             ),
             (
-                "Mozilla/5.0 (Linux; Android 13; SM-A205U) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/136.0.7103.60 Mobile Safari/537.36"
+                "Mozilla/5.0 (Linux; Android 16; SM-A205U) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/138.0.7204.158 Mobile Safari/537.36"
             ),
             (
-                "Mozilla/5.0 (Linux; Android 13; SM-A102U) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/136.0.7103.60 Mobile Safari/537.36"
+                "Mozilla/5.0 (Linux; Android 16; SM-A102U) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/138.0.7204.158 Mobile Safari/537.36"
             ),
             (
-                "Mozilla/5.0 (Linux; Android 13; SM-G960U) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/136.0.7103.60 Mobile Safari/537.36"
+                "Mozilla/5.0 (Linux; Android 16; SM-G960U) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/138.0.7204.158 Mobile Safari/537.36"
             ),
             (
-                "Mozilla/5.0 (Linux; Android 13; SM-N960U) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/136.0.7103.60 Mobile Safari/537.36"
+                "Mozilla/5.0 (Linux; Android 16; SM-N960U) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/138.0.7204.158 Mobile Safari/537.36"
             ),
             (
-                "Mozilla/5.0 (Linux; Android 13; LM-Q720) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/136.0.7103.60 Mobile Safari/537.36"
+                "Mozilla/5.0 (Linux; Android 16; LM-Q720) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/138.0.7204.158 Mobile Safari/537.36"
             ),
             (
-                "Mozilla/5.0 (Linux; Android 13; LM-X420) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/136.0.7103.60 Mobile Safari/537.36"
+                "Mozilla/5.0 (Linux; Android 16; LM-X420) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/138.0.7204.158 Mobile Safari/537.36"
             ),
         ]
     )
     ANDROID_APP = ClientInfo(
         URL("https://www.twitch.tv"),
         "kd1unb4b3q4t58fwlpcbzcbnm76a8fp",
-        (
-            "Dalvik/2.1.0 (Linux; U; Android 7.1.2; SM-G977N Build/LMY48Z) "
-            "tv.twitch.android.app/16.8.1/1608010"
-        ),
+        [
+            (
+                "Dalvik/2.1.0 (Linux; U; Android 16; SM-S911B Build/TP1A.220624.014) "
+                "tv.twitch.android.app/25.3.0/2503006"
+            ),
+            (
+                "Dalvik/2.1.0 (Linux; U; Android 16; SM-S938B Build/BP2A.250605.031) "
+                "tv.twitch.android.app/25.3.0/2503006"
+            ),
+            (
+                "Dalvik/2.1.0 (Linux; Android 16; SM-X716N Build/UP1A.231005.007) "
+                "tv.twitch.android.app/25.3.0/2503006"
+            ),
+            (
+                "Dalvik/2.1.0 (Linux; U; Android 15; SM-G990B Build/AP3A.240905.015.A2) "
+                "tv.twitch.android.app/25.3.0/2503006"
+            ),
+            (
+                "Dalvik/2.1.0 (Linux; U; Android 15; SM-G970F Build/AP3A.241105.008) "
+                "tv.twitch.android.app/25.3.0/2503006"
+            ),
+            (
+                "Dalvik/2.1.0 (Linux; U; Android 15; SM-A566E Build/AP3A.240905.015.A2) "
+                "tv.twitch.android.app/25.3.0/2503006"
+            ),
+            (
+                "Dalvik/2.1.0 (Linux; U; Android 14; SM-X306B Build/UP1A.231005.007) "
+                "tv.twitch.android.app/25.3.0/2503006"
+            ),
+        ]
     )
     SMARTBOX = ClientInfo(
         URL("https://android.tv.twitch.tv"),
         "ue6666qo983tsx6so1t0vnawi233wa",
         (
             "Mozilla/5.0 (Linux; Android 7.1; Smart Box C1) AppleWebKit/537.36 "
-            "(KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36"
+            "(KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
         ),
     )
 
