@@ -9,6 +9,11 @@ script:
   - mkdir -p "$BUILD_DIR" "$TARGET_APPDIR"
   - cd "$BUILD_DIR"
 
+  # TODO: Remove this if/when appimage-builder releases a version newer than 1.1.0.
+  #       This is a workaround for: https://github.com/AppImageCrafters/appimage-builder/issues/375
+  - mkdir -p "$BUILD_DIR/prime"
+  - curl -L https://github.com/AppImage/AppImageKit/releases/download/continuous/obsolete-runtime-x86_64 -o "$BUILD_DIR/prime/runtime-x86_64"
+
   # Build a recent version of libXft first. This fixes an issue where the app won't start with libXft 2.3.3 if an emoji font is installed on the system.
   - curl -L https://xorg.freedesktop.org/releases/individual/lib/libXft-2.3.8.tar.xz -o libXft.tar.xz
   - tar xvf libXft.tar.xz
