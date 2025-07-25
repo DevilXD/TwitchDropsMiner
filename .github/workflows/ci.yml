@@ -104,8 +104,16 @@ jobs:
           path: Twitch.Drops.Miner.Windows.zip
 
   linux-pyinstaller:
-    name: Linux (PyInstaller)
-    runs-on: ubuntu-22.04
+    name: Linux (PyInstaller) (${{matrix.arch}})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-22.04
+          - arch: aarch64
+            runner: ubuntu-22.04-arm
+    runs-on: ${{matrix.runner}}
     needs:
       - validate
 
@@ -147,7 +155,8 @@ jobs:
         run: |
           mkdir -p /tmp/libXft
           cd /tmp/libXft
-          curl -L https://xorg.freedesktop.org/releases/individual/lib/libXft-2.3.8.tar.xz -o libXft.tar.xz
+          curl -fL https://xorg.freedesktop.org/releases/individual/lib/libXft-2.3.9.tar.xz -o libXft.tar.xz
+          sha256sum libXft.tar.xz
           tar xvf libXft.tar.xz
           cd libXft-*
           ./configure --prefix=/tmp/libXft --sysconfdir=/etc --disable-static
@@ -167,14 +176,14 @@ jobs:
           folder='Twitch Drops Miner'
           mkdir "${folder}"
           cp manual.txt dist/* "${folder}"
-          7z a Twitch.Drops.Miner.Linux.PyInstaller.zip "${folder}"
+          7z a 'Twitch.Drops.Miner.Linux.PyInstaller-${{matrix.arch}}.zip' "${folder}"
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: error
-          name: Twitch.Drops.Miner.Linux.PyInstaller
-          path: Twitch.Drops.Miner.Linux.PyInstaller.zip
+          name: Twitch.Drops.Miner.Linux.PyInstaller-${{matrix.arch}}
+          path: Twitch.Drops.Miner.Linux.PyInstaller-${{matrix.arch}}.zip
 
   linux-appimage:
     name: Linux (AppImage) (${{matrix.arch}})
