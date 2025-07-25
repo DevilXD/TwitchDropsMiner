@@ -43,11 +43,15 @@ AppDir:
     exec_args: '${APPDIR}/usr/src/main.py $@'
 
   apt:
-    arch: amd64
+    arch:
+      - '{{ARCH_APT}}'
     sources:
-      - sourceline: deb http://archive.ubuntu.com/ubuntu/ jammy main
-      - sourceline: deb http://archive.ubuntu.com/ubuntu/ jammy-updates main
-      - sourceline: deb http://archive.ubuntu.com/ubuntu/ jammy-security main
+      - sourceline: deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ jammy main
+      - sourceline: deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ jammy-updates main
+      - sourceline: deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ jammy-security main
+      - sourceline: deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ jammy main
+      - sourceline: deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ jammy-updates main
+      - sourceline: deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ jammy-security main
         key_url: http://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C
 
     include:
