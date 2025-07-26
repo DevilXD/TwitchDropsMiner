@@ -10,9 +10,10 @@ script:
   - cd "$BUILD_DIR"
 
   # Build a recent version of libXft first. This fixes an issue where the app won't start with libXft 2.3.3 if an emoji font is installed on the system.
-  - curl -L https://xorg.freedesktop.org/releases/individual/lib/libXft-2.3.8.tar.xz -o libXft.tar.xz
+  - curl -fL https://xorg.freedesktop.org/releases/individual/lib/libXft-2.3.9.tar.xz -o libXft.tar.xz
+  - sha256sum libXft.tar.xz
   - tar xvf libXft.tar.xz
-  - cd libXft-2.3.8
+  - cd libXft-*
   - ./configure --prefix="$TARGET_APPDIR/usr" --disable-static
   - make -j$(nproc)
   - make install-strip
