@@ -200,18 +200,17 @@ jobs:
           sudo apt update
           sudo apt install libgirepository1.0-dev gir1.2-ayatanaappindicator3-0.1 libayatana-appindicator3-1 python3-testresources
 
-      - name: Download AppImage Builder
+      - name: Install appimage-builder
         run: |
-          curl -L https://github.com/AppImageCrafters/appimage-builder/releases/download/v1.1.0/appimage-builder-1.1.0-x86_64.AppImage -o appimage-builder
-          chmod +x appimage-builder
+          # TODO: Switch to a stable release if/when a version newer than 1.1.0 is released.
+          python3 -m pip install git+https://github.com/AppImageCrafters/appimage-builder.git@e995e8edcc227d14524cf39f9824c238f9435a22
 
       - name: Create AppImage
         env:
-          APPIMAGE_EXTRACT_AND_RUN: 1
           APP_VERSION: ${{steps.vars.outputs.app_version}}.${{steps.vars.outputs.sha_short}}
           PYTHON_VERSION: ${{env.PYTHON_VERSION}}
         run: |
-          ./appimage-builder --recipe appimage/AppImageBuilder.yml
+          appimage-builder --recipe appimage/AppImageBuilder.yml
 
       - name: Create release folder
         run: |
