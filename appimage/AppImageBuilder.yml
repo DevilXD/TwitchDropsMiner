@@ -136,9 +136,6 @@ AppDir:
       TCL_LIBRARY: '${APPDIR}/usr/share/tcltk/tcl8.6'
       TK_LIBRARY: '${APPDIR}/usr/lib/tcltk/x86_64-linux-gnu/tk8.6'
       TKPATH: '${APPDIR}/usr/lib/tcltk/x86_64-linux-gnu/tk8.6'
-      # The app seems to have problems running on Wayland at the moment.
-      # See: https://github.com/DevilXD/TwitchDropsMiner/issues/321
-      GDK_BACKEND: x11
 
 AppImage:
   arch: x86_64
