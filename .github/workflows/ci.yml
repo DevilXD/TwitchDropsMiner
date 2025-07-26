@@ -207,6 +207,7 @@ jobs:
 
       - name: Create AppImage
         env:
+          ARCH: x86_64
           APP_VERSION: ${{steps.vars.outputs.app_version}}.${{steps.vars.outputs.sha_short}}
           PYTHON_VERSION: ${{env.PYTHON_VERSION}}
         run: |
