@@ -131,14 +131,14 @@ AppDir:
       PATH: '${APPDIR}/usr/bin:${PATH}'
       PYTHONHOME: '${APPDIR}/usr'
       PYTHONPATH: '${APPDIR}/usr/lib/python3.10/tkinter:${APPDIR}/usr/lib/python3.10/site-packages'
-      APPDIR_LIBRARY_PATH: '${APPDIR}/usr/lib:${APPDIR}/usr/lib/x86_64-linux-gnu:${APPDIR}/lib/x86_64-linux-gnu'
+      APPDIR_LIBRARY_PATH: '${APPDIR}/usr/lib:${APPDIR}/usr/lib/{{ARCH}}-linux-gnu:${APPDIR}/lib/{{ARCH}}-linux-gnu'
       TCL_LIBRARY: '${APPDIR}/usr/share/tcltk/tcl8.6'
-      TK_LIBRARY: '${APPDIR}/usr/lib/tcltk/x86_64-linux-gnu/tk8.6'
-      TKPATH: '${APPDIR}/usr/lib/tcltk/x86_64-linux-gnu/tk8.6'
+      TK_LIBRARY: '${APPDIR}/usr/lib/tcltk/{{ARCH}}-linux-gnu/tk8.6'
+      TKPATH: '${APPDIR}/usr/lib/tcltk/{{ARCH}}-linux-gnu/tk8.6'
 
 AppImage:
-  arch: x86_64
-  file_name: Twitch.Drops.Miner-x86_64.AppImage
+  arch: '{{ARCH}}'
+  file_name: Twitch.Drops.Miner-{{ARCH}}.AppImage
   comp: zstd
   sign-key: None
   update-information: guess
