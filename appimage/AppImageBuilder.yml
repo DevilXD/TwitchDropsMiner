@@ -30,6 +30,9 @@ script:
   # Generate byte-code files and package them for a slightly faster app startup.
   - python3 -m compileall "$TARGET_APPDIR/usr/src/"*.py
 
+  # Recursively remove ELF debug symbols, trimming roughly 10 MB off the AppDir.
+  - find "$TARGET_APPDIR" -type f -print0 | xargs -0 file | grep -F 'not stripped' | cut -f1 -d':' | sort -V | xargs -r strip -s -v
+
 AppDir:
   app_info:
     id: io.github.devilxd.twitchdropsminer
