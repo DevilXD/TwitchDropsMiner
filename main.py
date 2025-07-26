@@ -17,7 +17,7 @@ if __name__ == "__main__":
     import threading
     import tkinter as tk
     from tkinter import messagebox
-    from typing import IO, NoReturn, Optional
+    from typing import IO, NoReturn, Optional, TYPE_CHECKING
 
     try:
         from web.app import run_web_server, initialize  # Add 'initialize' to the import
@@ -45,7 +45,8 @@ if __name__ == "__main__":
         HAS_WEB_INTERFACE = True
     except ImportError:
         HAS_WEB_INTERFACE = False
-
+    if TYPE_CHECKING:
+        from _typeshed import SupportsWrite
     warnings.simplefilter("default", ResourceWarning)
 
     if sys.version_info < (3, 10):
@@ -56,7 +57,7 @@ if __name__ == "__main__":
             super().__init__(*args, **kwargs)
             self._message: io.StringIO = io.StringIO()
 
-        def _print_message(self, message: str, file: IO[str] | None = None) -> None:
+        def _print_message(self, message: str, file: SupportsWrite[str] | None = None) -> None:
             self._message.write(message)
             # print(message, file=self._message)
 
