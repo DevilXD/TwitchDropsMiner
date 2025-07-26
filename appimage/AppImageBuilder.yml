@@ -105,20 +105,33 @@ AppDir:
       - usr/bin/pydoc*
       - usr/bin/pygettext3*
       - usr/include
+      - usr/lib/binfmt.d
+      - usr/lib/blt2.5
+      - usr/lib/libBLTlite.2.5*
       # The next 2 files come from our own build of libXft, and they can be removed.
       - usr/lib/libXft.la
       - usr/lib/pkgconfig
-      - usr/lib/python3.9
+      - usr/lib/python3
+      - usr/lib/python3.11
+      - usr/lib/python3*/pydoc_data
+      - usr/lib/python3*/test
+      - usr/lib/python3*/unittest
       - usr/lib/valgrind
-      - usr/lib/*-linux-gnu/engines-1.1
+      - usr/lib/*-linux-gnu/audit
+      - usr/lib/*-linux-gnu/engines-3
+      - usr/lib/*-linux-gnu/gconv
       - usr/lib/*-linux-gnu/glib-2.0
       - usr/lib/*-linux-gnu/gtk-3.0
-      - usr/lib/*-linux-gnu/libgtk-3.0
+      - usr/lib/*-linux-gnu/libgtk-3-0
+      - usr/lib/*-linux-gnu/ossl-modules
+      - usr/sbin
       - usr/share/applications
       - usr/share/binfmts
       - usr/share/bug
       - usr/share/doc
       - usr/share/doc-base
+      - usr/share/gcc
+      - usr/share/gdb
       - usr/share/glib-2.0
       - usr/share/lintian
       - usr/share/man
