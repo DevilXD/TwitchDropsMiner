@@ -26,6 +26,7 @@ if __name__ == "__main__":
     from settings import Settings
     from version import __version__
     from exceptions import CaptchaRequired
+    from headless import HeadlessGUIManager
     from utils import lock_file, resource_path, set_root_icon
     from constants import LOGGING_LEVELS, SELF_PATH, FILE_FORMATTER, LOG_PATH, LOCK_PATH
 
@@ -56,6 +57,7 @@ if __name__ == "__main__":
         log: bool
         tray: bool
         dump: bool
+        headless: bool
 
         # TODO: replace int with union of literal values once typeshed updates
         @property
@@ -83,15 +85,7 @@ if __name__ == "__main__":
                 return logging.INFO
             return logging.NOTSET
 
-    # handle input parameters
-    # NOTE: parser output is shown via message box
-    # we also need a dummy invisible window for the parser
-    root = tk.Tk()
-    root.overrideredirect(True)
-    root.withdraw()
-    set_root_icon(root, resource_path("icons/pickaxe.ico"))
-    root.update()
-    parser = Parser(
+    parser = argparse.ArgumentParser(
         SELF_PATH.name,
         description="A program that allows you to mine timed drops on Twitch.",
     )
@@ -107,20 +101,40 @@ if __name__ == "__main__":
     parser.add_argument(
         "--debug-gql", dest="_debug_gql", action="store_true", help=argparse.SUPPRESS
     )
+    parser.add_argument(
+        "--headless", dest="headless", action="store_true", help=argparse.SUPPRESS
+    )
     args = parser.parse_args(namespace=ParsedArgs())
+    if not args.headless:
+        # we need a dummy invisible window for the parser
+        root = tk.Tk()
+        root.overrideredirect(True)
+        root.withdraw()
+        set_root_icon(root, resource_path("icons/pickaxe.ico"))
+        root.update()
+        # NOTE: parser output is shown via message box
+        parser = Parser(
+            SELF_PATH.name,
+            description="A program that allows you to mine timed drops on Twitch.",
+        )
     # load settings
     try:
         settings = Settings(args)
     except Exception:
-        messagebox.showerror(
-            "Settings error",
-            f"There was an error while loading the settings file:\n\n{traceback.format_exc()}"
-        )
+        if not args.headless:
+            messagebox.showerror(
+                "Settings error",
+                f"There was an error while loading the settings file:\n\n{traceback.format_exc()}"
+            )
+        else:
+            print(f"There was an error while loading the settings file:\n\n{traceback.format_exc()}")
         sys.exit(4)
-    # dummy window isn't needed anymore
-    root.destroy()
-    # get rid of unneeded objects
-    del root, parser
+    if not args.headless:
+        # dummy window isn't needed anymore
+        root.destroy()
+        # get rid of unneeded objects
+        del root
+    del parser
 
     # client run
     async def main():
@@ -146,7 +160,7 @@ if __name__ == "__main__":
         logging.getLogger("TwitchDrops.websocket").setLevel(settings.debug_ws)
 
         exit_status = 0
-        client = Twitch(settings)
+        client = Twitch(settings, headless=args.headless)
         loop = asyncio.get_running_loop()
         if sys.platform == "linux":
             loop.add_signal_handler(signal.SIGINT, lambda *_: client.gui.close())
@@ -168,19 +182,20 @@ if __name__ == "__main__":
                 loop.remove_signal_handler(signal.SIGTERM)
             client.print(_("gui", "status", "exiting"))
             await client.shutdown()
-        if not client.gui.close_requested:
-            # user didn't request the closure
-            client.gui.tray.change_icon("error")
-            client.print(_("status", "terminated"))
-            client.gui.status.update(_("gui", "status", "terminated"))
-            # notify the user about the closure
-            client.gui.grab_attention(sound=True)
-        await client.gui.wait_until_closed()
-        # save the application state
-        # NOTE: we have to do it after wait_until_closed,
-        # because the user can alter some settings between app termination and closing the window
-        client.save(force=True)
-        client.gui.stop()
+        if not args.headless:
+            if not client.gui.close_requested:
+                # user didn't request the closure
+                client.gui.tray.change_icon("error")
+                client.print(_("status", "terminated"))
+                client.gui.status.update(_("gui", "status", "terminated"))
+                # notify the user about the closure
+                client.gui.grab_attention(sound=True)
+            await client.gui.wait_until_closed()
+            # save the application state
+            # NOTE: we have to do it after wait_until_closed,
+            # because the user can alter some settings between app termination and closing the window
+            client.save(force=True)
+            client.gui.stop()
         client.gui.close_window()
         sys.exit(exit_status)
 

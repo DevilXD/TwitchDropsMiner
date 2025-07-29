@@ -420,9 +420,13 @@ class _AuthState:
         self._delattrs("access_token")
 
 
+from headless import HeadlessGUIManager
+
+
 class Twitch:
-    def __init__(self, settings: Settings):
+    def __init__(self, settings: Settings, *, headless: bool = False):
         self.settings: Settings = settings
+        self.headless = headless
         # State management
         self._state: State = State.IDLE
         self._state_change = asyncio.Event()
@@ -438,7 +442,10 @@ class Twitch:
         self._session: aiohttp.ClientSession | None = None
         self._auth_state: _AuthState = _AuthState(self)
         # GUI
-        self.gui = GUIManager(self)
+        if headless:
+            self.gui: GUIManager | HeadlessGUIManager = HeadlessGUIManager(self)
+        else:
+            self.gui = GUIManager(self)
         # Storing and watching channels
         self.channels: OrderedDict[int, Channel] = OrderedDict()
         self.watching_channel: AwaitableValue[Channel] = AwaitableValue()
@@ -625,13 +632,15 @@ class Twitch:
                 if self.settings.dump:
                     self.gui.close()
                     continue
-                self.gui.tray.change_icon("idle")
+                if not self.headless:
+                    self.gui.tray.change_icon("idle")
                 self.gui.status.update(_("gui", "status", "idle"))
                 self.stop_watching()
                 # clear the flag and wait until it's set again
                 self._state_change.clear()
             elif self._state is State.INVENTORY_FETCH:
-                self.gui.tray.change_icon("maint")
+                if not self.headless:
+                    self.gui.tray.change_icon("maint")
                 # ensure the websocket is running
                 await self.websocket.start()
                 await self.fetch_inventory()
@@ -864,7 +873,8 @@ class Twitch:
                     self.change_state(State.IDLE)
                 del new_watching, selected_channel, watching_channel
             elif self._state is State.EXIT:
-                self.gui.tray.change_icon("pickaxe")
+                if not self.headless:
+                    self.gui.tray.change_icon("pickaxe")
                 self.gui.status.update(_("gui", "status", "exiting"))
                 # we've been requested to exit the application
                 break
@@ -1003,7 +1013,8 @@ class Twitch:
         )
 
     def watch(self, channel: Channel, *, update_status: bool = True):
-        self.gui.tray.change_icon("active")
+        if not self.headless:
+            self.gui.tray.change_icon("active")
         self.gui.channels.set_watching(channel)
         self.watching_channel.set(channel)
         if update_status:
