@@ -2359,13 +2359,25 @@ class GUIManager:
         # Buttons and checks
         s.configure("TButton", background=surface, foreground=fg, bordercolor=border)
         s.configure("Large.TButton", background=surface, foreground=fg, bordercolor=border)
+        s.map(
+            "TButton",
+            background=[("active", header), ("pressed", border)],
+            foreground=[("disabled", muted)],
+        )
         s.configure("TCheckbutton", background=bg, foreground=fg)
         # Notebook
         s.configure("TNotebook", background=bg, bordercolor=border)
         s.configure("TNotebook.Tab", background=surface, foreground=fg, bordercolor=border)
+        s.map(
+            "TNotebook.Tab",
+            background=[("selected", header), ("active", header)],
+            foreground=[("disabled", muted)],
+        )
         # Entries/Combos
         s.configure("TEntry", fieldbackground=fieldbg, background=fieldbg, foreground=fg, insertcolor=fg)
-        s.configure("TCombobox", fieldbackground=fieldbg, background=fieldbg, foreground=fg)
+        s.configure("TCombobox", fieldbackground=fieldbg, background=fieldbg, foreground=fg, arrowcolor=fg)
+        s.map("TEntry", foreground=[("disabled", muted)])
+        s.map("TCombobox", foreground=[("disabled", muted)])
         # Treeview
         s.configure(
             "Treeview",
@@ -2381,7 +2393,10 @@ class GUIManager:
         )
         s.configure("Treeview.Heading", background=header, foreground=fg, bordercolor=border)
         # Progressbar
-        s.configure("TProgressbar", background=accent)
+        s.configure("TProgressbar", background=accent, troughcolor=surface)
+        # Scrollbars
+        s.configure("Vertical.TScrollbar", background=surface, troughcolor=bg, arrowcolor=fg, bordercolor=border)
+        s.configure("Horizontal.TScrollbar", background=surface, troughcolor=bg, arrowcolor=fg, bordercolor=border)
 
         # Pure Tk widgets
         # Console text
@@ -2391,6 +2406,19 @@ class GUIManager:
         self.settings._exclude_list.configure_theme(bg=surface, fg=fg, sel_bg=sel_bg, sel_fg=sel_fg)
         # Inventory canvas
         self.inv.configure_theme(bg=bg)
+
+        # Tk option database for selection/popup list readability (affects Tk-backed widgets)
+        # Global selection colors
+        try:
+            self._root.option_add("*selectBackground", sel_bg)
+            self._root.option_add("*selectForeground", sel_fg)
+            # Combobox dropdown list (Tk Listbox)
+            self._root.option_add("*TCombobox*Listbox.background", surface)
+            self._root.option_add("*TCombobox*Listbox.foreground", fg)
+            self._root.option_add("*TCombobox*Listbox.selectBackground", sel_bg)
+            self._root.option_add("*TCombobox*Listbox.selectForeground", sel_fg)
+        except Exception:
+            pass
 
 
 ###################
