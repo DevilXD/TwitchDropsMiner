@@ -2408,15 +2408,33 @@ class GUIManager:
         self.inv.configure_theme(bg=bg)
 
         # Tk option database for selection/popup list readability (affects Tk-backed widgets)
-        # Global selection colors
+        # Global selection colors and listbox defaults (covers Combobox dropdown)
         try:
             self._root.option_add("*selectBackground", sel_bg)
             self._root.option_add("*selectForeground", sel_fg)
             # Combobox dropdown list (Tk Listbox)
-            self._root.option_add("*TCombobox*Listbox.background", surface)
-            self._root.option_add("*TCombobox*Listbox.foreground", fg)
-            self._root.option_add("*TCombobox*Listbox.selectBackground", sel_bg)
-            self._root.option_add("*TCombobox*Listbox.selectForeground", sel_fg)
+            for key in (
+                "*TCombobox*Listbox.background",
+                "*TCombobox*Listbox.Background",
+                "*Listbox.background",
+            ):
+                self._root.option_add(key, surface)
+            for key in (
+                "*TCombobox*Listbox.foreground",
+                "*TCombobox*Listbox.Foreground",
+                "*Listbox.foreground",
+            ):
+                self._root.option_add(key, fg)
+            for key in (
+                "*TCombobox*Listbox.selectBackground",
+                "*Listbox.selectBackground",
+            ):
+                self._root.option_add(key, sel_bg)
+            for key in (
+                "*TCombobox*Listbox.selectForeground",
+                "*Listbox.selectForeground",
+            ):
+                self._root.option_add(key, sel_fg)
         except Exception:
             pass
 
