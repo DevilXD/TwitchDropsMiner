@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, TypedDict, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, TypedDict
 
 from yarl import URL
 
+from constants import DEFAULT_LANG, SETTINGS_PATH, PriorityMode
 from utils import json_load, json_save
-from constants import SETTINGS_PATH, DEFAULT_LANG, PriorityMode
 
 if TYPE_CHECKING:
     from main import ParsedArgs
@@ -20,6 +20,7 @@ class SettingsFile(TypedDict):
     connection_quality: int
     tray_notifications: bool
     priority_mode: PriorityMode
+    dark_mode: bool
 
 
 default_settings: SettingsFile = {
@@ -31,6 +32,7 @@ default_settings: SettingsFile = {
     "language": DEFAULT_LANG,
     "tray_notifications": True,
     "priority_mode": PriorityMode.PRIORITY_ONLY,
+    "dark_mode": False,
 }
 
 
@@ -52,6 +54,7 @@ class Settings:
     connection_quality: int
     tray_notifications: bool
     priority_mode: PriorityMode
+    dark_mode: bool
 
     PASSTHROUGH = ("_settings", "_args", "_altered")
 
