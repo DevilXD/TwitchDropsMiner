@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from collections import abc
-from typing import Any, TypedDict, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, TypedDict
 
+from constants import DEFAULT_LANG, IS_PACKAGED, LANG_PATH
 from exceptions import MinerException
 from utils import json_load, json_save
-from constants import IS_PACKAGED, LANG_PATH, DEFAULT_LANG
 
 if TYPE_CHECKING:
     from typing_extensions import NotRequired
@@ -163,6 +163,7 @@ class GUISettingsGeneral(TypedDict):
     tray_notifications: str
     priority_mode: str
     proxy: str
+    dark_mode: str
 
 
 class GUIPriorityModes(TypedDict):
@@ -362,7 +363,8 @@ default_translation: Translation = {
                 "tray": "Autostart into tray: ",
                 "tray_notifications": "Tray notifications: ",
                 "priority_mode": "Priority mode: ",
-                "proxy": "Proxy (requires restart):",
+            "proxy": "Proxy (requires restart):",
+            "dark_mode": "Dark mode: ",
             },
             "priority_modes": {
                 "priority_only": "Priority list only",
