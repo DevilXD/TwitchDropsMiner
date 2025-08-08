@@ -1,58 +1,51 @@
 from __future__ import annotations
 
+import asyncio
+import ctypes
+import logging
 import os
 import re
 import sys
-import ctypes
-import asyncio
-import logging
 import tkinter as tk
-from pathlib import Path
 from collections import abc
-from textwrap import dedent
-from math import log10, ceil
 from dataclasses import dataclass
-from tkinter.font import Font, nametofont
-from functools import partial, cached_property
 from datetime import datetime, timedelta, timezone
-from tkinter import Tk, ttk, StringVar, DoubleVar, IntVar
-from typing import Any, Union, Tuple, TypedDict, NoReturn, Generic, TYPE_CHECKING
+from functools import cached_property, partial
+from math import ceil, log10
+from pathlib import Path
+from textwrap import dedent
+from tkinter import DoubleVar, IntVar, StringVar, Tk, ttk
+from tkinter.font import Font, nametofont
+from typing import (TYPE_CHECKING, Any, Generic, NoReturn, Tuple, TypedDict,
+                    Union)
 
 import pystray
-from yarl import URL
-from PIL.ImageTk import PhotoImage
 from PIL import Image as Image_module
+from PIL.ImageTk import PhotoImage
+from yarl import URL
 
 if sys.platform == "win32":
     import win32api
     import win32con
     import win32gui
 
-from translate import _
 from cache import ImageCache
-from exceptions import MinerException, ExitRequest
-from utils import resource_path, set_root_icon, webopen, Game, _T
-from constants import (
-    SELF_PATH,
-    IS_PACKAGED,
-    SCRIPTS_PATH,
-    WINDOW_TITLE,
-    LOGGING_LEVELS,
-    MAX_WEBSOCKETS,
-    WS_TOPICS_LIMIT,
-    OUTPUT_FORMATTER,
-    State,
-    PriorityMode,
-)
+from constants import (IS_PACKAGED, LOGGING_LEVELS, MAX_WEBSOCKETS,
+                       OUTPUT_FORMATTER, SCRIPTS_PATH, SELF_PATH, WINDOW_TITLE,
+                       WS_TOPICS_LIMIT, PriorityMode, State)
+from exceptions import ExitRequest, MinerException
+from translate import _
+from utils import _T, Game, resource_path, set_root_icon, webopen
+
 if sys.platform == "win32":
-    from registry import RegistryKey, ValueType, ValueNotFound
+    from registry import RegistryKey, ValueNotFound, ValueType
 
 
 if TYPE_CHECKING:
-    from twitch import Twitch
     from channel import Channel
-    from settings import Settings
     from inventory import DropsCampaign, TimedDrop
+    from settings import Settings
+    from twitch import Twitch
 
 
 TK_PADDING = Union[int, Tuple[int, int], Tuple[int, int, int], Tuple[int, int, int, int]]
@@ -263,6 +256,10 @@ class PaddedListbox(tk.Listbox):
     def config(self, *args: Any, **kwargs: Any) -> Any:
         # because 'config = configure' makes mypy complain
         self.configure(*args, **kwargs)
+
+    def configure_theme(self, *, bg: str, fg: str, sel_bg: str, sel_fg: str):
+        # Apply basic colors for dark/light mode
+        super().config(bg=bg, fg=fg, selectbackground=sel_bg, selectforeground=sel_fg)
 
 
 class MouseOverLabel(ttk.Label):
@@ -819,6 +816,16 @@ class ConsoleOutput:
         self._text.see("end")  # scroll to the newly added line
         self._text.config(state="disabled")
 
+    def configure_theme(self, *, dark: bool, bg: str, fg: str, sel_bg: str, sel_fg: str):
+        # Apply colors to the Tk Text widget used for console output
+        self._text.config(
+            bg=bg,
+            fg=fg,
+            insertbackground=fg,
+            selectbackground=sel_bg,
+            selectforeground=sel_fg,
+        )
+
 
 class _Buttons(TypedDict):
     frame: ttk.Frame
@@ -1291,6 +1298,10 @@ class InventoryOverview:
         self._campaigns: dict[DropsCampaign, CampaignDisplay] = {}
         self._drops: dict[str, ttk.Label] = {}
 
+    def configure_theme(self, *, bg: str):
+        # Canvas background needs manual control
+        self._canvas.configure(bg=bg)
+
     def _update_visibility(self, campaign: DropsCampaign):
         # True if the campaign is supposed to show, False makes it hidden.
         frame = self._campaigns[campaign]["frame"]
@@ -1531,6 +1542,7 @@ class _SettingsVars(TypedDict):
     language: StringVar
     priority_mode: StringVar
     tray_notifications: IntVar
+    dark_mode: IntVar
 
 
 class SettingsPanel:
@@ -1563,6 +1575,7 @@ class SettingsPanel:
             "tray": IntVar(master, self._settings.autostart_tray),
             "priority_mode": StringVar(master, self.PRIORITY_MODES[priority_mode]),
             "tray_notifications": IntVar(master, self._settings.tray_notifications),
+            "dark_mode": IntVar(master, int(self._settings.dark_mode)),
         }
         self._game_names: set[str] = set()
         master.rowconfigure(0, weight=1)
@@ -1615,6 +1628,14 @@ class SettingsPanel:
             checkboxes_frame,
             variable=self._vars["tray_notifications"],
             command=self.update_notifications,
+        ).grid(column=1, row=irow, sticky="w")
+        ttk.Label(
+            checkboxes_frame, text=_("gui", "settings", "general", "dark_mode")
+        ).grid(column=0, row=(irow := irow + 1), sticky="e")
+        ttk.Checkbutton(
+            checkboxes_frame,
+            variable=self._vars["dark_mode"],
+            command=lambda: (setattr(self._settings, "dark_mode", bool(self._vars["dark_mode"].get())), self._settings.alter(), manager.apply_theme(self._settings.dark_mode)),
         ).grid(column=1, row=irow, sticky="w")
         ttk.Label(
             checkboxes_frame, text=_("gui", "settings", "general", "priority_mode")
@@ -2133,6 +2154,8 @@ class GUIManager:
             # use old-style window closing protocol for non-windows platforms
             root.protocol("WM_DELETE_WINDOW", self.close)
             root.protocol("WM_DESTROY_WINDOW", self.close)
+        # Apply theme after widgets are created
+        self.apply_theme(self._twitch.settings.dark_mode)
         # stay hidden in tray if needed, otherwise show the window when everything's ready
         if self._twitch.settings.tray:
             # NOTE: this starts the tray icon thread
@@ -2277,6 +2300,81 @@ class GUIManager:
         # print to our custom output
         self.output.print(message)
 
+    def apply_theme(self, dark: bool) -> None:
+        """
+        Apply dark/light palette to ttk styles and Tk widgets in a minimal, non-invasive way.
+        """
+        # Palette
+        if dark:
+            bg = "#1e1e1e"
+            surface = "#252525"
+            header = "#2a2a2a"
+            fieldbg = "#2b2b2b"
+            border = "#3c3c3c"
+            fg = "#e6e6e6"
+            muted = "#b3b3b3"
+            accent = "#0d99ff"
+            sel_bg = "#094771"
+            sel_fg = "#ffffff"
+        else:
+            # Use platform defaults but ensure toggling back is readable
+            bg = "#f0f0f0"
+            surface = "#ffffff"
+            header = "#eeeeee"
+            fieldbg = "#ffffff"
+            border = "#cccccc"
+            fg = "#000000"
+            muted = "#404040"
+            accent = "#0a84ff"
+            sel_bg = "#cce5ff"
+            sel_fg = "#000000"
+
+        s = self._style
+        # Base containers and labels
+        for sty in ("TFrame", "TLabelFrame"):
+            s.configure(sty, background=bg, foreground=fg)
+        s.configure("TLabel", background=bg, foreground=fg)
+        s.configure("MS.TLabel", background=bg, foreground=fg)
+        s.configure("green.TLabel", background=bg)
+        s.configure("yellow.TLabel", background=bg)
+        s.configure("red.TLabel", background=bg)
+        s.configure("Link.TLabel", background=bg, foreground="#4ea3ff" if dark else "blue")
+        # Buttons and checks
+        s.configure("TButton", background=surface, foreground=fg)
+        s.configure("Large.TButton", background=surface, foreground=fg)
+        s.configure("TCheckbutton", background=bg, foreground=fg)
+        # Notebook
+        s.configure("TNotebook", background=bg, bordercolor=border)
+        s.configure("TNotebook.Tab", background=surface, foreground=fg, bordercolor=border)
+        # Entries/Combos
+        s.configure("TEntry", fieldbackground=fieldbg, foreground=fg, insertcolor=fg)
+        s.configure("TCombobox", fieldbackground=fieldbg, foreground=fg)
+        # Treeview
+        s.configure(
+            "Treeview",
+            background=surface,
+            fieldbackground=surface,
+            foreground=fg,
+            bordercolor=border,
+        )
+        s.map(
+            "Treeview",
+            background=[("selected", sel_bg)],
+            foreground=[("selected", sel_fg)],
+        )
+        s.configure("Treeview.Heading", background=header, foreground=fg, bordercolor=border)
+        # Progressbar
+        s.configure("TProgressbar", background=accent)
+
+        # Pure Tk widgets
+        # Console text
+        self.output.configure_theme(dark=dark, bg=surface, fg=fg, sel_bg=sel_bg, sel_fg=sel_fg)
+        # Listboxes
+        self.settings._priority_list.configure_theme(bg=surface, fg=fg, sel_bg=sel_bg, sel_fg=sel_fg)
+        self.settings._exclude_list.configure_theme(bg=surface, fg=fg, sel_bg=sel_bg, sel_fg=sel_fg)
+        # Inventory canvas
+        self.inv.configure_theme(bg=bg)
+
 
 ###################
 # GUI MANAGER END #
@@ -2285,8 +2383,9 @@ class GUIManager:
 
 if __name__ == "__main__":
     # Everything below is for debug purposes only
-    import aiohttp
     from types import SimpleNamespace
+
+    import aiohttp
 
     class StrNamespace(SimpleNamespace):
         __hash__ = object.__hash__  # type: ignore
