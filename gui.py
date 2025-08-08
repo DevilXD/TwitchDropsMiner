@@ -2154,7 +2154,11 @@ class GUIManager:
             # use old-style window closing protocol for non-windows platforms
             root.protocol("WM_DELETE_WINDOW", self.close)
             root.protocol("WM_DESTROY_WINDOW", self.close)
-        # Apply theme after widgets are created
+        # Save current theme and apply palette after widgets are created
+        try:
+            self._orig_theme_name = self._style.theme_use()
+        except Exception:
+            self._orig_theme_name = ''
         self.apply_theme(self._twitch.settings.dark_mode)
         # stay hidden in tray if needed, otherwise show the window when everything's ready
         if self._twitch.settings.tray:
@@ -2306,6 +2310,12 @@ class GUIManager:
         """
         # Palette
         if dark:
+            # Switch to a configurable ttk theme for better color control
+            try:
+                if self._style.theme_use() != "clam":
+                    self._style.theme_use("clam")
+            except Exception:
+                pass
             bg = "#1e1e1e"
             surface = "#252525"
             header = "#2a2a2a"
@@ -2317,6 +2327,12 @@ class GUIManager:
             sel_bg = "#094771"
             sel_fg = "#ffffff"
         else:
+            # Restore original theme if we changed it
+            try:
+                if getattr(self, "_orig_theme_name", '') and self._style.theme_use() == "clam":
+                    self._style.theme_use(self._orig_theme_name)
+            except Exception:
+                pass
             # Use platform defaults but ensure toggling back is readable
             bg = "#f0f0f0"
             surface = "#ffffff"
@@ -2331,24 +2347,25 @@ class GUIManager:
 
         s = self._style
         # Base containers and labels
-        for sty in ("TFrame", "TLabelFrame"):
+        for sty in ("TFrame", "TLabelframe"):
             s.configure(sty, background=bg, foreground=fg)
         s.configure("TLabel", background=bg, foreground=fg)
+        s.configure("TLabelframe.Label", background=bg, foreground=fg)
         s.configure("MS.TLabel", background=bg, foreground=fg)
         s.configure("green.TLabel", background=bg)
         s.configure("yellow.TLabel", background=bg)
         s.configure("red.TLabel", background=bg)
         s.configure("Link.TLabel", background=bg, foreground="#4ea3ff" if dark else "blue")
         # Buttons and checks
-        s.configure("TButton", background=surface, foreground=fg)
-        s.configure("Large.TButton", background=surface, foreground=fg)
+        s.configure("TButton", background=surface, foreground=fg, bordercolor=border)
+        s.configure("Large.TButton", background=surface, foreground=fg, bordercolor=border)
         s.configure("TCheckbutton", background=bg, foreground=fg)
         # Notebook
         s.configure("TNotebook", background=bg, bordercolor=border)
         s.configure("TNotebook.Tab", background=surface, foreground=fg, bordercolor=border)
         # Entries/Combos
-        s.configure("TEntry", fieldbackground=fieldbg, foreground=fg, insertcolor=fg)
-        s.configure("TCombobox", fieldbackground=fieldbg, foreground=fg)
+        s.configure("TEntry", fieldbackground=fieldbg, background=fieldbg, foreground=fg, insertcolor=fg)
+        s.configure("TCombobox", fieldbackground=fieldbg, background=fieldbg, foreground=fg)
         # Treeview
         s.configure(
             "Treeview",
