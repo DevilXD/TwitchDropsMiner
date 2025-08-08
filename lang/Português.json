@@ -133,6 +133,8 @@
                 "name": "Geral",
                 "autostart": "Auto-início: ",
                 "tray": "Auto-iniciar na área de notificação: ",
+                "tray_notifications": "Notificações: ",
+                "dark_mode": "Modo escuro: ",
                 "priority_only": "Apenas com prioridade: ",
                 "proxy": "Proxy (requer o reinício do app):"
             },

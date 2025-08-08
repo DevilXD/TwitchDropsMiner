@@ -134,6 +134,7 @@
                 "autostart": "Otomatik başlatma: ",
                 "tray": "Sistem tepsisine otomatik başlatma: ",
                 "priority_only": "Yalnızca öncelik: ",
+                "dark_mode": "Karanlık mod: ",
                 "proxy": "Proxy (Yeniden başlatma gerektirir):"
             },
             "game_name": "Oyun",

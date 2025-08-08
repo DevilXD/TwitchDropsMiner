@@ -135,6 +135,7 @@
                 "tray": "Automatisk start i systembakken: ",
                 "tray_notifications": "Bakkemeddelelser: ",
                 "priority_only": "Kun prioritet: ",
+                "dark_mode": "Mørk tilstand: ",
                 "proxy": "Proxy (kræver genstart):"
             },
             "game_name": "Spilnavn",

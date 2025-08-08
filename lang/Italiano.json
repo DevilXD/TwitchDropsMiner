@@ -134,6 +134,7 @@
                 "autostart": "Avvio automatico: ",
                 "tray": "Avvio automatico nella barra delle applicazioni: ",
                 "tray_notifications": "Notifiche: ",
+                "dark_mode": "Modalità scura: ",
                 "priority_only": "Solo priorità: ",
                 "proxy": "Proxy (richiede il riavvio):"
             },

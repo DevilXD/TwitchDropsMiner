@@ -134,6 +134,7 @@
         "autostart": "自動起動：",
         "tray": "トレイに自動起動：",
         "tray_notifications": "トレイ通知：",
+        "dark_mode": "ダークモード：",
         "priority_only": "優先のみ：",
         "proxy": "プロキシ（再起動が必要）："
       },

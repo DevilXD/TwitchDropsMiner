@@ -134,6 +134,7 @@
                 "autostart": "Autostart: ",
                 "tray": "Autostart z zasobnika: ",
                 "tray_notifications": "Powiadomienia z zasobnika: ",
+                "dark_mode": "Tryb ciemny: ",
                 "priority_mode": "Tryb priorytetu: ",
                 "proxy": "Proxy (wymaga restartu):"
             },

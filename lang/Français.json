@@ -134,6 +134,7 @@
                 "autostart": "Démarrage automatique :",
                 "tray": "Démarrage automatique dans la barre des tâches :",
                 "tray_notifications": "Notifications dans la barre des tâches :",
+                "dark_mode": "Mode sombre : ",
                 "priority_mode": "Mode de priorité :",
                 "proxy": "Proxy (nécessite un redémarrage) :"
             },

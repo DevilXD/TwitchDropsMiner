@@ -134,6 +134,7 @@
                 "autostart": "Mulai secara otomatis :",
                 "tray": "Mulai otomatis di bilah tugas :",
                 "tray_notifications": "Pemberitahuan bilah tugas :",
+                "dark_mode": "Mode gelap: ",
                 "priority_only": "Prioritas saja :",
                 "proxy": "Proksi (harus dimulai ulang) :"
             },
