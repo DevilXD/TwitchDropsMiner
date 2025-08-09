@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from collections import abc
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import Any, TypedDict, TYPE_CHECKING
 
-from constants import DEFAULT_LANG, IS_PACKAGED, LANG_PATH
 from exceptions import MinerException
 from utils import json_load, json_save
+from constants import IS_PACKAGED, LANG_PATH, DEFAULT_LANG
 
 if TYPE_CHECKING:
     from typing_extensions import NotRequired

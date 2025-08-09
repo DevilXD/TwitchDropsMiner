@@ -1,51 +1,58 @@
 from __future__ import annotations
 
-import asyncio
-import ctypes
-import logging
 import os
 import re
 import sys
+import ctypes
+import asyncio
+import logging
 import tkinter as tk
-from collections import abc
-from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
-from functools import cached_property, partial
-from math import ceil, log10
 from pathlib import Path
+from collections import abc
 from textwrap import dedent
-from tkinter import DoubleVar, IntVar, StringVar, Tk, ttk
+from math import log10, ceil
+from dataclasses import dataclass
 from tkinter.font import Font, nametofont
-from typing import (TYPE_CHECKING, Any, Generic, NoReturn, Tuple, TypedDict,
-                    Union)
+from functools import partial, cached_property
+from datetime import datetime, timedelta, timezone
+from tkinter import Tk, ttk, StringVar, DoubleVar, IntVar
+from typing import Any, Union, Tuple, TypedDict, NoReturn, Generic, TYPE_CHECKING
 
 import pystray
-from PIL import Image as Image_module
-from PIL.ImageTk import PhotoImage
 from yarl import URL
+from PIL.ImageTk import PhotoImage
+from PIL import Image as Image_module
 
 if sys.platform == "win32":
     import win32api
     import win32con
     import win32gui
 
-from cache import ImageCache
-from constants import (IS_PACKAGED, LOGGING_LEVELS, MAX_WEBSOCKETS,
-                       OUTPUT_FORMATTER, SCRIPTS_PATH, SELF_PATH, WINDOW_TITLE,
-                       WS_TOPICS_LIMIT, PriorityMode, State)
-from exceptions import ExitRequest, MinerException
 from translate import _
-from utils import _T, Game, resource_path, set_root_icon, webopen
-
+from cache import ImageCache
+from exceptions import MinerException, ExitRequest
+from utils import resource_path, set_root_icon, webopen, Game, _T
+from constants import (
+    SELF_PATH,
+    IS_PACKAGED,
+    SCRIPTS_PATH,
+    WINDOW_TITLE,
+    LOGGING_LEVELS,
+    MAX_WEBSOCKETS,
+    WS_TOPICS_LIMIT,
+    OUTPUT_FORMATTER,
+    State,
+    PriorityMode,
+)
 if sys.platform == "win32":
-    from registry import RegistryKey, ValueNotFound, ValueType
+    from registry import RegistryKey, ValueType, ValueNotFound
 
 
 if TYPE_CHECKING:
-    from channel import Channel
-    from inventory import DropsCampaign, TimedDrop
-    from settings import Settings
     from twitch import Twitch
+    from channel import Channel
+    from settings import Settings
+    from inventory import DropsCampaign, TimedDrop
 
 
 TK_PADDING = Union[int, Tuple[int, int], Tuple[int, int, int], Tuple[int, int, int, int]]
@@ -2446,9 +2453,8 @@ class GUIManager:
 
 if __name__ == "__main__":
     # Everything below is for debug purposes only
-    from types import SimpleNamespace
-
     import aiohttp
+    from types import SimpleNamespace
 
     class StrNamespace(SimpleNamespace):
         __hash__ = object.__hash__  # type: ignore

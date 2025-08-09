@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import Any, TypedDict, TYPE_CHECKING
 
 from yarl import URL
 
-from constants import DEFAULT_LANG, SETTINGS_PATH, PriorityMode
 from utils import json_load, json_save
+from constants import SETTINGS_PATH, DEFAULT_LANG, PriorityMode
 
 if TYPE_CHECKING:
     from main import ParsedArgs
