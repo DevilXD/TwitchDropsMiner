@@ -1569,7 +1569,7 @@ class SettingsPanel:
         }
 
     def __init__(self, manager: GUIManager, master: ttk.Widget):
-        self._twitch = manager._twitch
+        self._manager = manager
         self._settings: Settings = manager._twitch.settings
         priority_mode = self._settings.priority_mode
         if priority_mode not in self.PRIORITY_MODES:
@@ -1580,9 +1580,9 @@ class SettingsPanel:
             "language": StringVar(master, _.current),
             "proxy": StringVar(master, str(self._settings.proxy)),
             "tray": IntVar(master, self._settings.autostart_tray),
+            "dark_mode": IntVar(master, int(self._settings.dark_mode)),
             "priority_mode": StringVar(master, self.PRIORITY_MODES[priority_mode]),
             "tray_notifications": IntVar(master, self._settings.tray_notifications),
-            "dark_mode": IntVar(master, int(self._settings.dark_mode)),
         }
         self._game_names: set[str] = set()
         master.rowconfigure(0, weight=1)
@@ -1642,7 +1642,7 @@ class SettingsPanel:
         ttk.Checkbutton(
             checkboxes_frame,
             variable=self._vars["dark_mode"],
-            command=lambda: (setattr(self._settings, "dark_mode", bool(self._vars["dark_mode"].get())), self._settings.alter(), manager.apply_theme(self._settings.dark_mode)),
+            command=self.update_dark_mode,
         ).grid(column=1, row=irow, sticky="w")
         ttk.Label(
             checkboxes_frame, text=_("gui", "settings", "general", "priority_mode")
@@ -1747,7 +1747,7 @@ class SettingsPanel:
         ttk.Button(
             reload_frame,
             text=_("gui", "settings", "reload"),
-            command=self._twitch.state_change(State.INVENTORY_FETCH),
+            command=self._manager._twitch.state_change(State.INVENTORY_FETCH),
         ).grid(column=1, row=0)
 
         self._vars["autostart"].set(self._query_autostart())
@@ -1755,6 +1755,11 @@ class SettingsPanel:
     def clear_selection(self) -> None:
         self._priority_list.selection_clear(0, "end")
         self._exclude_list.selection_clear(0, "end")
+
+    def update_dark_mode(self) -> None:
+        self._settings.dark_mode = bool(self._vars["dark_mode"].get())
+        self._settings.alter()
+        self._manager.apply_theme(self._settings.dark_mode)
 
     def update_notifications(self) -> None:
         self._settings.tray_notifications = bool(self._vars["tray_notifications"].get())
@@ -2381,8 +2386,12 @@ class GUIManager:
             foreground=[("disabled", muted)],
         )
         # Entries/Combos
-        s.configure("TEntry", fieldbackground=fieldbg, background=fieldbg, foreground=fg, insertcolor=fg)
-        s.configure("TCombobox", fieldbackground=fieldbg, background=fieldbg, foreground=fg, arrowcolor=fg)
+        s.configure(
+            "TEntry", fieldbackground=fieldbg, background=fieldbg, foreground=fg, insertcolor=fg
+        )
+        s.configure(
+            "TCombobox", fieldbackground=fieldbg, background=fieldbg, foreground=fg, arrowcolor=fg
+        )
         s.map("TEntry", foreground=[("disabled", muted)])
         s.map("TCombobox", foreground=[("disabled", muted)])
         # Treeview
@@ -2402,15 +2411,31 @@ class GUIManager:
         # Progressbar
         s.configure("TProgressbar", background=accent, troughcolor=surface)
         # Scrollbars
-        s.configure("Vertical.TScrollbar", background=surface, troughcolor=bg, arrowcolor=fg, bordercolor=border)
-        s.configure("Horizontal.TScrollbar", background=surface, troughcolor=bg, arrowcolor=fg, bordercolor=border)
+        s.configure(
+            "Vertical.TScrollbar",
+            background=surface,
+            troughcolor=bg,
+            arrowcolor=fg,
+            bordercolor=border,
+        )
+        s.configure(
+            "Horizontal.TScrollbar",
+            background=surface,
+            troughcolor=bg,
+            arrowcolor=fg,
+            bordercolor=border,
+        )
 
         # Pure Tk widgets
         # Console text
         self.output.configure_theme(dark=dark, bg=surface, fg=fg, sel_bg=sel_bg, sel_fg=sel_fg)
         # Listboxes
-        self.settings._priority_list.configure_theme(bg=surface, fg=fg, sel_bg=sel_bg, sel_fg=sel_fg)
-        self.settings._exclude_list.configure_theme(bg=surface, fg=fg, sel_bg=sel_bg, sel_fg=sel_fg)
+        self.settings._priority_list.configure_theme(
+            bg=surface, fg=fg, sel_bg=sel_bg, sel_fg=sel_fg
+        )
+        self.settings._exclude_list.configure_theme(
+            bg=surface, fg=fg, sel_bg=sel_bg, sel_fg=sel_fg
+        )
         # Inventory canvas
         self.inv.configure_theme(bg=bg)
 
