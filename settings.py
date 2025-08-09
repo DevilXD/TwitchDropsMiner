@@ -14,25 +14,25 @@ if TYPE_CHECKING:
 class SettingsFile(TypedDict):
     proxy: URL
     language: str
+    dark_mode: bool
     exclude: set[str]
     priority: list[str]
     autostart_tray: bool
     connection_quality: int
     tray_notifications: bool
     priority_mode: PriorityMode
-    dark_mode: bool
 
 
 default_settings: SettingsFile = {
     "proxy": URL(),
     "priority": [],
     "exclude": set(),
+    "dark_mode": False,
     "autostart_tray": False,
     "connection_quality": 1,
     "language": DEFAULT_LANG,
     "tray_notifications": True,
     "priority_mode": PriorityMode.PRIORITY_ONLY,
-    "dark_mode": False,
 }
 
 
@@ -48,13 +48,13 @@ class Settings:
     # from settings file
     proxy: URL
     language: str
+    dark_mode: bool
     exclude: set[str]
     priority: list[str]
     autostart_tray: bool
     connection_quality: int
     tray_notifications: bool
     priority_mode: PriorityMode
-    dark_mode: bool
 
     PASSTHROUGH = ("_settings", "_args", "_altered")
 
