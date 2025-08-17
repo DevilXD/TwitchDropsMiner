@@ -621,6 +621,7 @@ class _ProgressVars(TypedDict):
 
 class CampaignProgress:
     BAR_LENGTH = 420
+    ALMOST_DONE_SECONDS = 10
 
     def __init__(self, manager: GUIManager, master: ttk.Widget):
         self._manager = manager
@@ -685,17 +686,19 @@ class CampaignProgress:
             variable=self._vars["drop"]["progress"],
         ).grid(column=0, row=10, columnspan=2)
         self._drop: TimedDrop | None = None
+        self._seconds: int = 0
         self._timer_task: asyncio.Task[None] | None = None
         self.display(None)
 
-    @staticmethod
-    def _divmod(minutes: int, seconds: int) -> tuple[int, int]:
-        if seconds < 60 and minutes > 0:
+    def _divmod(self, minutes: int) -> tuple[int, int]:
+        if self._seconds < 60 and minutes > 0:
             minutes -= 1
         hours, minutes = divmod(minutes, 60)
         return (hours, minutes)
 
-    def _update_time(self, seconds: int):
+    def _update_time(self, seconds: int | None = None):
+        if seconds is not None:
+            self._seconds = seconds
         drop = self._drop
         if drop is not None:
             drop_minutes = drop.remaining_minutes
@@ -705,23 +708,22 @@ class CampaignProgress:
             campaign_minutes = 0
         drop_vars: _DropVars = self._vars["drop"]
         campaign_vars: _CampaignVars = self._vars["campaign"]
-        dseconds = seconds % 60
-        hours, minutes = self._divmod(drop_minutes, seconds)
+        dseconds = self._seconds % 60
+        hours, minutes = self._divmod(drop_minutes)
         drop_vars["remaining"].set(
             _("gui", "progress", "remaining").format(time=f"{hours:>2}:{minutes:02}:{dseconds:02}")
         )
-        hours, minutes = self._divmod(campaign_minutes, seconds)
+        hours, minutes = self._divmod(campaign_minutes)
         campaign_vars["remaining"].set(
             _("gui", "progress", "remaining").format(time=f"{hours:>2}:{minutes:02}:{dseconds:02}")
         )
 
     async def _timer_loop(self):
-        seconds = 60
-        self._update_time(seconds)
-        while seconds > 0:
+        self._update_time(60)
+        while self._seconds > 0:
             await asyncio.sleep(1)
-            seconds -= 1
-            self._update_time(seconds)
+            self._seconds -= 1
+            self._update_time()
         self._timer_task = None
 
     def start_timer(self):
@@ -739,8 +741,9 @@ class CampaignProgress:
             self._timer_task.cancel()
             self._timer_task = None
 
-    def is_counting(self) -> bool:
-        return self._timer_task is not None
+    def minute_almost_done(self) -> bool:
+        # already or almost done
+        return self._timer_task is None or self._seconds <= self.ALMOST_DONE_SECONDS
 
     def display(self, drop: TimedDrop | None, *, countdown: bool = True, subone: bool = False):
         self._drop = drop

@@ -949,15 +949,17 @@ class Twitch:
                 # if the channel isn't online anymore, we stop watching it
                 self.stop_watching()
                 continue
-
-            current_time = time()
+            # logger.log(CALL, f"Sending watch payload to: {channel.name}")
             succeeded: bool = await channel.send_watch()
-
+            last_sent: float = time()
             if not succeeded:
                 logger.log(CALL, f"Watch requested failed for channel: {channel.name}")
-            elif current_time - last_update_time > update_timeout:
-                # If the previous update was more than 60s ago, that means Twitch has temporarily
-                # stopped reporting drops progress. To ensure the timer keeps at least somewhat
+            # wait ~20 seconds for a progress update
+            await asyncio.sleep(20)
+            if self.gui.progress.minute_almost_done():
+                # If the previous update was more than ~60s ago, and the progress tracker
+                # isn't counting down anymore, that means Twitch has temporarily
+                # stopped reporting drop's progress. To ensure the timer keeps at least somewhat
                 # accurate time, we can use GQL to query for the current drop,
                 # or even "pretend" mining as a last resort option.
                 handled: bool = False
@@ -1000,11 +1002,7 @@ class Twitch:
                         last_update_time = current_time
                     else:
                         logger.log(CALL, "No active drop could be determined")
-            else:
-                # Update was successful and recent
-                last_update_time = current_time
-
-            await self._watch_sleep(interval)
+            await self._watch_sleep(interval - min(time() - last_sent, interval))
 
     @task_wrapper(critical=True)
     async def _maintenance_task(self) -> None:
