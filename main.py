@@ -49,6 +49,9 @@ if __name__ == "__main__":
         from _typeshed import SupportsWrite
     warnings.simplefilter("default", ResourceWarning)
 
+    # import tracemalloc
+    # tracemalloc.start(3)
+
     if sys.version_info < (3, 10):
         raise RuntimeError("Python 3.10 or higher is required")
 
