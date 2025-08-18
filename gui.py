@@ -2392,8 +2392,15 @@ class GUIManager:
         s.configure(
             "TCombobox", fieldbackground=fieldbg, background=fieldbg, foreground=fg, arrowcolor=fg
         )
+        # Ensure readability for readonly comboboxes (Language, Priority mode)
+        s.map(
+            "TCombobox",
+            foreground=[("readonly", fg), ("disabled", muted)],
+            fieldbackground=[("readonly", fieldbg)],
+            background=[("readonly", fieldbg)],
+            arrowcolor=[("readonly", fg)],
+        )
         s.map("TEntry", foreground=[("disabled", muted)])
-        s.map("TCombobox", foreground=[("disabled", muted)])
         # Treeview
         s.configure(
             "Treeview",
