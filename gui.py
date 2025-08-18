@@ -2376,7 +2376,25 @@ class GUIManager:
             background=[("active", header), ("pressed", border)],
             foreground=[("disabled", muted)],
         )
-        s.configure("TCheckbutton", background=bg, foreground=fg)
+        s.configure(
+            "TCheckbutton",
+            background=bg,
+            foreground=fg,
+            focuscolor=bg,
+            bordercolor=border,
+        )
+        s.map(
+            "TCheckbutton",
+            background=[
+                ("active", header),
+                ("pressed", header),
+            ],
+            foreground=[("disabled", muted)],
+            indicatorcolor=[
+                ("selected", accent if dark else fg),
+                ("!selected", border),
+            ],
+        )
         # Notebook
         s.configure("TNotebook", background=bg, bordercolor=border)
         s.configure("TNotebook.Tab", background=surface, foreground=fg, bordercolor=border)
