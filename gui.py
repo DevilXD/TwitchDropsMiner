@@ -1546,10 +1546,10 @@ class _SettingsVars(TypedDict):
     tray: IntVar
     proxy: StringVar
     autostart: IntVar
+    dark_mode: IntVar
     language: StringVar
     priority_mode: StringVar
     tray_notifications: IntVar
-    dark_mode: IntVar
 
 
 class SettingsPanel:
