@@ -2385,9 +2385,10 @@ class GUIManager:
         )
         s.map(
             "TCheckbutton",
+            # Remove hover visuals by mapping active/pressed to the base background
             background=[
-                ("active", header),
-                ("pressed", header),
+                ("active", bg),
+                ("pressed", bg),
             ],
             foreground=[("disabled", muted)],
             indicatorcolor=[
