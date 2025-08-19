@@ -1,0 +1,30 @@
+name: "Report a virus"
+description: "Chrome / Microsoft Defender / other antivirus software is flagging this application as a virus."
+title: "Yet another \"virus\" report"
+body:
+  - type: textarea
+    attributes:
+      label: 🛑 STOP 🛑
+      description: |
+        Due to it's nature, this application is often flagged as a virus by Chrome, Microsoft Defender or other antivirus software. **This is an expected false-positive and not a bug** - the application is open-source, and thus anyone can verify it contains no malware.
+
+        If you absolutely do not trust this application, you are welcome to simply not use it. Otherwise, I recommend instructing your antivirus to ignore this detection, usually done by whitelisting the application in the antivirus' settings. Due to the sheer number of antivirus engines out there, I am unable to provide specific instructions on how to do so, so you will have to figure it out on your own. Alternatively, running the application from source should also prevent triggering a detection.
+
+        You're welcome to read through the discussion under these issues, for more information regarding this false-positive: #741, #503, #137, #13.
+
+        ⚠️ This has already been reported over 25+ times, and this issue template is meant to prevent further reports. ⚠️
+        ⚠️ Please do not submit this as an actual issue, becaue it's only a waste of time and it's going to be immediately closed as yet another duplicate. ⚠️
+    validations:
+      required: true
+  - type: checkboxes
+    attributes:
+      label: "Select all applicable options"
+      options:
+        - label: "I have read and understand the entirety of the text above."
+          required: true
+        - label: "I am a fool thinking this won't be closed as yet another duplicate."
+          required: true
+        - label: "I still want to waste the developer's time by submitting this as an actual issue."
+          required: true
+    validations:
+      required: true
