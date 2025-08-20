@@ -74,7 +74,7 @@ jobs:
 
       - name: Install UPX
         run: |
-          Invoke-WebRequest -Uri https://github.com/upx/upx/releases/download/v4.0.2/upx-4.0.2-win64.zip -OutFile (Join-Path $env:Temp upx.zip)
+          Invoke-WebRequest -Uri https://github.com/upx/upx/releases/download/v5.0.2/upx-5.0.2-win64.zip -OutFile (Join-Path $env:Temp upx.zip)
           Expand-Archive -LiteralPath (Join-Path $env:Temp upx.zip) -DestinationPath $env:Temp
           Move-Item -Path (Join-Path $env:Temp upx-*) -Destination (Join-Path $env:Temp upx)
           Add-Content $env:GITHUB_PATH (Join-Path $env:Temp upx)
