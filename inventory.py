@@ -332,6 +332,7 @@ class DropsCampaign:
         self.image_url: URLType = remove_dimensions(data["game"]["boxArtURL"])
         self.starts_at: datetime = timestamp(data["startAt"])
         self.ends_at: datetime = timestamp(data["endAt"])
+        self._valid: bool = data["status"] != "EXPIRED"
         allowed: JsonType = data["allow"]
         self.allowed_channels: list[Channel] = (
             [Channel.from_acl(twitch, channel_data) for channel_data in allowed["channels"]]
@@ -360,15 +361,15 @@ class DropsCampaign:
 
     @property
     def active(self) -> bool:
-        return self.starts_at <= datetime.now(timezone.utc) < self.ends_at
+        return self._valid and self.starts_at <= datetime.now(timezone.utc) < self.ends_at
 
     @property
     def upcoming(self) -> bool:
-        return datetime.now(timezone.utc) < self.starts_at
+        return self._valid and datetime.now(timezone.utc) < self.starts_at
 
     @property
     def expired(self) -> bool:
-        return self.ends_at <= datetime.now(timezone.utc)
+        return not self._valid or self.ends_at <= datetime.now(timezone.utc)
 
     @property
     def total_drops(self) -> int:
@@ -442,6 +443,7 @@ class DropsCampaign:
         # and uses a future timestamp to see if we can earn this campaign later
         return (
             self.eligible
+            and self._valid
             and self.ends_at > datetime.now(timezone.utc)
             and self.starts_at < stamp
             and any(drop.can_earn_within(stamp) for drop in self.drops)
