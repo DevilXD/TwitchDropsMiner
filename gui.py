@@ -2341,11 +2341,12 @@ if __name__ == "__main__":
         cm = current_minutes
         tm = total_minutes
         ref_stamp = datetime.now(timezone.utc)
-        image_url = (
-            "https://static-cdn.jtvnw.net/twitch-drops-assets-prod/"
-            "BENEFIT-81ab5665-b2f4-4179-96e6-74da5a82da28.jpeg"
+        drop_image_url = (
+            "https://static-cdn.jtvnw.net/twitch-quests-assets/"
+            "REWARD/e0ede26e-b071-47f0-af5f-b80b26fa9fb4.png"
         )
-        benefits = [SimpleNamespace(name=name, image_url=image_url) for name in rewards]
+        campaign_image_url = "https://static-cdn.jtvnw.net/ttv-boxart/515025-120x160.jpg"
+        benefits = [SimpleNamespace(name=name, image_url=drop_image_url) for name in rewards]
         mock = SimpleNamespace(
             id="0",
             campaign=HashNamespace(
@@ -2358,7 +2359,7 @@ if __name__ == "__main__":
                 eligible=False,
                 finished=False,
                 link_url="https://google.com",
-                image_url="https://static-cdn.jtvnw.net/ttv-boxart/460630-285x380.jpg",
+                image_url=campaign_image_url,
                 allowed_channels=[],
                 starts_at=ref_stamp,
                 ends_at=ref_stamp + timedelta(days=7),
@@ -2370,7 +2371,7 @@ if __name__ == "__main__":
                 progress=(cd * tm + cm) / (td * tm),
                 remaining_minutes=(td - cd) * tm - cm,
             ),
-            image_url=image_url,
+            image_url=drop_image_url,
             can_claim=False,
             can_earn=lambda: False,
             is_claimed=False,
