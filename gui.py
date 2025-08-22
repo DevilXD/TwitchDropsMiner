@@ -1536,11 +1536,18 @@ class _SettingsVars(TypedDict):
 class SettingsPanel:
     AUTOSTART_NAME: str = "TwitchDropsMiner"
     AUTOSTART_KEY: str = "HKCU/Software/Microsoft/Windows/CurrentVersion/Run"
-    PRIORITY_MODES: dict[PriorityMode, str] = {
-        PriorityMode.PRIORITY_ONLY: _("gui", "settings", "priority_modes", "priority_only"),
-        PriorityMode.ENDING_SOONEST: _("gui", "settings", "priority_modes", "ending_soonest"),
-        PriorityMode.LOW_AVBL_FIRST: _("gui", "settings", "priority_modes", "low_availability"),
-    }
+
+    @cached_property
+    def PRIORITY_MODES(self) -> dict[PriorityMode, str]:
+        # NOTE: Translation calls have to be deferred here,
+        # to allow changing the language before the settings panel is initialized.
+        return {
+            PriorityMode.PRIORITY_ONLY: _("gui", "settings", "priority_modes", "priority_only"),
+            PriorityMode.ENDING_SOONEST: _("gui", "settings", "priority_modes", "ending_soonest"),
+            PriorityMode.LOW_AVBL_FIRST: _(
+                "gui", "settings", "priority_modes", "low_availability"
+            ),
+        }
 
     def __init__(self, manager: GUIManager, master: ttk.Widget):
         self._twitch = manager._twitch
@@ -2408,7 +2415,7 @@ if __name__ == "__main__":
         mock.change_state = lambda state: mock.gui.print(f"State change: {state.value}")
         mock.state_change = lambda state: partial(mock.change_state, state)
         mock.request = aiohttp.request
-        # _.set_language("Dansk")
+        # _.set_language("Русский")
         gui = GUIManager(mock)  # type: ignore
         mock.gui = gui
         mock.close = gui.stop
