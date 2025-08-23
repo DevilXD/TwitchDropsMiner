@@ -64,7 +64,7 @@ class BaseDrop:
         self.id: str = data["id"]
         self.name: str = data["name"]
         self.campaign: DropsCampaign = campaign
-        self.benefits: list[Benefit] = [Benefit(b) for b in data["benefitEdges"]]
+        self.benefits: list[Benefit] = [Benefit(b) for b in data["benefitEdges"] or []]
         self.starts_at: datetime = timestamp(data["startAt"])
         self.ends_at: datetime = timestamp(data["endAt"])
         self.claim_id: str | None = None
