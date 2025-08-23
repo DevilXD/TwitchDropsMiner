@@ -243,8 +243,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: error
-          name: Twitch.Drops.Miner.Linux.AppImage
-          path: Twitch.Drops.Miner.Linux.AppImage.zip
+          name: Twitch.Drops.Miner.Linux.AppImage-${{matrix.arch}}
+          path: Twitch.Drops.Miner.Linux.AppImage-${{matrix.arch}}.zip
   docker:
     name: Docker Test
     runs-on: ubuntu-latest
