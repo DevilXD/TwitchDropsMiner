@@ -2454,7 +2454,7 @@ class GUIManager:
 
         # Pure Tk widgets
         # Console text
-        self.output.configure_theme(dark=dark, bg=surface, fg=fg, sel_bg=sel_bg, sel_fg=sel_fg)
+        self.output.configure_theme(bg=surface, fg=fg, sel_bg=sel_bg, sel_fg=sel_fg)
         # Listboxes
         self.settings._priority_list.configure_theme(
             bg=surface, fg=fg, sel_bg=sel_bg, sel_fg=sel_fg
