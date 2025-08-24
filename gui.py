@@ -2329,15 +2329,16 @@ class GUIManager:
             except Exception:
                 pass
             bg = "#1e1e1e"
+            fg = "#e6e6e6"
+            sel_bg = "#094771"
+            sel_fg = "#ffffff"
+            link = "#4ea3ff"
             surface = "#252525"
             header = "#2a2a2a"
             fieldbg = "#2b2b2b"
             border = "#3c3c3c"
-            fg = "#e6e6e6"
             muted = "#b3b3b3"
             accent = "#0d99ff"
-            sel_bg = "#094771"
-            sel_fg = "#ffffff"
         else:
             # Restore original theme if we changed it
             try:
