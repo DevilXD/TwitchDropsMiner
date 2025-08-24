@@ -2341,11 +2341,8 @@ class GUIManager:
             accent = "#0d99ff"
         else:
             # Restore original theme if we changed it
-            try:
-                if getattr(self, "_orig_theme_name", '') and self._style.theme_use() == "clam":
-                    self._style.theme_use(self._orig_theme_name)
-            except Exception:
-                pass
+            if getattr(self, "_orig_theme_name", '') and self._style.theme_use() == "clam":
+                self._style.theme_use(self._orig_theme_name)
             # Use platform defaults but ensure toggling back is readable
             bg = "#f0f0f0"
             fg = "#000000"
