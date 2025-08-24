@@ -823,7 +823,7 @@ class ConsoleOutput:
         self._text.see("end")  # scroll to the newly added line
         self._text.config(state="disabled")
 
-    def configure_theme(self, *, dark: bool, bg: str, fg: str, sel_bg: str, sel_fg: str):
+    def configure_theme(self, *, bg: str, fg: str, sel_bg: str, sel_fg: str):
         # Apply colors to the Tk Text widget used for console output
         self._text.config(
             bg=bg,
