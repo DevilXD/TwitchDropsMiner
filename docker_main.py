@@ -156,11 +156,17 @@ async def main():
     exit_status = 0
     try:
         await client.run()
+        print("DEBUG: client.run() returned - this should never happen!")
+        log.warning("client.run() completed unexpectedly! This should not happen.")
     except CaptchaRequired:
         exit_status = 1
+        print("DEBUG: CaptchaRequired exception")
         client.print(_("error", "captcha"))
-    except Exception:
+        log.error("Captcha required - exiting")
+    except Exception as e:
         exit_status = 1
+        print(f"DEBUG: Exception caught: {e}")
+        log.error(f"Fatal error encountered: {e}")
         client.print("Fatal error encountered:\n")
         client.print(traceback.format_exc())
     finally:
@@ -173,6 +179,7 @@ async def main():
         client.print(_("gui", "status", "exiting"))
         await client.shutdown()
     
+    print(f"DEBUG: Returning exit status: {exit_status}")
     # Save application state
     client.save(force=True)
     return exit_status

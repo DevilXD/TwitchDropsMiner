@@ -21,8 +21,6 @@ from channel import Channel
 from websocket import WebsocketPool
 from inventory import DropsCampaign
 
-from time import time, sleep
-
 # Check if we're in web mode
 WEB_MODE = any(arg == "--web" for arg in sys.argv)
 
@@ -80,10 +78,68 @@ if WEB_MODE:
             """Return a dummy status object"""
             return self
 
+        @property  
+        def progress(self):
+            """Return a dummy progress object"""
+            return self
+
+        @property
+        def channels(self):
+            """Return a dummy channels object"""
+            return self
+
         def update(self, status):
             """Update status"""
             self._status = status
             self.log.info(f"Status updated: {status}")
+
+        def minute_almost_done(self):
+            """Dummy method for progress checking"""
+            return False
+
+        def stop_timer(self):
+            """Dummy method for stopping timer"""
+            pass
+
+        def clear_drop(self):
+            """Dummy method for clearing drop"""
+            pass
+
+        def clear_watching(self):
+            """Dummy method for clearing watching"""
+            pass
+
+        def set_watching(self, channel):
+            """Dummy method for setting watching channel"""
+            pass
+
+        def clear(self):
+            """Dummy method for clearing channels"""
+            pass
+
+        def set_games(self, games):
+            """Dummy method for setting games"""
+            pass
+
+        def start(self):
+            """Dummy method for starting GUI"""
+            pass
+
+        def close(self):
+            """Dummy method for closing GUI"""
+            pass
+
+        def prevent_close(self):
+            """Dummy method for preventing close"""
+            pass
+
+        def save(self, force=False):
+            """Dummy method for saving"""
+            pass
+
+        def print(self, message):
+            """Dummy method for printing"""
+            pass
 else:
     from gui import GUIManager
 from exceptions import (
@@ -930,6 +986,8 @@ class Twitch:
             logger.info(f"State change completed. Current state: {self._state}")
             logger.info("Waiting for next state change")
             await self._state_change.wait()
+        
+        logger.error("_run() method completed unexpectedly - this should never happen!")
 
     async def _watch_sleep(self, delay: float) -> None:
         # we use wait_for here to allow an asyncio.sleep-like that can be ended prematurely
@@ -949,14 +1007,25 @@ class Twitch:
                 # if the channel isn't online anymore, we stop watching it
                 self.stop_watching()
                 continue
-            # logger.log(CALL, f"Sending watch payload to: {channel.name}")
+            current_time = time()
             succeeded: bool = await channel.send_watch()
-            last_sent: float = time()
+            last_sent: float = current_time
             if not succeeded:
                 logger.log(CALL, f"Watch requested failed for channel: {channel.name}")
             # wait ~20 seconds for a progress update
             await asyncio.sleep(20)
-            if self.gui.progress.minute_almost_done():
+            
+            # Check if we should query for drop progress updates
+            # In GUI mode: check if the progress tracker indicates we need an update AND timeout has passed
+            # In headless mode: check if timeout has passed (since we don't have a progress tracker)
+            should_check_progress = (
+                current_time - last_update_time > update_timeout and (
+                    not self.gui_enabled or 
+                    (self.gui_enabled and self.gui.progress.minute_almost_done())
+                )
+            )
+            
+            if should_check_progress:
                 # If the previous update was more than ~60s ago, and the progress tracker
                 # isn't counting down anymore, that means Twitch has temporarily
                 # stopped reporting drop's progress. To ensure the timer keeps at least somewhat
@@ -1002,6 +1071,12 @@ class Twitch:
                         last_update_time = current_time
                     else:
                         logger.log(CALL, "No active drop could be determined")
+                        # Even if no drop was found, update the timestamp to prevent spam
+                        last_update_time = current_time
+            else:
+                # Update was successful and recent, or GUI indicates no update needed
+                last_update_time = current_time
+                
             await self._watch_sleep(interval - min(time() - last_sent, interval))
 
     @task_wrapper(critical=True)
@@ -1108,7 +1183,6 @@ class Twitch:
                 viewers = message["viewers"]
                 channel.viewers = viewers
                 channel.display()
-                # logger.debug(f"{channel.name} viewers: {viewers}")
         elif msg_type == "stream-down":
             channel.set_offline()
         elif msg_type == "stream-up":

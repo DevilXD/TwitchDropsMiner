@@ -5,6 +5,36 @@ from typing import Callable, Optional
 
 
 # Headless GUI implementation for web mode
+class DummyProgress:
+    """A dummy progress class for web mode."""
+    
+    def minute_almost_done(self) -> bool:
+        # In headless mode, always return False to continue normal processing
+        return False
+    
+    def stop_timer(self):
+        pass
+    
+    def display(self, drop=None, *, countdown: bool = True, subone: bool = False):
+        pass
+
+
+class DummyChannels:
+    """A dummy channels class for web mode."""
+    
+    def clear(self):
+        pass
+    
+    def set_watching(self, channel):
+        pass
+    
+    def clear_watching(self):
+        pass
+    
+    def get_selection(self):
+        return None
+
+
 class DummyGUI:
     """A simple placeholder for GUI functionality when running in web mode."""
     
@@ -13,6 +43,8 @@ class DummyGUI:
         self.close_requested = False
         self.status = DummyStatus()
         self.tray = DummyTray()
+        self.progress = DummyProgress()
+        self.channels = DummyChannels()
     
     def close(self):
         self.close_requested = True
@@ -27,6 +59,12 @@ class DummyGUI:
         pass
     
     def close_window(self):
+        pass
+    
+    def set_games(self, games):
+        pass
+    
+    def clear_drop(self):
         pass
 
 
