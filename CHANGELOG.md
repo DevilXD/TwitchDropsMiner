@@ -7,23 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4] - 2025-08-24
+
 ### Added
-- Docker support with multi-stage build for efficient images
-- Docker Compose configuration for easy deployment
-- Setup scripts for both Windows (PowerShell) and Linux/macOS (Bash)
-- GitHub Actions workflows for automated Docker image building
-- Security scanning with Trivy in CI pipeline
-- Dependency auto-update workflow
-- Comprehensive documentation for Docker usage
+- Enhanced headless GUI implementation for better Docker/web mode compatibility
+- Improved drop progress tracking with proper timeout mechanism
+- Better error handling for critical task failures
 
 ### Changed
-- Updated repository references from DevilXD/TwitchDropsMiner to Kaysharp42/TwitchDropsMinerWeb
-- Enhanced documentation with details about web interface features
-- Improved web interface styling and usability
+- Cleaned up debug code and unnecessary print statements
+- Improved timing consistency in watch loop functionality
+- Enhanced rate limiting protection for Twitch API calls
 
 ### Fixed
-- Security vulnerabilities in Docker configuration by implementing best practices
-- Fixed web interface accessibility on Docker deployments
+- **Critical:** Fixed Docker container exit issue caused by GUI attribute access in headless mode
+- Fixed NameError for undefined variables in watch loop
+- Fixed critical task wrapper failures that caused application shutdown
+- Resolved GUI compatibility issues when running in headless mode
+- Fixed timeout handling for drop progress updates in both GUI and headless modes
 
 ## [0.1.0] - 2025-05-19
 
@@ -32,5 +33,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New web interface features
 - Docker configuration files
 
-[Unreleased]: https://github.com/Kaysharp42/TwitchDropsMinerWeb/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Kaysharp42/TwitchDropsMinerWeb/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/Kaysharp42/TwitchDropsMinerWeb/compare/v0.1.0...v0.1.4
 [0.1.0]: https://github.com/Kaysharp42/TwitchDropsMinerWeb/releases/tag/v0.1.0
