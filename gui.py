@@ -2348,15 +2348,16 @@ class GUIManager:
                 pass
             # Use platform defaults but ensure toggling back is readable
             bg = "#f0f0f0"
+            fg = "#000000"
+            sel_bg = "#cce5ff"
+            sel_fg = "#000000"
+            link = "blue"
             surface = "#ffffff"
             header = "#eeeeee"
             fieldbg = "#ffffff"
             border = "#cccccc"
-            fg = "#000000"
             muted = "#404040"
             accent = "#0a84ff"
-            sel_bg = "#cce5ff"
-            sel_fg = "#000000"
 
         s = self._style
         # Base containers and labels
