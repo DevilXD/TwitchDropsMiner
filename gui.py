@@ -2469,34 +2469,31 @@ class GUIManager:
 
         # Tk option database for selection/popup list readability (affects Tk-backed widgets)
         # Global selection colors and listbox defaults (covers Combobox dropdown)
-        try:
-            self._root.option_add("*selectBackground", sel_bg)
-            self._root.option_add("*selectForeground", sel_fg)
-            # Combobox dropdown list (Tk Listbox)
-            for key in (
-                "*TCombobox*Listbox.background",
-                "*TCombobox*Listbox.Background",
-                "*Listbox.background",
-            ):
-                self._root.option_add(key, surface)
-            for key in (
-                "*TCombobox*Listbox.foreground",
-                "*TCombobox*Listbox.Foreground",
-                "*Listbox.foreground",
-            ):
-                self._root.option_add(key, fg)
-            for key in (
-                "*TCombobox*Listbox.selectBackground",
-                "*Listbox.selectBackground",
-            ):
-                self._root.option_add(key, sel_bg)
-            for key in (
-                "*TCombobox*Listbox.selectForeground",
-                "*Listbox.selectForeground",
-            ):
-                self._root.option_add(key, sel_fg)
-        except Exception:
-            pass
+        self._root.option_add("*selectBackground", sel_bg)
+        self._root.option_add("*selectForeground", sel_fg)
+        # Combobox dropdown list (Tk Listbox)
+        for key in (
+            "*TCombobox*Listbox.background",
+            "*TCombobox*Listbox.Background",
+            "*Listbox.background",
+        ):
+            self._root.option_add(key, surface)
+        for key in (
+            "*TCombobox*Listbox.foreground",
+            "*TCombobox*Listbox.Foreground",
+            "*Listbox.foreground",
+        ):
+            self._root.option_add(key, fg)
+        for key in (
+            "*TCombobox*Listbox.selectBackground",
+            "*Listbox.selectBackground",
+        ):
+            self._root.option_add(key, sel_bg)
+        for key in (
+            "*TCombobox*Listbox.selectForeground",
+            "*Listbox.selectForeground",
+        ):
+            self._root.option_add(key, sel_fg)
 
 
 ###################
