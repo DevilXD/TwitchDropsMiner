@@ -2360,9 +2360,9 @@ class GUIManager:
 
         s = self._style
         # Base containers and labels
-        for sty in ("TFrame", "TLabelframe"):
-            s.configure(sty, background=bg, foreground=fg)
+        s.configure("TFrame", background=bg, foreground=fg)
         s.configure("TLabel", background=bg, foreground=fg)
+        s.configure("TLabelframe", background=bg, foreground=fg)
         s.configure("TLabelframe.Label", background=bg, foreground=fg)
         s.configure("MS.TLabel", background=bg, foreground=fg)
         s.configure("green.TLabel", background=bg)
