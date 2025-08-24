@@ -2323,11 +2323,8 @@ class GUIManager:
         # Palette
         if dark:
             # Switch to a configurable ttk theme for better color control
-            try:
-                if self._style.theme_use() != "clam":
-                    self._style.theme_use("clam")
-            except Exception:
-                pass
+            if self._style.theme_use() != "clam":
+                self._style.theme_use("clam")
             bg = "#1e1e1e"
             fg = "#e6e6e6"
             sel_bg = "#094771"
