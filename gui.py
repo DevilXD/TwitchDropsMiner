@@ -2620,6 +2620,7 @@ if __name__ == "__main__":
                 tray=False,
                 priority=[],
                 proxy=URL(),
+                dark_mode=False,
                 alter=lambda: None,
                 language="English",
                 autostart_tray=False,
