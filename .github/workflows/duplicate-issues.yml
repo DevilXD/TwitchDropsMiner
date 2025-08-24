@@ -22,7 +22,7 @@ jobs:
             const keywords = ["windows defender", "virus"];
 
             // Fixed duplicate issues list
-            const duplicateMessage = `This is potentially a duplicate of #742, #741, #735, #725, #691, #665, #664, #654, #641, #634, #620, #616, #517, #508, #503, #420, #384, #335, #333, #315, #284, #270, #249, #217, #209, #137 and #13. Please review one of the existing issues and close the issue if it is addressed in one of the duplicates.`;
+            const duplicateMessage = `This issue appears to be about the application being detected as a virus, which has been reported 25+ times already. Please review the listed past issues, and close this issue if it's already been addressed: #741, #503, #137, #13`;
 
             let matched = false;
             for (const kw of keywords) {
