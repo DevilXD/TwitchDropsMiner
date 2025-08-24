@@ -2368,7 +2368,7 @@ class GUIManager:
         s.configure("green.TLabel", background=bg)
         s.configure("yellow.TLabel", background=bg)
         s.configure("red.TLabel", background=bg)
-        s.configure("Link.TLabel", background=bg, foreground="#4ea3ff" if dark else "blue")
+        s.configure("Link.TLabel", background=bg, foreground=link)
         # Buttons and checks
         s.configure("TButton", background=surface, foreground=fg, bordercolor=border)
         s.configure("Large.TButton", background=surface, foreground=fg, bordercolor=border)
