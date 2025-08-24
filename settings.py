@@ -14,6 +14,7 @@ if TYPE_CHECKING:
 class SettingsFile(TypedDict):
     proxy: URL
     language: str
+    dark_mode: bool
     exclude: set[str]
     priority: list[str]
     autostart_tray: bool
@@ -26,6 +27,7 @@ default_settings: SettingsFile = {
     "proxy": URL(),
     "priority": [],
     "exclude": set(),
+    "dark_mode": False,
     "autostart_tray": False,
     "connection_quality": 1,
     "language": DEFAULT_LANG,
@@ -46,6 +48,7 @@ class Settings:
     # from settings file
     proxy: URL
     language: str
+    dark_mode: bool
     exclude: set[str]
     priority: list[str]
     autostart_tray: bool

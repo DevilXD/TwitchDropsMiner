@@ -134,6 +134,7 @@
                 "autostart": "Autostart: ",
                 "tray": "Autostart ins System Tray: ",
                 "priority_only": "Nur Priorität: ",
+                "dark_mode": "Dunkler Modus: ",
                 "proxy": "Proxy (Erfordert Neustart):"
             },
             "game_name": "Spiel",

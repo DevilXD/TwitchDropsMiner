@@ -3,12 +3,12 @@ name: Build
 on:
   push:
     branches:
-      - 'master'
+      - "master"
   pull_request:
   workflow_dispatch:
 
 env:
-  PYTHON_VERSION: '3.10'
+  PYTHON_VERSION: "3.10"
 
 jobs:
   validate:
@@ -267,8 +267,14 @@ jobs:
         with:
           path: artifacts
 
-      - name: Delete the existing pre-release
-        run: gh release delete dev-build --cleanup-tag --yes --repo $GITHUB_REPOSITORY
+      - name: Delete the existing pre-release (if present)
+        run: |
+          TAG=dev-build
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release delete "$TAG" --cleanup-tag --yes --repo "$GITHUB_REPOSITORY"
+          else
+            echo "No $TAG release; skipping delete"
+          fi
         env:
           GITHUB_TOKEN: ${{github.token}}
 

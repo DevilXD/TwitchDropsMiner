@@ -134,6 +134,7 @@
                 "autostart": "开机自启: ",
                 "tray": "开机自启并最小化: ",
                 "tray_notifications": "启用托盘通知: ",
+                "dark_mode": "深色模式: ",
                 "priority_mode": "掉宝模式: ",
                 "proxy": "代理:"
             },

@@ -134,6 +134,7 @@
                 "autostart": "Autostart: ",
                 "tray": "Automatisch starten in het taakbalk: ",
                 "priority_only": "Alleen prioriteit: ",
+                "dark_mode": "Donkere modus: ",
                 "proxy": "Proxy (Vereist opnieuw opstarten):"
             },
             "game_name": "Spel",

@@ -134,6 +134,7 @@
                 "autostart": "Pornire automată :",
                 "tray": "Pornire automată în bara de activități :",
                 "tray_notifications": "Notificări în bara de activități :",
+                "dark_mode": "Mod întunecat :",
                 "priority_only": "Doar cu prioritate :",
                 "proxy": "Proxy (necesită repornire) :"
             },
