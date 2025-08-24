@@ -2058,7 +2058,6 @@ class GUIManager:
 
         # style adjustements
         self._style = style = ttk.Style(root)
-        default_font = nametofont("TkDefaultFont")
         # theme
         theme = ''
         # theme = style.theme_names()[6]
@@ -2090,17 +2089,23 @@ class GUIManager:
         style.configure("green.TLabel", foreground="green")
         style.configure("yellow.TLabel", foreground="goldenrod")
         style.configure("red.TLabel", foreground="red")
+        # fonts
+        default_font = nametofont("TkDefaultFont")
+        self._fonts: dict[str, Font] = {
+            "default": default_font,
+            "large": default_font.copy(),
+            "monospaced": default_font.copy(),
+            "underlined": default_font.copy(),
+        }
+        self._fonts["large"].config(size=10)
+        self._fonts["underlined"].config(underline=True)
+        self._fonts["monospaced"].config(family="Courier New", size=10)
         # label style with a monospace font
-        monospaced_font = Font(root, family="Courier New", size=10)
-        style.configure("MS.TLabel", font=monospaced_font)
+        style.configure("MS.TLabel", font=self._fonts["monospaced"])
         # button style with a larger font
-        large_font = default_font.copy()
-        large_font.config(size=10)
-        style.configure("Large.TButton", font=large_font)
+        style.configure("Large.TButton", font=self._fonts["large"])
         # label style that mimics links
-        link_font = default_font.copy()
-        link_font.config(underline=True)
-        style.configure("Link.TLabel", font=link_font, foreground="blue")
+        style.configure("Link.TLabel", font=self._fonts["underlined"], foreground="blue")
         # end of style changes
 
         root_frame = ttk.Frame(root, padding=8)
@@ -2363,7 +2368,7 @@ class GUIManager:
         s.configure("green.TLabel", background=bg)
         s.configure("yellow.TLabel", background=bg)
         s.configure("red.TLabel", background=bg)
-        s.configure("Link.TLabel", background=bg, foreground=link)
+        s.configure("Link.TLabel", font=self._fonts["underlined"], background=bg, foreground=link)
         # Buttons and checks
         s.configure("TButton", background=surface, foreground=fg, bordercolor=border)
         s.configure("Large.TButton", background=surface, foreground=fg, bordercolor=border)
