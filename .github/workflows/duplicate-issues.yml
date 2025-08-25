@@ -1,0 +1,42 @@
+name: Duplicate Issue Bot
+
+on:
+  issues:
+    types: [opened]
+    
+permissions:
+  issues: write
+
+jobs:
+  check-duplicate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check issue content for duplicates
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const content = (issue.title + " " + issue.body).toLowerCase();
+
+            // Keywords to check
+            const keywords = ["windows defender", "virus"];
+
+            // Fixed duplicate issues list
+            const duplicateMessage = `This issue appears to be about the application being detected as a virus, which has been reported 25+ times already. Please review the listed past issues, and close this issue if it's already been addressed: #741, #503, #137, #13`;
+
+            let matched = false;
+            for (const kw of keywords) {
+              if (content.includes(kw)) {
+                matched = true;
+                break;
+              }
+            }
+
+            if (matched) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: duplicateMessage
+              });
+            }
