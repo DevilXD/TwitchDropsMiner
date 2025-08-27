@@ -134,6 +134,7 @@
                 "autostart": "Ejecutar al iniciar el sistema: ",
                 "tray": "Ejecutar en la bandeja del sistema: ",
                 "tray_notifications": "Mostrar notificaciones: ",
+                "dark_mode": "Modo oscuro: ",
                 "priority_mode": "Modo de prioridad: ",
                 "proxy": "Proxy (requiere reinicio):"
             },
