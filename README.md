@@ -134,6 +134,7 @@ placed past the period character at the end.
 -->
 
 @guihkx - For the CI script, CI maintenance, and everything related to Linux builds.  
+@kWAYTV - For the implementation of the dark mode theme.  
 
 @Bamboozul - For the entirety of the Arabic (العربية) translation.  
 @Suz1e - For the entirety of the Chinese (简体中文) translation and revisions.  
