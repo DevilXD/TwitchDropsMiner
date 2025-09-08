@@ -12,6 +12,9 @@ Available command line arguments:
 • --log
 	Enables logging of runtime information into a 'log.txt' file. Verbosity level of this logging
 	matches the level set by `-v`.
+• --stdlog
+	Enables logging of runtime information to stdout/stderr. Verbosity level of this logging
+	matches the level set by `-v`.
 • --dump
 	Start the application in a data-dump mode, where a 'dump.dat' file is created.
 	The file contains anonymous raw Twitch API data, studying of which can help troubleshoot

@@ -60,6 +60,7 @@ if __name__ == "__main__":
         _debug_ws: bool
         _debug_gql: bool
         log: bool
+        stdlog: bool
         tray: bool
         dump: bool
 
@@ -105,6 +106,7 @@ if __name__ == "__main__":
     parser.add_argument("-v", dest="_verbose", action="count", default=0)
     parser.add_argument("--tray", action="store_true")
     parser.add_argument("--log", action="store_true")
+    parser.add_argument("--stdlog", action="store_true")
     parser.add_argument("--dump", action="store_true")
     # undocumented debug args
     parser.add_argument(
@@ -148,6 +150,15 @@ if __name__ == "__main__":
             handler = logging.FileHandler(LOG_PATH)
             handler.setFormatter(FILE_FORMATTER)
             logger.addHandler(handler)
+        if settings.stdlog:
+            handler_stdout = logging.StreamHandler(sys.stdout)
+            handler_stdout.setFormatter(FILE_FORMATTER)
+            handler_stdout.addFilter(lambda record: record.levelno <= logging.WARNING)
+            logger.addHandler(handler_stdout)
+            handler_stderr = logging.StreamHandler(sys.stderr)
+            handler_stderr.setFormatter(FILE_FORMATTER)
+            handler_stderr.addFilter(lambda record: record.levelno >= logging.ERROR)
+            logger.addHandler(handler_stderr)
         logging.getLogger("TwitchDrops.gql").setLevel(settings.debug_gql)
         logging.getLogger("TwitchDrops.websocket").setLevel(settings.debug_ws)
 
