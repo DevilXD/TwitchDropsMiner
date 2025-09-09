@@ -306,6 +306,15 @@ class Channel:
                 raise MinerException("Error while spade_url extraction: step #2")
         return URLType(match.group(1))
 
+    def _check_drops_enabled(self, available_drops: list[JsonType]) -> bool:
+        return any(
+            (
+                (campaign := self._twitch._campaigns.get(campaign_data["id"])) is not None
+                and campaign.can_earn(self)
+            )
+            for campaign_data in available_drops
+        )
+
     def external_update(self, channel_data: JsonType, available_drops: list[JsonType]):
         """
         Update stream information based on data provided externally.
@@ -317,9 +326,7 @@ class Channel:
             return
         stream = Stream.from_get_stream(self, channel_data)
         if not stream.drops_enabled:
-            stream.drops_enabled = any(
-                bool(campaign["timeBasedDrops"]) for campaign in available_drops
-            )
+            stream.drops_enabled = self._check_drops_enabled(available_drops)
         self._stream = stream
 
     async def get_stream(self) -> Stream | None:
@@ -344,11 +351,8 @@ class Channel:
             except MinerException:
                 logger.log(CALL, f"AvailableDrops GQL call failed for channel: {self._login}")
             else:
-                stream.drops_enabled = any(
-                    bool(campaign["timeBasedDrops"])
-                    for campaign in (
-                        available_drops_campaigns["data"]["channel"]["viewerDropCampaigns"] or []
-                    )
+                stream.drops_enabled = self._check_drops_enabled(
+                    available_drops_campaigns["data"]["channel"]["viewerDropCampaigns"] or []
                 )
         return stream
 
