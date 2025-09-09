@@ -812,9 +812,11 @@ class Twitch:
                 for channel in channels.values():
                     # check if there's any channels we can watch first
                     if self.can_watch(channel):
-                        if (active_drop := self.get_active_drop(channel)) is not None:
+                        if (
+                            (active_campaign := self.get_active_campaign(channel)) is not None
+                            and (active_drop := active_campaign.first_drop) is not None
+                        ):
                             active_drop.display(countdown=False, subone=True)
-                        del active_drop
                         break
                 self.change_state(State.CHANNEL_SWITCH)
                 del (
@@ -914,25 +916,29 @@ class Twitch:
                 except GQLException:
                     drop_data = None
                 if drop_data is not None:
-                    drop = self._drops.get(drop_data["dropID"])
-                    if drop is not None and drop.can_earn(channel):
-                        drop.update_minutes(drop_data["currentMinutesWatched"])
-                        drop_text = (
-                            f"{drop.name} ({drop.campaign.game}, "
-                            f"{drop.current_minutes}/{drop.required_minutes})"
+                    gql_drop: TimedDrop | None = self._drops.get(drop_data["dropID"])
+                    if gql_drop is not None and gql_drop.can_earn(channel):
+                        gql_drop.update_minutes(drop_data["currentMinutesWatched"])
+                        drop_text: str = (
+                            f"{gql_drop.name} ({gql_drop.campaign.game}, "
+                            f"{gql_drop.current_minutes}/{gql_drop.required_minutes})"
                         )
                         logger.log(CALL, f"Drop progress from GQL: {drop_text}")
                         handled = True
 
-                # Solution 2: If GQL fails, figure out which drop we're most likely mining
-                # right now, and then bump up the minutes on that drop
+                # Solution 2: If GQL fails, figure out which campaign we're most likely mining
+                # right now, and then bump up the minutes on it's drops
                 if not handled:
-                    if (drop := self.get_active_drop(channel)) is not None:
-                        drop.bump_minutes()
-                        drop_text = (
-                            f"{drop.name} ({drop.campaign.game}, "
-                            f"{drop.current_minutes}/{drop.required_minutes})"
-                        )
+                    if (active_campaign := self.get_active_campaign(channel)) is not None:
+                        active_campaign.bump_minutes(channel)
+                        # NOTE: This usually gets overwritten below
+                        drop_text = f"Unknown drop ({active_campaign.game})"
+                        if (active_drop := active_campaign.first_drop) is not None:
+                            active_drop.display()
+                            drop_text = (
+                                f"{active_drop.name} ({active_drop.campaign.game}, "
+                                f"{active_drop.current_minutes}/{active_drop.required_minutes})"
+                            )
                         logger.log(CALL, f"Drop progress from active search: {drop_text}")
                         handled = True
                     else:
@@ -1501,28 +1507,20 @@ class Twitch:
             self._mnt_task.cancel()
         self._mnt_task = asyncio.create_task(self._maintenance_task())
 
-    def get_active_drop(self, channel: Channel | None = None) -> TimedDrop | None:
+    def get_active_campaign(self, channel: Channel | None = None) -> DropsCampaign | None:
         if not self.wanted_games:
             return None
         watching_channel = self.watching_channel.get_with_default(channel)
         if watching_channel is None:
             # if we aren't watching anything, we can't earn any drops
             return None
-        watching_game: Game | None = watching_channel.game
-        if watching_game is None:
-            # if the channel isn't playing anything in particular, we can't determine the drop
-            return None
-        drops: list[TimedDrop] = []
+        campaigns: list[DropsCampaign] = []
         for campaign in self.inventory:
-            if (
-                campaign.game == watching_game
-                or campaign.has_badge_or_emote
-                and campaign.can_earn(watching_channel)
-            ):
-                drops.extend(drop for drop in campaign.drops if drop.can_earn(watching_channel))
-        if drops:
-            drops.sort(key=lambda d: d.remaining_minutes)
-            return drops[0]
+            if campaign.can_earn(watching_channel):
+                campaigns.append(campaign)
+        if campaigns:
+            campaigns.sort(key=lambda c: c.remaining_minutes)
+            return campaigns[0]
         return None
 
     async def get_live_streams(

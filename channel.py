@@ -310,7 +310,7 @@ class Channel:
         return any(
             (
                 (campaign := self._twitch._campaigns.get(campaign_data["id"])) is not None
-                and campaign.can_earn(self)
+                and campaign.can_earn(self, ignore_channel_status=True)
             )
             for campaign_data in available_drops
         )

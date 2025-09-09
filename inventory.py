@@ -11,16 +11,15 @@ from datetime import datetime, timedelta, timezone
 
 from translate import _
 from channel import Channel
+from utils import timestamp, Game
 from exceptions import GQLException
-from constants import GQL_OPERATIONS, URLType
-from utils import timestamp, invalidate_cache, Game
+from constants import GQL_OPERATIONS, MAX_EXTRA_MINUTES, URLType, State
 
 if TYPE_CHECKING:
     from collections import abc
 
     from twitch import Twitch
     from constants import JsonType
-    from gui import GUIManager, InventoryOverview
 
 
 logger = logging.getLogger("TwitchDrops")
@@ -100,10 +99,13 @@ class BaseDrop:
             additional = ''
         return f"Drop({self.rewards_text()}{additional})"
 
-    @cached_property
+    @property
     def preconditions_met(self) -> bool:
         campaign = self.campaign
         return all(campaign.timed_drops[pid].is_claimed for pid in self.precondition_drops)
+
+    def _on_state_changed(self) -> None:
+        raise NotImplementedError
 
     def _base_earn_conditions(self) -> bool:
         # define when a drop can be earned or not
@@ -122,14 +124,19 @@ class BaseDrop:
             and self.starts_at <= datetime.now(timezone.utc) < self.ends_at
         )
 
-    def can_earn(self, channel: Channel | None = None) -> bool:
-        return self._base_can_earn() and self.campaign._base_can_earn(channel)
-
-    def can_earn_within(self, stamp: datetime) -> bool:
+    def _can_earn_within(self, stamp: datetime) -> bool:
+        # NOTE: This does not check the campaign's eligibility or active status
         return (
             self._base_earn_conditions()
             and self.ends_at > datetime.now(timezone.utc)
             and self.starts_at < stamp
+        )
+
+    def can_earn(
+        self, channel: Channel | None = None, ignore_channel_status: bool = False
+    ) -> bool:
+        return (
+            self._base_can_earn() and self.campaign._base_can_earn(channel, ignore_channel_status)
         )
 
     @property
@@ -142,9 +149,6 @@ class BaseDrop:
             and not self.is_claimed
             and datetime.now(timezone.utc) < self.campaign.ends_at + timedelta(hours=24)
         )
-
-    def _on_claim(self) -> None:
-        invalidate_cache(self, "preconditions_met")
 
     def update_claim(self, claim_id: str):
         self.claim_id = claim_id
@@ -164,9 +168,6 @@ class BaseDrop:
         result = await self._claim()
         if result:
             self.is_claimed = result
-            # notify the campaign about claiming
-            # this will cause it to call our _on_claim, so no need to call it ourselves here
-            self.campaign._on_claim()
             claim_text = (
                 f"{self.campaign.game.name}\n"
                 f"{self.rewards_text()} "
@@ -208,7 +209,7 @@ class BaseDrop:
                 return False
             elif (
                 data["claimDropRewards"]["status"]
-                in ["ELIGIBLE_FOR_ALL", "DROP_INSTANCE_ALREADY_CLAIMED"]
+                in ("ELIGIBLE_FOR_ALL", "DROP_INSTANCE_ALREADY_CLAIMED")
             ):
                 return True
         return False
@@ -219,13 +220,14 @@ class TimedDrop(BaseDrop):
         self, campaign: DropsCampaign, data: JsonType, claimed_benefits: dict[str, datetime]
     ):
         super().__init__(campaign, data, claimed_benefits)
-        self._manager: GUIManager = self._twitch.gui
-        self._gui_inv: InventoryOverview = self._manager.inv
-        self.current_minutes: int = "self" in data and data["self"]["currentMinutesWatched"] or 0
+        self.real_current_minutes: int = (
+            "self" in data and data["self"]["currentMinutesWatched"] or 0
+        )
         self.required_minutes: int = data["requiredMinutesWatched"]
+        self.extra_current_minutes: int = 0
         if self.is_claimed:
             # claimed drops may report inconsistent current minutes, so we need to overwrite them
-            self.current_minutes = self.required_minutes
+            self.real_current_minutes = self.required_minutes
 
     def __repr__(self) -> str:
         if self.is_claimed:
@@ -240,11 +242,15 @@ class TimedDrop(BaseDrop):
             minutes = ''
         return f"Drop({self.rewards_text()}{minutes}{additional})"
 
-    @cached_property
+    @property
+    def current_minutes(self) -> int:
+        return self.real_current_minutes + self.extra_current_minutes
+
+    @property
     def remaining_minutes(self) -> int:
         return self.required_minutes - self.current_minutes
 
-    @cached_property
+    @property
     def total_required_minutes(self) -> int:
         return self.required_minutes + max(
             (
@@ -254,7 +260,7 @@ class TimedDrop(BaseDrop):
             default=0,
         )
 
-    @cached_property
+    @property
     def total_remaining_minutes(self) -> int:
         return self.remaining_minutes + max(
             (
@@ -264,7 +270,7 @@ class TimedDrop(BaseDrop):
             default=0,
         )
 
-    @cached_property
+    @property
     def progress(self) -> float:
         if self.current_minutes <= 0 or self.required_minutes <= 0:
             return 0.0
@@ -280,45 +286,55 @@ class TimedDrop(BaseDrop):
         return math.inf
 
     def _base_earn_conditions(self) -> bool:
-        return super()._base_earn_conditions() and self.required_minutes > 0
+        return (
+            super()._base_earn_conditions()
+            and self.required_minutes > 0
+            # NOTE: This may be a bad idea, as it invalidates the can_earn status
+            # and provides no way to recover from this state until the next reload.
+            and self.extra_current_minutes < MAX_EXTRA_MINUTES
+        )
 
-    def _on_claim(self) -> None:
-        result = super()._on_claim()
-        self._gui_inv.update_drop(self)
-        return result
+    def _on_state_changed(self) -> None:
+        self._twitch.gui.inv.update_drop(self)
 
-    def _on_minutes_changed(self) -> None:
-        invalidate_cache(self, "progress", "remaining_minutes")
-        self.campaign._on_minutes_changed()
-        self._gui_inv.update_drop(self)
+    def _update_real_minutes(self, delta: int) -> None:
+        if delta == 0 or self.real_current_minutes + delta < 0 or not self.can_earn():
+            return
+        if self.real_current_minutes + delta < self.required_minutes:
+            self.real_current_minutes += delta
+        else:
+            self.real_current_minutes = self.required_minutes
+        self.extra_current_minutes = 0
+        self._on_state_changed()
 
-    def _on_total_minutes_changed(self) -> None:
-        invalidate_cache(self, "total_required_minutes", "total_remaining_minutes")
+    def _bump_minutes(self, channel: Channel | None) -> bool:
+        if self.can_earn(channel):
+            self.extra_current_minutes += 1
+            self._on_state_changed()
+            if self.extra_current_minutes >= MAX_EXTRA_MINUTES:
+                return True
+        return False
 
     async def claim(self) -> bool:
         result = await super().claim()
         if result:
-            self.current_minutes = self.required_minutes
+            self.real_current_minutes = self.required_minutes
+            self.extra_current_minutes = 0
+        self._on_state_changed()
         return result
 
-    def update_minutes(self, minutes: int):
-        if minutes < 0:
-            return
-        elif minutes <= self.required_minutes:
-            self.current_minutes = minutes
-        else:
-            self.current_minutes = self.required_minutes
-        self._on_minutes_changed()
-        self.display()
-
     def display(self, *, countdown: bool = True, subone: bool = False):
-        self._manager.display_drop(self, countdown=countdown, subone=subone)
+        self._twitch.gui.display_drop(self, countdown=countdown, subone=subone)
 
-    def bump_minutes(self):
-        if self.current_minutes < self.required_minutes:
-            self.current_minutes += 1
-            self._on_minutes_changed()
-        self.display()
+    def update_minutes(self, new_minutes: int):
+        delta: int = new_minutes - self.real_current_minutes
+        if delta == 0:
+            return
+        elif self.real_current_minutes + delta < 0:
+            delta = -self.real_current_minutes
+        elif self.real_current_minutes + delta > self.required_minutes:
+            delta = self.required_minutes - self.real_current_minutes
+        self.campaign._update_real_minutes(delta)
 
 
 class DropsCampaign:
@@ -387,33 +403,71 @@ class DropsCampaign:
             benefit.type.is_badge_or_emote() for drop in self.drops for benefit in drop.benefits
         )
 
-    @cached_property
+    @property
     def finished(self) -> bool:
         return all(d.is_claimed or d.required_minutes <= 0 for d in self.drops)
 
-    @cached_property
+    @property
     def claimed_drops(self) -> int:
         return sum(d.is_claimed for d in self.drops)
 
-    @cached_property
+    @property
     def remaining_drops(self) -> int:
         return sum(not d.is_claimed for d in self.drops)
 
-    @cached_property
+    @property
     def required_minutes(self) -> int:
         return max(d.total_required_minutes for d in self.drops)
 
-    @cached_property
+    @property
     def remaining_minutes(self) -> int:
         return max(d.total_remaining_minutes for d in self.drops)
 
-    @cached_property
+    @property
     def progress(self) -> float:
         return sum(d.progress for d in self.drops) / self.total_drops
 
     @property
     def availability(self) -> float:
         return min(d.availability for d in self.drops)
+
+    @property
+    def first_drop(self) -> TimedDrop | None:
+        drops: list[TimedDrop] = sorted(
+            (drop for drop in self.drops if drop.can_earn()),
+            key=lambda d: d.remaining_minutes,
+        )
+        return drops[0] if drops else None
+
+    def _update_real_minutes(self, delta: int) -> None:
+        for drop in self.drops:
+            drop._update_real_minutes(delta)
+        if (first_drop := self.first_drop) is not None:
+            first_drop.display()
+
+    def _base_can_earn(
+        self, channel: Channel | None = None, ignore_channel_status: bool = False
+    ) -> bool:
+        return (
+            self.eligible  # account is eligible
+            and self.active  # campaign is active (and valid)
+            and (
+                channel is None or (  # channel isn't specified,
+                    # or there's no ACL, or the channel is in the ACL
+                    (not self.allowed_channels or channel in self.allowed_channels)
+                    # and the channel is live and playing the campaign's game
+                    and (
+                        ignore_channel_status
+                        or channel.game is not None
+                        and channel.game == self.game
+                        or self.has_badge_or_emote
+                    )
+                )
+            )
+        )
+
+    def get_drop(self, drop_id: str) -> TimedDrop | None:
+        return self.timed_drops.get(drop_id)
 
     def preconditions_chain(self) -> set[str]:
         return set(
@@ -422,30 +476,14 @@ class DropsCampaign:
             )
         )
 
-    def _on_claim(self) -> None:
-        invalidate_cache(self, "finished", "claimed_drops", "remaining_drops")
-        for drop in self.drops:
-            drop._on_claim()
-
-    def _on_minutes_changed(self) -> None:
-        invalidate_cache(self, "progress", "required_minutes", "remaining_minutes")
-        for drop in self.drops:
-            drop._on_total_minutes_changed()
-
-    def get_drop(self, drop_id: str) -> TimedDrop | None:
-        return self.timed_drops.get(drop_id)
-
-    def _base_can_earn(self, channel: Channel | None = None) -> bool:
-        return (
-            self.eligible  # account is eligible
-            and self.active  # campaign is active
-            # channel isn't specified, or there's no ACL, or the channel is in the ACL
-            and (channel is None or not self.allowed_channels or channel in self.allowed_channels)
-        )
-
-    def can_earn(self, channel: Channel | None = None) -> bool:
+    def can_earn(
+        self, channel: Channel | None = None, ignore_channel_status: bool = False
+    ) -> bool:
         # True if any of the containing drops can be earned
-        return self._base_can_earn(channel) and any(drop._base_can_earn() for drop in self.drops)
+        return (
+            self._base_can_earn(channel, ignore_channel_status)
+            and any(drop._base_can_earn() for drop in self.drops)
+        )
 
     def can_earn_within(self, stamp: datetime) -> bool:
         # Same as can_earn, but doesn't check the channel
@@ -455,5 +493,18 @@ class DropsCampaign:
             and self._valid
             and self.ends_at > datetime.now(timezone.utc)
             and self.starts_at < stamp
-            and any(drop.can_earn_within(stamp) for drop in self.drops)
+            and any(drop._can_earn_within(stamp) for drop in self.drops)
         )
+
+    def bump_minutes(self, channel: Channel) -> None:
+        # NOTE: Use a temporary list to ensure all drops are bumped before checking
+        if any([drop._bump_minutes(channel) for drop in self.drops]):
+            # Executes if any drop's extra_current_minutes reach MAX_ESTIMATED_MINUTES
+            # TODO: Figure out a better way to handle this case
+            logger.warning(
+                f"At least one of the drops in campaign \"{self.name}({self.game.name})\" "
+                "has reached the maximum extra minutes limit!"
+            )
+            self._twitch.change_state(State.CHANNEL_SWITCH)
+        if (first_drop := self.first_drop) is not None:
+            first_drop.display()
