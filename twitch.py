@@ -852,7 +852,7 @@ class Twitch:
                     self.watch(new_watching)
                     # break the state change chain by clearing the flag
                     self._state_change.clear()
-                elif watching_channel is not None:
+                elif watching_channel is not None and self.can_watch(watching_channel):
                     # otherwise, continue watching what we had before
                     self.gui.status.update(
                         _("status", "watching").format(channel=watching_channel.name)
