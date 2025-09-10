@@ -1425,6 +1425,10 @@ class Twitch:
             for task in fetch_campaigns_tasks:
                 task.cancel()
             raise
+        # filter out invalid campaigns
+        for campaign_id in list(inventory_data.keys()):
+            if inventory_data[campaign_id]["game"] is None:
+                del inventory_data[campaign_id]
 
         if self.settings.dump:
             # dump the campaigns data to the dump file
