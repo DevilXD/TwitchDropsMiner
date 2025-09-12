@@ -21,6 +21,7 @@ class SettingsFile(TypedDict):
     connection_quality: int
     tray_notifications: bool
     priority_mode: PriorityMode
+    ignore_linked_status: bool
 
 
 default_settings: SettingsFile = {
@@ -33,6 +34,7 @@ default_settings: SettingsFile = {
     "language": DEFAULT_LANG,
     "tray_notifications": True,
     "priority_mode": PriorityMode.PRIORITY_ONLY,
+    "ignore_linked_status": False,
 }
 
 
@@ -55,6 +57,7 @@ class Settings:
     connection_quality: int
     tray_notifications: bool
     priority_mode: PriorityMode
+    ignore_linked_status: bool
 
     PASSTHROUGH = ("_settings", "_args", "_altered")
 

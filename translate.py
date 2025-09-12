@@ -164,6 +164,7 @@ class GUISettingsGeneral(TypedDict):
     dark_mode: str
     priority_mode: str
     proxy: str
+    ignore_linked_status: str
 
 
 class GUIPriorityModes(TypedDict):
@@ -363,6 +364,7 @@ default_translation: Translation = {
                 "tray": "Autostart into tray: ",
                 "tray_notifications": "Tray notifications: ",
                 "dark_mode": "Dark mode: ",
+                "ignore_linked_status": "Override Account Linked Status: ",
                 "priority_mode": "Priority mode: ",
                 "proxy": "Proxy (requires restart):",
             },
