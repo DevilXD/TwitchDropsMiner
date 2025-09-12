@@ -343,7 +343,8 @@ class DropsCampaign:
         self.id: str = data["id"]
         self.name: str = data["name"]
         self.game: Game = Game(data["game"])
-        self.linked: bool = True
+        #self.linked: bool = data["self"]["isAccountConnected"]
+        self.linked: bool = True # workaround for games like borderlands 4, reports accounts always as linked
         self.link_url: str = data["accountLinkURL"]
         # campaign's image actually comes from the game object
         # we use regex to get rid of the dimensions part (ex. ".../game_id-285x380.jpg")
