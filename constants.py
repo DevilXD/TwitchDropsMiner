@@ -384,11 +384,12 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
     # returns live channels for a particular game
     "GameDirectory": GQLOperation(
         "DirectoryPage_Game",
-        "c7c9d5aad09155c4161d2382092dc44610367f3536aac39019ec2582ae5065f9",
+        "98a996c3c3ebb1ba4fd65d6671c6028d7ee8d615cb540b0731b3db2a911d3649",
         variables={
             "limit": 30,  # limit of channels returned
             "slug": ...,  # game slug
             "imageWidth": 50,
+            "includeCostreaming": False,
             "includeIsDJ": False,
             "options": {
                 "broadcasterLanguages": [],
@@ -400,7 +401,6 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
                 "tags": [],
                 "requestID": "JIRA-VXP-2397",
             },
-            "includeIsDJ": False,
             "sortTypeIsRecency": False,
         },
     ),
