@@ -10,6 +10,13 @@ from constants import SETTINGS_PATH, DEFAULT_LANG, PriorityMode
 if TYPE_CHECKING:
     from main import ParsedArgs
 
+def _detect_system_dark_mode() -> bool:
+    try:
+        import darkdetect
+        return darkdetect.isDark()
+    except Exception:
+        return False
+
 
 class SettingsFile(TypedDict):
     proxy: URL
@@ -27,7 +34,7 @@ default_settings: SettingsFile = {
     "proxy": URL(),
     "priority": [],
     "exclude": set(),
-    "dark_mode": False,
+    "dark_mode": _detect_system_dark_mode(),
     "autostart_tray": False,
     "connection_quality": 1,
     "language": DEFAULT_LANG,

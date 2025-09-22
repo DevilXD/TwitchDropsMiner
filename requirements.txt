@@ -1,4 +1,5 @@
 aiohttp>=3.9,<4.0
+darkdetect
 Pillow
 pystray
 PyGObject<3.51; sys_platform == "linux"  # required for better system tray support on Linux
