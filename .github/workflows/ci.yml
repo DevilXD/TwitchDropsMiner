@@ -9,6 +9,7 @@ on:
 
 env:
   PYTHON_VERSION: "3.10"
+  USE_UPX: false
 
 jobs:
   validate:
@@ -72,7 +73,10 @@ jobs:
           python3 -m pip install wheel
           python3 -m pip install -r requirements.txt
 
+      # TODO: Consider using https://github.com/crazy-max/ghaction-upx
+      # or some other way of keeping the download link up to date in the future
       - name: Install UPX
+        if: env.USE_UPX == 'true'
         run: |
           Invoke-WebRequest -Uri https://github.com/upx/upx/releases/download/v5.0.2/upx-5.0.2-win64.zip -OutFile (Join-Path $env:Temp upx.zip)
           Expand-Archive -LiteralPath (Join-Path $env:Temp upx.zip) -DestinationPath $env:Temp
