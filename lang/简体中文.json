@@ -20,9 +20,9 @@
         "error_code": "登录出错: {error_code}",
         "incorrect_login_pass": "用户名或密码错误。",
         "incorrect_email_code": "电子邮箱验证码错误。",
-        "incorrect_twofa_code": "2FA两步验证码错误。",
+        "incorrect_twofa_code": "2FA双重验证码错误。",
         "email_code_required": "需要电子邮件验证码，请检查您的邮箱。",
-        "twofa_code_required": "需要2FA两步验证码。"
+        "twofa_code_required": "需要2FA双重验证码。"
     },
     "error": {
         "captcha": "您的操作存在异常，已被Twitch官方限制登录，请在12小时后重试。",
