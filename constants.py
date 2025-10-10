@@ -390,7 +390,6 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
             "slug": ...,  # game slug
             "imageWidth": 50,
             "includeCostreaming": False,
-            "includeIsDJ": False,
             "options": {
                 "broadcasterLanguages": [],
                 "freeformTags": None,
