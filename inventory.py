@@ -458,9 +458,7 @@ class DropsCampaign:
                     # and the channel is live and playing the campaign's game
                     and (
                         ignore_channel_status
-                        or channel.game is not None
-                        and channel.game == self.game
-                        or self.has_badge_or_emote
+                        or channel.game is not None and channel.game == self.game
                     )
                 )
             )
