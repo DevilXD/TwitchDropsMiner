@@ -1779,6 +1779,8 @@ class SettingsPanel:
 
     def update_priority_randomize(self) -> None:
         self._settings.priority_randomize = bool(self._vars["priority_randomize"].get())
+        # Trigger immediate channel switch to apply randomization
+        self._manager._twitch.change_state(State.CHANNEL_SWITCH)
 
     def _get_self_path(self) -> str:
         # NOTE: we need double quotes in case the path contains spaces
