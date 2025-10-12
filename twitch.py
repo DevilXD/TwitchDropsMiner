@@ -844,7 +844,26 @@ class Twitch:
                     # for a switch (including the watching one)
                     # NOTE: we need to sort the channels every time because one channel
                     # can end up streaming any game - channels aren't game-tied
-                    for channel in sorted(channels.values(), key=self.get_priority):
+                    channel_list = list(channels.values())
+                    if self.settings.priority_randomize:
+                        # Randomize channel selection within priority groups
+                        import random
+                        # Group channels by priority
+                        priority_groups: dict[int, list[Channel]] = {}
+                        for channel in channel_list:
+                            priority = self.get_priority(channel)
+                            if priority not in priority_groups:
+                                priority_groups[priority] = []
+                            priority_groups[priority].append(channel)
+                        # Randomize within each group and flatten
+                        channel_list = []
+                        for priority in sorted(priority_groups.keys()):
+                            group = priority_groups[priority]
+                            random.shuffle(group)
+                            channel_list.extend(group)
+                    else:
+                        channel_list = sorted(channel_list, key=self.get_priority)
+                    for channel in channel_list:
                         if self.can_watch(channel) and self.should_switch(channel):
                             new_watching = channel
                             break

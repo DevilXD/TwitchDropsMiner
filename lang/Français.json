@@ -136,6 +136,7 @@
                 "tray_notifications": "Notifications dans la barre des tâches :",
                 "dark_mode": "Mode sombre : ",
                 "priority_mode": "Mode de priorité :",
+                "priority_randomize": "Randomiseur de chaînes prioritaires :",
                 "proxy": "Proxy (nécessite un redémarrage) :"
             },
             "priority_modes": {

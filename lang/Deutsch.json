@@ -131,11 +131,13 @@
         "settings": {
             "general": {
                 "name": "Allgemein",
-                "autostart": "Autostart: ",
-                "tray": "Autostart ins System Tray: ",
-                "priority_only": "Nur Priorität: ",
-                "dark_mode": "Dunkler Modus: ",
-                "proxy": "Proxy (Erfordert Neustart):"
+                "autostart": "Autostart:",
+                "tray": "Autostart in Taskleiste:",
+                "tray_notifications": "Benachrichtigungen in der Taskleiste:",
+                "dark_mode": "Dunkler Modus:",
+                "priority_mode": "Prioritätsmodus:",
+                "priority_randomize": "Prioritätskanal-Randomisierer:",
+                "proxy": "Proxy (erfordert Neustart):"
             },
             "game_name": "Spiel",
             "priority": "Priorität",

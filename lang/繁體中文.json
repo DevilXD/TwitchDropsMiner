@@ -130,12 +130,13 @@
         },
         "settings": {
             "general": {
-                "name": "基本設定",
-                "autostart": "開機時自動啟動：",
-                "tray": "開機時以最小化自動啟動：",
-                "tray_notifications": "啟用系統列通知：",
+                "name": "一般",
+                "autostart": "開機自動啟動：",
+                "tray": "自動啟動到系統匣：",
+                "tray_notifications": "系統匣通知：",
                 "dark_mode": "深色模式：",
-                "priority_mode": "掉寶模式：",
+                "priority_mode": "優先模式：",
+                "priority_randomize": "優先頻道隨機化：",
                 "proxy": "代理伺服器（需要重新啟動）："
             },
             "priority_modes": {

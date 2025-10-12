@@ -1553,6 +1553,7 @@ class _SettingsVars(TypedDict):
     language: StringVar
     priority_mode: StringVar
     tray_notifications: IntVar
+    priority_randomize: IntVar
 
 
 class SettingsPanel:
@@ -1586,6 +1587,7 @@ class SettingsPanel:
             "dark_mode": IntVar(master, int(self._settings.dark_mode)),
             "priority_mode": StringVar(master, self.PRIORITY_MODES[priority_mode]),
             "tray_notifications": IntVar(master, self._settings.tray_notifications),
+            "priority_randomize": IntVar(master, int(self._settings.priority_randomize)),
         }
         self._game_names: set[str] = set()
         master.rowconfigure(0, weight=1)
@@ -1655,6 +1657,14 @@ class SettingsPanel:
             command=self.priority_mode,
             textvariable=self._vars["priority_mode"],
             values=list(self.PRIORITY_MODES.values()),
+        ).grid(column=1, row=irow, sticky="w")
+        ttk.Label(
+            checkboxes_frame, text=_("gui", "settings", "general", "priority_randomize")
+        ).grid(column=0, row=(irow := irow + 1), sticky="e")
+        ttk.Checkbutton(
+            checkboxes_frame,
+            variable=self._vars["priority_randomize"],
+            command=self.update_priority_randomize,
         ).grid(column=1, row=irow, sticky="w")
 
         # proxy frame
@@ -1766,6 +1776,9 @@ class SettingsPanel:
 
     def update_notifications(self) -> None:
         self._settings.tray_notifications = bool(self._vars["tray_notifications"].get())
+
+    def update_priority_randomize(self) -> None:
+        self._settings.priority_randomize = bool(self._vars["priority_randomize"].get())
 
     def _get_self_path(self) -> str:
         # NOTE: we need double quotes in case the path contains spaces
