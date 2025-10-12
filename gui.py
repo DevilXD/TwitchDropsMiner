@@ -1779,6 +1779,7 @@ class SettingsPanel:
 
     def update_priority_randomize(self) -> None:
         self._settings.priority_randomize = bool(self._vars["priority_randomize"].get())
+        self._settings.alter()
         # Trigger immediate channel switch to apply randomization
         self._manager._twitch.change_state(State.CHANNEL_SWITCH)
 

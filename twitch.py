@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import random
 import asyncio
 import logging
 from time import time
@@ -847,7 +848,6 @@ class Twitch:
                     channel_list = list(channels.values())
                     if self.settings.priority_randomize:
                         # Randomize channel selection within priority groups
-                        import random
                         # Group channels by priority
                         priority_groups: dict[int, list[Channel]] = {}
                         for channel in channel_list:
@@ -1022,6 +1022,9 @@ class Twitch:
             return True
         channel_order = self.get_priority(channel)
         watching_order = self.get_priority(watching_channel)
+        # When randomization is enabled, allow switching to any channel in same or better priority
+        if self.settings.priority_randomize and channel_order <= watching_order:
+            return True
         return (
             # this channel's game is higher order than the watching one's
             channel_order < watching_order
