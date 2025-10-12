@@ -163,6 +163,7 @@ class GUISettingsGeneral(TypedDict):
     tray_notifications: str
     dark_mode: str
     priority_mode: str
+    priority_randomize: str
     proxy: str
 
 
@@ -364,6 +365,7 @@ default_translation: Translation = {
                 "tray_notifications": "Tray notifications: ",
                 "dark_mode": "Dark mode: ",
                 "priority_mode": "Priority mode: ",
+                "priority_randomize": "Priority Channel Randomizer: ",
                 "proxy": "Proxy (requires restart):",
             },
             "priority_modes": {
