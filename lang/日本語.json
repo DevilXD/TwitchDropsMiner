@@ -136,6 +136,7 @@
         "tray_notifications": "トレイ通知：",
         "dark_mode": "ダークモード：",
         "priority_only": "優先のみ：",
+        "priority_randomize": "優先チャンネルランダマイザー：",
         "proxy": "プロキシ（再起動が必要）："
       },
       "game_name": "ゲーム名",

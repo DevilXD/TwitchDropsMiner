@@ -136,6 +136,7 @@
                 "tray_notifications": "Powiadomienia z zasobnika: ",
                 "dark_mode": "Tryb ciemny: ",
                 "priority_mode": "Tryb priorytetu: ",
+                "priority_randomize": "Losowanie kanałów priorytetowych: ",
                 "proxy": "Proxy (wymaga restartu):"
             },
             "priority_modes": {

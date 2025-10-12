@@ -136,6 +136,7 @@
                 "tray_notifications": "Notificações: ",
                 "dark_mode": "Modo escuro: ",
                 "priority_only": "Apenas com prioridade: ",
+                "priority_randomize": "Aleatorizador de canais prioritários: ",
                 "proxy": "Proxy (requer o reinício do app):"
             },
             "game_name": "Nome do jogo",

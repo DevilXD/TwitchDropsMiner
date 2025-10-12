@@ -135,6 +135,7 @@
                 "tray": "Automatisk start i systembakken: ",
                 "tray_notifications": "Bakkemeddelelser: ",
                 "priority_only": "Kun prioritet: ",
+                "priority_randomize": "Prioritetskanal randomisering: ",
                 "dark_mode": "Mørk tilstand: ",
                 "proxy": "Proxy (kræver genstart):"
             },

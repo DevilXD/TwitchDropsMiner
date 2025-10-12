@@ -136,6 +136,7 @@
                 "tray_notifications": "Notificări în bara de activități :",
                 "dark_mode": "Mod întunecat :",
                 "priority_only": "Doar cu prioritate :",
+                "priority_randomize": "Randomizator de canale prioritare :",
                 "proxy": "Proxy (necesită repornire) :"
             },
             "game_name": "Nume joc",

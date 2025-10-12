@@ -134,6 +134,7 @@
                 "autostart": "Otomatik başlatma: ",
                 "tray": "Sistem tepsisine otomatik başlatma: ",
                 "priority_only": "Yalnızca öncelik: ",
+                "priority_randomize": "Öncelik kanal rastgeleleştirici: ",
                 "dark_mode": "Karanlık mod: ",
                 "proxy": "Proxy (Yeniden başlatma gerektirir):"
             },

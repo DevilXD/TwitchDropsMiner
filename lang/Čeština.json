@@ -128,6 +128,7 @@
                 "tray": "Automaticky spusti minimalizovaně: ",
                 "priority_only": "Pouze prioritní: ",
                 "dark_mode": "Tmavý režim: ",
+                "priority_randomize": "Náhodný výběr prioritních kanálů: ",
                 "proxy": "Proxy:"
             },
             "game_name": "Název Hry",

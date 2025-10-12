@@ -136,6 +136,7 @@
                 "tray_notifications": "Notifiche: ",
                 "dark_mode": "Modalità scura: ",
                 "priority_only": "Solo priorità: ",
+                "priority_randomize": "Randomizzatore di canali prioritari: ",
                 "proxy": "Proxy (richiede il riavvio):"
             },
             "game_name": "Nome del gioco",

@@ -136,6 +136,7 @@
                 "tray_notifications": "启用托盘通知: ",
                 "dark_mode": "深色模式: ",
                 "priority_mode": "掉宝模式: ",
+                "priority_randomize": "优先频道随机化: ",
                 "proxy": "代理:"
             },
             "priority_modes": {

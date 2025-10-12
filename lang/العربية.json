@@ -136,6 +136,7 @@
                 "tray_notifications": "إشعارات الدرج  ",
                 "dark_mode": "الوضع الداكن: ",
                 "priority_only": "الأولوية فقط  ",
+                "priority_randomize": "عشوائية قنوات الأولوية  ",
                 "proxy": "بروكسي (يتطلب إعادة التشغيل) "
             },
             "game_name": "اسم اللعبة",
