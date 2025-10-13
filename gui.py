@@ -403,7 +403,10 @@ class SelectCombobox(ttk.Combobox):
         **kwargs,
     ) -> None:
         if width is None:
-            width = max(len(v) for v in values)
+            font = Font(master, ttk.Style().lookup("TCombobox", "font"))
+            # font.measure returns width in pixels, using '0' as the average character,
+            # which is 6 pixels wide. We can convert it to width in characters by dividing.
+            width = max(font.measure(v) // 6 + 1 for v in values)
         width += width_offset
         super().__init__(
             master,

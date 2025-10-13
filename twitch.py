@@ -987,12 +987,10 @@ class Twitch:
         if not channel.online or not channel.drops_enabled:
             return False
         # check if we can progress any campaign for the played game
-        channel_game_valid: bool = channel.game is not None and channel.game in self.wanted_games
+        if channel.game is None or channel.game not in self.wanted_games:
+            return False
         for campaign in self.inventory:
-            if (
-                campaign.can_earn(channel)
-                and (channel_game_valid or campaign.has_badge_or_emote)
-            ):
+            if campaign.can_earn(channel):
                 return True
         return False
 
