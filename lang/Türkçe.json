@@ -5,7 +5,7 @@
         "watching": "{channel} izleniyor",
         "goes_online": "{channel} ÇEVRİM İÇİ oldu, geçiş yapılıyor...",
         "goes_offline": "{channel} ÇEVRİM DIŞI oldu, geçiş yapılıyor...",
-        "claimed_drop": "Alınan ödül: {drop}}",
+        "claimed_drop": "Alınan ödül: {drop}",
         "no_channel": "İzlenebilecek kanal yok. ÇEVRİM İÇİ kanal bekleniyor...",
         "no_campaign": "Ödül madenciliği için aktif kampanya yok. Aktif bir kampanya bekleniyor..."
     },
