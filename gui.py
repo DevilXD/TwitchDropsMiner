@@ -1812,7 +1812,7 @@ class SettingsPanel:
                 return False
             with autostart_file.open('r', encoding="utf8") as file:
                 # TODO: Consider deleting the old file to avoid autostart errors
-                return self._get_self_path() not in file.read()
+                return self._get_self_path() in file.read()
 
     def update_autostart(self) -> None:
         enabled = bool(self._vars["autostart"].get())
