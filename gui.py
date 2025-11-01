@@ -32,6 +32,7 @@ from translate import _
 from cache import ImageCache
 from exceptions import MinerException, ExitRequest
 from utils import resource_path, set_root_icon, webopen, Game, _T
+import constants
 from constants import (
     SELF_PATH,
     IS_PACKAGED,
@@ -44,8 +45,6 @@ from constants import (
     State,
     PriorityMode,
 )
-if sys.platform == "win32":
-    from registry import RegistryKey, ValueType, ValueNotFound
 
 
 if TYPE_CHECKING:
@@ -1796,15 +1795,20 @@ class SettingsPanel:
 
     def _query_autostart(self) -> bool:
         if sys.platform == "win32":
+            from registry import RegistryKey, ValueType, ValueNotFound
             with RegistryKey(self.AUTOSTART_KEY, read_only=True) as key:
                 try:
                     value_type, value = key.get(self.AUTOSTART_NAME)
                 except ValueNotFound:
                     return False
                 # TODO: Consider deleting the old value to avoid autostart errors
+                path_to_check = self._get_self_path()
+                if not constants.IS_PACKAGED:
+                    # In dev environment, the path is not quoted, and is part of a larger command
+                    path_to_check = str(constants.SELF_PATH.resolve())
                 return (
                     value_type is ValueType.REG_SZ
-                    and self._get_self_path() in value
+                    and path_to_check in value
                 )
         elif sys.platform == "linux":
             autostart_file: Path = self._get_linux_autostart_filepath()
@@ -1818,6 +1822,7 @@ class SettingsPanel:
         enabled = bool(self._vars["autostart"].get())
         self._settings.autostart_tray = bool(self._vars["tray"].get())
         if sys.platform == "win32":
+            from registry import RegistryKey, ValueType
             if enabled:
                 with RegistryKey(self.AUTOSTART_KEY) as key:
                     key.set(
