@@ -1553,6 +1553,8 @@ class _SettingsVars(TypedDict):
     language: StringVar
     priority_mode: StringVar
     tray_notifications: IntVar
+    enable_badges_emotes: IntVar
+    available_drops_check: IntVar
 
 
 class SettingsPanel:
@@ -1586,6 +1588,12 @@ class SettingsPanel:
             "dark_mode": IntVar(master, int(self._settings.dark_mode)),
             "priority_mode": StringVar(master, self.PRIORITY_MODES[priority_mode]),
             "tray_notifications": IntVar(master, self._settings.tray_notifications),
+            "enable_badges_emotes": IntVar(
+                master, int(self._settings.enable_badges_emotes)
+            ),
+            "available_drops_check": IntVar(
+                master, int(self._settings.available_drops_check)
+            ),
         }
         self._game_names: set[str] = set()
         master.rowconfigure(0, weight=1)
@@ -1593,6 +1601,7 @@ class SettingsPanel:
         # use a frame to center the content within the tab
         center_frame = ttk.Frame(master)
         center_frame.grid(column=0, row=0)
+
         # General section
         general_frame = ttk.LabelFrame(
             center_frame, padding=(4, 0, 4, 4), text=_("gui", "settings", "general", "name")
@@ -1602,11 +1611,11 @@ class SettingsPanel:
         # NOTE: this can be adjusted or removed later on if more options were to be added
         general_frame.rowconfigure(0, weight=1)
         general_frame.columnconfigure(0, weight=1)
-        center_frame2 = ttk.Frame(general_frame)
-        center_frame2.grid(column=0, row=0)
+        general_center = ttk.Frame(general_frame)
+        general_center.grid(column=0, row=0)
 
         # language frame
-        language_frame = ttk.Frame(center_frame2)
+        language_frame = ttk.Frame(general_center)
         language_frame.grid(column=0, row=0)
         ttk.Label(language_frame, text="Language 🌐 (requires restart): ").grid(column=0, row=0)
         SelectCombobox(
@@ -1617,7 +1626,7 @@ class SettingsPanel:
         ).grid(column=1, row=0)
 
         # checkboxes frame
-        checkboxes_frame = ttk.Frame(center_frame2)
+        checkboxes_frame = ttk.Frame(general_center)
         checkboxes_frame.grid(column=0, row=1)
         ttk.Label(
             checkboxes_frame, text=_("gui", "settings", "general", "autostart")
@@ -1637,7 +1646,9 @@ class SettingsPanel:
         ttk.Checkbutton(
             checkboxes_frame,
             variable=self._vars["tray_notifications"],
-            command=self.update_notifications,
+            command=lambda: setattr(
+                self._settings, "tray_notifications", bool(self._vars["tray_notifications"].get())
+            ),
         ).grid(column=1, row=irow, sticky="w")
         ttk.Label(
             checkboxes_frame, text=_("gui", "settings", "general", "dark_mode")
@@ -1658,7 +1669,7 @@ class SettingsPanel:
         ).grid(column=1, row=irow, sticky="w")
 
         # proxy frame
-        proxy_frame = ttk.Frame(center_frame2)
+        proxy_frame = ttk.Frame(general_center)
         proxy_frame.grid(column=0, row=2)
         ttk.Label(proxy_frame, text=_("gui", "settings", "general", "proxy")).grid(column=0, row=0)
         self._proxy = PlaceholderEntry(
@@ -1671,11 +1682,48 @@ class SettingsPanel:
         )
         self._proxy.config(validatecommand=partial(proxy_validate, self._proxy, self._settings))
         self._proxy.grid(column=0, row=1)
+
+        # Advanced section
+        advanced_frame = ttk.LabelFrame(
+            center_frame, padding=(4, 0, 4, 4), text=_("gui", "settings", "advanced", "name")
+        )
+        advanced_frame.grid(column=0, row=1, sticky="nsew")
+        advanced_frame.columnconfigure(0, weight=1)
+        advanced_frame.rowconfigure(0, weight=1)
+        advanced_center = ttk.Frame(advanced_frame)
+        advanced_center.grid(column=0, row=0)
+
+        # Toggles for badges and emotes, and available drops check
+        ttk.Label(
+            advanced_center, text=_("gui", "settings", "advanced", "enable_badges_emotes")
+        ).grid(column=0, row=(irow := 0), sticky="e")
+        ttk.Checkbutton(
+            advanced_center,
+            variable=self._vars["enable_badges_emotes"],
+            command=lambda: setattr(
+                self._settings,
+                "enable_badges_emotes",
+                bool(self._vars["enable_badges_emotes"].get()),
+            ),
+        ).grid(column=1, row=irow, sticky="w")
+        ttk.Label(
+            advanced_center, text=_("gui", "settings", "advanced", "available_drops_check")
+        ).grid(column=0, row=(irow := irow + 1), sticky="e")
+        ttk.Checkbutton(
+            advanced_center,
+            variable=self._vars["available_drops_check"],
+            command=lambda: setattr(
+                self._settings,
+                "available_drops_check",
+                bool(self._vars["available_drops_check"].get()),
+            ),
+        ).grid(column=1, row=irow, sticky="w")
+
         # Priority section
         priority_frame = ttk.LabelFrame(
             center_frame, padding=(4, 0, 4, 4), text=_("gui", "settings", "priority")
         )
-        priority_frame.grid(column=1, row=0, sticky="nsew")
+        priority_frame.grid(column=1, row=0, rowspan=2, sticky="nsew")
         self._priority_entry = PlaceholderCombobox(
             priority_frame, placeholder=_("gui", "settings", "game_name"), width=30
         )
@@ -1686,7 +1734,7 @@ class SettingsPanel:
         ).grid(column=1, row=0)
         self._priority_list = PaddedListbox(
             priority_frame,
-            height=10,
+            height=12,
             padding=(1, 0),
             activestyle="none",
             selectmode="single",
@@ -1715,11 +1763,12 @@ class SettingsPanel:
             priority_frame, text="❌", command=self.priority_delete, width=3, style="Large.TButton"
         ).grid(column=1, row=3, sticky="ns")
         priority_frame.rowconfigure(3, weight=1)
+
         # Exclude section
         exclude_frame = ttk.LabelFrame(
             center_frame, padding=(4, 0, 4, 4), text=_("gui", "settings", "exclude")
         )
-        exclude_frame.grid(column=2, row=0, sticky="nsew")
+        exclude_frame.grid(column=2, row=0, rowspan=2, sticky="nsew")
         self._exclude_entry = PlaceholderCombobox(
             exclude_frame, placeholder=_("gui", "settings", "game_name"), width=26
         )
@@ -1729,7 +1778,7 @@ class SettingsPanel:
         ).grid(column=1, row=0)
         self._exclude_list = PaddedListbox(
             exclude_frame,
-            height=10,
+            height=12,
             padding=(1, 0),
             activestyle="none",
             selectmode="single",
@@ -1743,9 +1792,10 @@ class SettingsPanel:
         ttk.Button(
             exclude_frame, text="❌", command=self.exclude_delete, width=3, style="Large.TButton"
         ).grid(column=0, row=2, columnspan=2, sticky="ew")
+
         # Reload button
         reload_frame = ttk.Frame(center_frame)
-        reload_frame.grid(column=0, row=1, columnspan=3, pady=4)
+        reload_frame.grid(column=0, row=2, columnspan=3, pady=4)
         ttk.Label(reload_frame, text=_("gui", "settings", "reload_text")).grid(column=0, row=0)
         ttk.Button(
             reload_frame,
@@ -1761,11 +1811,7 @@ class SettingsPanel:
 
     def update_dark_mode(self) -> None:
         self._settings.dark_mode = bool(self._vars["dark_mode"].get())
-        self._settings.alter()
         self._manager.apply_theme(self._settings.dark_mode)
-
-    def update_notifications(self) -> None:
-        self._settings.tray_notifications = bool(self._vars["tray_notifications"].get())
 
     def _get_self_path(self) -> str:
         # NOTE: we need double quotes in case the path contains spaces
@@ -2629,6 +2675,8 @@ if __name__ == "__main__":
                 autostart_tray=False,
                 exclude={"Lit Game"},
                 tray_notifications=True,
+                enable_badges_emotes=False,
+                available_drops_check=False,
                 logging_level=LOGGING_LEVELS[0],
                 priority_mode=PriorityMode.PRIORITY_ONLY,
             )
