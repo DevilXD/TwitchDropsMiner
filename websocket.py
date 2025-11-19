@@ -14,6 +14,7 @@ from exceptions import MinerException, WebsocketClosed
 from constants import PING_INTERVAL, PING_TIMEOUT, MAX_WEBSOCKETS, WS_TOPICS_LIMIT
 from utils import (
     CHARS_ASCII,
+    chunk,
     task_wrapper,
     create_nonce,
     json_minify,
@@ -210,30 +211,32 @@ class Websocket:
         if removed:
             topics_list = list(map(str, removed))
             ws_logger.debug(f"Websocket[{self._idx}]: Removing topics: {', '.join(topics_list)}")
-            await self.send(
-                {
-                    "type": "UNLISTEN",
-                    "data": {
-                        "topics": topics_list,
-                        "auth_token": auth_state.access_token,
+            for topics in chunk(topics_list, 20):
+                await self.send(
+                    {
+                        "type": "UNLISTEN",
+                        "data": {
+                            "topics": topics,
+                            "auth_token": auth_state.access_token,
+                        }
                     }
-                }
-            )
+                )
             self._submitted.difference_update(removed)
         # handle added topics
         added = current.difference(self._submitted)
         if added:
             topics_list = list(map(str, added))
             ws_logger.debug(f"Websocket[{self._idx}]: Adding topics: {', '.join(topics_list)}")
-            await self.send(
-                {
-                    "type": "LISTEN",
-                    "data": {
-                        "topics": topics_list,
-                        "auth_token": auth_state.access_token,
+            for topics in chunk(topics_list, 20):
+                await self.send(
+                    {
+                        "type": "LISTEN",
+                        "data": {
+                            "topics": topics,
+                            "auth_token": auth_state.access_token,
+                        }
                     }
-                }
-            )
+                )
             self._submitted.update(added)
 
     async def _gather_recv(self, messages: list[JsonType], timeout: float = 0.5):
