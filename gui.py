@@ -1693,10 +1693,19 @@ class SettingsPanel:
         advanced_center = ttk.Frame(advanced_frame)
         advanced_center.grid(column=0, row=0)
 
+        # Warning message
+        ttk.Label(
+            advanced_center, text=_("gui", "settings", "advanced", "warning"), foreground="red"
+        ).grid(column=0, row=(irow := 0), columnspan=2)
+        ttk.Label(
+            advanced_center,
+            text=_("gui", "settings", "advanced", "warning_text"),
+            foreground="goldenrod",
+        ).grid(column=0, row=(irow := irow + 1), columnspan=2)
         # Toggles for badges and emotes, and available drops check
         ttk.Label(
             advanced_center, text=_("gui", "settings", "advanced", "enable_badges_emotes")
-        ).grid(column=0, row=(irow := 0), sticky="e")
+        ).grid(column=0, row=(irow := irow + 1), sticky="e")
         ttk.Checkbutton(
             advanced_center,
             variable=self._vars["enable_badges_emotes"],
