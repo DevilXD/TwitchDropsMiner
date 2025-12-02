@@ -40,6 +40,7 @@ from utils import (
     AwaitableValue,
     ExponentialBackoff,
 )
+from secure_cookies import load_cookie_jar, save_cookie_jar
 from constants import (
     CALL,
     MAX_INT,
@@ -413,7 +414,7 @@ class _AuthState:
             login_form.update(_("gui", "login", "logged_in"), self.user_id)
             # update our cookie and save it
             jar.update_cookies(cookie, client_info.CLIENT_URL)
-            jar.save(COOKIES_PATH)
+            save_cookie_jar(COOKIES_PATH, jar)
         self._logged_in.set()
 
     def invalidate(self):
@@ -457,13 +458,7 @@ class Twitch:
             return session
         # load in cookies
         cookie_jar = aiohttp.CookieJar()
-        try:
-            if COOKIES_PATH.exists():
-                cookie_jar.load(COOKIES_PATH)
-        except Exception:
-            # if loading in the cookies file ends up in an error, just ignore it
-            # clear the jar, just in case
-            cookie_jar.clear()
+        loaded_plaintext = load_cookie_jar(COOKIES_PATH, cookie_jar)
         # create timeouts
         # connection quality mulitiplier determines the magnitude of timeouts
         connection_quality = self.settings.connection_quality
@@ -483,6 +478,9 @@ class Twitch:
             cookie_jar=cookie_jar,
             headers={"User-Agent": self._client_type.USER_AGENT},
         )
+        if loaded_plaintext:
+            # Re-encrypt legacy plaintext cookies ASAP for Windows users.
+            save_cookie_jar(COOKIES_PATH, cookie_jar)
         return self._session
 
     async def shutdown(self) -> None:
@@ -504,7 +502,7 @@ class Twitch:
             for cookie_key, cookie in list(cookie_jar._cookies.items()):
                 if not cookie:
                     del cookie_jar._cookies[cookie_key]
-            cookie_jar.save(COOKIES_PATH)
+            save_cookie_jar(COOKIES_PATH, cookie_jar)
             await self._session.close()
             self._session = None
         self._drops.clear()
@@ -545,11 +543,11 @@ class Twitch:
         """
         self.gui.prevent_close()
 
-    def print(self, message: str):
+    def print(self, message: str, *, level: int | None = None, tag: str | None = None):
         """
         Can be used to print messages within the GUI.
         """
-        self.gui.print(message)
+        self.gui.print(message, level=level, tag=tag)
 
     def save(self, *, force: bool = False) -> None:
         """

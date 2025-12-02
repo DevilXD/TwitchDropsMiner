@@ -176,7 +176,8 @@ class BaseDrop:
             # two different claim texts, becase a new line after the game name
             # looks ugly in the output window - replace it with a space
             self._twitch.print(
-                _("status", "claimed_drop").format(drop=claim_text.replace('\n', ' '))
+                _("status", "claimed_drop").format(drop=claim_text.replace('\n', ' ')),
+                tag="claim",
             )
             self._twitch.gui.tray.notify(claim_text, _("gui", "tray", "notification_title"))
         else:

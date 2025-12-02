@@ -70,7 +70,7 @@ class _TKOutputHandler(logging.Handler):
         self._output = output
 
     def emit(self, record):
-        self._output.print(self.format(record))
+        self._output.print(self.format(record), level=record.levelno)
 
 
 class PlaceholderEntry(ttk.Entry):
@@ -792,6 +792,14 @@ class CampaignProgress:
 
 
 class ConsoleOutput:
+    _TAG_COLORS: dict[str, str] = {
+        "claim": "#22a559",
+        "error": "#d14343",
+        "warning": "#e6891d",
+        "info": "#3b82f6",
+        "debug": "#7c8ea5",
+    }
+
     def __init__(self, manager: GUIManager, master: ttk.Widget):
         frame = ttk.LabelFrame(master, text=_("gui", "output"), padding=(4, 0, 4, 4))
         frame.grid(column=0, row=3, columnspan=3, sticky="nsew", padx=2)
@@ -816,13 +824,50 @@ class ConsoleOutput:
         self._text.grid(column=0, row=0, sticky="nsew")
         xscroll.grid(column=0, row=1, sticky="ew")
         yscroll.grid(column=1, row=0, sticky="ns")
+        self._claim_keywords = self._build_claim_keywords()
+        self._configure_tags()
 
-    def print(self, message: str):
+    def _configure_tags(self):
+        for tag, color in self._TAG_COLORS.items():
+            self._text.tag_configure(tag, foreground=color)
+
+    def _build_claim_keywords(self) -> list[str]:
+        claim_template = _("status", "claimed_drop")
+        marker = claim_template.split("{drop}")[0].strip().lower()
+        keywords = ["claimed drop"]
+        if marker:
+            keywords.append(marker)
+        return keywords
+
+    def _choose_tag(self, level: int | None, tag: str | None, message: str) -> str | None:
+        if tag in self._TAG_COLORS:
+            return tag
+        if level is not None:
+            if level >= logging.ERROR:
+                return "error"
+            if level >= logging.WARNING:
+                return "warning"
+            if level >= logging.INFO:
+                return "info"
+            return "debug"
+        lowered = message.lower()
+        if any(keyword in lowered for keyword in self._claim_keywords):
+            return "claim"
+        return None
+
+    def print(self, message: str, *, level: int | None = None, tag: str | None = None):
         stamp = datetime.now().strftime("%X")
         if '\n' in message:
             message = message.replace('\n', f"\n{stamp}: ")
+        if level is None and tag is None:
+            level = logging.INFO
         self._text.config(state="normal")
-        self._text.insert("end", f"{stamp}: {message}\n")
+        chosen_tag = self._choose_tag(level, tag, message)
+        line = f"{stamp}: {message}\n"
+        if chosen_tag is None:
+            self._text.insert("end", line)
+        else:
+            self._text.insert("end", line, chosen_tag)
         self._text.see("end")  # scroll to the newly added line
         self._text.config(state="disabled")
 
@@ -2375,9 +2420,9 @@ class GUIManager:
         self.progress.display(None)
         self.tray.update_title(None)
 
-    def print(self, message: str):
+    def print(self, message: str, *, level: int | None = None, tag: str | None = None):
         # print to our custom output
-        self.output.print(message)
+        self.output.print(message, level=level, tag=tag)
 
     def apply_theme(self, dark: bool) -> None:
         """
