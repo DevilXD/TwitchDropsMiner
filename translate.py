@@ -205,6 +205,11 @@ class GUIHelp(TypedDict):
     getting_started_text: str
 
 
+class GUIAlerts(TypedDict):
+    keyring_insecure: str
+    keyring_insecure_fallback: str
+
+
 class GUIMessages(TypedDict):
     output: str
     status: GUIStatus
@@ -217,6 +222,7 @@ class GUIMessages(TypedDict):
     inventory: GUIInventory
     settings: GUISettings
     help: GUIHelp
+    alerts: GUIAlerts
 
 
 class Translation(TypedDict):
@@ -268,6 +274,16 @@ default_translation: Translation = {
     },
     "gui": {
         "output": "Output",
+        "alerts": {
+            "keyring_insecure": (
+                "Secure system keyring unavailable ({details}); cookies will not be saved. "
+                "Fix the keyring or set allow_insecure_cookies to true in settings.json to save them unencrypted."
+            ),
+            "keyring_insecure_fallback": (
+                "Secure system keyring unavailable ({details}); saving cookies unencrypted because "
+                "allow_insecure_cookies is enabled. Saved cookies will be stored in plain text on disk."
+            ),
+        },
         "status": {
             "name": "Status",
             "idle": "Idle",

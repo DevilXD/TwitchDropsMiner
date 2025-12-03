@@ -2420,6 +2420,11 @@ class GUIManager:
         self.progress.display(None)
         self.tray.update_title(None)
 
+    def alert(self, message: str) -> None:
+        # Bring focus to the window and surface the message as an error.
+        self.grab_attention(sound=False)
+        self.print(message, tag="error")
+
     def print(self, message: str, *, level: int | None = None, tag: str | None = None):
         # print to our custom output
         self.output.print(message, level=level, tag=tag)

@@ -414,7 +414,12 @@ class _AuthState:
             login_form.update(_("gui", "login", "logged_in"), self.user_id)
             # update our cookie and save it
             jar.update_cookies(cookie, client_info.CLIENT_URL)
-            save_cookie_jar(COOKIES_PATH, jar)
+            save_cookie_jar(
+                COOKIES_PATH,
+                jar,
+                allow_insecure=self._twitch.settings.allow_insecure_cookies,
+                alert=self._twitch.gui.alert,
+            )
         self._logged_in.set()
 
     def invalidate(self):
@@ -458,7 +463,13 @@ class Twitch:
             return session
         # load in cookies
         cookie_jar = aiohttp.CookieJar()
-        loaded_plaintext = load_cookie_jar(COOKIES_PATH, cookie_jar)
+        allow_insecure = self.settings.allow_insecure_cookies
+        loaded_plaintext = load_cookie_jar(
+            COOKIES_PATH,
+            cookie_jar,
+            allow_insecure=allow_insecure,
+            alert=self.gui.alert,
+        )
         # create timeouts
         # connection quality mulitiplier determines the magnitude of timeouts
         connection_quality = self.settings.connection_quality
@@ -480,7 +491,12 @@ class Twitch:
         )
         if loaded_plaintext:
             # Re-encrypt legacy plaintext cookies ASAP for Windows users.
-            save_cookie_jar(COOKIES_PATH, cookie_jar)
+            save_cookie_jar(
+                COOKIES_PATH,
+                cookie_jar,
+                allow_insecure=allow_insecure,
+                alert=self.gui.alert,
+            )
         return self._session
 
     async def shutdown(self) -> None:
@@ -502,7 +518,12 @@ class Twitch:
             for cookie_key, cookie in list(cookie_jar._cookies.items()):
                 if not cookie:
                     del cookie_jar._cookies[cookie_key]
-            save_cookie_jar(COOKIES_PATH, cookie_jar)
+            save_cookie_jar(
+                COOKIES_PATH,
+                cookie_jar,
+                allow_insecure=self.settings.allow_insecure_cookies,
+                alert=self.gui.alert,
+            )
             await self._session.close()
             self._session = None
         self._drops.clear()
