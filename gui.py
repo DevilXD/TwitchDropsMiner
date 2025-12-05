@@ -877,6 +877,7 @@ class ChannelList:
         table.tag_configure("watching", background="gray70")
         table.bind("<Button-1>", self._disable_column_resize)
         table.bind("<<TreeviewSelect>>", self._selected)
+        table.bind("<Double-1>", self._open_channel)
         self._add_column("#0", '', width=0)
         self._add_column(
             "channel", _("gui", "channels", "headings", "channel"), width=100, anchor='w'
@@ -948,6 +949,32 @@ class ChannelList:
             self._buttons["switch"].config(state="normal")
         else:
             self._buttons["switch"].config(state="disabled")
+
+    def _open_channel(self, event):
+        """
+        Open the clicked channel in a new browser tab. Uses the row under the mouse
+        so double-clicking anywhere on the row works even if selection hasn't changed.
+        """
+        iid = self._table.identify_row(event.y)
+        if not iid:
+            return
+        # _channel_map keys may be int or str depending on how iids were created;
+        # try both to be robust.
+        channel = self._channel_map.get(iid)
+        if channel is None:
+            try:
+                channel = self._channel_map.get(int(iid))
+            except Exception:
+                channel = None
+        if channel is None:
+            return
+        # build a sane username and open the Twitch URL
+        username = str(channel.name).strip().lstrip('@').split()[0].lower()
+        try:
+            webopen(f"https://www.twitch.tv/{username}")
+        except Exception:
+            # ignore errors opening the browser
+            pass
 
     def _measure(self, text: str) -> int:
         # we need this because columns have 9-10 pixels of padding that cuts text off
