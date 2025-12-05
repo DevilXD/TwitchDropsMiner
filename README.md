@@ -39,7 +39,7 @@ Every several seconds, the application pretends to watch a particular stream by 
 > Using the same account to watch other streams during mining is thus discouraged, in order to avoid any problems arising from it.
 
 > [!CAUTION]  
-> Persistent cookies will be stored in the `cookies.jar` file, from which the authorization (login) information will be restored on each subsequent run. Make sure to keep your cookies file safe, as the authorization information it stores can give another person access to your Twitch account, even without them knowing your password!
+> Persistent cookies will be stored in the `cookies.jar` file and are encrypted at rest with [age](https://github.com/FiloSottile/age) using a per-user key kept in the OS keyring (Windows Credential Manager or Linux Secret Service). Copying the app folder alone will not decrypt the cookies, but anyone with access to your unlocked user session can; keep the file private, as it holds authorization that can grant access to your Twitch account without a password.
 
 > [!IMPORTANT]  
 > Successfully logging into your Twitch account in the application may cause Twitch to send you a "New Login" notification email. This is normal - you can verify that it comes from your own IP address. The detected browser during the login will be "Chrome", as that's what the miner currently presents itself to the Twitch server.
