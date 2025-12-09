@@ -157,5 +157,6 @@ placed past the period character at the end.
 @Shofuu - For the entirety of the Spanish (Español) translation and revisions.  
 @alikdb - For the entirety of the Turkish (Türkçe) translation.  
 @DogancanYr - For the Turkish (Türkçe) translation revisions.  
+@Elderly-Emre - For the Turkish (Türkçe) translation revisions.  
 @Nollasko - For the entirety of the Ukrainian (Українська) translation and revisions.  
 @kilroy98 - For the Ukrainian (Українська) translation corrections and revisions.  
