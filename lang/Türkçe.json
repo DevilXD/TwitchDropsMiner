@@ -133,9 +133,22 @@
                 "name": "Genel",
                 "autostart": "Otomatik başlat: ",
                 "tray": "Sistem tepsisine otomatik başlat: ",
-                "priority_only": "Öncelik sıralamasına göre: ",
+                "tray_notifications": "Sistem Tepsisi Bildirimleri",
                 "dark_mode": "Karanlık tema: ",
+                "priority_mode": "Öncelik modu",
                 "proxy": "Proxy (Yeniden başlatma gerektirir):"
+            },
+            "advanced": {
+                "name": "Gelişmiş",
+                "warning": "Uyarı!",
+                "warning_text": "Bu seçenekler madencinin hatalı davranmasına neden olabilir.\nHerhangi bir sorun yaşıyorsanız, bu seçeneklerin tümünün devre dışı olduğundan emin olun.",
+                "enable_badges_emotes": "Rozetler ve ifadeler için kısmi desteği etkinleştirin:",
+                "available_drops_check": "Ekstra kullanılabilir dropları etkinleştirin:"
+            },
+            "priority_modes": {
+                "priority_only": "Öncelik sıralamasına göre: ",
+                "ending_soonest": "Yakında bitecek",
+                "low_availability": "Önce düşük erişilebilirlik"
             },
             "game_name": "Oyun ismi",
             "priority": "Öncelik Sırası",
