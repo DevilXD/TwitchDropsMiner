@@ -10,7 +10,7 @@
         "no_campaign": "沒有可用於掉寶的活動，正在等待一個有效的掉寶活動…"
     },
     "login": {
-        "unexpected_content": "回傳的內容類型有誤，通常是由於被重新導向導致。您需要設置 VPN 或者確認登入頁面才能上網嗎？",
+        "unexpected_content": "回傳的內容類型有誤，通常是由於被重新導向導致。您是否需要先設定 VPN 或登入到目前的網路？",
         "chrome": {
             "startup": "正在開啟 Chrome 視窗…",
             "login_to_complete": "請再次點擊登入按鈕來完成登入。",
