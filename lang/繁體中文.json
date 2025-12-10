@@ -138,6 +138,13 @@
                 "priority_mode": "掉寶模式：",
                 "proxy": "代理伺服器（需要重新啟動）："
             },
+            "advanced": {
+                "name": "進階設定",
+                "warning": "警告！",
+                "warning_text": "啟用以下選項可能會導致應用程式運作異常。\n如果您遇到任何問題，請先停用以下所有選項。",
+                "enable_badges_emotes": "啟用對獲取徽章和表情掉寶的不完整支援：",
+                "available_drops_check": "啟用額外的掉寶可用性檢查："
+            },
             "priority_modes": {
                 "priority_only": "僅參與優先掉寶遊戲",
                 "ending_soonest": "優先觀看即將結束的掉寶活動",
