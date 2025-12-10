@@ -138,6 +138,13 @@
                 "priority_mode": "Modo de prioridad: ",
                 "proxy": "Proxy (requiere reinicio):"
             },
+            "advanced": {
+                "name": "Avanzado",
+                "warning": "¡Advertencia!",
+                "warning_text": "Estas opciones pueden causar un mal funcionamiento.\nSi experimenta algún problema, asegúrese de que todas estas opciones estén desactivadas.",
+                "enable_badges_emotes": "Habilitar soporte parcial para emblemas y emoticonos: ",
+                "available_drops_check": "Habilitar verificación adicional de drops disponibles: "
+            },
             "priority_modes": {
                 "priority_only": "Solo juegos preferidos",
                 "ending_soonest": "Terminando pronto",
@@ -155,10 +162,10 @@
                 "inventory": "Ver inventario de Twitch",
                 "campaigns": "Ver todas las campañas y administrar cuentas vinculadas"
             },
-            "how_it_works": "Como funciona",
-            "how_it_works_text": "Cada varios segundos, la aplicación pretende ver una transmisión en particular, \ny obtiene los metadatos de la misma para progresar con los drops. \nDe esta forma, no es necesario descargar el video o sonido de la transmisión. Ahorrando ancho de banda al usuario. \nCon el fin de mantener actualizados los estados (ONLINE o OFFLINE) de los canales, se establece una conexión websocket, \nque recibe información de los streams para poder actualizar el estado, o cantidad de espectadores actuales.",
+            "how_it_works": "Cómo funciona",
+            "how_it_works_text": "Cada varios segundos, la aplicación pretende ver una transmisión en particular, \ny obtiene los metadatos de la misma para progresar con los drops. \nDe esta forma, no es necesario descargar el video o sonido de la transmisión. Ahorrando ancho de banda al usuario. \nCon el fin de mantener actualizados los estados (ONLINE u OFFLINE) de los canales, se establece una conexión websocket, \nque recibe información de los streams para poder actualizar el estado, o cantidad de espectadores actuales.",
             "getting_started": "Primeros pasos",
-            "getting_started_text": "1. Inicie sesión en la aplicación. \n2. Verifique que su cuenta de Twitch esté vinculada a todas las campañas deseadas a minar. \n3. Si desea minar todas las campañas posibles, cambie el \"Modo de prioridad\" a cualquier opción que no sea \"Solo juegos preferidos\" y presione \"Recargar\". \n4. Si desea darle prioridad a una campaña específica, utilice la \"Lista de juegos preferidos\" para crear una lista de prioridad. \nLos juegos en la parte superior de la lista se intentarán minar antes de los que estén más abajo. \n5. Seleccione la opción \"Solo juegos preferidos\" en el \"Modo de prioridad\" si desea evitar minar juegos que no estén en la lista de juegos preferidos. \n6. Utilice la \"Lista de juegos excluidos\" para indicarle a la aplicación cuales juegos no deben minarse nunca. \n7. Al cambiar el contenido de las listas, o de las opciones del \"Modo de prioridad\", \nserá necesario presionar el botón \"Recargar\" para que los cambios sean aplicados."
+            "getting_started_text": "1. Inicie sesión en la aplicación. \n2. Verifique que su cuenta de Twitch esté vinculada a todas las campañas deseadas a minar. \n3. Si desea minar todas las campañas posibles, cambie el \"Modo de prioridad\" a cualquier opción que no sea \"Solo juegos preferidos\" y presione \"Recargar\". \n4. Si desea darle prioridad a una campaña específica, utilice la \"Lista de juegos preferidos\" para crear una lista de prioridad. \nLos juegos en la parte superior de la lista se intentarán minar antes de los que estén más abajo. \n5. Seleccione la opción \"Solo juegos preferidos\" en el \"Modo de prioridad\" si desea evitar minar juegos que no estén en la lista de juegos preferidos. \n6. Utilice la \"Lista de juegos excluidos\" para indicarle a la aplicación cuáles juegos no deben minarse nunca. \n7. Al cambiar el contenido de las listas, o de las opciones del \"Modo de prioridad\", \nserá necesario presionar el botón \"Recargar\" para que los cambios sean aplicados."
         }
     }
 }
