@@ -130,13 +130,20 @@
         },
         "settings": {
             "general": {
-                "name": "功能设置",
+                "name": "常规设置",
                 "autostart": "开机自启",
                 "tray": "开机自启并最小化",
                 "tray_notifications": "启用托盘通知",
                 "dark_mode": "夜间模式",
                 "priority_mode": "掉宝挖掘模式",
                 "proxy": "代理地址："
+            },
+            "advanced": {
+                "name": "高级设置",
+                "warning": "警告！",
+                "warning_text": "启用以下选项可能会导致应用运行异常。\n如果您遇到任何问题，请先禁用以下所有选项。",
+                "enable_badges_emotes": "启用对挖掘徽章和表情的不完整支持",
+                "available_drops_check": "启用额外的掉宝可用性检查"
             },
             "priority_modes": {
                 "priority_only": "仅观看优先列表中的游戏",

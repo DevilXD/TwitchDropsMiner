@@ -138,8 +138,7 @@ placed past the period character at the end.
 
 @Bamboozul - For the entirety of the Arabic (العربية) translation.  
 @Suz1e - For the entirety of the Chinese (简体中文) translation and revisions.  
-@wwj010 - For the Chinese (简体中文) translation corrections and revisions.  
-@zhangminghao1989 - For the Chinese (简体中文) translation corrections and revisions.  
+@wwj010, @zhangminghao1989, @Self4215 - For the Chinese (简体中文) translation corrections and revisions.  
 @Ricky103403 - For the entirety of the Traditional Chinese (繁體中文) translation.  
 @LusTerCsI - For the Traditional Chinese (繁體中文) translation corrections and revisions.  
 @nwvh - For the entirety of the Czech (Čeština) translation.  
