@@ -322,7 +322,7 @@ class Channel:
                 logger.debug(
                     f"Spade extraction failed; streamer_settings={streamer_settings}; settings_js_snippet={snippet}"
                 )
-                raise MinerException("Error while spade_url extraction: step #2")
+                raise MinerException("Failed to find spade URL in settings.js after trying all fallback patterns")
             logger.debug(f"Spade url found in settings.js for channel {self._login}: {match.group(1)}")
         # Return the captured URL as URLType
         return URLType(match.group(1))
