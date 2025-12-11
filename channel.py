@@ -491,13 +491,13 @@ class Channel:
         if self._spade_url is None:
             try:
                 self._spade_url = await self.get_spade_url()
-            except MinerException as exc:
-                # failed to extract spade url - we should not crash the whole task for this
-                logger.log(CALL, f"Failed to get spade_url for channel {self._login}: {exc}")
-                return False
             except RequestException as exc:
                 # network/HTTP error while getting settings
                 logger.log(CALL, f"Network error getting spade_url for {self._login}: {exc}")
+                return False
+            except MinerException as exc:
+                # failed to extract spade url - we should not crash the whole task for this
+                logger.log(CALL, f"Failed to get spade_url for channel {self._login}: {exc}")
                 return False
             except Exception as exc:  # pragma: no cover - defensive
                 logger.exception(f"Unexpected error while getting spade_url for {self._login}")
