@@ -288,12 +288,19 @@ class Channel:
         SETTINGS_PATTERN: str = (
             r'src="(https://[\w.]+/config/settings\.[0-9a-f]{32}\.js)"'
         )
-        SPADE_PATTERN: str = (
-            r'"spade_?url": ?"(https://video-edge-[.\w\-/]+\.ts(?:\?allow_stream=true)?)"'
-        )
+        # The spade endpoint is currently included as a URL ending with a .ts file.
+        # Historically it was labelled as "spade_url", but API/HTML may change;
+        # try several patterns in sequence for robustness.
+        SPADE_PATTERN: str = r'["\']spade[_-]?url["\']\s*:\s*["\'](https?://video-edge[-.\w/]+\.ts(?:\?allow_stream=true)?)["\']'
+        # generic fallback: any video-edge .ts URL
+        SPADE_PATTERN_GENERIC: str = r'(https?://video-edge[-.\w/]+\.ts(?:\?allow_stream=true)?)'
+        # permissive fallback: any .ts URL present in the page (last resort)
+        SPADE_PATTERN_ANY: str = r'(https?://[^"\'\s]+?\.ts(?:\?allow_stream=true)?)'
         async with self._twitch.request("GET", self.url) as response1:
             streamer_html: str = await response1.text(encoding="utf8")
         match = re.search(SPADE_PATTERN, streamer_html, re.I)
+        if match:
+            logger.debug(f"Spade url found in HTML for channel {self._login}: {match.group(1)}")
         if not match:
             match = re.search(SETTINGS_PATTERN, streamer_html, re.I)
             if not match:
@@ -301,9 +308,23 @@ class Channel:
             streamer_settings = match.group(1)
             async with self._twitch.request("GET", streamer_settings) as response2:
                 settings_js: str = await response2.text(encoding="utf8")
+            # 1) try named key (spade_url)
             match = re.search(SPADE_PATTERN, settings_js, re.I)
             if not match:
+                # 2) try generic video-edge url
+                match = re.search(SPADE_PATTERN_GENERIC, settings_js, re.I)
+            if not match:
+                # 3) as a last resort, look for any .ts URL which might be the endpoint
+                match = re.search(SPADE_PATTERN_ANY, settings_js, re.I)
+            if not match:
+                # provide useful debug output - show a short snippet of settings_js
+                snippet = settings_js[:1024].replace("\n", " ")
+                logger.debug(
+                    f"Spade extraction failed; streamer_settings={streamer_settings}; settings_js_snippet={snippet}"
+                )
                 raise MinerException("Error while spade_url extraction: step #2")
+            logger.debug(f"Spade url found in settings.js for channel {self._login}: {match.group(1)}")
+        # Return the captured URL as URLType
         return URLType(match.group(1))
 
     def _check_drops_enabled(self, available_drops: list[JsonType]) -> bool:
@@ -468,7 +489,19 @@ class Channel:
         if self._stream is None:
             return False
         if self._spade_url is None:
-            self._spade_url = await self.get_spade_url()
+            try:
+                self._spade_url = await self.get_spade_url()
+            except MinerException as exc:
+                # failed to extract spade url - we should not crash the whole task for this
+                logger.log(CALL, f"Failed to get spade_url for channel {self._login}: {exc}")
+                return False
+            except RequestException as exc:
+                # network/HTTP error while getting settings
+                logger.log(CALL, f"Network error getting spade_url for {self._login}: {exc}")
+                return False
+            except Exception as exc:  # pragma: no cover - defensive
+                logger.exception(f"Unexpected error while getting spade_url for {self._login}")
+                return False
         try:
             async with self._twitch.request(
                 "POST", self._spade_url, data=self._stream._spade_payload
