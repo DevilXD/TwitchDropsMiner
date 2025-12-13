@@ -6,7 +6,7 @@
         {
             "label": "Build App",
             "type": "shell",
-            "command": "build.bat",
+            "command": "build.bat --nopause",
             "problemMatcher": [],
             "group": {
                 "kind": "build",

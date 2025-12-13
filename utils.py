@@ -406,6 +406,8 @@ class AwaitableValue(Generic[_T]):
 
 
 class Game:
+    SPECIAL_EVENTS_GAME_ID: int = 509663
+
     def __init__(self, data: JsonType):
         self.id: int = int(data["id"])
         self.name: str = data.get("displayName") or data["name"]
@@ -438,3 +440,6 @@ class Game:
         # strip and collapse dashes
         slug_text = re.sub(r'-{2,}', '-', slug_text.strip('-'))
         return slug_text
+
+    def is_special_events(self) -> bool:
+        return self.id == self.SPECIAL_EVENTS_GAME_ID

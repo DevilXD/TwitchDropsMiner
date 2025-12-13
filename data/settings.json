@@ -1,6 +1,9 @@
 {
     "autostart_tray": false,
+    "available_drops_check": false,
     "connection_quality": 1,
+    "dark_mode": false,
+    "enable_badges_emotes": false,
     "exclude": {
         "__type": "set",
         "data": []

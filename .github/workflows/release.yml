@@ -39,7 +39,24 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git tag -a "v${{ env.VERSION }}" -m "Release v${{ env.VERSION }}"
-          git push origin "v${{ env.VERSION }}"
+          
+          VERSION="${{ steps.extract-version.outputs.version }}"
+          echo "Working with version: $VERSION"
+          
+          # Check if tag already exists locally
+          if git tag -l "v$VERSION" | grep -q "v$VERSION"; then
+            echo "Tag v$VERSION already exists locally"
+            # Check if it exists on remote
+            if git ls-remote --tags origin | grep -q "refs/tags/v$VERSION"; then
+              echo "Tag v$VERSION already exists on remote, skipping tag creation"
+            else
+              echo "Tag v$VERSION exists locally but not on remote, pushing it"
+              git push origin "v$VERSION"
+            fi
+          else
+            echo "Creating new tag v$VERSION"
+            git tag -a "v$VERSION" -m "Release v$VERSION"
+            git push origin "v$VERSION"
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -37,7 +37,7 @@ class Stream:
         self.channel: Channel = channel
         self.broadcast_id = int(id)
         self.viewers: int = viewers
-        self.drops_enabled: bool = False
+        self.drops_enabled: bool = not channel._twitch.settings.available_drops_check
         self.game: Game | None = Game(game) if game else None
         self.title: str = title
         self._stream_url: URLType | None = None
@@ -309,6 +309,43 @@ class Channel:
                 raise MinerException("Error while spade_url extraction: step #2")
         return URLType(match.group(1))
 
+    async def get_spade_url(self) -> URLType:
+        """
+        To get this monstrous thing, you have to walk a chain of requests.
+        Streamer page (HTML) --parse-> Streamer Settings (JavaScript) --parse-> Spade URL
+
+        For mobile view, spade_url is available immediately from the page, skipping step #2.
+        """
+        SETTINGS_PATTERN: str = (
+            r'src="(https://[\w.]+/config/settings\.[0-9a-f]{32}\.js)"'
+        )
+        SPADE_PATTERN: str = (
+            r'"beacon_?url": ?"(https://video-edge-[.\w\-/]+\.ts(?:\?allow_stream=true)?)"'
+        )
+        async with self._twitch.request("GET", self.url) as response1:
+            streamer_html: str = await response1.text(encoding="utf8")
+        match = re.search(SPADE_PATTERN, streamer_html, re.I)
+        if not match:
+            match = re.search(SETTINGS_PATTERN, streamer_html, re.I)
+            if not match:
+                raise MinerException("Error while spade_url extraction: step #1")
+            streamer_settings = match.group(1)
+            async with self._twitch.request("GET", streamer_settings) as response2:
+                settings_js: str = await response2.text(encoding="utf8")
+            match = re.search(SPADE_PATTERN, settings_js, re.I)
+            if not match:
+                raise MinerException("Error while spade_url extraction: step #2")
+        return URLType(match.group(1))
+
+    def _check_drops_enabled(self, available_drops: list[JsonType]) -> bool:
+        return any(
+            (
+                (campaign := self._twitch._campaigns.get(campaign_data["id"])) is not None
+                and campaign.can_earn(self, ignore_channel_status=True)
+            )
+            for campaign_data in available_drops
+        )
+
     def external_update(self, channel_data: JsonType, available_drops: list[JsonType]):
         """
         Update stream information based on data provided externally.
@@ -320,9 +357,7 @@ class Channel:
             return
         stream = Stream.from_get_stream(self, channel_data)
         if not stream.drops_enabled:
-            stream.drops_enabled = any(
-                bool(campaign["timeBasedDrops"]) for campaign in available_drops
-            )
+            stream.drops_enabled = self._check_drops_enabled(available_drops)
         self._stream = stream
 
     async def get_stream(self) -> Stream | None:
@@ -347,11 +382,8 @@ class Channel:
             except MinerException:
                 logger.log(CALL, f"AvailableDrops GQL call failed for channel: {self._login}")
             else:
-                stream.drops_enabled = any(
-                    bool(campaign["timeBasedDrops"])
-                    for campaign in (
-                        available_drops_campaigns["data"]["channel"]["viewerDropCampaigns"] or []
-                    )
+                stream.drops_enabled = self._check_drops_enabled(
+                    available_drops_campaigns["data"]["channel"]["viewerDropCampaigns"] or []
                 )
         return stream
 

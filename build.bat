@@ -9,7 +9,7 @@ if not exist "%dirpath%\env" (
     echo:
     echo No virtual environment found! Run setup_env.bat to set it up first.
     echo:
-    pause
+    if not "%~1"=="--nopause" pause
     exit /b 1
 )
 
@@ -21,7 +21,7 @@ if not exist "%dirpath%\env\scripts\pyinstaller.exe" (
         echo:
         echo Failed to install PyInstaller.
         echo:
-        pause
+        if not "%~1"=="--nopause" pause
         exit /b 1
     )
     "%dirpath%\env\scripts\python" "%dirpath%\env\scripts\pywin32_postinstall.py" -install -silent
@@ -29,7 +29,7 @@ if not exist "%dirpath%\env\scripts\pyinstaller.exe" (
         echo:
         echo Failed to run pywin32_postinstall.py.
         echo:
-        pause
+        if not "%~1"=="--nopause" pause
         exit /b 1
     )
 )
@@ -41,11 +41,11 @@ if errorlevel 1 (
     echo:
     echo PyInstaller build failed.
     echo:
-    pause
+    if not "%~1"=="--nopause" pause
     exit /b 1
 )
 
 echo:
 echo Build completed successfully.
 echo:
-pause
+if not "%~1"=="--nopause" pause

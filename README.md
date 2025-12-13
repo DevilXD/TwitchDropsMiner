@@ -218,11 +218,11 @@ placed past the period character at the end.
 -->
 
 @guihkx - For the CI script, CI maintenance, and everything related to Linux builds.  
+@kWAYTV - For the implementation of the dark mode theme.  
 
 @Bamboozul - For the entirety of the Arabic (العربية) translation.  
 @Suz1e - For the entirety of the Chinese (简体中文) translation and revisions.  
-@wwj010 - For the Chinese (简体中文) translation corrections and revisions.  
-@zhangminghao1989 - For the Chinese (简体中文) translation corrections and revisions.  
+@wwj010, @zhangminghao1989, @Self4215 - For the Chinese (简体中文) translation corrections and revisions.  
 @Ricky103403 - For the entirety of the Traditional Chinese (繁體中文) translation.  
 @LusTerCsI - For the Traditional Chinese (繁體中文) translation corrections and revisions.  
 @nwvh - For the entirety of the Czech (Čeština) translation.  
@@ -236,10 +236,15 @@ placed past the period character at the end.
 @Patriot99 - For the Polish (Polski) translation and revisions (co-authored with @DevilXD).  
 @zarigata - For the entirety of the Portuguese (Português) translation.  
 @Sergo1217 - For the entirety of the Russian (Русский) translation.  
-@kilroy98 - For the Russian (Русский) translation corrections and revisions.  
+@kilroy98, @flamesv - For the Russian (Русский) translation corrections and revisions.  
 @Shofuu - For the entirety of the Spanish (Español) translation and revisions.  
+@Forero-0 = For the Spanish (Español) translation revisions.  
 @alikdb - For the entirety of the Turkish (Türkçe) translation.  
 @Nollasko - For the entirety of the Ukrainian (Українська) translation and revisions.
+@DogancanYr - For the Turkish (Türkçe) translation revisions.  
+@Elderly-Emre - For the Turkish (Türkçe) translation revisions.  
+@Nollasko - For the entirety of the Ukrainian (Українська) translation and revisions.  
+@kilroy98 - For the Ukrainian (Українська) translation corrections and revisions.  
 
 ## Docker Support
 
@@ -249,4 +254,3 @@ This project includes Docker support for easy deployment in containers. See the 
 - Use Docker Compose for easy setup and configuration
 - Build the Docker image locally
 - Set up initial configuration through the web interface
-@kilroy98 - For the Ukrainian (Українська) translation corrections and revisions.  

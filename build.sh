@@ -7,7 +7,7 @@ if [ ! -d "$dirpath/env" ]; then
     echo
     echo "No virtual environment found! Run setup_env.sh to set it up first."
     echo
-    read -p "Press any key to continue..."
+    [ "$1" != "--nopause" ] && read -p "Press any key to continue..."
     exit 1
 fi
 
@@ -20,7 +20,7 @@ if [ ! -f "$dirpath/env/bin/pyinstaller" ]; then
         echo
         echo "Failed to install PyInstaller."
         echo
-        read -p "Press any key to continue..."
+        [ "$1" != "--nopause" ] && read -p "Press any key to continue..."
         exit 1
     fi
 fi
@@ -33,11 +33,11 @@ if [ $? -ne 0 ]; then
     echo
     echo "PyInstaller build failed."
     echo
-    read -p "Press any key to continue..."
+    [ "$1" != "--nopause" ] && read -p "Press any key to continue..."
     exit 1
 fi
 
 echo
 echo "Build completed successfully."
 echo
-read -p "Press any key to continue..."
+[ "$1" != "--nopause" ] && read -p "Press any key to continue..."

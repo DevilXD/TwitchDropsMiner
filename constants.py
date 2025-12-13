@@ -113,6 +113,7 @@ URLType = NewType("URLType", str)
 TopicProcess: TypeAlias = "abc.Callable[[int, JsonType], Any]"
 # Values
 MAX_INT = sys.maxsize
+MAX_EXTRA_MINUTES = 15
 BASE_TOPICS = 2
 MAX_WEBSOCKETS = 8
 WS_TOPICS_LIMIT = 50
@@ -384,12 +385,12 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
     # returns live channels for a particular game
     "GameDirectory": GQLOperation(
         "DirectoryPage_Game",
-        "c7c9d5aad09155c4161d2382092dc44610367f3536aac39019ec2582ae5065f9",
+        "98a996c3c3ebb1ba4fd65d6671c6028d7ee8d615cb540b0731b3db2a911d3649",
         variables={
             "limit": 30,  # limit of channels returned
             "slug": ...,  # game slug
             "imageWidth": 50,
-            "includeIsDJ": False,
+            "includeCostreaming": False,
             "options": {
                 "broadcasterLanguages": [],
                 "freeformTags": None,
@@ -400,7 +401,6 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
                 "tags": [],
                 "requestID": "JIRA-VXP-2397",
             },
-            "includeIsDJ": False,
             "sortTypeIsRecency": False,
         },
     ),

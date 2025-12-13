@@ -5,7 +5,9 @@ import sys
 import platform
 import fnmatch
 from pathlib import Path
-from typing import Any, TYPE_CHECKING
+from collections import abc
+from traceback import format_exc
+from typing import Any, TypeAlias, TYPE_CHECKING
 
 SELF_PATH = str(Path(".").resolve())
 if SELF_PATH not in sys.path:
@@ -14,8 +16,22 @@ if SELF_PATH not in sys.path:
 from constants import WORKING_DIR, SITE_PACKAGES_PATH, DEFAULT_LANG
 
 if TYPE_CHECKING:
-    from PyInstaller.building.api import PYZ, EXE
+    from PyInstaller.building.splash import Splash
     from PyInstaller.building.build_main import Analysis
+    from PyInstaller.building.datastruct import _TOCTuple
+    from PyInstaller.building.api import PYZ, EXE, COLLECT
+
+
+PYZTypeCOLLECT: TypeAlias = "abc.Iterable[_TOCTuple] | PYZ"
+PYZTypeEXE: TypeAlias = "abc.Iterable[_TOCTuple] | PYZ | Splash"
+
+
+# Simple configuration
+upx: bool = False  # Use UPX compression (reduces file size, may increase AV detections)
+console: bool = False  # True if you'd want to add a console window (useful for debugging)
+one_dir: bool = False  # True for one-dir, False for one-file
+optimize: int | None = None  # -1/None/0=none, 1=remove asserts, 2=also remove docstrings
+app_name: str = "Twitch Drops Miner (by DevilXD)"
 
 
 # (source_path, dest_path, required)
@@ -75,21 +91,12 @@ if sys.platform == "linux":
         }
     }
 
-block_cipher = None
 a = Analysis(
     ["main.py"],
-    pathex=[],
     datas=datas,
-    excludes=[],
-    hookspath=[],
-    noarchive=False,
-    runtime_hooks=[],
     binaries=binaries,
-    cipher=block_cipher,
     hooksconfig=hooksconfig,
     hiddenimports=hiddenimports,
-    win_private_assemblies=False,
-    win_no_prefer_redirects=False,
 )
 
 # Exclude unneeded Linux libraries (supports globbing)
@@ -102,26 +109,36 @@ a.binaries = [
     b for b in a.binaries
     if not any(fnmatch.fnmatch(b[0], pattern) for pattern in excluded_binaries)
 ]
+if one_dir:
+    exe_args: PYZTypeEXE = tuple()
+    collect_args: PYZTypeCOLLECT = (a.datas, a.binaries)
+else:
+    exe_args = (a.datas, a.binaries)
+    collect_args = tuple()
 
-pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
-exe = EXE(
-    pyz,
-    a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    [],
-    upx=True,
-    debug=False,
-    strip=False,
-    console=False,
-    upx_exclude=[],
-    target_arch=None,
-    runtime_tmpdir=None,
-    codesign_identity=None,
-    entitlements_file=None,
-    icon="icons/pickaxe.ico",
-    bootloader_ignore_signals=False,
-    disable_windowed_traceback=False,
-    name="Twitch Drops Miner (by DevilXD)",
-)
+pyz = PYZ(a.pure)
+try:
+    exe = EXE(
+        pyz,
+        a.scripts,
+        *exe_args,
+        upx=upx,
+        debug=False,
+        name=app_name,
+        console=console,
+        optimize=optimize,
+        exclude_binaries=one_dir,
+        icon="icons/pickaxe.ico",
+    )
+except PermissionError as exc:
+    exc_text: str = format_exc()
+    if any(t in exc_text for t in ("os.remove", "os.unlink")):
+        raise PermissionError("Ensure the executable isn't running when rebuilding.") from exc
+    raise
+if one_dir:
+    coll = COLLECT(
+        exe,
+        *collect_args,
+        upx=upx,
+        name=app_name,
+    )
