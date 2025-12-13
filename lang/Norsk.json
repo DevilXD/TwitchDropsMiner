@@ -1,0 +1,159 @@
+{
+  "english_name": "Norwegian",
+  "status": {
+    "terminated": "\nProgram Avsluttet.\nLukk vinduet for å avslutte programmet.",
+    "watching": "Ser på: {channel}",
+    "goes_online": "{channel} går ONLINE, bytter...",
+    "goes_offline": "{channel} går OFFLINE, bytter...",
+    "claimed_drop": "Hentet belønning: {drop}",
+    "no_channel": "Ingen tilgjengelige kanaler å se på. Venter på en ONLINE kanal...",
+    "no_campaign": "Det er ingen aktive kampanjer å hente. Venter på en aktiv kampanje..."
+  },
+  "login": {
+    "unexpected_content": "Uventet innholdstype returnert, vanligvis på grunn av omdirigering. Må du logge inn for internettilgang?",
+    "chrome": {
+      "startup": "Åpner Chrome...",
+      "login_to_complete": "Fullfør innloggingsprosedyren manuelt ved å trykke på Logg inn-knappen igjen.",
+      "no_token": "Ingen autorisasjonstoken ble funnet.",
+      "closed_window": "Chrome-vinduet ble lukket før innloggingsprosedyren kunne fullføres."
+    },
+    "error_code": "Innloggingsfeilkode: {error_code}",
+    "incorrect_login_pass": "Feil brukernavn eller passord.",
+    "incorrect_email_code": "Feil e-postkode.",
+    "incorrect_twofa_code": "Feil 2FA-kode.",
+    "email_code_required": "E-postkode påkrevd. Sjekk e-posten din.",
+    "twofa_code_required": "2FA-token påkrevd."
+  },
+  "error": {
+    "captcha": "Innloggingsforsøket ditt ble avvist av CAPTCHA.\nVennligst prøv igjen om 12+ timer",
+    "site_down": "Twitch er nede, prøver igjen om {seconds} sekunder...",
+    "no_connection": "Kan ikke koble til Twitch, prøver igjen om {seconds} sekunder..."
+  },
+  "gui": {
+    "output": "Resultat",
+    "status": {
+      "name": "Status",
+      "idle": "Inaktiv",
+      "exiting": "Avslutter...",
+      "terminated": "Avsluttet",
+      "cleanup": "Rydder opp kanaler...",
+      "gathering": "Samler inn kanaler...",
+      "switching": "Bytter kanal...",
+      "fetching_inventory": "Henter beholdning...",
+      "fetching_campaigns": "Henter kampanjer...",
+      "adding_campaigns": "Legger til kampanjer i beholdning... {counter}"
+    },
+    "tabs": {
+      "main": "Hoved",
+      "inventory": "Beholdning",
+      "settings": "Innstillinger",
+      "help": "Hjelp"
+    },
+    "tray": {
+      "notification_title": "Minet Belønning",
+      "minimize": "Minimer til systemstatusfeltet",
+      "show": "Vis",
+      "quit": "Avslutt"
+    },
+    "login": {
+      "name": "Innloggingsskjema",
+      "labels": "Status:\nBruker-ID:",
+      "logged_in": "Logget inn",
+      "logged_out": "Logget ut",
+      "logging_in": "Logger inn...",
+      "required": "Innlogging påkrevd",
+      "request": "Vennligst logg inn for å fortsette.",
+      "username": "Brukernavn",
+      "password": "Passord",
+      "twofa_code": "2FA-kode (valgfritt)",
+      "button": "Logg inn"
+    },
+    "websocket": {
+      "name": "Websocket-status",
+      "websocket": "Websocket #{id}:",
+      "initializing": "Initialiserer...",
+      "connected": "Tilkoblet",
+      "disconnected": "Frakoblet",
+      "connecting": "Kobler til...",
+      "disconnecting": "Kobler fra...",
+      "reconnecting": "Kobler til på nytt..."
+    },
+    "progress": {
+      "name": "Kampanjefremdrift",
+      "drop": "Belønning:",
+      "game": "Spill:",
+      "campaign": "Kampanje:",
+      "remaining": "{time} gjenstår",
+      "drop_progress": "Fremdrift:",
+      "campaign_progress": "Fremdrift:"
+    },
+    "channels": {
+      "name": "Kanaler",
+      "switch": "Bytt",
+      "online": "ONLINE  \u2714",
+      "pending": "OFFLINE \u23f3",
+      "offline": "OFFLINE \u274c",
+      "headings": {
+        "channel": "Kanal",
+        "status": "Status",
+        "game": "Spill",
+        "viewers": "Seere"
+      }
+    },
+    "inventory": {
+      "filter": {
+        "name": "Filter",
+        "show": "Vis:",
+        "not_linked": "Ikke koblet",
+        "upcoming": "Kommende",
+        "expired": "Utløpt",
+        "excluded": "Ekskludert",
+        "finished": "Ferdig",
+        "refresh": "Oppdater"
+      },
+      "status": {
+        "linked": "Koblet \u2714",
+        "not_linked": "Ikke koblet \u274c",
+        "active": "Aktiv \u2714",
+        "upcoming": "Kommende \u23f3",
+        "expired": "Utløpt \u274c",
+        "claimed": "Hentet \u2714",
+        "ready_to_claim": "Klar til å hente \u23f3"
+      },
+      "starts": "Starter: {time}",
+      "ends": "Slutter: {time}",
+      "allowed_channels": "Tillatte kanaler:",
+      "all_channels": "Alle",
+      "and_more": "og {amount} flere...",
+      "percent_progress": "{percent} av {minutes} minutter",
+      "minutes_progress": "{minutes} minutter"
+    },
+    "settings": {
+      "general": {
+        "name": "Generelt",
+        "autostart": "Automatisk start: ",
+        "tray": "Start i systemstatusfeltet: ",
+        "tray_notifications": "Varsler i systemfeltet: ",
+        "priority_only": "Kun prioriterte: ",
+        "dark_mode": "Mørk modus: ",
+        "proxy": "Proxy (krever omstart):"
+      },
+      "game_name": "Spillnavn",
+      "priority": "Prioritet",
+      "exclude": "Ekskluder",
+      "reload": "Last inn på nytt",
+      "reload_text": "De fleste endringer krever en ny innlasting for å tre i kraft umiddelbart: "
+    },
+    "help": {
+      "links": {
+        "name": "Nyttige lenker",
+        "inventory": "Se Twitch-belønninger",
+        "campaigns": "Se alle kampanjer og administrer kontokoblinger"
+      },
+      "how_it_works": "Hvordan fungerer det?",
+      "how_it_works_text": "Hvert ~60. sekund sender applikasjonen en \"sett minutt\"-hendelse til kanalen som for øyeblikket ses på – dette er nok til å øke progresjonen mot belønningen. Merk at dette går helt utenom behovet for å laste ned faktisk stream-video og lyd. For å holde status (ONLINE eller OFFLINE) for kanalene oppdatert, er det opprettet en websocket-tilkobling som mottar hendelser om streams som går opp eller ned, eller oppdateringer angående det aktuelle antallet seere.",
+      "getting_started": "Kom i gang",
+      "getting_started_text": "1. Logg inn på applikasjonen.\n2. Sørg for at Twitch-kontoen din er koblet til alle kampanjer du er interessert i å mine.\n3. Hvis du bare er interessert i å mine alt, fjern markeringen for \"Kun prioriterte\" og trykk på \"Last inn på nytt\".\n4. Hvis du ønsker å mine spesifikke spill først, bruk listen \"Prioritet\" til å sette opp en ordnet liste over spill etter eget valg. Spill fra toppen av listen vil bli forsøkt minet først, før dem nederst på listen.\n5. Hold innstillingen \"Kun prioriterte\" markert for å unngå å mine spill som ikke er på prioritetslisten. Eller ikke – det er opp til deg.\n6. Bruk listen \"Ekskluder\" til å fortelle applikasjonen hvilke spill som aldri bør mines.\n7. Endring av innholdet i en av listene eller endring av status for \"Kun prioriterte\"-innstillingen krever at du trykker på \"Last inn på nytt\" for at endringene skal tre i kraft."
+    }
+  }
+}
