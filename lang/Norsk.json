@@ -1,0 +1,171 @@
+{
+  "english_name": "Norwegian",
+  "status": {
+    "terminated": "\nApplikasjonen er avsluttet.\nLukk vinduet for å gå ut av applikasjonen.",
+    "watching": "Ser på: {channel}",
+    "goes_online": "{channel} går ONLINE, bytter...",
+    "goes_offline": "{channel} går OFFLINE, bytter...",
+    "claimed_drop": "Hentet belønning: {drop}",
+    "no_channel": "Ingen tilgjengelige kanaler å se på. Venter på en ONLINE kanal...",
+    "no_campaign": "Ingen aktive kampanjer å få belønninger fra. Venter på en aktiv kampanje..."
+  },
+  "login": {
+    "unexpected_content": "Uventet innholdstype returnert, vanligvis på grunn av omdirigering. Trenger du å logge inn for internettilgang?",
+    "chrome": {
+      "startup": "Åpner Chrome...",
+      "login_to_complete": "Fullfør innloggingen manuelt ved å trykke på Logg inn-knappen igjen.",
+      "no_token": "Ingen autorisasjonstoken ble funnet.",
+      "closed_window": "Chrome-vinduet ble lukket før innloggingen kunne fullføres."
+    },
+    "error_code": "Innloggingsfeilkode: {error_code}",
+    "incorrect_login_pass": "Feil brukernavn eller passord.",
+    "incorrect_email_code": "Feil e-postkode.",
+    "incorrect_twofa_code": "Feil 2FA-kode.",
+    "email_code_required": "E-postkode påkrevd. Sjekk e-posten din.",
+    "twofa_code_required": "2FA-token påkrevd."
+  },
+  "error": {
+    "captcha": "Innloggingsforsøket ditt ble avvist av CAPTCHA.\nVennligst prøv igjen om 12+ timer.",
+    "site_down": "Twitch er nede, prøver igjen om {seconds} sekunder...",
+    "no_connection": "Kan ikke koble til Twitch, prøver igjen om {seconds} sekunder..."
+  },
+  "gui": {
+    "output": "Utdata",
+    "status": {
+      "name": "Status",
+      "idle": "Inaktiv",
+      "exiting": "Avslutter...",
+      "terminated": "Avsluttet",
+      "cleanup": "Rydder opp i kanaler...",
+      "gathering": "Samler kanaler...",
+      "switching": "Bytter kanal...",
+      "fetching_inventory": "Henter inventar...",
+      "fetching_campaigns": "Henter kampanjer...",
+      "adding_campaigns": "Legger til kampanjer i inventar... {counter}"
+    },
+    "tabs": {
+      "main": "Hoved",
+      "inventory": "Inventar",
+      "settings": "Innstillinger",
+      "help": "Hjelp"
+    },
+    "tray": {
+      "notification_title": "Utvunnet Drop",
+      "minimize": "Minimer til systemkurv",
+      "show": "Vis",
+      "quit": "Avslutt"
+    },
+    "login": {
+      "name": "Innloggingsskjema",
+      "labels": "Status:\nBruker-ID:",
+      "logged_in": "Logget inn",
+      "logged_out": "Logget ut",
+      "logging_in": "Logger inn...",
+      "required": "Innlogging påkrevd",
+      "request": "Vennligst logg inn for å fortsette.",
+      "username": "Brukernavn",
+      "password": "Passord",
+      "twofa_code": "2FA-kode (valgfritt)",
+      "button": "Logg inn"
+    },
+    "websocket": {
+      "name": "Websocket-status",
+      "websocket": "Websocket #{id}:",
+      "initializing": "Initialiserer...",
+      "connected": "Tilkoblet",
+      "disconnected": "Frakoblet",
+      "connecting": "Kobler til...",
+      "disconnecting": "Kobler fra...",
+      "reconnecting": "Kobler til på nytt..."
+    },
+    "progress": {
+      "name": "Kampanjefremdrift",
+      "drop": "Drop:",
+      "game": "Spill:",
+      "campaign": "Kampanje:",
+      "remaining": "{time} gjenstår",
+      "drop_progress": "Fremdrift:",
+      "campaign_progress": "Fremdrift:"
+    },
+    "channels": {
+      "name": "Kanaler",
+      "switch": "Bytt",
+      "online": "ONLINE  ✔",
+      "pending": "OFFLINE ⏳",
+      "offline": "OFFLINE ❌",
+      "headings": {
+        "channel": "Kanal",
+        "status": "Status",
+        "game": "Spill",
+        "viewers": "Seere"
+      }
+    },
+    "inventory": {
+      "filter": {
+        "name": "Filter",
+        "show": "Vis:",
+        "not_linked": "Ikke koblet",
+        "upcoming": "Kommende",
+        "expired": "Utløpt",
+        "excluded": "Ekskludert",
+        "finished": "Fullført",
+        "refresh": "Oppdater"
+      },
+      "status": {
+        "linked": "Koblet ✔",
+        "not_linked": "Ikke koblet ❌",
+        "active": "Aktiv ✔",
+        "upcoming": "Kommende ⏳",
+        "expired": "Utløpt ❌",
+        "claimed": "Hentet ✔",
+        "ready_to_claim": "Klar til henting ⏳"
+      },
+      "starts": "Starter: {time}",
+      "ends": "Slutter: {time}",
+      "allowed_channels": "Tillatte kanaler:",
+      "all_channels": "Alle",
+      "and_more": "og {amount} flere...",
+      "percent_progress": "{percent} av {minutes} minutter",
+      "minutes_progress": "{minutes} minutter"
+    },
+    "settings": {
+      "general": {
+        "name": "Generelt",
+        "autostart": "Autostart: ",
+        "tray": "Autostart til systemkurv: ",
+        "tray_notifications": "Systemkurv-varsler: ",
+        "dark_mode": "Mørk modus: ",
+        "priority_mode": "Prioritetsmodus: ",
+        "proxy": "Proxy (krever omstart):"
+      },
+      "advanced": {
+        "name": "Avansert",
+        "warning": "Advarsel!",
+        "warning_text": "Disse alternativene vil føre til at utvinneren oppfører seg feil.\nHvis du opplever problemer, sørg for at alle disse alternativene er deaktivert.",
+        "enable_badges_emotes": "Aktiver delvis støtte for merker og emotes: ",
+        "available_drops_check": "Aktiver ekstra sjekk av tilgjengelige drops: "
+      },
+      "priority_modes": {
+        "priority_only": "Kun prioritetsliste",
+        "ending_soonest": "Slutter snarest",
+        "low_availability": "Lav tilgjengelighet først"
+      },
+      "game_name": "Spillnavn",
+      "priority": "Prioritet",
+      "exclude": "Ekskluder",
+      "reload": "Last inn på nytt",
+      "reload_text": "De fleste endringer krever en ny innlasting for å tre i kraft umiddelbart: "
+    },
+    "help": {
+      "links": {
+        "name": "Nyttige lenker",
+        "inventory": "Se Twitch-inventar",
+        "campaigns": "Se alle kampanjer og administrer kontotilkoblinger"
+      },
+      "how_it_works": "Slik fungerer det",
+      "how_it_works_text": "Hvert par sekunder later applikasjonen som den ser på en bestemt strøm ved å hente strømmetadata - dette er nok til å øke fremdriften på drops. Merk at dette fullstendig unngår behovet for å laste ned selve video- og lydstrømmen. For å holde statusen (ONLINE eller OFFLINE) til kanalene oppdatert, opprettes det en websocket-tilkobling som mottar hendelser om strømmer som går opp eller ned, eller oppdateringer angående gjeldende antall seere.",
+      "getting_started": "Kom i gang",
+      "getting_started_text": "1. Logg inn i applikasjonen.\n2. Sørg for at Twitch-kontoen din er koblet til alle kampanjer du er interessert i å utvinne.\n3. Hvis du er interessert i å utvinne alt mulig, endre \"Prioritetsmodus\" til noe annet enn \"Kun prioritetsliste\" og trykk på \"Last inn på nytt\".\n4. Hvis du vil utvinne spesifikke spill først, bruk \"Prioritet\"-listen til å sette opp en ordnet liste over spill etter eget valg. Spill fra toppen av listen vil bli forsøkt utvunnet først, før de lenger ned på listen.\n5. Behold \"Prioritetsmodus\" satt til \"Kun prioritetsliste\" for å unngå å utvinne spill som ikke er på prioritetslisten. Eller ikke - det er opp til deg.\n6. Bruk \"Ekskluder\"-listen for å fortelle applikasjonen hvilke spill som aldri skal utvinnes.\n7. Endring av innholdet i en av listene, eller endring av \"Prioritetsmodus\", krever at du trykker på \"Last inn på nytt\" for at endringene skal tre i kraft."
+    }
+  }
+}
