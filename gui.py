@@ -2147,23 +2147,8 @@ class GUIManager:
         style.configure("green.TLabel", foreground="green")
         style.configure("yellow.TLabel", foreground="goldenrod")
         style.configure("red.TLabel", foreground="red")
-        # fonts
-        default_font = nametofont("TkDefaultFont")
-        self._fonts: dict[str, Font] = {
-            "default": default_font,
-            "large": default_font.copy(),
-            "monospaced": default_font.copy(),
-            "underlined": default_font.copy(),
-        }
-        self._fonts["large"].config(size=10)
-        self._fonts["underlined"].config(underline=True)
-        self._fonts["monospaced"].config(family="Courier New", size=10)
-        # label style with a monospace font
-        style.configure("MS.TLabel", font=self._fonts["monospaced"])
-        # button style with a larger font
-        style.configure("Large.TButton", font=self._fonts["large"])
-        # label style that mimics links
-        style.configure("Link.TLabel", font=self._fonts["underlined"], foreground="blue")
+        # fonts storage
+        self._fonts: dict[str, Font] = {}
         # end of style changes
 
         root_frame = ttk.Frame(root, padding=8)
@@ -2417,19 +2402,29 @@ class GUIManager:
             accent = "#0a84ff"
 
         s = self._style
+        # Fonts
+        default_font = nametofont("TkDefaultFont")
+        self._fonts["default"] = default_font
+        # Font - button style with a larger font
+        self._fonts["large"] = default_font.copy()
+        self._fonts["large"].config(size=10)
+        s.configure("Large.TButton", font=self._fonts["large"])
+        # Font - label style that mimics links
+        self._fonts["underlined"] = default_font.copy()
+        self._fonts["underlined"].config(underline=True)
+        s.configure("Link.TLabel", font=self._fonts["underlined"], foreground=link)
+        # Font - label style with a monospace font
+        self._fonts["monospaced"] = default_font.copy()
+        self._fonts["monospaced"].config(family="Courier New", size=10)
+        s.configure("MS.TLabel", font=self._fonts["monospaced"])
+
         # Base containers and labels
         s.configure("TFrame", background=bg, foreground=fg)
         s.configure("TLabel", background=bg, foreground=fg)
         s.configure("TLabelframe", background=bg, foreground=fg)
         s.configure("TLabelframe.Label", background=bg, foreground=fg)
-        s.configure("MS.TLabel", background=bg, foreground=fg)
-        s.configure("green.TLabel", background=bg)
-        s.configure("yellow.TLabel", background=bg)
-        s.configure("red.TLabel", background=bg)
-        s.configure("Link.TLabel", font=self._fonts["underlined"], background=bg, foreground=link)
         # Buttons and checks
         s.configure("TButton", background=surface, foreground=fg, bordercolor=border)
-        s.configure("Large.TButton", background=surface, foreground=fg, bordercolor=border)
         s.map(
             "TButton",
             background=[("active", header), ("pressed", border)],
