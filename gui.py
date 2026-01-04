@@ -33,6 +33,7 @@ from cache import ImageCache
 from exceptions import MinerException, ExitRequest
 from utils import resource_path, set_root_icon, webopen, Game, _T
 from constants import (
+    MAX_INT,
     SELF_PATH,
     IS_PACKAGED,
     SCRIPTS_PATH,
@@ -1740,7 +1741,7 @@ class SettingsPanel:
         priority_frame.columnconfigure(0, weight=1)
         ttk.Button(
             priority_frame, text="➕", command=self.priority_add, width=3, style="Large.TButton"
-        ).grid(column=1, row=0)
+        ).grid(column=1, row=0, sticky="nsew")
         self._priority_list = PaddedListbox(
             priority_frame,
             height=12,
@@ -1750,28 +1751,45 @@ class SettingsPanel:
             highlightthickness=0,
             exportselection=False,
         )
-        self._priority_list.grid(column=0, row=1, rowspan=3, sticky="nsew")
+        self._priority_list.grid(column=0, row=1, rowspan=5, sticky="nsew")
         self._priority_list.insert("end", *self._settings.priority)
-        ttk.Button(
+        weight_scale: int = 5
+        ttk.Button(  # Move to top
             priority_frame,
             width=2,
-            text="▲",
-            style="Large.TButton",
-            command=partial(self.priority_move, True),
+            text="⭱",
+            style="Arrow.TButton",
+            command=partial(self.priority_move, MAX_INT),
         ).grid(column=1, row=1, sticky="nsew")
         priority_frame.rowconfigure(1, weight=1)
-        ttk.Button(
+        ttk.Button(  # Move up
             priority_frame,
             width=2,
-            text="▼",
-            style="Large.TButton",
-            command=partial(self.priority_move, False),
+            text="🠙",
+            style="Arrow.TButton",
+            command=partial(self.priority_move, 1),
         ).grid(column=1, row=2, sticky="nsew")
-        priority_frame.rowconfigure(2, weight=1)
+        priority_frame.rowconfigure(2, weight=weight_scale)
+        ttk.Button(  # Move down
+            priority_frame,
+            width=2,
+            text="🠛",
+            style="Arrow.TButton",
+            command=partial(self.priority_move, -1),
+        ).grid(column=1, row=3, sticky="nsew")
+        priority_frame.rowconfigure(3, weight=weight_scale)
+        ttk.Button(  # Move to bottom
+            priority_frame,
+            width=2,
+            text="⭳",
+            style="Arrow.TButton",
+            command=partial(self.priority_move, -MAX_INT),
+        ).grid(column=1, row=4, sticky="nsew")
+        priority_frame.rowconfigure(4, weight=1)
         ttk.Button(
             priority_frame, text="❌", command=self.priority_delete, width=3, style="Large.TButton"
-        ).grid(column=1, row=3, sticky="ns")
-        priority_frame.rowconfigure(3, weight=1)
+        ).grid(column=1, row=5, sticky="nsew")
+        priority_frame.rowconfigure(5, weight=1)
 
         # Exclude section
         exclude_frame = ttk.LabelFrame(
@@ -1800,7 +1818,7 @@ class SettingsPanel:
         self._exclude_list.insert("end", *sorted(self._settings.exclude))
         ttk.Button(
             exclude_frame, text="❌", command=self.exclude_delete, width=3, style="Large.TButton"
-        ).grid(column=0, row=2, columnspan=2, sticky="ew")
+        ).grid(column=0, row=2, columnspan=2, sticky="nsew")
 
         # Reload button
         reload_frame = ttk.Frame(center_frame)
@@ -1942,13 +1960,22 @@ class SettingsPanel:
             return None
         return selection[0]
 
-    def priority_move(self, up: bool) -> None:
+    def priority_move(self, amount: int) -> None:
+        # amount > 0 = up, amount < 0 = down
         idx: int | None = self._priority_idx()
-        if idx is None:
+        max_idx: int = self._priority_list.size() - 1
+        if (
+            idx is None
+            or amount == 0
+            or amount > 0 and idx == 0
+            or amount < 0 and idx == max_idx
+        ):
             return
-        if up and idx == 0 or not up and idx == self._priority_list.size() - 1:
-            return
-        swap_idx: int = idx - 1 if up else idx + 1
+        swap_idx: int = idx - amount
+        if swap_idx <= 0:
+            swap_idx = 0
+        elif swap_idx >= max_idx:
+            swap_idx = max_idx
         item: str = self._priority_list.get(idx)
         self._priority_list.delete(idx)
         self._priority_list.insert(swap_idx, item)
@@ -2409,6 +2436,11 @@ class GUIManager:
         self._fonts["large"] = default_font.copy()
         self._fonts["large"].config(size=10)
         s.configure("Large.TButton", font=self._fonts["large"])
+        # Font - button style for sorting arrows
+        self._fonts["arrow"] = default_font.copy()
+        self._fonts["arrow"].config(size=16)
+        s.configure("Arrow.TButton", font=self._fonts["arrow"])
+        s.configure("Arrow.TButton", padding=-4)  # reduce padding on arrow buttons
         # Font - label style that mimics links
         self._fonts["underlined"] = default_font.copy()
         self._fonts["underlined"].config(underline=True)
