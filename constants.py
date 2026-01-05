@@ -363,7 +363,7 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
     # returns drops available for a particular channel
     "AvailableDrops": GQLOperation(
         "DropsHighlightService_AvailableDrops",
-        "9a62a09bce5b53e26e64a671e530bc599cb6aab1e5ba3cbd5d85966d3940716f",
+        "782dad0f032942260171d2d80a654f88bdd0c5a9dddc392e9bc92218a0f42d20",
         variables={
             "channelID": ...,  # channel ID as a str
         },
@@ -384,7 +384,7 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
     # returns live channels for a particular game
     "GameDirectory": GQLOperation(
         "DirectoryPage_Game",
-        "98a996c3c3ebb1ba4fd65d6671c6028d7ee8d615cb540b0731b3db2a911d3649",
+        "76cb069d835b8a02914c08dc42c421d0dafda8af5b113a3f19141824b901402f",
         variables={
             "limit": 30,  # limit of channels returned
             "slug": ...,  # game slug
