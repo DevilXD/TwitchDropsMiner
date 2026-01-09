@@ -139,7 +139,7 @@ class Stream:
 
 class Channel:
     __slots__ = (
-        "_twitch", "_gui_channels", "id", "_login", "_display_name", "_spade_url",
+        "_twitch", "_gui_channels", "id", "_login", "_display_name",
         "_stream", "_pending_stream_up", "acl_based"
     )
 
@@ -157,7 +157,6 @@ class Channel:
         self.id: int = int(id)
         self._login: str = login
         self._display_name: str | None = display_name
-        self._spade_url: URLType | None = None
         self._stream: Stream | None = None
         self._pending_stream_up: asyncio.Task[Any] | None = None
         # ACL-based channels are:
@@ -277,34 +276,6 @@ class Channel:
             self._pending_stream_up.cancel()
             self._pending_stream_up = None
         self._gui_channels.remove(self)
-
-    async def get_spade_url(self) -> URLType:
-        """
-        To get this monstrous thing, you have to walk a chain of requests.
-        Streamer page (HTML) --parse-> Streamer Settings (JavaScript) --parse-> Spade URL
-
-        For mobile view, spade_url is available immediately from the page, skipping step #2.
-        """
-        SETTINGS_PATTERN: str = (
-            r'src="(https://[\w.]+/config/settings\.[0-9a-f]{32}\.js)"'
-        )
-        SPADE_PATTERN: str = (
-            r'"beacon_?url": ?"(https://video-edge-[.\w\-/]+\.ts(?:\?allow_stream=true)?)"'
-        )
-        async with self._twitch.request("GET", self.url) as response1:
-            streamer_html: str = await response1.text(encoding="utf8")
-        match = re.search(SPADE_PATTERN, streamer_html, re.I)
-        if not match:
-            match = re.search(SETTINGS_PATTERN, streamer_html, re.I)
-            if not match:
-                raise MinerException("Error while spade_url extraction: step #1")
-            streamer_settings = match.group(1)
-            async with self._twitch.request("GET", streamer_settings) as response2:
-                settings_js: str = await response2.text(encoding="utf8")
-            match = re.search(SPADE_PATTERN, settings_js, re.I)
-            if not match:
-                raise MinerException("Error while spade_url extraction: step #2")
-        return URLType(match.group(1))
 
     def _check_drops_enabled(self, available_drops: list[JsonType]) -> bool:
         return any(
@@ -467,11 +438,9 @@ class Channel:
     async def send_watch(self) -> bool:
         if self._stream is None:
             return False
-        if self._spade_url is None:
-            self._spade_url = await self.get_spade_url()
         try:
             async with self._twitch.request(
-                "POST", self._spade_url, data=self._stream._spade_payload
+                "POST", "https://spade.twitch.tv/track", data=self._stream._spade_payload
             ) as response:
                 return response.status == 204
         except RequestException:
