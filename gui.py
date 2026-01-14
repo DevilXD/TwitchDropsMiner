@@ -2401,21 +2401,17 @@ class GUIManager:
         """
         if sys.platform != "win32":
             return
-        try:
-            # DWMWA_CAPTION_COLOR = 35
-            DWMWA_CAPTION_COLOR = 35
-            hwnd = self._root.winfo_id()
-            frame_hwnd = ctypes.windll.user32.GetParent(hwnd)
-            color_value = ctypes.c_int(color)
-            ctypes.windll.dwmapi.DwmSetWindowAttribute(
-                frame_hwnd,
-                DWMWA_CAPTION_COLOR,
-                ctypes.byref(color_value),
-                ctypes.sizeof(ctypes.c_int),
-            )
-        except Exception:
-            # Silently fail if DWM API is not available or call fails
-            pass
+        # DWMWA_CAPTION_COLOR = 35
+        DWMWA_CAPTION_COLOR = 35
+        hwnd = self._root.winfo_id()
+        frame_hwnd = ctypes.windll.user32.GetParent(hwnd)
+        color_value = ctypes.c_int(color)
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            frame_hwnd,
+            DWMWA_CAPTION_COLOR,
+            ctypes.byref(color_value),
+            ctypes.sizeof(ctypes.c_int),
+        )
 
     def apply_theme(self, dark: bool) -> None:
         """
@@ -2609,6 +2605,9 @@ class GUIManager:
         if dark:
             # Use dark gray color 0x001E1E1E (ARGB format, matches bg color #1e1e1e)
             self._set_title_bar_color(0x001E1E1E)
+        else:
+            # Reset to system default title bar color
+            self._set_title_bar_color(0xFFFFFFFF)
 
 
 ###################
