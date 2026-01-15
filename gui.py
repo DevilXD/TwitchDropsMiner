@@ -2391,6 +2391,28 @@ class GUIManager:
         # print to our custom output
         self.output.print(message)
 
+    def _set_title_bar_color(self, color: int) -> None:
+        """
+        Set the Windows title bar color to match the theme.
+        Only works on Windows with DWM enabled.
+
+        Args:
+            color: ARGB color value (e.g., 0x001E1E1E for dark gray).
+        """
+        if sys.platform != "win32":
+            return
+        # DWMWA_CAPTION_COLOR = 35
+        DWMWA_CAPTION_COLOR = 35
+        hwnd = self._root.winfo_id()
+        frame_hwnd = ctypes.windll.user32.GetParent(hwnd)
+        color_value = ctypes.c_int(color)
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            frame_hwnd,
+            DWMWA_CAPTION_COLOR,
+            ctypes.byref(color_value),
+            ctypes.sizeof(ctypes.c_int),
+        )
+
     def apply_theme(self, dark: bool) -> None:
         """
         Apply dark/light palette to ttk styles and Tk widgets in a minimal, non-invasive way.
@@ -2578,6 +2600,14 @@ class GUIManager:
             "*Listbox.selectForeground",
         ):
             self._root.option_add(key, sel_fg)
+
+        # Set Windows title bar color to match dark theme
+        if dark:
+            # Use dark gray color 0x001E1E1E (ARGB format, matches bg color #1e1e1e)
+            self._set_title_bar_color(0x001E1E1E)
+        else:
+            # Reset to system default title bar color
+            self._set_title_bar_color(0xFFFFFFFF)
 
 
 ###################
