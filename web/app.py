@@ -160,12 +160,12 @@ def status(username=None):
         # Status message from GUI stub
         status_message = gui.status.message if gui else ''
 
-        # Username
-        username = None
+        # Twitch username (not the web auth username)
+        twitch_username = None
         if hasattr(twitch, '_auth_state') and hasattr(twitch._auth_state, 'user_id'):
             user_id = twitch._auth_state.user_id
             if user_id != 0:
-                username = str(user_id)
+                twitch_username = str(user_id)
 
         # Channel info — prefer GUI stub data, fall back to twitch internals
         current_channel = None
@@ -221,7 +221,7 @@ def status(username=None):
         current_status = {
             'state': state_name,
             'status_message': status_message,
-            'username': username,
+            'username': twitch_username,
             'current_channel': current_channel,
             'current_game': current_game,
             'current_channel_status': current_channel_status,
@@ -1482,7 +1482,7 @@ def get_log(username=None):
     if gui is None or not hasattr(gui, 'get_log'):
         return jsonify([])
 
-    count = request.args.get('count', 100, type=int)
+    count = min(request.args.get('count', 100, type=int), 500)
     messages = gui.get_log(last_n=count)
     return jsonify([{'timestamp': ts, 'message': msg} for ts, msg in messages])
 

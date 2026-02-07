@@ -1652,7 +1652,7 @@ class Twitch:
         campaigns.sort(key=lambda c: c.eligible, reverse=True)
 
         self._drops.clear()
-        if self.gui_enabled and self.gui is not None and hasattr(self.gui, 'inv') and self.gui.inv is not None:
+        if self.gui_enabled:
             self.gui.inv.clear()
         self.inventory.clear()
         self._mnt_triggers.clear()
