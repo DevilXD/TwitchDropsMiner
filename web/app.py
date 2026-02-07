@@ -38,6 +38,15 @@ def initialize(loop, twitch_instance):
     tdm_instance = twitch_instance
     main_event_loop = loop
 
+
+def _get_gui():
+    """Get the GUI instance from the twitch client.
+    In headless/web mode this is a DummyGUI that captures real data.
+    Returns None if the miner isn't initialized yet."""
+    if tdm_instance is not None and hasattr(tdm_instance, 'gui'):
+        return tdm_instance.gui
+    return None
+
 # Configure Flask app
 app = Flask(__name__, 
     static_folder='static',
@@ -137,71 +146,81 @@ def auth_logout(username=None):
 @app.route('/api/status')
 @auth_required
 def status(username=None):
-    """Return the current mining status"""
+    """Return the current mining status, reading from GUI stubs when possible."""
     if tdm_instance is None:
         return jsonify({'error': 'Miner not initialized'}), 503
-    
-    # Get miner instance data
+
     try:
         twitch = tdm_instance
-        
-        # Get current state
+        gui = _get_gui()
+
+        # State
         state_name = str(twitch._state.name) if hasattr(twitch, '_state') else 'UNKNOWN'
-          # Get current username from auth_state if available
+
+        # Status message from GUI stub
+        status_message = gui.status.message if gui else ''
+
+        # Username
         username = None
         if hasattr(twitch, '_auth_state') and hasattr(twitch._auth_state, 'user_id'):
-            # Only show username if user_id is valid (not 0)
             user_id = twitch._auth_state.user_id
             if user_id != 0:
                 username = str(user_id)
-            # Otherwise leave username as None
-        
-        # Get current watching channel
+
+        # Channel info — prefer GUI stub data, fall back to twitch internals
         current_channel = None
         current_game = None
         current_channel_status = 'NONE'
-        
-        watching_channel = twitch.watching_channel.get_with_default(None)
-        if watching_channel:
-            current_channel = watching_channel.name
-            current_channel_status = 'ONLINE' if watching_channel.online else 'OFFLINE'
-            if watching_channel.game:
-                current_game = watching_channel.game.name
-          # Get active drop information
+
+        if gui and hasattr(gui, 'channels') and hasattr(gui.channels, 'watching'):
+            watching = gui.channels.watching
+            if watching is not None:
+                current_channel = watching.name
+                current_channel_status = 'ONLINE' if watching.online else 'OFFLINE'
+                if watching.game:
+                    current_game = watching.game.name
+        else:
+            watching_channel = twitch.watching_channel.get_with_default(None)
+            if watching_channel:
+                current_channel = watching_channel.name
+                current_channel_status = 'ONLINE' if watching_channel.online else 'OFFLINE'
+                if watching_channel.game:
+                    current_game = watching_channel.game.name
+
+        # Active drop — prefer GUI stub progress data
         current_drop = None
         drop_progress = None
         time_remaining = None
 
-        # First check the latest WebSocket drop update (which is more accurate)
-        if hasattr(twitch, '_last_drop_update') and twitch._last_drop_update:
-            drop_update = twitch._last_drop_update
-            websocket_drop = drop_update['drop']
-            
-            if websocket_drop:
-                # Use the more accurate WebSocket data
-                current_drop = websocket_drop.name
-                drop_progress = f"{drop_update['current_minutes']}/{drop_update['required_minutes']}"
-                time_remaining = f"{websocket_drop.remaining_minutes} minutes"
-                logger.info(f"Using WebSocket drop data: {current_drop} - {drop_progress}")
-        
-        # Fall back to get_active_drop if no WebSocket data is available
+        if gui and hasattr(gui, 'progress'):
+            drop = gui.progress.current_drop
+            if drop is not None:
+                current_drop = drop.name
+                drop_progress = f"{drop.current_minutes}/{drop.required_minutes}"
+                time_remaining = f"{drop.remaining_minutes} minutes"
+
+        # Fall back to get_active_drop
         if current_drop is None:
+            watching_channel = twitch.watching_channel.get_with_default(None)
             active_drop = twitch.get_active_drop(watching_channel)
             if active_drop:
                 current_drop = active_drop.name
-                drop_progress = active_drop.progress
+                drop_progress = f"{active_drop.current_minutes}/{active_drop.required_minutes}"
                 time_remaining = f"{active_drop.remaining_minutes} minutes"
-                logger.info(f"Using fallback drop data: {current_drop} - {drop_progress}")
-        
+
         # Count pending drops
         inventory_pending = 0
         for campaign in twitch.inventory:
             for drop in campaign.drops:
                 if drop.can_claim:
                     inventory_pending += 1
-                    
+
+        # Tray icon state
+        icon_state = gui.tray.icon_state if gui else 'idle'
+
         current_status = {
             'state': state_name,
+            'status_message': status_message,
             'username': username,
             'current_channel': current_channel,
             'current_game': current_game,
@@ -210,6 +229,7 @@ def status(username=None):
             'drop_progress': drop_progress,
             'time_remaining': time_remaining,
             'inventory_pending': inventory_pending,
+            'icon_state': icon_state,
         }
         return jsonify(current_status)
     except Exception as e:
@@ -334,39 +354,48 @@ def campaigns(username=None):
 @app.route('/api/channels')
 @auth_required
 def channels(username=None):
-    """Return the available channels"""
+    """Return the available channels, preferring GUI stub data."""
     if tdm_instance is None:
         return jsonify({'error': 'Miner not initialized'}), 503
-    
+
     try:
         twitch = tdm_instance
+        gui = _get_gui()
         channels_data = []
-        
-        if hasattr(twitch, 'channels'):
-            for channel in twitch.channels.values():
-                channel_data = {
-                    'id': channel.id if hasattr(channel, 'id') else 'unknown',
-                    'name': channel.name if hasattr(channel, 'name') else 'Unknown Channel',
-                    'game': channel.game.name if hasattr(channel, 'game') and channel.game else None,
-                    'status': 'ONLINE' if hasattr(channel, 'online') and channel.online else 'OFFLINE',
-                    'viewers': channel.viewers if hasattr(channel, 'viewers') and hasattr(channel, 'online') and channel.online else 0,
-                    'has_drops': channel.has_drops if hasattr(channel, 'has_drops') else False,
-                }
-                
-                # Safely add tags if they exist
-                if hasattr(channel, 'tags') and channel.tags:
-                    channel_data['tags'] = list(channel.tags)
-                else:
-                    channel_data['tags'] = []
-                
-                # Add current channel indicator
-                if hasattr(twitch, 'current_channel') and twitch.current_channel and hasattr(channel, 'id') and hasattr(twitch.current_channel, 'id'):
-                    channel_data['current'] = (channel.id == twitch.current_channel.id)
-                else:
-                    channel_data['current'] = False
-                
-                channels_data.append(channel_data)
-        
+
+        # Determine currently watching channel from GUI stub
+        watching_id = None
+        if gui and hasattr(gui, 'channels') and hasattr(gui.channels, 'watching'):
+            w = gui.channels.watching
+            if w is not None:
+                watching_id = w.iid
+        else:
+            w = twitch.watching_channel.get_with_default(None)
+            if w is not None:
+                watching_id = w.iid if hasattr(w, 'iid') else getattr(w, 'id', None)
+
+        # Get channel objects — prefer GUI stub list (it mirrors what twitch.py sends)
+        if gui and hasattr(gui, 'channels') and hasattr(gui.channels, 'all_channels'):
+            channel_list = gui.channels.all_channels
+        elif hasattr(twitch, 'channels'):
+            channel_list = list(twitch.channels.values())
+        else:
+            channel_list = []
+
+        for channel in channel_list:
+            channel_data = {
+                'id': getattr(channel, 'id', 'unknown'),
+                'name': getattr(channel, 'name', 'Unknown Channel'),
+                'game': channel.game.name if getattr(channel, 'game', None) else None,
+                'status': 'ONLINE' if getattr(channel, 'online', False) else 'OFFLINE',
+                'viewers': getattr(channel, 'viewers', 0) if getattr(channel, 'online', False) else 0,
+                'has_drops': getattr(channel, 'drops_enabled', False),
+                'acl_based': getattr(channel, 'acl_based', False),
+                'tags': list(channel.tags) if getattr(channel, 'tags', None) else [],
+                'current': (watching_id is not None and getattr(channel, 'iid', None) == watching_id),
+            }
+            channels_data.append(channel_data)
+
         return jsonify(channels_data)
     except Exception as e:
         logger.error(f"Error getting channels: {e}")
@@ -1045,7 +1074,7 @@ def settings(username=None):
             'connection_quality': twitch.settings.connection_quality if hasattr(twitch, 'settings') else 1,
             'tray_notifications': twitch.settings.tray_notifications if hasattr(twitch, 'settings') else True,
             'priority_mode': twitch.settings.priority_mode.name if hasattr(twitch, 'settings') else 'PRIORITY_ONLY',
-            'available_languages': list(twitch.gui._._languages) if hasattr(twitch, 'gui') and hasattr(twitch.gui, '_') else [],
+            'available_languages': [],  # TODO: expose from translate.py if needed
             'available_games': list(set(game.name for game in twitch.inventory_games())) if hasattr(twitch, 'inventory_games') else []
         }
         
@@ -1220,14 +1249,24 @@ def diagnostic(username=None):
             'is_release': os.environ.get("RELEASE_BUILD") == "true"
         }
           # Miner state
+        gui = _get_gui()
         miner_state = {
             'session_active': hasattr(twitch, '_session') and twitch._session is not None,
-            'websocket_connected': False,  # Default to false
-            'auth_valid': hasattr(twitch, '_auth_state') and hasattr(twitch._auth_state, 'user_id') and twitch._auth_state.user_id is not None
+            'websocket_connected': False,
+            'auth_valid': hasattr(twitch, '_auth_state') and hasattr(twitch._auth_state, 'user_id') and twitch._auth_state.user_id is not None,
         }
-        
-        # Check websocket status - looking for any connected websocket
-        if hasattr(twitch, 'websocket') and hasattr(twitch.websocket, 'websockets'):
+
+        # Prefer GUI stub websocket status
+        if gui and hasattr(gui, 'websockets') and hasattr(gui.websockets, 'statuses'):
+            ws_statuses = gui.websockets.statuses
+            miner_state['websocket_connected'] = any(
+                s.get('status') not in (None, 'Disconnected') for s in ws_statuses.values()
+            )
+            miner_state['websocket_details'] = [
+                {'index': idx, 'status': s.get('status', 'Unknown'), 'topics': s.get('topics', 0)}
+                for idx, s in ws_statuses.items()
+            ]
+        elif hasattr(twitch, 'websocket') and hasattr(twitch.websocket, 'websockets'):
             for ws in twitch.websocket.websockets:
                 if ws.connected:
                     miner_state['websocket_connected'] = True
@@ -1353,67 +1392,52 @@ def twitch_cancel_auth(username=None):
 @app.route('/api/active_drop')
 @auth_required
 def active_drop(username=None):
-    """Return the most accurate information about the currently active drop via WebSocket updates"""
+    """Return the currently active drop, preferring GUI stub progress data."""
     if tdm_instance is None:
         return jsonify({'error': 'Miner not initialized'}), 503
-    
+
     try:
         twitch = tdm_instance
-        
-        # Check for WebSocket drop update data
-        if hasattr(twitch, '_last_drop_update') and twitch._last_drop_update:
-            drop_update = twitch._last_drop_update
-            websocket_drop = drop_update['drop']
-            
-            if websocket_drop:
-                # Convert to a friendly format                # Get image URL from the first benefit if available
-                image_url = None
-                if hasattr(websocket_drop, 'benefits') and websocket_drop.benefits and len(websocket_drop.benefits) > 0:
-                    image_url = websocket_drop.benefits[0].image_url if hasattr(websocket_drop.benefits[0], 'image_url') else None
-                
-                result = {
-                    'source': 'websocket',
-                    'name': websocket_drop.name,
-                    'campaign_name': websocket_drop.campaign.name if hasattr(websocket_drop.campaign, 'name') else None,
-                    'game': websocket_drop.campaign.game.name if hasattr(websocket_drop.campaign, 'game') else None, 
-                    'current_minutes': drop_update['current_minutes'],
-                    'required_minutes': drop_update['required_minutes'],
-                    'remaining_minutes': websocket_drop.remaining_minutes,
-                    'progress_percentage': round((drop_update['current_minutes'] / drop_update['required_minutes']) * 100),
-                    'last_update': drop_update['timestamp'].isoformat(),
-                    'drop_id': drop_update['drop_id'],
-                    'image_url': image_url
-                }
-                
-                return jsonify(result)
-        
-        # Fall back to get_active_drop if no WebSocket data is available
-        watching_channel = twitch.watching_channel.get_with_default(None)
-        active_drop = twitch.get_active_drop(watching_channel)
-        
-        if active_drop:            # Get image URL from the first benefit if available
-            image_url = None
-            if hasattr(active_drop, 'benefits') and active_drop.benefits and len(active_drop.benefits) > 0:
-                image_url = active_drop.benefits[0].image_url if hasattr(active_drop.benefits[0], 'image_url') else None
-            
-            result = {
-                'source': 'gql',
-                'name': active_drop.name,
-                'campaign_name': active_drop.campaign.name if hasattr(active_drop.campaign, 'name') else None,
-                'game': active_drop.campaign.game.name if hasattr(active_drop.campaign, 'game') else None,
-                'current_minutes': active_drop.current_minutes,
-                'required_minutes': active_drop.required_minutes,
-                'remaining_minutes': active_drop.remaining_minutes,
-                'progress_percentage': active_drop.progress_percentage,
-                'last_update': datetime.now(timezone.utc).isoformat(),
-                'drop_id': active_drop.id,
-                'image_url': image_url
-            }
-            
-            return jsonify(result)
-            
-        return jsonify({'active_drop': None})
-        
+        gui = _get_gui()
+
+        drop = None
+        source = 'gql'
+
+        # Prefer the GUI stub's tracked drop (set by progress.display())
+        if gui and hasattr(gui, 'progress'):
+            drop = gui.progress.current_drop
+            if drop is not None:
+                source = 'gui'
+
+        # Fall back to get_active_drop
+        if drop is None:
+            watching_channel = twitch.watching_channel.get_with_default(None)
+            drop = twitch.get_active_drop(watching_channel)
+
+        if drop is None:
+            return jsonify({'active_drop': None})
+
+        # Get image URL from the first benefit
+        image_url = None
+        if getattr(drop, 'benefits', None) and len(drop.benefits) > 0:
+            image_url = getattr(drop.benefits[0], 'image_url', None)
+
+        result = {
+            'source': source,
+            'name': drop.name,
+            'campaign_name': getattr(drop.campaign, 'name', None) if getattr(drop, 'campaign', None) else None,
+            'game': drop.campaign.game.name if getattr(drop, 'campaign', None) and getattr(drop.campaign, 'game', None) else None,
+            'current_minutes': drop.current_minutes,
+            'required_minutes': drop.required_minutes,
+            'remaining_minutes': drop.remaining_minutes,
+            'progress_percentage': drop.progress_percentage if hasattr(drop, 'progress_percentage') else round(drop.progress * 100),
+            'last_update': datetime.now(timezone.utc).isoformat(),
+            'drop_id': getattr(drop, 'id', None),
+            'image_url': image_url,
+        }
+
+        return jsonify(result)
+
     except Exception as e:
         logger.error(f"Error getting active drop: {e}")
         return jsonify({'error': str(e)}), 500
@@ -1448,6 +1472,33 @@ def auth_validate():
         'success': True,
         'username': username_or_error
     })
+
+
+@app.route('/api/log')
+@auth_required
+def get_log(username=None):
+    """Return recent log messages captured by the headless GUI."""
+    gui = _get_gui()
+    if gui is None or not hasattr(gui, 'get_log'):
+        return jsonify([])
+
+    count = request.args.get('count', 100, type=int)
+    messages = gui.get_log(last_n=count)
+    return jsonify([{'timestamp': ts, 'message': msg} for ts, msg in messages])
+
+
+@app.route('/api/notifications')
+@auth_required
+def get_notifications(username=None):
+    """Return tray notifications captured by the headless GUI."""
+    gui = _get_gui()
+    if gui is None or not hasattr(gui, 'tray') or not hasattr(gui.tray, 'notifications'):
+        return jsonify([])
+
+    return jsonify([
+        {'timestamp': ts, 'title': title, 'message': msg}
+        for ts, title, msg in gui.tray.notifications
+    ])
 
 
 def run_web_server(host, port, debug, tdm):

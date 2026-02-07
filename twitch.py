@@ -1717,6 +1717,13 @@ class Twitch:
             return campaigns[0]
         return None
 
+    def get_active_drop(self, channel: Channel | None = None) -> TimedDrop | None:
+        """Get the currently active drop for the given or currently watched channel."""
+        campaign = self.get_active_campaign(channel)
+        if campaign is not None:
+            return campaign.first_drop
+        return None
+
     def inventory_games(self) -> list[Game]:
         """Get the list of all games in inventory for settings UI"""
         games = []
