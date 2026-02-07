@@ -132,10 +132,8 @@ def task_wrapper(
                 await afunc(*args, **kwargs)
             except (ExitRequest, ReloadRequest):
                 pass
-            except Exception as exc:
+            except Exception:
                 logger.exception(f"Exception in {afunc.__name__} task")
-                print(f"DEBUG: CRITICAL TASK FAILED: {afunc.__name__}")
-                print(f"DEBUG: Exception: {type(exc).__name__}: {exc}")
                 if critical:
                     # critical task's death should trigger a termination.
                     # there isn't an easy and sure way to obtain the Twitch instance here,
@@ -143,12 +141,10 @@ def task_wrapper(
                     from twitch import Twitch  # cyclic import
                     probe = args and args[0] or None  # extract from 'self' arg
                     if isinstance(probe, Twitch):
-                        print(f"DEBUG: Calling close() on Twitch instance due to critical task failure")
                         probe.close()
                     elif probe is not None:
                         probe = getattr(probe, "_twitch", None)  # extract from '_twitch' attr
                         if isinstance(probe, Twitch):
-                            print(f"DEBUG: Calling close() on Twitch instance via _twitch attr due to critical task failure")
                             probe.close()
                 raise  # raise up to the wrapping task
         return wrapper

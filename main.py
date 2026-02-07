@@ -39,12 +39,6 @@ if __name__ == "__main__":
     from utils import lock_file, resource_path, set_root_icon
     from constants import LOGGING_LEVELS, SELF_PATH, FILE_FORMATTER, LOG_PATH, LOCK_PATH
 
-    # Import web interface
-    try:
-        from web.app import run_web_server
-        HAS_WEB_INTERFACE = True
-    except ImportError:
-        HAS_WEB_INTERFACE = False
     if TYPE_CHECKING:
         from _typeshed import SupportsWrite
     warnings.simplefilter("default", ResourceWarning)

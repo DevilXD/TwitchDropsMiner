@@ -34,6 +34,39 @@ class DummyChannels:
     def get_selection(self):
         return None
 
+    def display(self, channel, *, add: bool = False):
+        pass
+
+    def remove(self, channel):
+        pass
+
+
+class DummyWebsocketStatus:
+    """A dummy websocket status class for web mode."""
+
+    def update(self, idx, *, status=None, topics=None):
+        pass
+
+    def remove(self, idx):
+        pass
+
+
+class DummyInventoryOverview:
+    """A dummy inventory overview class for web mode."""
+
+    def clear(self):
+        pass
+
+    def add_campaign(self, campaign):
+        """Returns an awaitable no-op."""
+        import asyncio
+        async def _noop():
+            pass
+        return _noop()
+
+    def update_drop(self, drop):
+        pass
+
 
 class DummyGUI:
     """A simple placeholder for GUI functionality when running in web mode."""
@@ -45,7 +78,12 @@ class DummyGUI:
         self.tray = DummyTray()
         self.progress = DummyProgress()
         self.channels = DummyChannels()
+        self.inv = DummyInventoryOverview()
+        self.websockets = DummyWebsocketStatus()
     
+    def start(self):
+        pass
+
     def close(self):
         self.close_requested = True
     
@@ -54,6 +92,10 @@ class DummyGUI:
     
     async def wait_until_closed(self):
         return
+
+    async def coro_unless_closed(self, coro):
+        """Await a coroutine unless close has been requested."""
+        return await coro
     
     def stop(self):
         pass
@@ -65,6 +107,18 @@ class DummyGUI:
         pass
     
     def clear_drop(self):
+        pass
+
+    def display_drop(self, drop, *, countdown: bool = True, subone: bool = False):
+        pass
+
+    def print(self, message: str):
+        pass
+
+    def save(self, *, force: bool = False):
+        pass
+
+    def prevent_close(self):
         pass
 
 
@@ -79,6 +133,9 @@ class DummyTray:
     """A dummy tray class for web mode."""
     
     def change_icon(self, icon_name):
+        pass
+
+    def notify(self, message, title=""):
         pass
 
 
