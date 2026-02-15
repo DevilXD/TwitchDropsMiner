@@ -1971,19 +1971,21 @@ class SettingsPanel:
             or amount < 0 and idx == max_idx
         ):
             return
-        swap_idx: int = idx - amount
-        if swap_idx <= 0:
-            swap_idx = 0
-        elif swap_idx >= max_idx:
-            swap_idx = max_idx
+        insert_idx: int = idx - amount
+        if insert_idx <= 0:
+            insert_idx = 0
+        elif insert_idx >= max_idx:
+            insert_idx = max_idx
+
         item: str = self._priority_list.get(idx)
         self._priority_list.delete(idx)
-        self._priority_list.insert(swap_idx, item)
+        self._priority_list.insert(insert_idx, item)
         # reselect the item and scroll the list if needed
-        self._priority_list.selection_set(swap_idx)
-        self._priority_list.see(swap_idx)
-        p = self._settings.priority
-        p[idx], p[swap_idx] = p[swap_idx], p[idx]
+        self._priority_list.selection_set(insert_idx)
+        self._priority_list.see(insert_idx)
+        # update the underlying settings list too
+        self._settings.priority.pop(idx)
+        self._settings.priority.insert(insert_idx, item)
         self._settings.alter()
 
     def priority_delete(self) -> None:
