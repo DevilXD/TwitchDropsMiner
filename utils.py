@@ -82,7 +82,7 @@ def lock_file(path: Path) -> tuple[bool, io.TextIOWrapper]:
         except Exception:
             return False, file
         return True, file
-    if sys.platform == "linux":
+    if sys.platform in ("linux", "darwin"):
         import fcntl
         try:
             fcntl.lockf(file, fcntl.LOCK_EX | fcntl.LOCK_NB)

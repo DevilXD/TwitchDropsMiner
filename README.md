@@ -65,6 +65,14 @@ Every several seconds, the application pretends to watch a particular stream by 
 - The size of the Linux app is significantly larger than the Windows app due to the inclusion of the `gtk3` library (and its dependencies), which is required for proper system tray/notifications support.
 - As an alternative to the native Linux app, you can run the Windows app via [Wine](https://www.winehq.org/) instead. It works really well!
 
+### Notes about the macOS build:
+
+- The macOS version is packaged using PyInstaller into a standalone `.app` bundle, distributed as a ZIP archive.
+- Since this application is not signed with a paid Apple Developer Certificate, **macOS Gatekeeper will block it** on the first run (saying it "cannot be checked for malicious software").
+  - **To fix this**: Right-click (or Control-click) the app icon and select `Open`. Then click `Open` again in the dialog box. You only need to do this once.
+- Persistent files (like `cookies.jar`, `settings.json`, `lock.file` and the `cache` folder) are stored inside the application bundle in `Twitch Drops Miner (by DevilXD).app/Contents/MacOS` (to access them Right-click the application and select `Show Package Contents`)
+- The application automatically detects your system theme (Light/Dark) on startup and adjusts the interface accordingly.
+
 ### Advanced Usage:
 
 If you'd be interested in running the latest master from source or building your own executable, see the wiki page explaining how to do so: https://github.com/DevilXD/TwitchDropsMiner/wiki/Setting-up-the-environment,-building-and-running
@@ -135,6 +143,7 @@ placed past the period character at the end.
 
 @guihkx - For the CI script, CI maintenance, and everything related to Linux builds.  
 @kWAYTV - For the implementation of the dark mode theme.  
+@crocchetto - For the macOS port.  
 
 @Bamboozul - For the entirety of the Arabic (العربية) translation.  
 @Suz1e - For the entirety of the Chinese (简体中文) translation and revisions.  

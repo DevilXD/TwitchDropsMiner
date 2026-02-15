@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from PyInstaller.building.splash import Splash
     from PyInstaller.building.build_main import Analysis
     from PyInstaller.building.datastruct import _TOCTuple
-    from PyInstaller.building.api import PYZ, EXE, COLLECT
+    from PyInstaller.building.api import PYZ, EXE, COLLECT, BUNDLE
 
 
 PYZTypeCOLLECT: TypeAlias = "abc.Iterable[_TOCTuple] | PYZ"
@@ -141,4 +141,17 @@ if one_dir:
         *collect_args,
         upx=upx,
         name=app_name,
+    )
+
+# macOS bundle support
+if sys.platform == "darwin":
+    source = coll if one_dir else exe
+    app = BUNDLE(
+        source,
+        name=f'{app_name}.app',
+        icon="icons/pickaxe.ico",
+        bundle_identifier='com.twitchdrops.miner',
+        info_plist={
+            'NSRequiresAquaSystemAppearance': True,
+        },
     )
