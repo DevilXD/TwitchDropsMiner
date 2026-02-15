@@ -28,6 +28,12 @@ if sys.platform == "win32":
     import win32con
     import win32gui
 
+if sys.platform == "darwin":
+    try:
+        import AppKit
+    except ImportError:
+        AppKit = None
+
 from translate import _
 from cache import ImageCache
 from exceptions import MinerException, ExitRequest
@@ -2471,6 +2477,20 @@ class GUIManager:
             muted = "#404040"
             accent = "#0a84ff"
 
+        
+        # Setting theme for macOS
+        self._root.configure(background=bg)
+        if sys.platform == "darwin" and AppKit is not None:
+            try:
+                app = AppKit.NSApplication.sharedApplication()
+                if dark:
+                    appearance = AppKit.NSAppearance.appearanceNamed_(AppKit.NSAppearanceNameDarkAqua)
+                else:
+                    appearance = AppKit.NSAppearance.appearanceNamed_(AppKit.NSAppearanceNameAqua)
+                app.setAppearance_(appearance)
+            except Exception:
+                pass
+        
         s = self._style
         # Fonts
         default_font = nametofont("TkDefaultFont")
