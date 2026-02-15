@@ -880,7 +880,7 @@ class ChannelList:
         table.bind("<<TreeviewSelect>>", self._selected)
         self._add_column("#0", '', width=0)
         self._add_column(
-            "channel", _("gui", "channels", "headings", "channel"), width=100, anchor='w'
+            "channel", _("gui", "channels", "headings", "channel"), width=100, anchor='w', stretch = sys.platform == "darwin"
         )
         self._add_column(
             "status",
@@ -891,7 +891,7 @@ class ChannelList:
                 _("gui", "channels", "offline"),
             ],
         )
-        self._add_column("game", _("gui", "channels", "headings", "game"), width=50)
+        self._add_column("game", _("gui", "channels", "headings", "game"), width=50, stretch = sys.platform == "darwin")
         self._add_column("drops", "🎁", width_template="✔")
         self._add_column(
             "viewers", _("gui", "channels", "headings", "viewers"), width_template="1234567"
@@ -907,27 +907,29 @@ class ChannelList:
         anchor: tk._Anchor = "center",
         width: int | None = None,
         width_template: str | list[str] | None = None,
+        stretch: bool = False
     ):
         table = self._table
         # NOTE: we don't do this for the icon column
         if cid != "#0":
             # we need to save the column settings and headings before modifying the columns...
             columns: tuple[str, ...] = table.cget("columns") or ()
-            column_settings: dict[str, tuple[str, tk._Anchor, int, int]] = {}
+            column_settings: dict[str, tuple[str, tk._Anchor, int, int, bool]] = {}
             for s_cid in columns:
                 s_column = table.column(s_cid)
                 assert s_column is not None
                 s_heading = table.heading(s_cid)
                 assert s_heading is not None
+                s_stretch = bool(int(str(s_column.get("stretch", 0))))
                 column_settings[s_cid] = (
-                    s_heading["text"], s_heading["anchor"], s_column["width"], s_column["minwidth"]
+                    s_heading["text"], s_heading["anchor"], s_column["width"], s_column["minwidth"], s_stretch
                 )
             # ..., then add the column
             table.config(columns=columns + (cid,))
             # ..., and then restore column settings and headings afterwards
-            for s_cid, (s_name, s_anchor, s_width, s_minwidth) in column_settings.items():
+            for s_cid, (s_name, s_anchor, s_width, s_minwidth, s_stretch) in column_settings.items():
                 table.heading(s_cid, text=s_name, anchor=s_anchor)
-                table.column(s_cid, minwidth=s_minwidth, width=s_width, stretch=False)
+                table.column(s_cid, minwidth=s_minwidth, width=s_width, stretch=s_stretch)
         # set heading and column settings for the new column
         if width_template is not None:
             if isinstance(width_template, str):
@@ -937,7 +939,7 @@ class ChannelList:
             self._const_width.add(cid)
         assert width is not None
         table.heading(cid, text=name, anchor=anchor)
-        table.column(cid, minwidth=width, width=width, stretch=False)
+        table.column(cid, minwidth=width, width=width, stretch=stretch)
 
     def _disable_column_resize(self, event):
         if self._table.identify_region(event.x, event.y) == "separator":
@@ -2439,7 +2441,7 @@ class GUIManager:
         # Palette
         if dark:
             # Switch to a configurable ttk theme for better color control
-            if self._style.theme_use() != "clam":
+            if sys.platform != "darwin" and self._style.theme_use() != "clam":
                 self._style.theme_use("clam")
             bg = "#1e1e1e"
             fg = "#e6e6e6"

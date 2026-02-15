@@ -151,7 +151,4 @@ if sys.platform == "darwin":
         name=f'{app_name}.app',
         icon="icons/pickaxe.ico",
         bundle_identifier='com.twitchdrops.miner',
-        info_plist={
-            'NSRequiresAquaSystemAppearance': True,
-        },
     )
