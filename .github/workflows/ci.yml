@@ -147,16 +147,16 @@ jobs:
         run: |
           FOLDER="Twitch Drops Miner"
           mkdir -p "$FOLDER"
-          cp -r "dist/Twitch Drops Miner.app" "$FOLDER/"
+          cp -r "dist/Twitch Drops Miner (by DevilXD).app" "$FOLDER/"
           cp manual.txt "$FOLDER/"
-          zip -r Twitch.Drops.Miner.Mac.zip "$FOLDER"
+          zip -r Twitch.Drops.Miner.MacOS.zip "$FOLDER"
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: error
-          name: Twitch.Drops.Miner.Mac
-          path: Twitch.Drops.Miner.Mac.zip
+          name: Twitch.Drops.Miner.MacOS
+          path: Twitch.Drops.Miner.MacOS.zip
 
   linux-pyinstaller:
     name: Linux (PyInstaller) (${{matrix.arch}})
