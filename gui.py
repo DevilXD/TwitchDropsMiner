@@ -897,7 +897,6 @@ class ChannelList:
                 _("gui", "channels", "offline"),
             ],
         )
-        self._add_column("game", _("gui", "channels", "headings", "game"), width=50, stretch = sys.platform == "darwin")
         self._add_column("game", _("gui", "channels", "headings", "game"), width=50)
         self._add_column("drops", "🎁", width_template="✔")
         self._add_column(
