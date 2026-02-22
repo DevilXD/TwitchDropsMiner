@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import sys
-import subprocess
 from typing import Any, TypedDict, TYPE_CHECKING
 
 from yarl import URL
@@ -27,26 +25,11 @@ class SettingsFile(TypedDict):
     priority_mode: PriorityMode
 
 
-def _get_macos_theme() -> bool:
-    """Detects if macOS is in Dark Mode."""
-    if sys.platform == "darwin":
-        try:
-            result = subprocess.run(
-                ["defaults", "read", "-g", "AppleInterfaceStyle"],
-                capture_output=True,
-                text=True
-            )
-            return "Dark" in result.stdout
-        except Exception:
-            return False
-    return False
-
-
 default_settings: SettingsFile = {
     "proxy": URL(),
     "priority": [],
     "exclude": set(),
-    "dark_mode": _get_macos_theme(),
+    "dark_mode": False,
     "autostart_tray": False,
     "connection_quality": 1,
     "language": DEFAULT_LANG,
