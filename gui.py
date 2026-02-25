@@ -1765,23 +1765,10 @@ class SettingsPanel:
         self._priority_list.grid(column=0, row=1, rowspan=5, sticky="nsew")
         self._priority_list.insert("end", *self._settings.priority)
         weight_scale: int = 5
-
-        # Previous arrow buttons not supported on macOS
-        if sys.platform == "darwin":
-            top_icon = "⇈"
-            up_icon = "↑"
-            down_icon = "↓"
-            bot_icon = "⇊"
-        else:
-            top_icon = "⭱"
-            up_icon = "🠙"
-            down_icon = "🠛"
-            bot_icon = "⭳"
-
         ttk.Button(  # Move to top
             priority_frame,
             width=2,
-            text=top_icon,
+            text="⇈",
             style="Arrow.TButton",
             command=partial(self.priority_move, MAX_INT),
         ).grid(column=1, row=1, sticky="nsew")
@@ -1789,7 +1776,7 @@ class SettingsPanel:
         ttk.Button(  # Move up
             priority_frame,
             width=2,
-            text=up_icon,
+            text="↑",
             style="Arrow.TButton",
             command=partial(self.priority_move, 1),
         ).grid(column=1, row=2, sticky="nsew")
@@ -1797,7 +1784,7 @@ class SettingsPanel:
         ttk.Button(  # Move down
             priority_frame,
             width=2,
-            text=down_icon,
+            text="↓",
             style="Arrow.TButton",
             command=partial(self.priority_move, -1),
         ).grid(column=1, row=3, sticky="nsew")
@@ -1805,7 +1792,7 @@ class SettingsPanel:
         ttk.Button(  # Move to bottom
             priority_frame,
             width=2,
-            text=bot_icon,
+            text="⇊",
             style="Arrow.TButton",
             command=partial(self.priority_move, -MAX_INT),
         ).grid(column=1, row=4, sticky="nsew")
@@ -2478,7 +2465,6 @@ class GUIManager:
 
         
         # Setting theme for macOS
-        self._root.configure(background=bg)
         if sys.platform == "darwin" and AppKit is not None:
             try:
                 app = AppKit.NSApplication.sharedApplication()
