@@ -1093,7 +1093,10 @@ class TrayIcon:
         }
         self._icon_state: str = "pickaxe"
         self._button = ttk.Button(master, command=self.minimize, text=_("gui", "tray", "minimize"))
-        self._button.grid(column=0, row=0, sticky="ne")
+
+        # Hides Tray button for macOS
+        if sys.platform != "darwin":
+            self._button.grid(column=0, row=0, sticky="ne")
 
     def __del__(self) -> None:
         self.stop()
@@ -1148,16 +1151,11 @@ class TrayIcon:
             "twitch_miner", self._icon_images[self._icon_state], self.get_title(drop), menu
         )
         # self.icon.run_detached()
-        if sys.platform == "darwin":
-            import threading
-            threading.Thread(target=self.icon.run, daemon=True).start()
-        else:
-            loop.run_in_executor(None, self.icon.run)
+        loop.run_in_executor(None, self.icon.run)
 
     def stop(self):
         if self.icon is not None:
-            if sys.platform != "darwin":
-                self.icon.stop()
+            self.icon.stop()
             self.icon = None
 
     def quit(self):
