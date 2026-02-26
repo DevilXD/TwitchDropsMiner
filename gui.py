@@ -1162,6 +1162,8 @@ class TrayIcon:
         self._manager.close()
 
     def minimize(self):
+        if sys.platform == "darwin":
+            return
         if self.icon is None:
             self._start()
         else:
@@ -1644,22 +1646,23 @@ class SettingsPanel:
         ttk.Checkbutton(
             checkboxes_frame, variable=self._vars["autostart"], command=self.update_autostart
         ).grid(column=1, row=irow, sticky="w")
-        ttk.Label(
-            checkboxes_frame, text=_("gui", "settings", "general", "tray")
-        ).grid(column=0, row=(irow := irow + 1), sticky="e")
-        ttk.Checkbutton(
-            checkboxes_frame, variable=self._vars["tray"], command=self.update_autostart
-        ).grid(column=1, row=irow, sticky="w")
-        ttk.Label(
-            checkboxes_frame, text=_("gui", "settings", "general", "tray_notifications")
-        ).grid(column=0, row=(irow := irow + 1), sticky="e")
-        ttk.Checkbutton(
-            checkboxes_frame,
-            variable=self._vars["tray_notifications"],
-            command=lambda: setattr(
-                self._settings, "tray_notifications", bool(self._vars["tray_notifications"].get())
-            ),
-        ).grid(column=1, row=irow, sticky="w")
+        if sys.platform != "darwin":
+            ttk.Label(
+                checkboxes_frame, text=_("gui", "settings", "general", "tray")
+            ).grid(column=0, row=(irow := irow + 1), sticky="e")
+            ttk.Checkbutton(
+                checkboxes_frame, variable=self._vars["tray"], command=self.update_autostart
+            ).grid(column=1, row=irow, sticky="w")
+            ttk.Label(
+                checkboxes_frame, text=_("gui", "settings", "general", "tray_notifications")
+            ).grid(column=0, row=(irow := irow + 1), sticky="e")
+            ttk.Checkbutton(
+                checkboxes_frame,
+                variable=self._vars["tray_notifications"],
+                command=lambda: setattr(
+                    self._settings, "tray_notifications", bool(self._vars["tray_notifications"].get())
+                ),
+            ).grid(column=1, row=irow, sticky="w")
         ttk.Label(
             checkboxes_frame, text=_("gui", "settings", "general", "dark_mode")
         ).grid(column=0, row=(irow := irow + 1), sticky="e")
@@ -2259,7 +2262,7 @@ class GUIManager:
             self._orig_theme_name = ''
         self.apply_theme(self._twitch.settings.dark_mode)
         # stay hidden in tray if needed, otherwise show the window when everything's ready
-        if self._twitch.settings.tray:
+        if self._twitch.settings.tray and sys.platform != "darwin":
             # NOTE: this starts the tray icon thread
             self._root.after_idle(self.tray.minimize)
         else:
