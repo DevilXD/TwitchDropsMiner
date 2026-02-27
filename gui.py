@@ -4,6 +4,7 @@ import os
 import re
 import sys
 import shlex
+import plistlib
 import ctypes
 import asyncio
 import logging
@@ -1881,9 +1882,7 @@ class SettingsPanel:
         return autostart_folder / f"{self.AUTOSTART_NAME}.desktop"
     
     def _get_mac_autostart_filepath(self) -> Path:
-        launch_agents_dir = Path.home() / "Library" / "LaunchAgents"
-        launch_agents_dir.mkdir(parents=True, exist_ok=True)
-        return launch_agents_dir / f"com.devilxd.{self.AUTOSTART_NAME.lower()}.plist"
+        return Path(Path.home(), f"Library/LaunchAgents/com.devilxd.{self.AUTOSTART_NAME.lower()}.plist")
 
     def _query_autostart(self) -> bool:
         if sys.platform == "win32":
@@ -1905,7 +1904,11 @@ class SettingsPanel:
                 # TODO: Consider deleting the old file to avoid autostart errors
                 return self._get_self_path() in file.read()
         elif sys.platform == "darwin":
-            return self._get_mac_autostart_filepath().exists()
+            plist_file = self._get_mac_autostart_filepath()
+            if not plist_file.exists():
+                return False
+            with plist_file.open('r', encoding="utf8") as file:
+                return str(SELF_PATH.resolve()) in file.read()
 
     def update_autostart(self) -> None:
         enabled = bool(self._vars["autostart"].get())
@@ -1942,26 +1945,14 @@ class SettingsPanel:
             
             if enabled:
                 command_parts = shlex.split(self._get_autostart_path())
-                args_xml = '\n                        '.join(f"<string>{arg}</string>" for arg in command_parts)
-                
-                plist_contents = dedent(f"""\
-                    <?xml version="1.0" encoding="UTF-8"?>
-                    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-                    <plist version="1.0">
-                    <dict>
-                        <key>Label</key>
-                        <string>com.devilxd.{self.AUTOSTART_NAME.lower()}</string>
-                        <key>ProgramArguments</key>
-                        <array>
-                            {args_xml}
-                        </array>
-                        <key>RunAtLoad</key>
-                        <true/>
-                    </dict>
-                    </plist>
-                """)
-                with plist_file.open('w', encoding="utf8") as file:
-                    file.write(plist_contents)
+                plist_data = {
+                    "Label": f"com.devilxd.{self.AUTOSTART_NAME.lower()}",
+                    "ProgramArguments": command_parts,
+                    "RunAtLoad": True,
+                }
+                plist_file.parent.mkdir(parents=True, exist_ok=True)
+                with plist_file.open("wb") as file:
+                    plistlib.dump(plist_data, file)
             else:
                 plist_file.unlink(missing_ok=True)
 
