@@ -4,10 +4,10 @@ import os
 import re
 import sys
 import shlex
-import plistlib
 import ctypes
 import asyncio
 import logging
+import plistlib
 import tkinter as tk
 from pathlib import Path
 from collections import abc
@@ -31,10 +31,7 @@ if sys.platform == "win32":
     import win32gui
 
 if sys.platform == "darwin":
-    try:
-        import AppKit
-    except ImportError:
-        AppKit = None
+    import AppKit
 
 from translate import _
 from cache import ImageCache
@@ -2492,16 +2489,13 @@ class GUIManager:
 
         
         # Setting theme for macOS
-        if sys.platform == "darwin" and AppKit is not None:
-            try:
-                app = AppKit.NSApplication.sharedApplication()
-                if dark:
-                    appearance = AppKit.NSAppearance.appearanceNamed_(AppKit.NSAppearanceNameDarkAqua)
-                else:
-                    appearance = AppKit.NSAppearance.appearanceNamed_(AppKit.NSAppearanceNameAqua)
-                app.setAppearance_(appearance)
-            except Exception:
-                pass
+        if sys.platform == "darwin":
+            app = AppKit.NSApplication.sharedApplication()
+            if dark:
+                appearance = AppKit.NSAppearance.appearanceNamed_(AppKit.NSAppearanceNameDarkAqua)
+            else:
+                appearance = AppKit.NSAppearance.appearanceNamed_(AppKit.NSAppearanceNameAqua)
+            app.setAppearance_(appearance)
         
         s = self._style
         # Fonts

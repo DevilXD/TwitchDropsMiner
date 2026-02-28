@@ -71,7 +71,6 @@ Every several seconds, the application pretends to watch a particular stream by 
 - Since this application is not signed with a paid Apple Developer Certificate, **macOS Gatekeeper will block it** on the first run (saying it "The application is damaged and can't be opened").
   - **To fix this**: Either open the Terminal in the folder the app is in (or navigating with `cd path/to/folder`) and enter `xattr -cr Twitch Drops Miner (by DevilXD).app` or just type `xattr -cr ` (make sure to put a space at the end), drag and drop the `Twitch Drops Miner (by DevilXD).app` file into the terminal window (this will auto-fill the path) and enter
 - Persistent files (like `cookies.jar`, `settings.json`, `lock.file` and the `cache` folder) are stored inside the application bundle in `Twitch Drops Miner (by DevilXD).app/Contents/MacOS` (to access them Right-click the application and select `Show Package Contents`)
-- The application automatically detects your system theme (Light/Dark) on startup and adjusts the interface accordingly.
 
 ### Advanced Usage:
 
