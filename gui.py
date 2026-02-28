@@ -3,9 +3,11 @@ from __future__ import annotations
 import os
 import re
 import sys
+import shlex
 import ctypes
 import asyncio
 import logging
+import plistlib
 import tkinter as tk
 from pathlib import Path
 from collections import abc
@@ -27,6 +29,9 @@ if sys.platform == "win32":
     import win32api
     import win32con
     import win32gui
+
+if sys.platform == "darwin":
+    import AppKit
 
 from translate import _
 from cache import ImageCache
@@ -1087,7 +1092,10 @@ class TrayIcon:
         }
         self._icon_state: str = "pickaxe"
         self._button = ttk.Button(master, command=self.minimize, text=_("gui", "tray", "minimize"))
-        self._button.grid(column=0, row=0, sticky="ne")
+
+        # Hides Tray button for macOS
+        if sys.platform != "darwin":
+            self._button.grid(column=0, row=0, sticky="ne")
 
     def __del__(self) -> None:
         self.stop()
@@ -1153,6 +1161,8 @@ class TrayIcon:
         self._manager.close()
 
     def minimize(self):
+        if sys.platform == "darwin":
+            return
         if self.icon is None:
             self._start()
         else:
@@ -1635,22 +1645,23 @@ class SettingsPanel:
         ttk.Checkbutton(
             checkboxes_frame, variable=self._vars["autostart"], command=self.update_autostart
         ).grid(column=1, row=irow, sticky="w")
-        ttk.Label(
-            checkboxes_frame, text=_("gui", "settings", "general", "tray")
-        ).grid(column=0, row=(irow := irow + 1), sticky="e")
-        ttk.Checkbutton(
-            checkboxes_frame, variable=self._vars["tray"], command=self.update_autostart
-        ).grid(column=1, row=irow, sticky="w")
-        ttk.Label(
-            checkboxes_frame, text=_("gui", "settings", "general", "tray_notifications")
-        ).grid(column=0, row=(irow := irow + 1), sticky="e")
-        ttk.Checkbutton(
-            checkboxes_frame,
-            variable=self._vars["tray_notifications"],
-            command=lambda: setattr(
-                self._settings, "tray_notifications", bool(self._vars["tray_notifications"].get())
-            ),
-        ).grid(column=1, row=irow, sticky="w")
+        if sys.platform != "darwin":
+            ttk.Label(
+                checkboxes_frame, text=_("gui", "settings", "general", "tray")
+            ).grid(column=0, row=(irow := irow + 1), sticky="e")
+            ttk.Checkbutton(
+                checkboxes_frame, variable=self._vars["tray"], command=self.update_autostart
+            ).grid(column=1, row=irow, sticky="w")
+            ttk.Label(
+                checkboxes_frame, text=_("gui", "settings", "general", "tray_notifications")
+            ).grid(column=0, row=(irow := irow + 1), sticky="e")
+            ttk.Checkbutton(
+                checkboxes_frame,
+                variable=self._vars["tray_notifications"],
+                command=lambda: setattr(
+                    self._settings, "tray_notifications", bool(self._vars["tray_notifications"].get())
+                ),
+            ).grid(column=1, row=irow, sticky="w")
         ttk.Label(
             checkboxes_frame, text=_("gui", "settings", "general", "dark_mode")
         ).grid(column=0, row=(irow := irow + 1), sticky="e")
@@ -1757,7 +1768,7 @@ class SettingsPanel:
         ttk.Button(  # Move to top
             priority_frame,
             width=2,
-            text="⭱",
+            text="⇈",
             style="Arrow.TButton",
             command=partial(self.priority_move, MAX_INT),
         ).grid(column=1, row=1, sticky="nsew")
@@ -1765,7 +1776,7 @@ class SettingsPanel:
         ttk.Button(  # Move up
             priority_frame,
             width=2,
-            text="🠙",
+            text="↑",
             style="Arrow.TButton",
             command=partial(self.priority_move, 1),
         ).grid(column=1, row=2, sticky="nsew")
@@ -1773,7 +1784,7 @@ class SettingsPanel:
         ttk.Button(  # Move down
             priority_frame,
             width=2,
-            text="🠛",
+            text="↓",
             style="Arrow.TButton",
             command=partial(self.priority_move, -1),
         ).grid(column=1, row=3, sticky="nsew")
@@ -1781,7 +1792,7 @@ class SettingsPanel:
         ttk.Button(  # Move to bottom
             priority_frame,
             width=2,
-            text="⭳",
+            text="⇊",
             style="Arrow.TButton",
             command=partial(self.priority_move, -MAX_INT),
         ).grid(column=1, row=4, sticky="nsew")
@@ -1866,6 +1877,9 @@ class SettingsPanel:
             if config_autostart.exists():
                 autostart_folder = config_autostart
         return autostart_folder / f"{self.AUTOSTART_NAME}.desktop"
+    
+    def _get_mac_autostart_filepath(self) -> Path:
+        return Path(Path.home(), f"Library/LaunchAgents/com.devilxd.{self.AUTOSTART_NAME.lower()}.plist")
 
     def _query_autostart(self) -> bool:
         if sys.platform == "win32":
@@ -1886,6 +1900,12 @@ class SettingsPanel:
             with autostart_file.open('r', encoding="utf8") as file:
                 # TODO: Consider deleting the old file to avoid autostart errors
                 return self._get_self_path() in file.read()
+        elif sys.platform == "darwin":
+            plist_file = self._get_mac_autostart_filepath()
+            if not plist_file.exists():
+                return False
+            with plist_file.open('r', encoding="utf8") as file:
+                return str(SELF_PATH.resolve()) in file.read()
 
     def update_autostart(self) -> None:
         enabled = bool(self._vars["autostart"].get())
@@ -1917,6 +1937,21 @@ class SettingsPanel:
                     file.write(file_contents)
             else:
                 autostart_file.unlink(missing_ok=True)
+        elif sys.platform == "darwin":
+            plist_file = self._get_mac_autostart_filepath()
+            
+            if enabled:
+                command_parts = shlex.split(self._get_autostart_path())
+                plist_data = {
+                    "Label": f"com.devilxd.{self.AUTOSTART_NAME.lower()}",
+                    "ProgramArguments": command_parts,
+                    "RunAtLoad": True,
+                }
+                plist_file.parent.mkdir(parents=True, exist_ok=True)
+                with plist_file.open("wb") as file:
+                    plistlib.dump(plist_data, file)
+            else:
+                plist_file.unlink(missing_ok=True)
 
     def update_excluded_choices(self) -> None:
         self._exclude_entry.config(
@@ -2250,7 +2285,7 @@ class GUIManager:
             self._orig_theme_name = ''
         self.apply_theme(self._twitch.settings.dark_mode)
         # stay hidden in tray if needed, otherwise show the window when everything's ready
-        if self._twitch.settings.tray:
+        if self._twitch.settings.tray and sys.platform != "darwin":
             # NOTE: this starts the tray icon thread
             self._root.after_idle(self.tray.minimize)
         else:
@@ -2422,7 +2457,7 @@ class GUIManager:
         # Palette
         if dark:
             # Switch to a configurable ttk theme for better color control
-            if self._style.theme_use() != "clam":
+            if sys.platform != "darwin" and self._style.theme_use() != "clam":
                 self._style.theme_use("clam")
             bg = "#1e1e1e"
             fg = "#e6e6e6"
@@ -2452,6 +2487,16 @@ class GUIManager:
             muted = "#404040"
             accent = "#0a84ff"
 
+        
+        # Setting theme for macOS
+        if sys.platform == "darwin":
+            app = AppKit.NSApplication.sharedApplication()
+            if dark:
+                appearance = AppKit.NSAppearance.appearanceNamed_(AppKit.NSAppearanceNameDarkAqua)
+            else:
+                appearance = AppKit.NSAppearance.appearanceNamed_(AppKit.NSAppearanceNameAqua)
+            app.setAppearance_(appearance)
+        
         s = self._style
         # Fonts
         default_font = nametofont("TkDefaultFont")

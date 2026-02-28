@@ -106,6 +106,58 @@ jobs:
           name: Twitch.Drops.Miner.Windows
           path: Twitch.Drops.Miner.Windows.zip
 
+  macos:
+    name: macOS
+    runs-on: macos-latest
+    needs:
+      - validate
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up variables
+        id: vars
+        run: |
+          echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Append git revision to project version
+        run: |
+          sed -i '' -E "s/^(__version__\s*=\s*\"[^\"]+)/\1.${{steps.vars.outputs.sha_short}}/" version.py
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Install project dependencies
+        run: |
+          python3 -m pip install wheel
+          python3 -m pip install -r requirements.txt
+
+      - name: Install PyInstaller
+        run: |
+          python3 -m pip install pyinstaller
+
+      - name: Create portable executable
+        run: |
+          pyinstaller build.spec --noconfirm
+
+      - name: Create release folder and Zip
+        run: |
+          FOLDER="Twitch Drops Miner"
+          mkdir -p "$FOLDER"
+          cp -r "dist/Twitch Drops Miner (by DevilXD).app" "$FOLDER/"
+          cp manual.txt "$FOLDER/"
+          zip -r Twitch.Drops.Miner.MacOS.zip "$FOLDER"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: error
+          name: Twitch.Drops.Miner.MacOS
+          path: Twitch.Drops.Miner.MacOS.zip
+
   linux-pyinstaller:
     name: Linux (PyInstaller) (${{matrix.arch}})
     strategy:
@@ -256,6 +308,7 @@ jobs:
       - windows
       - linux-pyinstaller
       - linux-appimage
+      - macos
     runs-on: ubuntu-latest
     permissions:
       contents: write
