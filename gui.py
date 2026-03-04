@@ -1877,7 +1877,7 @@ class SettingsPanel:
             if config_autostart.exists():
                 autostart_folder = config_autostart
         return autostart_folder / f"{self.AUTOSTART_NAME}.desktop"
-    
+
     def _get_mac_autostart_filepath(self) -> Path:
         return Path(Path.home(), f"Library/LaunchAgents/com.devilxd.{self.AUTOSTART_NAME.lower()}.plist")
 
@@ -1939,7 +1939,7 @@ class SettingsPanel:
                 autostart_file.unlink(missing_ok=True)
         elif sys.platform == "darwin":
             plist_file = self._get_mac_autostart_filepath()
-            
+
             if enabled:
                 command_parts = shlex.split(self._get_autostart_path())
                 plist_data = {
@@ -2496,7 +2496,7 @@ class GUIManager:
             else:
                 appearance = AppKit.NSAppearance.appearanceNamed_(AppKit.NSAppearanceNameAqua)
             app.setAppearance_(appearance)
-        
+
         s = self._style
         # Fonts
         default_font = nametofont("TkDefaultFont")
