@@ -81,7 +81,7 @@ def _merge_vars(base_vars: JsonType, vars: JsonType) -> None:
             raise RuntimeError(f"Unspecified variable: '{k}'")
 
 
-# Base Paths
+# Self path
 if IS_APPIMAGE:
     SELF_PATH = Path(os.environ["APPIMAGE"]).resolve()
 else:
@@ -91,15 +91,20 @@ else:
     SELF_PATH = Path(sys.argv[0]).resolve()
     if SELF_PATH.stem == "pyinstaller" or SELF_PATH.name == "gui.py":
         SELF_PATH = Path(__file__).with_name("main.py").resolve()
+# Working / config directory path
 WORKING_DIR = SELF_PATH.parent
+if IS_APPIMAGE:
+    _config_folder: Path = SELF_PATH.with_name(f"{SELF_PATH.name}.config")
+    if _config_folder.is_dir():  # exists and is a directory
+        WORKING_DIR = _config_folder
 # Development paths
-VENV_PATH = Path(WORKING_DIR, "env")
+VENV_PATH = Path(SELF_PATH.parent, "env")
 SITE_PACKAGES_PATH = Path(VENV_PATH, SYS_SITE_PACKAGES)
 SCRIPTS_PATH = Path(VENV_PATH, SYS_SCRIPTS)
 # Translations path
 # NOTE: These don't have to be available to the end-user, so the path points to the internal dir
 LANG_PATH = _resource_path("lang")
-# Other Paths
+# Other paths
 LOG_PATH = Path(WORKING_DIR, "log.txt")
 DUMP_PATH = Path(WORKING_DIR, "dump.dat")
 LOCK_PATH = Path(WORKING_DIR, "lock.file")
