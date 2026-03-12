@@ -290,7 +290,7 @@ class Channel:
         )
         # NOTE: "beacon" appears in the file first, so it's the most likely one to be matched.
         SPADE_PATTERN: str = (
-            r'"(?:beacon|spade)_?url": ?"(https://[.\w\-/]+\.ts(?:\?allow_stream=true)?)"'
+            r'"(?:beacon|spade)_?url": ?"(https://[.\w\-/]+(?:\.ts(?:\?allow_stream=true)?|/track))"'
         )
         async with self._twitch.request("GET", self.url) as response1:
             streamer_html: str = await response1.text(encoding="utf8")
