@@ -18,8 +18,15 @@ if __name__ == "__main__":
     from tkinter import messagebox
     from typing import NoReturn, TYPE_CHECKING
 
+    import ssl
     import truststore
-    truststore.inject_into_ssl()
+    try:
+        truststore.inject_into_ssl()
+    except ssl.SSLError:
+        # System certificate store contains an invalid certificate.
+        # Fall back to Python's default certificate handling.
+        # See: https://github.com/python/cpython/issues/79846
+        pass
 
     from translate import _
     from twitch import Twitch
