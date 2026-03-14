@@ -465,11 +465,20 @@ class Channel:
         if self._stream is None:
             return False
         if self._spade_url is None:
-            self._spade_url = await self.get_spade_url()
+            try:
+                self._spade_url = await self.get_spade_url()
+            except MinerException:
+                logger.error(f"Failed to extract spade URL for channel: {self._login}")
+                return False
         try:
             async with self._twitch.request(
                 "POST", self._spade_url, data=self._stream._spade_payload
             ) as response:
-                return response.status == 204
+                if response.status == 204:
+                    return True
+                # spade URL may have gone stale - clear it so it's re-fetched next time
+                self._spade_url = None
+                return False
         except RequestException:
+            self._spade_url = None
             return False

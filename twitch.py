@@ -910,10 +910,11 @@ class Twitch:
                             {"channelID": str(channel.id)}
                         )
                     )
+                    current_user = context["data"]["currentUser"]
                     drop_data: JsonType | None = (
-                        context["data"]["currentUser"]["dropCurrentSession"]
+                        current_user["dropCurrentSession"] if current_user else None
                     )
-                except GQLException:
+                except (GQLException, KeyError, TypeError):
                     drop_data = None
                 if drop_data is not None:
                     gql_drop: TimedDrop | None = self._drops.get(drop_data["dropID"])
@@ -1311,8 +1312,8 @@ class Twitch:
                             if (
                                 single_retry
                                 and error_dict["message"] in (
-                                    "service error"
-                                    "PersistedQueryNotFound"
+                                    "service error",
+                                    "PersistedQueryNotFound",
                                 )
                             ):
                                 logger.error(
@@ -1354,7 +1355,7 @@ class Twitch:
             else:
                 return orig_response
             await asyncio.sleep(delay)
-        raise RuntimeError("Retry loop was broken")
+        raise GQLException("GQL request failed after exhausting all retries")
 
     def _merge_data(self, primary_data: JsonType, secondary_data: JsonType) -> JsonType:
         merged = {}
