@@ -47,6 +47,7 @@ from constants import (
     MAX_WEBSOCKETS,
     WS_TOPICS_LIMIT,
     OUTPUT_FORMATTER,
+    GITHUB_RELEASES_URL,
     State,
     PriorityMode,
 )
@@ -2141,6 +2142,18 @@ class HelpTab:
             link="https://www.twitch.tv/drops/campaigns",
             text=_("gui", "help", "links", "campaigns"),
         ).grid(column=0, row=1, sticky="nsew")
+        # Update check
+        update_frame = ttk.LabelFrame(center_frame, padding=(4, 0, 4, 4), text="Updates")
+        update_frame.grid(column=0, row=(irow := irow + 1), sticky="nsew", padx=2)
+        update_frame.columnconfigure(1, weight=1)
+        self._update_button = ttk.Button(
+            update_frame, text="Check for Updates", command=self._check_updates
+        )
+        self._update_button.grid(column=0, row=0, sticky="w", padx=(0, 8))
+        self._update_label = ttk.Label(update_frame, text="")
+        self._update_label.grid(column=1, row=0, sticky="w")
+        self._update_link: LinkLabel | None = None
+        self._update_link_frame = update_frame
         # How It Works
         howitworks = ttk.LabelFrame(
             center_frame, padding=(4, 0, 4, 4), text=_("gui", "help", "how_it_works")
@@ -2156,6 +2169,30 @@ class HelpTab:
         ttk.Label(
             getstarted, text=_("gui", "help", "getting_started_text"), wraplength=self.WIDTH
         ).grid(sticky="nsew")
+
+    def _check_updates(self):
+        self._update_button.configure(state="disabled")
+        self._update_label.configure(text="Checking...", style="TLabel")
+        # remove previous download link if any
+        if self._update_link is not None:
+            self._update_link.destroy()
+            self._update_link = None
+
+        async def do_check():
+            update_available, message = await self._twitch.check_for_updates()
+            if update_available:
+                self._update_label.configure(text=message, style="yellow.TLabel")
+                self._update_link = LinkLabel(
+                    self._update_link_frame,
+                    link=GITHUB_RELEASES_URL,
+                    text="Download here",
+                )
+                self._update_link.grid(column=2, row=0, sticky="w", padx=(8, 0))
+            else:
+                self._update_label.configure(text=message, style="green.TLabel")
+            self._update_button.configure(state="normal")
+
+        asyncio.create_task(do_check())
 
 
 ##########################################
