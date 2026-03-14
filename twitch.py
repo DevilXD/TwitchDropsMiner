@@ -18,6 +18,7 @@ from yarl import URL
 from translate import _
 from gui import GUIManager
 from channel import Channel
+from version import __version__
 from websocket import WebsocketPool
 from inventory import DropsCampaign
 from exceptions import (
@@ -48,6 +49,8 @@ from constants import (
     MAX_CHANNELS,
     GQL_OPERATIONS,
     WATCH_INTERVAL,
+    GITHUB_REPO_API,
+    GITHUB_RELEASES_URL,
     State,
     ClientType,
     PriorityMode,
@@ -557,6 +560,33 @@ class Twitch:
         """
         self.gui.save(force=force)
         self.settings.save(force=force)
+
+    async def check_for_updates(self) -> tuple[bool, str]:
+        """
+        Check GitHub for a newer version.
+
+        Returns (update_available, message) tuple.
+        """
+        try:
+            # Extract commit hash from version string (e.g., "16.dev.6b23aee" -> "6b23aee")
+            version_parts = __version__.split(".")
+            current_hash = version_parts[-1] if len(version_parts) >= 3 else None
+            session = await self.get_session()
+            async with session.get(
+                f"{GITHUB_REPO_API}/commits/master",
+                headers={"Accept": "application/vnd.github.v3+json"},
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as response:
+                if response.status != 200:
+                    return False, "Failed to check for updates (HTTP error)"
+                data = await response.json()
+            remote_hash: str = data["sha"][:7]
+            remote_date: str = data["commit"]["committer"]["date"][:10]
+            if current_hash is not None and current_hash == remote_hash:
+                return False, "You are running the latest version."
+            return True, f"Update available ({remote_hash}, {remote_date})"
+        except Exception:
+            return False, "Failed to check for updates (network error)"
 
     def get_priority(self, channel: Channel) -> int:
         """
