@@ -107,6 +107,11 @@ CACHE_PATH = Path(WORKING_DIR, "cache")
 CACHE_DB = Path(CACHE_PATH, "mapping.json")
 COOKIES_PATH = Path(WORKING_DIR, "cookies.jar")
 SETTINGS_PATH = Path(WORKING_DIR, "settings.json")
+# GitHub
+GITHUB_REPO_API = "https://api.github.com/repos/DevilXD/TwitchDropsMiner"
+GITHUB_RELEASES_URL = "https://github.com/DevilXD/TwitchDropsMiner/releases/tag/dev-build"
+# Update paths
+UPDATE_DIR = Path(WORKING_DIR, "update_tmp")
 # Typing
 JsonType = Dict[str, Any]
 URLType = NewType("URLType", str)

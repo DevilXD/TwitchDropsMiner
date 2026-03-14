@@ -18,8 +18,13 @@ if __name__ == "__main__":
     from tkinter import messagebox
     from typing import NoReturn, TYPE_CHECKING
 
+    import shutil
+    import ssl
     import truststore
-    truststore.inject_into_ssl()
+    try:
+        truststore.inject_into_ssl()
+    except ssl.SSLError:
+        pass
 
     from translate import _
     from twitch import Twitch
@@ -27,12 +32,25 @@ if __name__ == "__main__":
     from version import __version__
     from exceptions import CaptchaRequired
     from utils import lock_file, resource_path, set_root_icon
-    from constants import LOGGING_LEVELS, SELF_PATH, FILE_FORMATTER, LOG_PATH, LOCK_PATH
+    from constants import LOGGING_LEVELS, SELF_PATH, FILE_FORMATTER, LOG_PATH, LOCK_PATH, UPDATE_DIR
 
     if TYPE_CHECKING:
         from _typeshed import SupportsWrite
 
     warnings.simplefilter("default", ResourceWarning)
+
+    # Clean up after a previous update
+    old_exe = SELF_PATH.with_suffix(".exe.old")
+    if old_exe.exists():
+        try:
+            old_exe.unlink()
+        except OSError:
+            pass
+    if UPDATE_DIR.exists():
+        try:
+            shutil.rmtree(UPDATE_DIR, ignore_errors=True)
+        except OSError:
+            pass
 
     # import tracemalloc
     # tracemalloc.start(3)

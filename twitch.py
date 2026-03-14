@@ -18,6 +18,7 @@ from yarl import URL
 from translate import _
 from gui import GUIManager
 from channel import Channel
+from version import __version__
 from websocket import WebsocketPool
 from inventory import DropsCampaign
 from exceptions import (
@@ -44,10 +45,16 @@ from constants import (
     CALL,
     MAX_INT,
     DUMP_PATH,
+    SELF_PATH,
+    UPDATE_DIR,
+    WORKING_DIR,
+    IS_PACKAGED,
     COOKIES_PATH,
     MAX_CHANNELS,
     GQL_OPERATIONS,
     WATCH_INTERVAL,
+    GITHUB_REPO_API,
+    GITHUB_RELEASES_URL,
     State,
     ClientType,
     PriorityMode,
@@ -557,6 +564,189 @@ class Twitch:
         """
         self.gui.save(force=force)
         self.settings.save(force=force)
+
+    async def check_for_updates(self) -> tuple[bool, str, str | None]:
+        """
+        Check GitHub for a newer version.
+
+        Returns (update_available, message, download_url) tuple.
+        """
+        try:
+            # Extract commit hash from version string (e.g., "16.dev.6b23aee" -> "6b23aee")
+            version_parts = __version__.split(".")
+            current_hash = version_parts[-1] if len(version_parts) >= 3 else None
+            session = await self.get_session()
+            async with session.get(
+                f"{GITHUB_REPO_API}/commits/master",
+                headers={"Accept": "application/vnd.github.v3+json"},
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as response:
+                if response.status != 200:
+                    return False, "Failed to check for updates (HTTP error)", None
+                data = await response.json()
+            remote_hash: str = data["sha"][:7]
+            remote_date: str = data["commit"]["committer"]["date"][:10]
+            if current_hash is not None and current_hash == remote_hash:
+                return False, "You are running the latest version.", None
+            # Find the platform-specific download URL from the dev-build release
+            download_url: str | None = None
+            if IS_PACKAGED:
+                download_url = await self._get_release_download_url(session)
+            return True, f"Update available ({remote_hash}, {remote_date})", download_url
+        except Exception:
+            return False, "Failed to check for updates (network error)", None
+
+    async def _get_release_download_url(
+        self, session: aiohttp.ClientSession
+    ) -> str | None:
+        """Get the platform-specific ZIP download URL from the dev-build release."""
+        import sys
+        platform_key = {
+            "win32": "Windows",
+            "linux": "Linux",
+            "darwin": "macOS",
+        }.get(sys.platform)
+        if platform_key is None:
+            return None
+        try:
+            async with session.get(
+                f"{GITHUB_REPO_API}/releases/tags/dev-build",
+                headers={"Accept": "application/vnd.github.v3+json"},
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as response:
+                if response.status != 200:
+                    return None
+                release_data = await response.json()
+            for asset in release_data.get("assets", []):
+                name: str = asset.get("name", "")
+                if platform_key in name and name.endswith(".zip"):
+                    return asset["browser_download_url"]
+        except Exception:
+            pass
+        return None
+
+    async def download_update(
+        self, download_url: str, progress_callback: abc.Callable[[str], Any] | None = None
+    ) -> bool:
+        """
+        Download and apply an update from the given URL.
+
+        On Windows: renames the running EXE to .old, extracts new EXE, writes a restart batch script.
+        On Linux/macOS: overwrites the executable directly (no file lock on running binaries).
+
+        Returns True if the update was applied and the app should restart.
+        """
+        import sys
+        import shutil
+        import zipfile
+        import subprocess
+
+        def _report(msg: str):
+            if progress_callback is not None:
+                progress_callback(msg)
+
+        try:
+            _report("Downloading update...")
+            session = await self.get_session()
+
+            # Download the ZIP
+            UPDATE_DIR.mkdir(parents=True, exist_ok=True)
+            zip_path = UPDATE_DIR / "update.zip"
+            async with session.get(
+                download_url,
+                timeout=aiohttp.ClientTimeout(total=300),
+            ) as response:
+                if response.status != 200:
+                    _report("Download failed (HTTP error)")
+                    return False
+                total = response.content_length or 0
+                downloaded = 0
+                with open(zip_path, "wb") as f:
+                    async for chunk in response.content.iter_chunked(64 * 1024):
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        if total > 0:
+                            pct = int(downloaded * 100 / total)
+                            _report(f"Downloading... {pct}%")
+
+            _report("Extracting update...")
+            # Extract the ZIP
+            extract_dir = UPDATE_DIR / "extracted"
+            if extract_dir.exists():
+                shutil.rmtree(extract_dir)
+            with zipfile.ZipFile(zip_path, "r") as zf:
+                zf.extractall(extract_dir)
+
+            # Find the new executable in the extracted files
+            new_exe = None
+            for item in extract_dir.rglob("*"):
+                if item.is_file() and item.suffix in (".exe", ""):
+                    # Match by name pattern - the EXE name from build.spec
+                    if "Twitch Drops Miner" in item.name or item.name == SELF_PATH.name:
+                        new_exe = item
+                        break
+            # Fallback: if only one executable-like file, use it
+            if new_exe is None:
+                exes = [
+                    f for f in extract_dir.rglob("*")
+                    if f.is_file() and (f.suffix == ".exe" or (sys.platform != "win32" and f.stat().st_mode & 0o111))
+                ]
+                if len(exes) == 1:
+                    new_exe = exes[0]
+            if new_exe is None:
+                _report("Update failed: could not find executable in archive")
+                return False
+
+            _report("Applying update...")
+            if sys.platform == "win32":
+                # Windows: can't overwrite running EXE, but CAN rename it
+                old_path = SELF_PATH.with_suffix(".exe.old")
+                # Remove previous .old if it exists
+                if old_path.exists():
+                    old_path.unlink()
+                # Rename running EXE → .old
+                SELF_PATH.rename(old_path)
+                # Move new EXE into place
+                shutil.move(str(new_exe), str(SELF_PATH))
+                # Write a restart batch script
+                bat_path = UPDATE_DIR / "restart.bat"
+                bat_content = (
+                    "@echo off\r\n"
+                    "timeout /t 2 /nobreak >nul\r\n"
+                    f"start \"\" \"{SELF_PATH}\"\r\n"
+                    f"del \"{bat_path}\"\r\n"
+                )
+                bat_path.write_text(bat_content, encoding="utf-8")
+                # Save state before exiting
+                self.save(force=True)
+                _report("Update applied! Restarting...")
+                # Launch the restart script detached
+                subprocess.Popen(
+                    [str(bat_path)],
+                    shell=True,
+                    creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS,
+                    close_fds=True,
+                )
+            else:
+                # Linux/macOS: can overwrite running binary directly
+                import os
+                import stat
+                # Preserve execute permission
+                new_exe.chmod(new_exe.stat().st_mode | stat.S_IEXEC)
+                shutil.move(str(new_exe), str(SELF_PATH))
+                self.save(force=True)
+                _report("Update applied! Restarting...")
+                # Re-exec ourselves
+                os.execv(str(SELF_PATH), sys.argv)
+
+            # Clean up ZIP (leave extracted dir for restart script to handle, or next startup)
+            zip_path.unlink(missing_ok=True)
+            return True
+
+        except Exception as exc:
+            logger.error(f"Update failed: {exc}")
+            _report(f"Update failed: {exc}")
+            return False
 
     def get_priority(self, channel: Channel) -> int:
         """

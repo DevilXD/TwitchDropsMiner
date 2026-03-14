@@ -47,6 +47,7 @@ from constants import (
     MAX_WEBSOCKETS,
     WS_TOPICS_LIMIT,
     OUTPUT_FORMATTER,
+    GITHUB_RELEASES_URL,
     State,
     PriorityMode,
 )
@@ -2141,6 +2142,20 @@ class HelpTab:
             link="https://www.twitch.tv/drops/campaigns",
             text=_("gui", "help", "links", "campaigns"),
         ).grid(column=0, row=1, sticky="nsew")
+        # Update check
+        update_frame = ttk.LabelFrame(center_frame, padding=(4, 0, 4, 4), text="Updates")
+        update_frame.grid(column=0, row=(irow := irow + 1), sticky="nsew", padx=2)
+        update_frame.columnconfigure(1, weight=1)
+        self._update_button = ttk.Button(
+            update_frame, text="Check for Updates", command=self._check_updates
+        )
+        self._update_button.grid(column=0, row=0, sticky="w", padx=(0, 8))
+        self._update_label = ttk.Label(update_frame, text="")
+        self._update_label.grid(column=1, row=0, sticky="w")
+        self._update_link: LinkLabel | None = None
+        self._update_apply_button: ttk.Button | None = None
+        self._update_download_url: str | None = None
+        self._update_link_frame = update_frame
         # How It Works
         howitworks = ttk.LabelFrame(
             center_frame, padding=(4, 0, 4, 4), text=_("gui", "help", "how_it_works")
@@ -2156,6 +2171,75 @@ class HelpTab:
         ttk.Label(
             getstarted, text=_("gui", "help", "getting_started_text"), wraplength=self.WIDTH
         ).grid(sticky="nsew")
+
+    def _clear_update_widgets(self):
+        if self._update_link is not None:
+            self._update_link.destroy()
+            self._update_link = None
+        if self._update_apply_button is not None:
+            self._update_apply_button.destroy()
+            self._update_apply_button = None
+
+    def _check_updates(self):
+        self._update_button.configure(state="disabled")
+        self._update_label.configure(text="Checking...", style="TLabel")
+        self._clear_update_widgets()
+
+        async def do_check():
+            update_available, message, download_url = await self._twitch.check_for_updates()
+            if update_available:
+                self._update_label.configure(text=message, style="yellow.TLabel")
+                self._update_download_url = download_url
+                if download_url is not None:
+                    # Packaged build: offer in-place update
+                    self._update_apply_button = ttk.Button(
+                        self._update_link_frame,
+                        text="Update Now",
+                        command=self._apply_update,
+                    )
+                    self._update_apply_button.grid(
+                        column=2, row=0, sticky="w", padx=(8, 0)
+                    )
+                # Always show download link as fallback
+                self._update_link = LinkLabel(
+                    self._update_link_frame,
+                    link=GITHUB_RELEASES_URL,
+                    text="Download manually",
+                )
+                col = 3 if download_url is not None else 2
+                self._update_link.grid(column=col, row=0, sticky="w", padx=(8, 0))
+            else:
+                self._update_label.configure(text=message, style="green.TLabel")
+            self._update_button.configure(state="normal")
+
+        asyncio.create_task(do_check())
+
+    def _apply_update(self):
+        if self._update_download_url is None:
+            return
+        self._update_button.configure(state="disabled")
+        if self._update_apply_button is not None:
+            self._update_apply_button.configure(state="disabled")
+
+        def on_progress(msg: str):
+            self._update_label.configure(text=msg, style="TLabel")
+
+        async def do_update():
+            success = await self._twitch.download_update(
+                self._update_download_url, progress_callback=on_progress
+            )
+            if success:
+                # On Windows the batch script will restart; on Linux/macOS os.execv replaces us.
+                # If we're still here, trigger a close.
+                self._update_label.configure(text="Update applied! Closing...", style="green.TLabel")
+                await asyncio.sleep(1)
+                self._twitch.gui.close()
+            else:
+                self._update_button.configure(state="normal")
+                if self._update_apply_button is not None:
+                    self._update_apply_button.configure(state="normal")
+
+        asyncio.create_task(do_update())
 
 
 ##########################################
