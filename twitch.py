@@ -1311,8 +1311,8 @@ class Twitch:
                             if (
                                 single_retry
                                 and error_dict["message"] in (
-                                    "service error"
-                                    "PersistedQueryNotFound"
+                                    "service error",
+                                    "PersistedQueryNotFound",
                                 )
                             ):
                                 logger.error(
