@@ -20,8 +20,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{env.PYTHON_VERSION}}
 
@@ -29,7 +29,7 @@ jobs:
         run: |
           failed=()
           for file in "lang/"*.json; do
-            if err="$(python -m json.tool "${file}" 2>&1 >/dev/null)"; then
+            if err="$(uv run python -m json.tool "${file}" 2>&1 >/dev/null)"; then
               echo "[OK] ${file}"
             else
               echo "[ERROR] ${file} ${err}"
@@ -63,15 +63,14 @@ jobs:
           Out-File version.py
 
       # Ensure Python version
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{env.PYTHON_VERSION}}
 
       - name: Install project dependencies
         run: |
-          python3 -m pip install wheel
-          python3 -m pip install -r requirements.txt
+          uv sync
 
       # TODO: Consider using https://github.com/crazy-max/ghaction-upx
       # or some other way of keeping the download link up to date in the future
@@ -83,13 +82,9 @@ jobs:
           Move-Item -Path (Join-Path $env:Temp upx-*) -Destination (Join-Path $env:Temp upx)
           Add-Content $env:GITHUB_PATH (Join-Path $env:Temp upx)
 
-      - name: Install PyInstaller
-        run: |
-          python3 -m pip install pyinstaller
-
       - name: Create portable executable
         run: |
-          pyinstaller build.spec
+          uv run pyinstaller build.spec
 
       - name: Create release folder
         run: |
@@ -125,23 +120,18 @@ jobs:
         run: |
           sed -i '' -E "s/^(__version__\s*=\s*\"[^\"]+)/\1.${{steps.vars.outputs.sha_short}}/" version.py
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{env.PYTHON_VERSION}}
 
       - name: Install project dependencies
         run: |
-          python3 -m pip install wheel
-          python3 -m pip install -r requirements.txt
-
-      - name: Install PyInstaller
-        run: |
-          python3 -m pip install pyinstaller
+          uv sync
 
       - name: Create portable executable
         run: |
-          pyinstaller build.spec --noconfirm
+          uv run pyinstaller build.spec --noconfirm
 
       - name: Create release folder and Zip
         run: |
@@ -185,25 +175,20 @@ jobs:
         run: |
           sed -ri "s/^__version__\s*=\s*\"[^\"]+/\0.${{steps.vars.outputs.sha_short}}/" version.py
 
-      # Ensure Python version
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{env.PYTHON_VERSION}}
-
       - name: Install system dependencies
         run: |
           sudo apt update
           sudo apt install libgirepository1.0-dev gir1.2-ayatanaappindicator3-0.1 libayatana-appindicator3-1 python3-tk
 
+      # Ensure Python version
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{env.PYTHON_VERSION}}
+
       - name: Install project dependencies
         run: |
-          python3 -m pip install wheel
-          python3 -m pip install -r requirements.txt
-
-      - name: Install PyInstaller
-        run: |
-          python3 -m pip install pyinstaller
+          uv sync
 
       # NOTE: Remove this step if/once libxft gets updated to 2.3.5 or newer on Ubuntu 22.04, which currently has 2.3.4.
       - name: Build a recent version of libXft
@@ -220,7 +205,7 @@ jobs:
 
       - name: Create portable executable
         run: |
-          LD_LIBRARY_PATH=/tmp/libXft/lib xvfb-run --auto-servernum pyinstaller build.spec
+          LD_LIBRARY_PATH=/tmp/libXft/lib xvfb-run --auto-servernum uv run pyinstaller build.spec
 
       - name: Show PyInstaller warnings
         run: |
@@ -258,10 +243,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{env.PYTHON_VERSION}}
+
       - name: Set up variables
         id: vars
         run: |
-          echo "app_version=$(python3 -c 'from version import __version__ as v; print(v)')" >> "${GITHUB_OUTPUT}"
+          echo "app_version=$(uv run python -c 'from version import __version__ as v; print(v)')" >> "${GITHUB_OUTPUT}"
           echo "sha_short=$(git rev-parse --short HEAD)" >> "${GITHUB_OUTPUT}"
 
       - name: Append git revision to project version
@@ -276,7 +266,7 @@ jobs:
       - name: Install appimage-builder
         run: |
           # TODO: Switch to a stable release if/when a version newer than 1.1.0 is released.
-          python3 -m pip install git+https://github.com/AppImageCrafters/appimage-builder.git@e995e8edcc227d14524cf39f9824c238f9435a22
+          uv pip install git+https://github.com/AppImageCrafters/appimage-builder.git@e995e8edcc227d14524cf39f9824c238f9435a22
 
       - name: Create AppImage
         env:
@@ -285,7 +275,7 @@ jobs:
           APP_VERSION: ${{steps.vars.outputs.app_version}}.${{steps.vars.outputs.sha_short}}
           PYTHON_VERSION: ${{env.PYTHON_VERSION}}
         run: |
-          appimage-builder --recipe appimage/AppImageBuilder.yml
+          uv run appimage-builder --recipe appimage/AppImageBuilder.yml
 
       - name: Create release folder
         run: |

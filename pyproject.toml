@@ -1,0 +1,28 @@
+[project]
+name = "twitchdropsminer"
+version = "16.dev"
+description = "Add your description here"
+authors = [
+    { name = "SuaveIV", email = "suaveiv@yahoo.com" }
+]
+requires-python = ">=3.10"
+dependencies = [
+    "aiohttp>=3.9,<4.0",
+    "pillow>=12.1.1",
+    "pygobject<3.51 ; sys_platform == 'linux'",
+    "pystray>=0.19.5",
+    "pywin32>=311 ; sys_platform == 'win32'",
+    "truststore>=0.10.4",
+]
+
+[project.scripts]
+twitchdropsminer = "twitchdropsminer:main"
+
+[build-system]
+requires = ["uv_build>=0.10.11,<0.11.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pyinstaller>=6.19.0",
+]

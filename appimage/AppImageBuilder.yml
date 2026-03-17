@@ -24,9 +24,9 @@ script:
   - cp "$SOURCE_DIR/pickaxe.png" "$TARGET_APPDIR/usr/share/icons/hicolor/128x128/apps/io.github.devilxd.twitchdropsminer.png"
 
   # Create a virtual environment and install up-to-date versions of meson and ninja.
-  - python3 -m venv env && ./env/bin/python3 -m pip install meson ninja
+  - uv venv env && uv pip install --python env/bin/python3 meson ninja
   # Install requirements.
-  - PATH="$PWD/env/bin:$PATH" python3 -m pip install --prefix=/usr --root="$TARGET_APPDIR" -r "$SOURCE_DIR/../requirements.txt"
+  - PATH="$PWD/env/bin:$PATH" uv pip install --python env/bin/python3 --prefix=/usr --root="$TARGET_APPDIR" .
   # Generate byte-code files and package them for a slightly faster app startup.
   - python3 -m compileall "$TARGET_APPDIR/usr/src/"*.py
 
