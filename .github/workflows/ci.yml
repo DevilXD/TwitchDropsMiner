@@ -24,6 +24,8 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{env.PYTHON_VERSION}}
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
       - name: Validate language files
         run: |
@@ -67,6 +69,8 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{env.PYTHON_VERSION}}
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
       - name: Install project dependencies
         run: |
@@ -124,6 +128,8 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{env.PYTHON_VERSION}}
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
       - name: Install project dependencies
         run: |
@@ -185,6 +191,8 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{env.PYTHON_VERSION}}
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
       - name: Install project dependencies
         run: |
@@ -247,6 +255,8 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{env.PYTHON_VERSION}}
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
       - name: Set up variables
         id: vars
