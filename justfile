@@ -1,12 +1,12 @@
-set shell := if os() == "windows" { ["powershell", "-NoProfile", "-Command"] } else { ["sh", "-c"] }
+set shell := ["powershell", "-NoProfile", "-Command"]
 
-is_windows := os() == "windows"
-is_linux := os() == "linux"
-is_macos := os() == "macos"
+is_windows := if os() == "windows" { "true" } else { "false" }
+is_linux := if os() == "linux" { "true" } else { "false" }
+is_macos := if os() == "macos" { "true" } else { "false" }
 
 # Python executable name based on OS
-py := if is_windows { "python" } else { "python3" }
-pyw := if is_windows { "pythonw" } else { "python3" }
+py := if os() == "windows" { "python" } else { "python3" }
+pyw := if os() == "windows" { "pythonw" } else { "python3" }
 
 # Synchronize the environment using uv
 setup:
@@ -16,7 +16,7 @@ setup:
 # Usage: just run           (No console)
 # Usage: just run console=y (With console)
 run console="n":
-    @{{ if console == "y" { "uv run " + py + " main.py" } else { "uv run " + pyw + " main.py" } }}
+    @if ("{{console}}" -eq "y") { uv run {{py}} main.py } else { uv run {{pyw}} main.py }
 
 # Build the application using PyInstaller
 build:
@@ -32,5 +32,5 @@ clean:
 
 # Build Linux AppImage (Requires appimage-builder)
 appimage:
-    @if [ "{{os()}}" != "linux" ]; then echo "AppImage build only supported on Linux"; exit 1; fi
+    @if ("{{os()}}" -ne "linux") { Write-Error "AppImage build only supported on Linux"; exit 1 }
     uv run appimage-builder --recipe appimage/AppImageBuilder.yml
