@@ -1,24 +1,31 @@
 @echo off
-IF NOT EXIST 7z.exe GOTO NO7Z
-IF NOT EXIST "Twitch Drops Miner" mkdir "Twitch Drops Miner"
-rem Prepare files
-copy /y /v dist\*.exe "Twitch Drops Miner"
-copy /y /v manual.txt "Twitch Drops Miner"
-IF EXIST "Twitch Drops Miner.zip" (
-    rem Add action
-    set action=a
-) ELSE (
-    rem Update action
-    set action=u
+
+REM Get the directory path of the script
+set "dirpath=%~dp0"
+if "%dirpath:~-1%" == "\" set "dirpath=%dirpath:~0,-1%"
+
+REM Check if uv is installed
+uv --version > nul 2>&1
+if %errorlevel% NEQ 0 (
+    echo:
+    echo No uv executable found in PATH!
+    echo Please install uv first: https://docs.astral.sh/uv/getting-started/installation/
+    echo:
+    pause
+    exit /b 1
 )
-rem Pack and test
-7z %action% "Twitch Drops Miner.zip" "Twitch Drops Miner/" -r
-7z t "Twitch Drops Miner.zip" * -r
-rem Cleanup
-IF EXIST "Twitch Drops Miner" rmdir /s /q "Twitch Drops Miner"
-GOTO EXIT
-:NO7Z
-echo No 7z.exe detected, skipping packaging!
-GOTO EXIT
-:EXIT
-exit %errorlevel%
+
+REM Run the packaging script
+uv run scripts/pack_app.py
+if %errorlevel% NEQ 0 (
+    echo:
+    echo Packaging failed.
+    echo:
+    pause
+    exit /b 1
+)
+
+echo:
+echo Packaging completed successfully.
+echo:
+pause

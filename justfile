@@ -1,37 +1,36 @@
-set shell := ["powershell", "-NoProfile", "-Command"]
+set shell := if os() == "windows" { ["powershell", "-NoProfile", "-Command"] } else { ["sh", "-c"] }
+
+is_windows := os() == "windows"
+is_linux := os() == "linux"
+is_macos := os() == "macos"
+
+# Python executable name based on OS
+py := if is_windows { "python" } else { "python3" }
+pyw := if is_windows { "pythonw" } else { "python3" }
 
 # Synchronize the environment using uv
 setup:
     uv sync
 
 # Run the application in development mode
+# Usage: just run           (No console)
+# Usage: just run console=y (With console)
 run console="n":
-    @if "{{console}}" == "y" { \
-        uv run python main.py; \
-    } else { \
-        uv run pythonw main.py; \
-    }
+    @{{ if console == "y" { "uv run " + py + " main.py" } else { "uv run " + pyw + " main.py" } }}
 
 # Build the application using PyInstaller
 build:
     uv run pyinstaller build.spec
 
-# Package the application (Windows)
+# Package the application (Cross-platform ZIP)
 pack: build
-    @if (!(Test-Path "7z.exe")) { \
-        Write-Error "No 7z.exe detected, skipping packaging!"; \
-        exit 1; \
-    }
-    if (!(Test-Path "Twitch Drops Miner")) { New-Item -ItemType Directory "Twitch Drops Miner" }
-    Copy-Item "dist\*.exe" "Twitch Drops Miner" -Force
-    Copy-Item "manual.txt" "Twitch Drops Miner" -Force
-    $action = if (Test-Path "Twitch Drops Miner.zip") { "u" } else { "a" }
-    & .\7z.exe $action "Twitch Drops Miner.zip" "Twitch Drops Miner/" -r
-    & .\7z.exe t "Twitch Drops Miner.zip" * -r
-    Remove-Item -Recurse -Force "Twitch Drops Miner"
+    uv run {{py}} scripts/pack_app.py
 
-# Clean up build artifacts
+# Clean up build artifacts (Cross-platform)
 clean:
-    if (Test-Path "dist") { Remove-Item -Recurse -Force "dist" }
-    if (Test-Path "build") { Remove-Item -Recurse -Force "build" }
-    if (Test-Path ".venv") { Remove-Item -Recurse -Force ".venv" }
+    uv run {{py}} scripts/clean_app.py
+
+# Build Linux AppImage (Requires appimage-builder)
+appimage:
+    @if [ "{{os()}}" != "linux" ]; then echo "AppImage build only supported on Linux"; exit 1; fi
+    uv run appimage-builder --recipe appimage/AppImageBuilder.yml
