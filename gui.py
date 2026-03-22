@@ -1659,7 +1659,9 @@ class SettingsPanel:
                 checkboxes_frame,
                 variable=self._vars["tray_notifications"],
                 command=lambda: setattr(
-                    self._settings, "tray_notifications", bool(self._vars["tray_notifications"].get())
+                    self._settings,
+                    "tray_notifications",
+                    bool(self._vars["tray_notifications"].get()),
                 ),
             ).grid(column=1, row=irow, sticky="w")
         ttk.Label(
@@ -1879,7 +1881,9 @@ class SettingsPanel:
         return autostart_folder / f"{self.AUTOSTART_NAME}.desktop"
 
     def _get_mac_autostart_filepath(self) -> Path:
-        return Path(Path.home(), f"Library/LaunchAgents/com.devilxd.{self.AUTOSTART_NAME.lower()}.plist")
+        return Path(
+            Path.home(), f"Library/LaunchAgents/com.devilxd.{self.AUTOSTART_NAME.lower()}.plist"
+        )
 
     def _query_autostart(self) -> bool:
         if sys.platform == "win32":
@@ -2487,7 +2491,6 @@ class GUIManager:
             muted = "#404040"
             accent = "#0a84ff"
 
-        
         # Setting theme for macOS
         if sys.platform == "darwin":
             app = AppKit.NSApplication.sharedApplication()
