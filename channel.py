@@ -286,8 +286,7 @@ class Channel:
         For mobile view, spade_url is available immediately from the page, skipping step #2.
         """
         SETTINGS_PATTERN: str = r'src="(https://[\w.]+/config/settings\.[0-9a-f]{32}\.js)"'
-        # NOTE: "beacon" appears in the file first, so it's the most likely one to be matched.
-        SPADE_PATTERN: str = r'"(?:beacon|spade)_?url": ?"(https://[.\w\-/]+)"'
+        SPADE_PATTERN: str = r'"spade_?url": ?"(https://[.\w\-/]+)"'
         async with self._twitch.request("GET", self.url) as response1:
             streamer_html: str = await response1.text(encoding="utf8")
         match = re.search(SPADE_PATTERN, streamer_html, re.I)
