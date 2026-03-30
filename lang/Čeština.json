@@ -20,7 +20,7 @@
     "error": {
         "captcha": "Vaše připojení bylo zamítnuto službou Twitch, zkuste to znovu za 12 hodin.",
         "site_down": "Služba Twitch je nedostupná，zkuste to znovu za {seconds} sekund...",
-        "no_connection": "Nelze se připojit k službe Twitch, zkuste to znovu za {seconds}..."
+        "no_connection": "Nelze se připojit k službe Twitch, zkuste to znovu za {seconds}... ({url})"
     },
     "gui": {
         "output": "Výstup",

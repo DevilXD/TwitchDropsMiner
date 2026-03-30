@@ -27,7 +27,7 @@
     "error": {
         "captcha": "El inicio de sesión fue rechazado por CAPTCHA.\nPor favor, intente nuevamente en aprox. 12 horas.",
         "site_down": "Twitch no está disponible. \nIntente de nuevo en {seconds} segundos...",
-        "no_connection": "No se ha podido conectar a Twitch. \nIntente de nuevo en {seconds} segundos..."
+        "no_connection": "No se ha podido conectar a Twitch. \nIntente de nuevo en {seconds} segundos... ({url})"
     },
     "gui": {
         "output": "Registros",

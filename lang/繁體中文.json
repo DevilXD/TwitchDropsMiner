@@ -27,7 +27,7 @@
     "error": {
         "captcha": "您的登入被 CAPTCHA 拒絕，請於12小時後重試。",
         "site_down": "Twitch 網頁目前無法開啟，將在 {seconds} 秒後重試…",
-        "no_connection": "無法連接到 Twitch，將在 {seconds} 秒後重試…"
+        "no_connection": "無法連接到 Twitch，將在 {seconds} 秒後重試… ({url})"
     },
     "gui": {
         "output": "輸出日誌",

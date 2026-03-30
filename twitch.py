@@ -1264,7 +1264,9 @@ class Twitch:
                 # connection problems, retry
                 if backoff.steps > 1:
                     # just so that quick retries that sometimes happen, aren't shown
-                    self.print(_("error", "no_connection").format(seconds=round(delay)))
+                    self.print(
+                        _("error", "no_connection").format(seconds=round(delay), url=str(url))
+                    )
             finally:
                 if response is not None:
                     response.release()

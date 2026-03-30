@@ -27,7 +27,7 @@
   "error": {
     "captcha": "ログイン試行がCAPTCHAによって拒否されました。\n12時間以上後に再試行してください。",
     "site_down": "Twitchがダウンしています。{seconds}秒後に再試行します...",
-    "no_connection": "Twitchに接続できません。{seconds}秒後に再試行します..."
+    "no_connection": "Twitchに接続できません。{seconds}秒後に再試行します... ({url})"
   },
   "gui": {
     "output": "出力",

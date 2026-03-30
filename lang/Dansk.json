@@ -27,7 +27,7 @@
     "error": {
         "captcha": "Dit loginforsøg blev afvist af CAPTCHA.\nPrøv venligst igen om 12+ timer",
         "site_down": "Twitch er nede, prøver igen om {seconds} sekunder...",
-        "no_connection": "Kan ikke oprette forbindelse til Twitch, prøver igen om {seconds} sekunder..."
+        "no_connection": "Kan ikke oprette forbindelse til Twitch, prøver igen om {seconds} sekunder... ({url})"
     },
     "gui": {
         "output": "Resultat",

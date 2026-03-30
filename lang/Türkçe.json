@@ -27,7 +27,7 @@
     "error": {
         "captcha": "Giriş denemeniz CAPTCHA tarafından reddedildi.\nLütfen en az 12 saat sonra tekrar deneyin.",
         "site_down": "Twitch kapalı, {seconds} saniye içinde tekrar denenecek...",
-        "no_connection": "Twitch'e bağlanılamıyor. {seconds} saniye içinde tekrar deneniyor..."
+        "no_connection": "Twitch'e bağlanılamıyor. {seconds} saniye içinde tekrar deneniyor... ({url})"
     },
     "gui": {
         "output": "Çıktı",

@@ -27,7 +27,7 @@
     "error": {
         "captcha": "Il tuo tentativo di login è stato negato da CAPTCHA.\nRiprova tra 12+ ore.",
         "site_down": "Twitch è irraggiungibile, riprovo tra {seconds} secondi...",
-        "no_connection": "Impossibile connettersi a Twitch, riprovo tra {seconds} secondi..."
+        "no_connection": "Impossibile connettersi a Twitch, riprovo tra {seconds} secondi... ({url})"
     },
     "gui": {
         "output": "Output",

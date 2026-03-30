@@ -27,7 +27,7 @@
     "error": {
         "captcha": "Próba logowania została odrzucona przez CAPTCHA.\nProszę spróbować ponownie za co najmniej 12 godzin.",
         "site_down": "Strona Twitcha nie jest dostępna. Spróbuj ponownie za {seconds} s....",
-        "no_connection": "Nie można połączyć się z Twitchem. Spróbuj ponownie za {seconds} s...."
+        "no_connection": "Nie można połączyć się z Twitchem. Spróbuj ponownie za {seconds} s.... ({url})"
     },
     "gui": {
         "output": "Dziennik zdarzeń",

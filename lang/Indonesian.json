@@ -26,8 +26,8 @@
     },
     "error": {
         "captcha": "Sambungan ditolak oleh CAPTCHA. Silakan coba lagi dalam waktu sekitar 12 jam.",
-        "site_down": "Twitch tidak tersedia. Silakan coba lagi dalam {seconds} detik....",
-        "no_connection": "Tidak dapat tersambung ke Twitch. Silakan coba lagi dalam {detik} detik...."
+        "site_down": "Twitch tidak tersedia. Silakan coba lagi dalam {seconds} detik...",
+        "no_connection": "Tidak dapat tersambung ke Twitch. Silakan coba lagi dalam {detik} detik... ({url})"
     },
     "gui": {
         "output": "Keluaran",
