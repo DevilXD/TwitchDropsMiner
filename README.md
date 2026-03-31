@@ -78,6 +78,14 @@ If you'd be interested in running the latest master from source or building your
 
 ### Support
 
+If you'd encounter any issues with the miner:
+
+- Please see the [troubleshooting page](https://github.com/DevilXD/TwitchDropsMiner/wiki/Troubleshooting) for some common issues and their explanation.  
+- Please [search the issues page](https://github.com/DevilXD/TwitchDropsMiner/issues?q=sort%3Aupdated-desc%20is%3Aissue) to see if your issue hasn't been reported yet.  
+- If it's not been reported yet, feel free to open a new issue, describing your problem.
+
+If you like the application and found it useful, please consider donating a small amount of money to support me. Thank you!
+
 <div align="center">
 
 [![Buy me a coffee](https://i.imgur.com/cL95gzE.png)](
