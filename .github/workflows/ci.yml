@@ -301,6 +301,22 @@ jobs:
           name: Twitch.Drops.Miner.Linux.AppImage-${{matrix.arch}}
           path: Twitch.Drops.Miner.Linux.AppImage-${{matrix.arch}}.zip
 
+  linux-nix:
+    name: Linux (Nix)
+    runs-on: ubuntu-latest
+    needs:
+      - validate
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+
+      - name: Build Nix flake
+        run: nix build -L
+
   update_releases_page:
     name: Upload builds to Releases
     if: github.event_name != 'pull_request'
@@ -309,6 +325,7 @@ jobs:
       - linux-pyinstaller
       - linux-appimage
       - macos
+      - linux-nix
     runs-on: ubuntu-latest
     permissions:
       contents: write
