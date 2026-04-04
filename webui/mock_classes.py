@@ -155,80 +155,43 @@ class MockChannels:
 
 
 class MockInventory:
-    """Mirrors the inventory display"""
+    """
+    Mirrors InventoryOverview - stores DropsCampaign objects and keeps the
+    inventory panel in sync via dirty flags and label references.
+    """
 
     def __init__(self, manager: 'WebUIManager'):
         self._manager = manager
 
     def clear(self):
-        self._manager._campaigns.clear()
-        if self._manager._inventory_container is not None:
-            try:
-                from webui.components.inventory_panel import refresh_inventory_display
-                refresh_inventory_display(self._manager)
-            except Exception:
-                pass
+        """Mirrors InventoryOverview.clear()"""
+        self._manager._inventory_campaigns.clear()
+        self._manager._drop_labels.clear()
+        self._manager._inventory_dirty = True
 
-    async def add_campaign(self, campaign):
+    async def add_campaign(self, campaign) -> None:
+        """Mirrors InventoryOverview.add_campaign() - stores the real object."""
         try:
-            campaign_data = {
-                'name': getattr(campaign, 'name', 'Unknown Campaign'),
-                'game': (
-                    getattr(campaign.game, 'name', 'Unknown Game')
-                    if hasattr(campaign, 'game') else 'Unknown Game'
-                ),
-                'status': self._get_campaign_status(campaign),
-                'progress': getattr(campaign, 'progress', 0),
-                'time_remaining': self._get_time_remaining(campaign),
-                'campaign_obj': campaign,
-            }
-            campaign_id = getattr(campaign, 'id', str(len(self._manager._campaigns)))
-            self._manager._campaigns[campaign_id] = campaign_data
-
-            if self._manager._inventory_container is not None:
-                try:
-                    from webui.components.inventory_panel import refresh_inventory_display
-                    refresh_inventory_display(self._manager)
-                except Exception:
-                    pass
+            campaign_id = getattr(campaign, 'id', str(id(campaign)))
+            self._manager._inventory_campaigns[campaign_id] = campaign
+            self._manager._inventory_dirty = True
         except Exception as e:
             self._manager.print(f"Failed to add campaign: {e}")
 
-    def _get_campaign_status(self, campaign) -> str:
-        if getattr(campaign, 'active', False):
-            return "Active"
-        elif getattr(campaign, 'upcoming', False):
-            return "Upcoming"
-        elif getattr(campaign, 'expired', False):
-            return "Expired"
-        return "Unknown"
-
-    def _get_time_remaining(self, campaign) -> str:
-        ends_at = getattr(campaign, 'ends_at', None)
-        if ends_at is None:
-            return ""
-        try:
-            from datetime import datetime, timezone
-            now = datetime.now(timezone.utc)
-            remaining = ends_at - now
-            if remaining.total_seconds() > 0:
-                days = remaining.days
-                hours, rest = divmod(remaining.seconds, 3600)
-                minutes, _ = divmod(rest, 60)
-                if days > 0:
-                    return f"{days}d {hours}h {minutes}m"
-                elif hours > 0:
-                    return f"{hours}h {minutes}m"
-                return f"{minutes}m"
-            return "Expired"
-        except Exception:
-            return ""
-
     def update_drop(self, drop) -> None:
-        """Called when a drop's progress changes - updates inventory display if visible."""
-        # Inventory panel updates itself from the campaign/drop objects directly;
-        # no extra work needed here.
-        pass
+        """
+        Mirrors InventoryOverview.update_drop() - updates the progress label
+        for the given drop if the inventory panel has rendered it.
+        """
+        try:
+            from webui.components.inventory_panel import _drop_progress_text, _drop_progress_color
+            label = self._manager._drop_labels.get(drop.id)
+            if label is None:
+                return
+            label.set_text(_drop_progress_text(drop))
+            label.classes(_drop_progress_color(drop), replace=False)
+        except Exception as e:
+            print(f"update_drop failed: {e}")
 
     def configure_theme(self, *, bg: str):
         pass

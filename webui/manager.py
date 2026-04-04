@@ -19,6 +19,7 @@ except ImportError:
     app = None
 
 from translate import _
+from constants import PriorityMode
 from .mock_classes import (MockTray, MockStatus, MockProgress, MockOutput, MockChannels,
                           MockInventory, MockLoginForm, MockWebsocketStatus, MockSettings, MockTabs)
 from .handlers import WebUIOutputHandler
@@ -107,15 +108,19 @@ class WebUIManager:
         self._progress_seconds: int = 0
 
         # Inventory tracking
-        self._inventory_filters = {
-            "not_linked": False,
-            "upcoming": False,
-            "active": False,
-            "expired": False,
-            "excluded": False,
-            "finished": False,
+        # Defaults match gui.py InventoryOverview.__init__:
+        # not_linked = True when priority_mode is PRIORITY_ONLY, upcoming = True, rest False
+        _priority_only = twitch.settings.priority_mode is PriorityMode.PRIORITY_ONLY
+        self._inventory_filters: dict = {
+            "not_linked": _priority_only,
+            "upcoming":   True,
+            "expired":    False,
+            "excluded":   False,
+            "finished":   False,
         }
-        self._campaigns = {}
+        self._inventory_campaigns: dict = {}   # campaign.id -> DropsCampaign
+        self._drop_labels: dict = {}            # drop.id     -> ui.label
+        self._inventory_dirty: bool = False
 
         # Setup the UI page
         self._setup_ui()
