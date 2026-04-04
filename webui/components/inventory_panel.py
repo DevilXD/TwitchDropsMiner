@@ -35,7 +35,7 @@ def create_inventory_panel(manager: 'WebUIManager'):
     with ui.column().classes('w-full gap-2 p-2'):
 
         # Filter bar
-        with ui.card().classes('w-full'):
+        with ui.card().props('flat').classes('w-full'):
             with ui.row().classes('items-center gap-4 flex-wrap'):
                 ui.label(_("gui", "inventory", "filter", "show")).classes('text-sm font-bold')
 

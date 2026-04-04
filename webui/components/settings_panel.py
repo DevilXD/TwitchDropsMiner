@@ -22,7 +22,7 @@ def create_settings_panel(manager: 'WebUIManager'):
     with ui.row().classes('w-full gap-4 p-4'):
         # Left column - General settings
         with ui.column().classes('w-1/2'):
-            with ui.card().classes('bg-gray-800 border-gray-700'):
+            with ui.card().props('flat').classes('bg-gray-800 border-gray-700'):
                 ui.label("General Settings").classes('text-h6 text-white mb-4')
 
                 # Language setting
@@ -60,7 +60,7 @@ def create_settings_panel(manager: 'WebUIManager'):
 
         # Right column - Game exclusions and priority
         with ui.column().classes('w-1/2'):
-            with ui.card().classes('bg-gray-800 border-gray-700'):
+            with ui.card().props('flat').classes('bg-gray-800 border-gray-700'):
                 ui.label("Game Management").classes('text-h6 text-white mb-4')
 
                 # Priority games section
