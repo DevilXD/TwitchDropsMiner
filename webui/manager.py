@@ -147,7 +147,7 @@ class WebUIManager:
                     title="Twitch Drops Miner",
                     show=False,  # Don't auto-open browser
                     reload=False,
-                    favicon="🎮"
+                    favicon='/static/pickaxe.ico'
                 )
             except Exception as e:
                 print(f"Failed to start NiceGUI server: {e}")
