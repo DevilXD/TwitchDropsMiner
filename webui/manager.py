@@ -45,6 +45,7 @@ class WebUIManager:
         self._twitch: 'Twitch' = twitch
         self._host = host
         self._port = port
+        self._main_loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
         self._close_requested = asyncio.Event()
         self._running = False
         self._console_log = []
@@ -105,6 +106,10 @@ class WebUIManager:
             f"{_('gui', 'login', 'logged_out')}\n-"
         )
         self._login_dirty: bool = False
+        self._login_btn_visible: bool = False
+        self._logout_btn_visible: bool = False
+        self._login_button = None
+        self._logout_button = None
 
         # Channel list state (shared with MockChannels)
         self._channel_map: dict = {}    # iid -> Channel

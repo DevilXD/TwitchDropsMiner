@@ -60,6 +60,18 @@ def create_main_panel(manager: 'WebUIManager'):
                             manager._login_status_label = ui.label(
                                 f"{_('gui', 'login', 'logged_out')}\n-"
                             ).classes('text-xs whitespace-pre leading-relaxed')
+                        manager._login_button = ui.button(
+                            _("gui", "login", "button"),
+                            on_click=lambda: manager._main_loop.call_soon_threadsafe(
+                                manager.login._confirm.set
+                            )
+                        ).props('dense').classes('text-xs')
+                        manager._login_button.set_visibility(False)
+                        manager._logout_button = ui.button(
+                            "Logout",
+                            on_click=lambda: _on_logout(manager)
+                        ).props('dense').classes('text-xs')
+                        manager._logout_button.set_visibility(False)
 
                 # Campaign Progress card - matches CampaignProgress class
                 with ui.card().props('flat bordered').classes('w-full gap-1'):
@@ -198,6 +210,10 @@ def _flush_current_state(manager: 'WebUIManager'):
     # Login status
     if manager._login_status_label is not None:
         manager._login_status_label.set_text(manager._login_status_text)
+    if manager._login_button is not None:
+        manager._login_button.set_visibility(manager._login_btn_visible)
+    if manager._logout_button is not None:
+        manager._logout_button.set_visibility(manager._logout_btn_visible)
 
     # WebSocket rows
     _build_ws_rows(manager)
@@ -289,6 +305,27 @@ def _on_table_selection(manager: 'WebUIManager', e):
         print(f"Selection handler error: {ex}")
 
 
+def _on_logout(manager: 'WebUIManager'):
+    """Log out by clearing the auth state and cookies, then trigger re-authentication."""
+    try:
+        from constants import COOKIES_PATH, State
+        COOKIES_PATH.unlink(missing_ok=True)
+        if manager._twitch._session is not None:
+            manager._twitch._session.cookie_jar.clear()
+        manager._twitch._auth_state.clear()
+        manager.login.update(_("gui", "login", "logged_out"), None)
+        # Clear status and websocket display immediately
+        manager._twitch.gui.status.update(_("gui", "status", "idle"))
+        manager._ws_data.clear()
+        manager._ws_dirty = True
+        # Kick the main loop so it re-runs validate() and starts the login flow
+        manager._main_loop.call_soon_threadsafe(
+            manager._twitch.change_state, State.INVENTORY_FETCH
+        )
+    except Exception as e:
+        print(f"Logout error: {e}")
+
+
 def _tick_update(manager: 'WebUIManager'):
     """Called every second by ui.timer. Handles dirty flags and countdown."""
     try:
@@ -302,6 +339,10 @@ def _tick_update(manager: 'WebUIManager'):
             manager._login_dirty = False
             if manager._login_status_label is not None:
                 manager._login_status_label.set_text(manager._login_status_text)
+            if manager._login_button is not None:
+                manager._login_button.set_visibility(manager._login_btn_visible)
+            if manager._logout_button is not None:
+                manager._logout_button.set_visibility(manager._logout_btn_visible)
 
         # Channel table
         if manager._channels_dirty:

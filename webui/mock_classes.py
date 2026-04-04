@@ -213,6 +213,8 @@ class MockLoginForm:
 
     async def wait_for_login_press(self) -> None:
         self._confirm.clear()
+        self._manager._login_btn_visible = True
+        self._manager._login_dirty = True
         await self._manager.coro_unless_closed(self._confirm.wait())
 
     async def ask_login(self) -> LoginData:
@@ -224,7 +226,7 @@ class MockLoginForm:
         return LoginData("", "", "")
 
     async def ask_enter_code(self, page_url: 'URL', user_code: str) -> None:
-        """Show the device activation code and open the browser."""
+        """Show the device activation code and wait for login button before opening browser."""
         self.update(_("gui", "login", "required"), None)
         self._manager.grab_attention(sound=False)
         self._manager.print(_("gui", "login", "request"))
@@ -233,7 +235,7 @@ class MockLoginForm:
         )
         twitch_login_url = f"https://www.twitch.tv/activate?device-code={user_code}"
         self._manager.print(f"URL: {twitch_login_url}")
-        await asyncio.sleep(4)
+        await self.wait_for_login_press()
         from utils import webopen
         webopen(page_url)
 
@@ -241,7 +243,19 @@ class MockLoginForm:
         """Update the login status display (mirrors LoginForm.update)"""
         user_str = str(user_id) if user_id is not None else "-"
         self._manager._login_status_text = f"{status}\n{user_str}"
+        logged_in = (status == _("gui", "login", "logged_in"))
+        self._manager._logout_btn_visible = logged_in
+        if status != _("gui", "login", "required"):
+            self._manager._login_btn_visible = False
         self._manager._login_dirty = True
+        # Mirror login state to the status bar when the main loop hasn't set it yet
+        login_statuses = (
+            _("gui", "login", "logging_in"),
+            _("gui", "login", "required"),
+            _("gui", "login", "logged_out"),
+        )
+        if status in login_statuses:
+            self._manager.status.update(status)
 
 
 class MockWebsocketStatus:
