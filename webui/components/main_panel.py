@@ -258,19 +258,20 @@ def _build_ws_rows(manager: 'WebUIManager'):
             return
         manager._ws_container.clear()
         with manager._ws_container:
-            ws_data = manager._ws_data
-            if not ws_data:
-                ui.label(_("gui", "websocket", "disconnected")).classes('text-xs')
-                return
-            for idx in sorted(ws_data.keys()):
-                entry = ws_data[idx]
-                status = entry.get('status', _("gui", "websocket", "disconnected"))
-                topics = entry.get('topics', 0)
-                label_text = (
-                    f"{_('gui', 'websocket', 'websocket').format(id=idx + 1)}"
-                    f" {status:<20}"
-                    f" {topics:>{DIGITS}}/{WS_TOPICS_LIMIT}"
-                )
+            # Always render all MAX_WEBSOCKETS slots, matching gui.py WebsocketStatus._update()
+            for idx in range(MAX_WEBSOCKETS):
+                entry = manager._ws_data.get(idx)
+                ws_name = _('gui', 'websocket', 'websocket').format(id=idx + 1)
+                if entry is None:
+                    label_text = f"{ws_name}"
+                else:
+                    status = entry.get('status', _("gui", "websocket", "disconnected"))
+                    topics = entry.get('topics', 0)
+                    label_text = (
+                        f"{ws_name}"
+                        f" {status:<20}"
+                        f" {topics:>{DIGITS}}/{WS_TOPICS_LIMIT}"
+                    )
                 ui.label(label_text).classes('font-mono text-xs')
     except Exception as e:
         print(f"Failed to rebuild WS display: {e}")
