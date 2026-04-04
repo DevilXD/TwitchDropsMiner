@@ -233,19 +233,19 @@ def _render_campaign_html(campaign: 'DropsCampaign') -> str:
     return f'''
 <div class="tdm-campaign-card">
 
-  <img src="{_ea(str(campaign.image_url))}" loading="lazy"
-       style="width:108px;height:144px;object-fit:cover;border-radius:4px;flex-shrink:0;">
-
-  <div style="min-width:180px;max-width:220px;flex-shrink:0;display:flex;
-              flex-direction:column;gap:4px;">
-    <div style="font-weight:bold;font-size:0.875rem;">{_e(campaign.name)}</div>
-    <div style="font-size:0.75rem;color:#9ca3af;">{_e(campaign.game.name)}</div>
-    <div style="font-size:0.75rem;font-weight:bold;color:{status_color};">{_e(status_text)}</div>
-    {ends_html}{starts_html}
-    <a href="{_ea(str(campaign.link_url))}" target="_blank"
-       style="font-size:0.75rem;color:{link_color};text-decoration:underline;">{_e(link_text)}</a>
-    <div style="font-size:0.75rem;color:#9ca3af;">
-      {_e(_("gui", "inventory", "allowed_channels"))} {_e(acl_text)}
+  <div style="width:400px;flex-shrink:0;display:flex;flex-direction:row;gap:12px;align-items:flex-start;">
+    <img src="{_ea(str(campaign.image_url))}" loading="lazy"
+         style="width:108px;height:144px;object-fit:cover;border-radius:4px;flex-shrink:0;">
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;">
+      <div style="font-weight:bold;font-size:0.875rem;">{_e(campaign.name)}</div>
+      <div style="font-size:0.75rem;color:#9ca3af;">{_e(campaign.game.name)}</div>
+      <div style="font-size:0.75rem;font-weight:bold;color:{status_color};">{_e(status_text)}</div>
+      {ends_html}{starts_html}
+      <a href="{_ea(str(campaign.link_url))}" target="_blank"
+         style="font-size:0.75rem;color:{link_color};text-decoration:underline;">{_e(link_text)}</a>
+      <div style="font-size:0.75rem;color:#9ca3af;">
+        {_e(_("gui", "inventory", "allowed_channels"))} {_e(acl_text)}
+      </div>
     </div>
   </div>
 
