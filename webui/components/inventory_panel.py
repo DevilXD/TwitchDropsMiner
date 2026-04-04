@@ -35,7 +35,7 @@ def create_inventory_panel(manager: 'WebUIManager'):
     with ui.column().classes('w-full gap-2'):
 
         # Filter bar
-        with ui.card().props('flat').classes('w-full'):
+        with ui.card().props('flat bordered').classes('w-full'):
             with ui.row().classes('items-center gap-4 flex-wrap'):
                 ui.label(_("gui", "inventory", "filter", "show")).classes('text-sm font-bold')
 
@@ -166,10 +166,7 @@ def _render_drop_html(drop: 'TimedDrop') -> str:
     progress_color = _drop_progress_color(drop)
 
     return f'''
-<div id="drop-{_ea(drop.id)}"
-     style="background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.08);
-            border-radius:4px;padding:12px;display:flex;flex-direction:column;
-            align-items:center;gap:6px;flex-shrink:0;">
+<div id="drop-{_ea(drop.id)}" class="tdm-drop-card">
   {benefits_html}
   <div id="drop-progress-{_ea(drop.id)}"
        style="font-size:0.75rem;text-align:center;white-space:pre;
@@ -230,9 +227,7 @@ def _render_campaign_html(campaign: 'DropsCampaign') -> str:
     drops_html = ''.join(_render_drop_html(drop) for drop in campaign.drops)
 
     return f'''
-<div style="border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:10px;
-            display:flex;gap:12px;align-items:flex-start;width:100%;box-sizing:border-box;
-            background:rgba(255,255,255,0.05);">
+<div class="tdm-campaign-card">
 
   <img src="{_ea(str(campaign.image_url))}" loading="lazy"
        style="width:108px;height:144px;object-fit:cover;border-radius:4px;flex-shrink:0;">
@@ -250,7 +245,7 @@ def _render_campaign_html(campaign: 'DropsCampaign') -> str:
     </div>
   </div>
 
-  <div style="width:1px;background:rgba(255,255,255,0.12);align-self:stretch;flex-shrink:0;"></div>
+  <div class="tdm-campaign-divider"></div>
 
   <div style="display:flex;flex-wrap:wrap;gap:8px;flex:1;align-items:flex-start;">
     {drops_html}

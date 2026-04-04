@@ -30,7 +30,7 @@ def create_main_panel(manager: 'WebUIManager'):
     with ui.column().classes('w-full gap-2'):
 
         # Row 0: Status Bar (full width) - matches StatusBar class
-        with ui.card().props('flat').classes('w-full'):
+        with ui.card().props('flat bordered').classes('w-full'):
             with ui.row().classes('items-center gap-2 w-full'):
                 ui.label(_("gui", "status", "name") + ":").classes('font-bold text-sm')
                 manager._status_card = ui.label("Initializing...").classes('text-sm flex-1')
@@ -45,13 +45,13 @@ def create_main_panel(manager: 'WebUIManager'):
                 with ui.row().classes('w-full gap-2 items-stretch'):
 
                     # WebSocket Status card - matches WebsocketStatus class
-                    with ui.card().props('flat').classes('flex-1 gap-1'):
+                    with ui.card().props('flat bordered').classes('flex-1 gap-1'):
                         ui.label(_("gui", "websocket", "name")).classes('font-bold text-sm mb-1')
                         manager._ws_container = ui.column().classes('gap-0')
                         _build_ws_rows(manager)
 
                     # Login Form card - matches LoginForm class
-                    with ui.card().props('flat').classes('flex-1 gap-1'):
+                    with ui.card().props('flat bordered').classes('flex-1 gap-1'):
                         ui.label(_("gui", "login", "name")).classes('font-bold text-sm mb-1')
                         with ui.row().classes('gap-4 items-start'):
                             ui.label(_("gui", "login", "labels")).classes(
@@ -62,7 +62,7 @@ def create_main_panel(manager: 'WebUIManager'):
                             ).classes('text-xs whitespace-pre leading-relaxed')
 
                 # Campaign Progress card - matches CampaignProgress class
-                with ui.card().props('flat').classes('w-full gap-1'):
+                with ui.card().props('flat bordered').classes('w-full gap-1'):
                     ui.label(_("gui", "progress", "name")).classes('font-bold text-sm mb-1')
 
                     # Game and Campaign name row
@@ -95,7 +95,7 @@ def create_main_panel(manager: 'WebUIManager'):
                     manager._drop_progress_bar = ui.linear_progress(value=0, show_value=False).classes('w-full h-4')
 
             # Right side: Channel List - matches ChannelList class (spans full height)
-            with ui.card().props('flat id=tdm-channels-card').classes('flex-col gap-1').style('flex: 1; min-width: 0; display: flex; overflow: hidden'):
+            with ui.card().props('flat bordered id=tdm-channels-card').classes('flex-col gap-1').style('flex: 1; min-width: 0; display: flex; overflow: hidden'):
                 ui.label(_("gui", "channels", "name")).classes('font-bold text-sm mb-1')
 
                 # Switch button (disabled until a channel is selected)
@@ -162,7 +162,7 @@ def create_main_panel(manager: 'WebUIManager'):
                 )
 
         # Row 2: Console Output (full width) - matches ConsoleOutput class
-        with ui.card().props('flat').classes('w-full gap-1'):
+        with ui.card().props('flat bordered').classes('w-full gap-1'):
             ui.label(_("gui", "output")).classes('font-bold text-sm mb-1')
             manager._console = ui.log(max_lines=200).classes(
                 'h-64 w-full font-mono text-xs'

@@ -169,6 +169,47 @@ class WebUIManager:
             ui.page_title("Twitch Drops Miner")
             ui.dark_mode(True)
             ui.query('.nicegui-content').style('padding: 0')
+            ui.add_head_html('''<style>
+                .tdm-campaign-card {
+                    border: 1px solid rgba(0,0,0,0.12);
+                    background: rgba(0,0,0,0.03);
+                    border-radius: 8px;
+                    padding: 10px;
+                    display: flex;
+                    gap: 12px;
+                    align-items: flex-start;
+                    width: 100%;
+                    box-sizing: border-box;
+                }
+                body.body--dark .tdm-campaign-card {
+                    border-color: rgba(255,255,255,0.28);
+                    background: rgba(255,255,255,0.05);
+                }
+                .tdm-drop-card {
+                    border: 1px solid rgba(0,0,0,0.12);
+                    background: rgba(0,0,0,0.06);
+                    border-radius: 4px;
+                    padding: 12px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 6px;
+                    flex-shrink: 0;
+                }
+                body.body--dark .tdm-drop-card {
+                    border-color: rgba(255,255,255,0.28);
+                    background: rgba(0,0,0,0.2);
+                }
+                .tdm-campaign-divider {
+                    width: 1px;
+                    background: rgba(0,0,0,0.12);
+                    align-self: stretch;
+                    flex-shrink: 0;
+                }
+                body.body--dark .tdm-campaign-divider {
+                    background: rgba(255,255,255,0.28);
+                }
+            </style>''')
 
             # Store references to self in the outer scope
             manager = self

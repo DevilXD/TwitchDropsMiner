@@ -31,7 +31,7 @@ def create_settings_panel(manager: 'WebUIManager'):
         with ui.column().classes('gap-2').style('flex: 1; min-width: 0'):
 
             # General section
-            with ui.card().props('flat').classes('w-full q-pa-sm'):
+            with ui.card().props('flat bordered').classes('w-full q-pa-sm'):
                 ui.label(_("gui", "settings", "general", "name")).classes('font-bold text-sm')
 
                 # Language
@@ -72,7 +72,7 @@ def create_settings_panel(manager: 'WebUIManager'):
                 ).classes('w-full text-xs').props('dense')
 
             # Advanced section
-            with ui.card().props('flat').classes('w-full q-pa-sm'):
+            with ui.card().props('flat bordered').classes('w-full q-pa-sm'):
                 ui.label(_("gui", "settings", "advanced", "name")).classes('font-bold text-sm')
                 ui.label(_("gui", "settings", "advanced", "warning")).classes('text-xs text-red-500')
                 ui.label(_("gui", "settings", "advanced", "warning_text")).classes(
@@ -94,7 +94,7 @@ def create_settings_panel(manager: 'WebUIManager'):
                     )
 
             # Reload
-            with ui.card().props('flat').classes('w-full q-pa-sm'):
+            with ui.card().props('flat bordered').classes('w-full q-pa-sm'):
                 ui.label(_("gui", "settings", "reload_text")).classes('text-xs')
                 ui.button(
                     _("gui", "settings", "reload"),
@@ -102,7 +102,7 @@ def create_settings_panel(manager: 'WebUIManager'):
                 ).props('dense').classes('text-xs w-full')
 
         # ── Middle column: Priority list ───────────────────────────────────────
-        with ui.card().props('flat').classes('q-pa-sm flex-col').style('flex: 1; min-width: 0; display: flex'):
+        with ui.card().props('flat bordered').classes('q-pa-sm flex-col').style('flex: 1; min-width: 0; display: flex'):
             ui.label(_("gui", "settings", "priority")).classes('font-bold text-sm')
 
             # Input + add
@@ -130,7 +130,7 @@ def create_settings_panel(manager: 'WebUIManager'):
                     ui.button('❌', on_click=lambda: _priority_delete(manager)).props('dense flat').classes('text-xs text-red-500')
 
         # ── Right column: Exclude list ─────────────────────────────────────────
-        with ui.card().props('flat').classes('q-pa-sm flex-col').style('flex: 1; min-width: 0; display: flex'):
+        with ui.card().props('flat bordered').classes('q-pa-sm flex-col').style('flex: 1; min-width: 0; display: flex'):
             ui.label(_("gui", "settings", "exclude")).classes('font-bold text-sm')
 
             # Input + add
