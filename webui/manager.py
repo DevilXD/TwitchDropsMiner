@@ -166,18 +166,15 @@ class WebUIManager:
             # Store references to self in the outer scope
             manager = self
 
-            with ui.header().classes('bg-gray-900'):
-                ui.label("Twitch Drops Miner").classes('text-h4 text-white')
-                ui.space()
-                with ui.row():
+            with ui.header().classes('bg-gray-900 flex-col items-stretch').style('padding: 0; gap: 0'):
+                with ui.row().classes('w-full items-center q-px-md q-py-sm'):
+                    ui.label("Twitch Drops Miner").classes('text-h4 text-white')
+                    ui.space()
                     manager._status_label = ui.label("Starting...").classes('text-body1 text-white')
-                    ui.button("Stop", on_click=manager.close).classes('bg-red-600 hover:bg-red-700')
-
-            # Create tabbed interface
-            with ui.tabs().classes('w-full bg-gray-800') as tabs:
-                main_tab = ui.tab("Main", icon="home").classes('text-white')
-                settings_tab = ui.tab("Settings", icon="settings").classes('text-white')
-                inventory_tab = ui.tab("Inventory", icon="inventory").classes('text-white')
+                with ui.tabs().classes('w-full bg-gray-800') as tabs:
+                    main_tab = ui.tab("Main", icon="home").classes('text-white')
+                    settings_tab = ui.tab("Settings", icon="settings").classes('text-white')
+                    inventory_tab = ui.tab("Inventory", icon="inventory").classes('text-white')
 
             with ui.tab_panels(tabs, value=main_tab).classes('w-full h-full bg-gray-900'):
                 # Main tab content - matching original GUI layout
