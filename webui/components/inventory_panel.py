@@ -190,16 +190,31 @@ def refresh_inventory_display(manager: 'WebUIManager'):
 
 
 def _build_campaign_card(manager: 'WebUIManager', campaign: 'DropsCampaign'):
-    """Build one campaign card - mirrors add_campaign layout."""
-    with ui.card().classes('w-full'):
-        # --- Header row: name + status + dates ---
-        with ui.row().classes('w-full items-start justify-between gap-2'):
-            with ui.column().classes('gap-0'):
-                ui.label(campaign.name).classes('font-bold text-sm')
+    """
+    One campaign row:
+      [campaign image] | campaign info (name, status, dates, link, ACL)
+                       | [drop card] [drop card] ...
+    """
+    with ui.card().classes('w-full').props('flat bordered'):
+        with ui.row().classes('w-full items-stretch gap-3 p-2'):
+
+            # --- Campaign image (108 × 144, matching gui.py) ---
+            with ui.column().classes('items-center justify-start gap-1 shrink-0'):
+                try:
+                    ui.image(str(campaign.image_url)).props('loading=lazy').style(
+                        'width:108px; height:144px; object-fit:cover; border-radius:4px;'
+                    )
+                except Exception:
+                    ui.icon('image_not_supported').classes('text-gray-400').style(
+                        'width:108px; height:144px;'
+                    )
+
+            # --- Campaign info column ---
+            with ui.column().classes('gap-1 justify-start shrink-0').style('min-width:180px; max-width:220px'):
+                ui.label(campaign.name).classes('font-bold text-sm leading-tight')
                 ui.label(campaign.game.name).classes('text-xs text-gray-500')
 
-            with ui.column().classes('items-end gap-0'):
-                # Status badge
+                # Status
                 if campaign.active:
                     status_text  = _("gui", "inventory", "status", "active")
                     status_class = 'text-xs font-bold text-green-600'
@@ -211,7 +226,7 @@ def _build_campaign_card(manager: 'WebUIManager', campaign: 'DropsCampaign'):
                     status_class = 'text-xs font-bold text-red-600'
                 ui.label(status_text).classes(status_class)
 
-                # Ends / Starts dates (show both like MouseOverLabel alt_text)
+                # Ends / Starts
                 try:
                     ends_local = campaign.ends_at.astimezone().replace(
                         microsecond=0, tzinfo=None
@@ -229,54 +244,64 @@ def _build_campaign_card(manager: 'WebUIManager', campaign: 'DropsCampaign'):
                 except Exception:
                     pass
 
-        # --- Link status ---
-        if campaign.eligible:
-            ui.link(
-                _("gui", "inventory", "status", "linked"),
-                campaign.link_url,
-                new_tab=True,
-            ).classes('text-xs text-green-600')
-        else:
-            ui.link(
-                _("gui", "inventory", "status", "not_linked"),
-                campaign.link_url,
-                new_tab=True,
-            ).classes('text-xs text-red-600')
-
-        # --- Allowed channels ---
-        acl = campaign.allowed_channels
-        if acl:
-            if len(acl) <= 5:
-                acl_text = ", ".join(ch.name for ch in acl)
-            else:
-                acl_text = ", ".join(ch.name for ch in acl[:4])
-                acl_text += ", " + _("gui", "inventory", "and_more").format(
-                    amount=len(acl) - 4
+                # Link status
+                link_text  = (
+                    _("gui", "inventory", "status", "linked")
+                    if campaign.eligible
+                    else _("gui", "inventory", "status", "not_linked")
                 )
-        else:
-            acl_text = _("gui", "inventory", "all_channels")
-        ui.label(
-            f"{_('gui', 'inventory', 'allowed_channels')} {acl_text}"
-        ).classes('text-xs text-gray-500')
+                link_class = 'text-xs ' + ('text-green-600' if campaign.eligible else 'text-red-600')
+                ui.link(link_text, campaign.link_url, new_tab=True).classes(link_class)
 
-        # --- Drops list ---
-        if campaign.drops:
-            ui.separator().classes('my-1')
-            with ui.row().classes('w-full gap-3 flex-wrap'):
+                # Allowed channels
+                acl = campaign.allowed_channels
+                if acl:
+                    if len(acl) <= 5:
+                        acl_text = ", ".join(ch.name for ch in acl)
+                    else:
+                        acl_text = ", ".join(ch.name for ch in acl[:4])
+                        acl_text += ", " + _("gui", "inventory", "and_more").format(
+                            amount=len(acl) - 4
+                        )
+                else:
+                    acl_text = _("gui", "inventory", "all_channels")
+                ui.label(
+                    f"{_('gui', 'inventory', 'allowed_channels')} {acl_text}"
+                ).classes('text-xs text-gray-500 leading-tight')
+
+            # --- Vertical divider ---
+            ui.separator().props('vertical').classes('self-stretch')
+
+            # --- Drops row (each drop is a sub-card to the right) ---
+            with ui.row().classes('items-start gap-2 flex-wrap flex-1'):
                 for drop in campaign.drops:
                     _build_drop_card(manager, drop)
 
 
 def _build_drop_card(manager: 'WebUIManager', drop: 'TimedDrop'):
-    """Build one drop sub-card with benefit names and a live progress label."""
-    with ui.card().classes('p-2 gap-1').props('flat bordered'):
-        # Benefit names (images skipped - web UI)
+    """
+    One drop sub-card:
+      benefit image + name (stacked, one per benefit)
+      progress label below
+    Mirrors gui.py drop_frame layout.
+    """
+    with ui.element('div').classes('flex flex-col items-center gap-1 rounded p-3 shrink-0').style('background-color: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.08);'):
+        # Benefits: name on top, image (80×80) below
         for benefit in drop.benefits:
-            ui.label(benefit.name).classes('text-xs font-medium')
+            with ui.column().classes('items-center gap-0'):
+                ui.label(benefit.name).classes('text-xs text-center font-medium')
+                try:
+                    ui.image(str(benefit.image_url)).style(
+                        'width:80px; height:80px; object-fit:contain;'
+                    )
+                except Exception:
+                    ui.icon('card_giftcard').classes('text-gray-400').style(
+                        'width:80px; height:80px;'
+                    )
 
-        # Progress label - stored in _drop_labels for live updates
+        # Progress label — stored for live updates via update_drop()
         progress_text  = _drop_progress_text(drop)
-        progress_class = 'text-xs whitespace-pre ' + _drop_progress_color(drop)
+        progress_class = 'text-xs text-center whitespace-pre ' + _drop_progress_color(drop)
         label = ui.label(progress_text).classes(progress_class)
         manager._drop_labels[drop.id] = label
 
