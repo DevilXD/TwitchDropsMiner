@@ -32,7 +32,7 @@ def create_inventory_panel(manager: 'WebUIManager'):
     if not NICEGUI_AVAILABLE:
         return
 
-    with ui.column().classes('w-full gap-2 p-2'):
+    with ui.column().classes('w-full gap-2'):
 
         # Filter bar
         with ui.card().props('flat').classes('w-full'):

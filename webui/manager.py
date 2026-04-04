@@ -165,6 +165,7 @@ class WebUIManager:
             # Set page title and apply dark theme
             ui.page_title("Twitch Drops Miner")
             ui.dark_mode(True)
+            ui.query('.nicegui-content').style('padding: 0')
 
             # Store references to self in the outer scope
             manager = self

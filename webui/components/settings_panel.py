@@ -19,7 +19,7 @@ def create_settings_panel(manager: 'WebUIManager'):
     if not NICEGUI_AVAILABLE:
         return
 
-    with ui.row().classes('w-full gap-4 p-4'):
+    with ui.row().classes('w-full gap-2'):
         # Left column - General settings
         with ui.column().classes('w-1/2'):
             with ui.card().props('flat').classes('bg-gray-800 border-gray-700'):

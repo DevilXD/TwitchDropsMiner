@@ -27,7 +27,7 @@ def create_main_panel(manager: 'WebUIManager'):
     if not NICEGUI_AVAILABLE:
         return
 
-    with ui.column().classes('w-full gap-2 p-2'):
+    with ui.column().classes('w-full gap-2'):
 
         # Row 0: Status Bar (full width) - matches StatusBar class
         with ui.card().props('flat').classes('w-full'):
