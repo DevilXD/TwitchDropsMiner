@@ -24,8 +24,8 @@ from .mock_classes import (MockTray, MockStatus, MockProgress, MockOutput, MockC
                           MockInventory, MockLoginForm, MockWebsocketStatus, MockSettings, MockTabs)
 from .handlers import WebUIOutputHandler
 from .components import (create_main_panel, create_settings_panel, create_inventory_panel,
-                        add_priority_game, add_excluded_game, refresh_inventory, update_filter,
-                        clear_drop, display_drop, set_games)
+                        add_priority_game, add_excluded_game, refresh_inventory,
+                        update_filter, clear_drop, display_drop, set_games)
 
 if TYPE_CHECKING:
     from twitch import Twitch
@@ -118,8 +118,8 @@ class WebUIManager:
             "excluded":   False,
             "finished":   False,
         }
-        self._inventory_campaigns: dict = {}   # campaign.id -> DropsCampaign
-        self._drop_labels: dict = {}            # drop.id     -> ui.label
+        self._inventory_campaigns: dict = {}        # campaign.id -> DropsCampaign
+        self._campaign_html_elements: dict = {}     # campaign.id -> ui.html element
         self._inventory_dirty: bool = False
 
         # Setup the UI page

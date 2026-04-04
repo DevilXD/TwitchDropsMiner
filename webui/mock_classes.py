@@ -166,7 +166,7 @@ class MockInventory:
     def clear(self):
         """Mirrors InventoryOverview.clear()"""
         self._manager._inventory_campaigns.clear()
-        self._manager._drop_labels.clear()
+        self._manager._campaign_html_elements.clear()
         self._manager._inventory_dirty = True
 
     async def add_campaign(self, campaign) -> None:
@@ -180,16 +180,16 @@ class MockInventory:
 
     def update_drop(self, drop) -> None:
         """
-        Mirrors InventoryOverview.update_drop() - updates the progress label
-        for the given drop if the inventory panel has rendered it.
+        Mirrors InventoryOverview.update_drop() - re-renders the campaign's HTML
+        element so the drop progress text updates live.
         """
         try:
-            from webui.components.inventory_panel import _drop_progress_text, _drop_progress_color
-            label = self._manager._drop_labels.get(drop.id)
-            if label is None:
+            from webui.components.inventory_panel import _render_campaign_html
+            campaign = drop.campaign
+            elem = self._manager._campaign_html_elements.get(campaign.id)
+            if elem is None:
                 return
-            label.set_text(_drop_progress_text(drop))
-            label.classes(_drop_progress_color(drop), replace=False)
+            elem.content = _render_campaign_html(campaign)
         except Exception as e:
             print(f"update_drop failed: {e}")
 
