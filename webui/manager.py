@@ -157,6 +157,9 @@ class WebUIManager:
 
     def _setup_ui(self):
         """Setup the NiceGUI interface"""
+        import os
+        app.add_static_files('/static', os.path.join(os.path.dirname(__file__), 'static'))
+
         @ui.page('/')
         def index():
             # Set page title and apply dark theme
@@ -167,8 +170,9 @@ class WebUIManager:
             manager = self
 
             with ui.header().classes('bg-gray-900 flex-col items-stretch').style('padding: 0; gap: 0'):
-                with ui.row().classes('w-full items-center q-px-md q-py-sm'):
-                    ui.label("Twitch Drops Miner").classes('text-h3 text-white')
+                with ui.row().classes('w-full items-center q-px-lg q-py-md'):
+                    ui.image('/static/pickaxe.png').classes('w-8 h-8')
+                    ui.label("Twitch Drops Miner").classes('text-h6 text-white')
                     ui.space()
                     manager._status_label = ui.label("Starting...").classes('text-body1 text-white')
                 with ui.tabs().classes('w-full bg-gray-800') as tabs:
