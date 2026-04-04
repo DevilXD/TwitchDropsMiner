@@ -37,7 +37,7 @@ class Stream:
         self.channel: Channel = channel
         self.broadcast_id = int(id)
         self.viewers: int = viewers
-        self.drops_enabled: bool = False
+        self.drops_enabled: bool = not channel._twitch.settings.available_drops_check
         self.game: Game | None = Game(game) if game else None
         self.title: str = title
         self._stream_url: URLType | None = None
@@ -285,12 +285,8 @@ class Channel:
 
         For mobile view, spade_url is available immediately from the page, skipping step #2.
         """
-        SETTINGS_PATTERN: str = (
-            r'src="(https://[\w.]+/config/settings\.[0-9a-f]{32}\.js)"'
-        )
-        SPADE_PATTERN: str = (
-            r'"spade_?url": ?"(https://video-edge-[.\w\-/]+\.ts(?:\?allow_stream=true)?)"'
-        )
+        SETTINGS_PATTERN: str = r'src="(https://[\w.]+/config/settings\.[0-9a-f]{32}\.js)"'
+        SPADE_PATTERN: str = r'"spade_?url": ?"(https://[.\w\-/]+)"'
         async with self._twitch.request("GET", self.url) as response1:
             streamer_html: str = await response1.text(encoding="utf8")
         match = re.search(SPADE_PATTERN, streamer_html, re.I)

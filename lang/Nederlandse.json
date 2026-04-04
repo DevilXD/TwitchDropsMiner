@@ -27,7 +27,7 @@
     "error": {
         "captcha": "De inlogpoging is geweigerd door CAPTCHA.\nProbeer het over minimaal 12 uur opnieuw.",
         "site_down": "Twitch is niet beschikbaar. Probeer het over {seconds} seconden opnieuw...",
-        "no_connection": "Kan geen verbinding maken met Twitch. Probeer het over {seconds} seconden opnieuw..."
+        "no_connection": "Kan geen verbinding maken met Twitch. Probeer het over {seconds} seconden opnieuw... ({url})"
     },
     "gui": {
         "output": "Protocol",

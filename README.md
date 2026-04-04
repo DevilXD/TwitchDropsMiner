@@ -79,11 +79,26 @@ Every several seconds, the application pretends to watch a particular stream by 
 - The size of the Linux app is significantly larger than the Windows app due to the inclusion of the `gtk3` library (and its dependencies), which is required for proper system tray/notifications support.
 - As an alternative to the native Linux app, you can run the Windows app via [Wine](https://www.winehq.org/) instead. It works really well!
 
+### Notes about the macOS build:
+
+- The macOS version is packaged using PyInstaller into a standalone `.app` bundle, distributed as a ZIP archive.
+- Since this application is not signed with a paid Apple Developer Certificate, **macOS Gatekeeper will block it** on the first run (saying it "The application is damaged and can't be opened").
+  - **To fix this**: Either open the Terminal in the folder the app is in (or navigating with `cd path/to/folder`) and enter `xattr -cr Twitch Drops Miner (by DevilXD).app` or just type `xattr -cr ` (make sure to put a space at the end), drag and drop the `Twitch Drops Miner (by DevilXD).app` file into the terminal window (this will auto-fill the path) and enter
+- Persistent files (like `cookies.jar`, `settings.json`, `lock.file` and the `cache` folder) are stored inside the application bundle in `Twitch Drops Miner (by DevilXD).app/Contents/MacOS` (to access them Right-click the application and select `Show Package Contents`)
+
 ### Advanced Usage:
 
 If you'd be interested in running the latest master from source or building your own executable, see the wiki page explaining how to do so: https://github.com/DevilXD/TwitchDropsMiner/wiki/Setting-up-the-environment,-building-and-running
 
 ### Support
+
+If you'd encounter any issues with the miner:
+
+- Please see the [troubleshooting page](https://github.com/DevilXD/TwitchDropsMiner/wiki/Troubleshooting) for some common issues and their explanation.  
+- Please [search the issues page](https://github.com/DevilXD/TwitchDropsMiner/issues?q=sort%3Aupdated-desc%20is%3Aissue) to see if your issue hasn't been reported yet.  
+- If it's not been reported yet, feel free to open a new issue, describing your problem.
+
+If you like the application and found it useful, please consider donating a small amount of money to support me. Thank you!
 
 <div align="center">
 
@@ -149,11 +164,11 @@ placed past the period character at the end.
 
 @guihkx - For the CI script, CI maintenance, and everything related to Linux builds.  
 @kWAYTV - For the implementation of the dark mode theme.  
+@crocchetto - For the macOS port.  
 
 @Bamboozul - For the entirety of the Arabic (العربية) translation.  
 @Suz1e - For the entirety of the Chinese (简体中文) translation and revisions.  
-@wwj010 - For the Chinese (简体中文) translation corrections and revisions.  
-@zhangminghao1989 - For the Chinese (简体中文) translation corrections and revisions.  
+@wwj010, @zhangminghao1989, @Self4215 - For the Chinese (简体中文) translation corrections and revisions.  
 @Ricky103403 - For the entirety of the Traditional Chinese (繁體中文) translation.  
 @LusTerCsI - For the Traditional Chinese (繁體中文) translation corrections and revisions.  
 @nwvh - For the entirety of the Czech (Čeština) translation.  
@@ -164,11 +179,15 @@ placed past the period character at the end.
 @Eriza-Z - For the entirety of the Indonesian translation.  
 @casungo - For the entirety of the Italian (Italiano) translation.  
 @ShimadaNanaki - For the entirety of the Japanese (日本語) translation.  
+@biroman -  For the entirety of the Norwegian (Norsk) translation.  
 @Patriot99 - For the Polish (Polski) translation and revisions (co-authored with @DevilXD).  
 @zarigata - For the entirety of the Portuguese (Português) translation.  
 @Sergo1217 - For the entirety of the Russian (Русский) translation.  
-@kilroy98 - For the Russian (Русский) translation corrections and revisions.  
+@kilroy98, @flamesv - For the Russian (Русский) translation corrections and revisions.  
 @Shofuu - For the entirety of the Spanish (Español) translation and revisions.  
+@Forero-0 = For the Spanish (Español) translation revisions.  
 @alikdb - For the entirety of the Turkish (Türkçe) translation.  
+@DogancanYr - For the Turkish (Türkçe) translation revisions.  
+@Elderly-Emre - For the Turkish (Türkçe) translation revisions.  
 @Nollasko - For the entirety of the Ukrainian (Українська) translation and revisions.  
 @kilroy98 - For the Ukrainian (Українська) translation corrections and revisions.  

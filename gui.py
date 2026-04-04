@@ -3,9 +3,11 @@ from __future__ import annotations
 import os
 import re
 import sys
+import shlex
 import ctypes
 import asyncio
 import logging
+import plistlib
 import tkinter as tk
 from pathlib import Path
 from collections import abc
@@ -28,11 +30,15 @@ if sys.platform == "win32":
     import win32con
     import win32gui
 
+if sys.platform == "darwin":
+    import AppKit
+
 from translate import _
 from cache import ImageCache
 from exceptions import MinerException, ExitRequest
 from utils import resource_path, set_root_icon, webopen, Game, _T
 from constants import (
+    MAX_INT,
     SELF_PATH,
     IS_PACKAGED,
     SCRIPTS_PATH,
@@ -404,7 +410,10 @@ class SelectCombobox(ttk.Combobox):
         **kwargs,
     ) -> None:
         if width is None:
-            width = max(len(v) for v in values)
+            font = Font(master, ttk.Style().lookup("TCombobox", "font"))
+            # font.measure returns width in pixels, using '0' as the average character,
+            # which is 6 pixels wide. We can convert it to width in characters by dividing.
+            width = max(font.measure(v) // 6 + 1 for v in values)
         width += width_offset
         super().__init__(
             master,
@@ -1099,8 +1108,11 @@ class TrayIcon:
             "maint": Image_module.open(resource_path("icons/maint.ico")),
         }
         self._icon_state: str = "pickaxe"
-        #self._button = ttk.Button(master, command=self.minimize, text=_("gui", "tray", "minimize"))
-        #self._button.grid(column=0, row=0, sticky="ne")
+        # self._button = ttk.Button(master, command=self.minimize, text=_("gui", "tray", "minimize"))
+
+        # Hides Tray button for macOS
+        # if sys.platform != "darwin":
+        #     self._button.grid(column=0, row=0, sticky="ne")
 
     def __del__(self) -> None:
         self.stop()
@@ -1166,6 +1178,8 @@ class TrayIcon:
         self._manager.close()
 
     def minimize(self):
+        if sys.platform == "darwin":
+            return
         if self.icon is None:
             self._start()
         else:
@@ -1567,6 +1581,8 @@ class _SettingsVars(TypedDict):
     language: StringVar
     priority_mode: StringVar
     tray_notifications: IntVar
+    enable_badges_emotes: IntVar
+    available_drops_check: IntVar
 
 
 class SettingsPanel:
@@ -1600,6 +1616,12 @@ class SettingsPanel:
             "dark_mode": IntVar(master, int(self._settings.dark_mode)),
             "priority_mode": StringVar(master, self.PRIORITY_MODES[priority_mode]),
             "tray_notifications": IntVar(master, self._settings.tray_notifications),
+            "enable_badges_emotes": IntVar(
+                master, int(self._settings.enable_badges_emotes)
+            ),
+            "available_drops_check": IntVar(
+                master, int(self._settings.available_drops_check)
+            ),
         }
         self._game_names: set[str] = set()
         master.rowconfigure(0, weight=1)
@@ -1607,6 +1629,7 @@ class SettingsPanel:
         # use a frame to center the content within the tab
         center_frame = ttk.Frame(master)
         center_frame.grid(column=0, row=0)
+
         # General section
         general_frame = ttk.LabelFrame(
             center_frame, padding=(4, 0, 4, 4), text=_("gui", "settings", "general", "name")
@@ -1616,11 +1639,11 @@ class SettingsPanel:
         # NOTE: this can be adjusted or removed later on if more options were to be added
         general_frame.rowconfigure(0, weight=1)
         general_frame.columnconfigure(0, weight=1)
-        center_frame2 = ttk.Frame(general_frame)
-        center_frame2.grid(column=0, row=0)
+        general_center = ttk.Frame(general_frame)
+        general_center.grid(column=0, row=0)
 
         # language frame
-        language_frame = ttk.Frame(center_frame2)
+        language_frame = ttk.Frame(general_center)
         language_frame.grid(column=0, row=0)
         ttk.Label(language_frame, text="Language 🌐 (requires restart): ").grid(column=0, row=0)
         SelectCombobox(
@@ -1631,7 +1654,7 @@ class SettingsPanel:
         ).grid(column=1, row=0)
 
         # checkboxes frame
-        checkboxes_frame = ttk.Frame(center_frame2)
+        checkboxes_frame = ttk.Frame(general_center)
         checkboxes_frame.grid(column=0, row=1)
         # ttk.Label(
         #     checkboxes_frame, text=_("gui", "settings", "general", "autostart")
@@ -1639,20 +1662,25 @@ class SettingsPanel:
         # ttk.Checkbutton(
         #     checkboxes_frame, variable=self._vars["autostart"], command=self.update_autostart
         # ).grid(column=1, row=irow, sticky="w")
-        # ttk.Label(
-        #     checkboxes_frame, text=_("gui", "settings", "general", "tray")
-        # ).grid(column=0, row=(irow := irow + 1), sticky="e")
-        # ttk.Checkbutton(
-        #     checkboxes_frame, variable=self._vars["tray"], command=self.update_autostart
-        # ).grid(column=1, row=irow, sticky="w")
-        # ttk.Label(
-        #     checkboxes_frame, text=_("gui", "settings", "general", "tray_notifications")
-        # ).grid(column=0, row=(irow := irow + 1), sticky="e")
-        # ttk.Checkbutton(
-        #     checkboxes_frame,
-        #     variable=self._vars["tray_notifications"],
-        #     command=self.update_notifications,
-        # ).grid(column=1, row=irow, sticky="w")
+        # if sys.platform != "darwin":
+        #     ttk.Label(
+        #         checkboxes_frame, text=_("gui", "settings", "general", "tray")
+        #     ).grid(column=0, row=(irow := irow + 1), sticky="e")
+        #     ttk.Checkbutton(
+        #         checkboxes_frame, variable=self._vars["tray"], command=self.update_autostart
+        #     ).grid(column=1, row=irow, sticky="w")
+        #     ttk.Label(
+        #         checkboxes_frame, text=_("gui", "settings", "general", "tray_notifications")
+        #     ).grid(column=0, row=(irow := irow + 1), sticky="e")
+        #     ttk.Checkbutton(
+        #         checkboxes_frame,
+        #         variable=self._vars["tray_notifications"],
+        #         command=lambda: setattr(
+        #             self._settings,
+        #             "tray_notifications",
+        #             bool(self._vars["tray_notifications"].get()),
+        #         ),
+        #     ).grid(column=1, row=irow, sticky="w")
         ttk.Label(
             checkboxes_frame, text=_("gui", "settings", "general", "dark_mode")
         ).grid(column=0, row=(irow := 0), sticky="e")
@@ -1672,7 +1700,7 @@ class SettingsPanel:
         ).grid(column=1, row=irow, sticky="w")
 
         # proxy frame
-        proxy_frame = ttk.Frame(center_frame2)
+        proxy_frame = ttk.Frame(general_center)
         proxy_frame.grid(column=0, row=2)
         ttk.Label(proxy_frame, text=_("gui", "settings", "general", "proxy")).grid(column=0, row=0)
         self._proxy = PlaceholderEntry(
@@ -1685,11 +1713,57 @@ class SettingsPanel:
         )
         self._proxy.config(validatecommand=partial(proxy_validate, self._proxy, self._settings))
         self._proxy.grid(column=0, row=1)
+
+        # Advanced section
+        advanced_frame = ttk.LabelFrame(
+            center_frame, padding=(4, 0, 4, 4), text=_("gui", "settings", "advanced", "name")
+        )
+        advanced_frame.grid(column=0, row=1, sticky="nsew")
+        advanced_frame.columnconfigure(0, weight=1)
+        advanced_frame.rowconfigure(0, weight=1)
+        advanced_center = ttk.Frame(advanced_frame)
+        advanced_center.grid(column=0, row=0)
+
+        # Warning message
+        ttk.Label(
+            advanced_center, text=_("gui", "settings", "advanced", "warning"), foreground="red"
+        ).grid(column=0, row=(irow := 0), columnspan=2)
+        ttk.Label(
+            advanced_center,
+            text=_("gui", "settings", "advanced", "warning_text"),
+            foreground="goldenrod",
+        ).grid(column=0, row=(irow := irow + 1), columnspan=2)
+        # Toggles for badges and emotes, and available drops check
+        ttk.Label(
+            advanced_center, text=_("gui", "settings", "advanced", "enable_badges_emotes")
+        ).grid(column=0, row=(irow := irow + 1), sticky="e")
+        ttk.Checkbutton(
+            advanced_center,
+            variable=self._vars["enable_badges_emotes"],
+            command=lambda: setattr(
+                self._settings,
+                "enable_badges_emotes",
+                bool(self._vars["enable_badges_emotes"].get()),
+            ),
+        ).grid(column=1, row=irow, sticky="w")
+        ttk.Label(
+            advanced_center, text=_("gui", "settings", "advanced", "available_drops_check")
+        ).grid(column=0, row=(irow := irow + 1), sticky="e")
+        ttk.Checkbutton(
+            advanced_center,
+            variable=self._vars["available_drops_check"],
+            command=lambda: setattr(
+                self._settings,
+                "available_drops_check",
+                bool(self._vars["available_drops_check"].get()),
+            ),
+        ).grid(column=1, row=irow, sticky="w")
+
         # Priority section
         priority_frame = ttk.LabelFrame(
             center_frame, padding=(4, 0, 4, 4), text=_("gui", "settings", "priority")
         )
-        priority_frame.grid(column=1, row=0, sticky="nsew")
+        priority_frame.grid(column=1, row=0, rowspan=2, sticky="nsew")
         self._priority_entry = PlaceholderCombobox(
             priority_frame, placeholder=_("gui", "settings", "game_name"), width=30
         )
@@ -1697,43 +1771,61 @@ class SettingsPanel:
         priority_frame.columnconfigure(0, weight=1)
         ttk.Button(
             priority_frame, text="➕", command=self.priority_add, width=3, style="Large.TButton"
-        ).grid(column=1, row=0)
+        ).grid(column=1, row=0, sticky="nsew")
         self._priority_list = PaddedListbox(
             priority_frame,
-            height=10,
+            height=12,
             padding=(1, 0),
             activestyle="none",
             selectmode="single",
             highlightthickness=0,
             exportselection=False,
         )
-        self._priority_list.grid(column=0, row=1, rowspan=3, sticky="nsew")
+        self._priority_list.grid(column=0, row=1, rowspan=5, sticky="nsew")
         self._priority_list.insert("end", *self._settings.priority)
-        ttk.Button(
+        weight_scale: int = 5
+        ttk.Button(  # Move to top
             priority_frame,
             width=2,
-            text="▲",
-            style="Large.TButton",
-            command=partial(self.priority_move, True),
+            text="⇈",
+            style="Arrow.TButton",
+            command=partial(self.priority_move, MAX_INT),
         ).grid(column=1, row=1, sticky="nsew")
         priority_frame.rowconfigure(1, weight=1)
-        ttk.Button(
+        ttk.Button(  # Move up
             priority_frame,
             width=2,
-            text="▼",
-            style="Large.TButton",
-            command=partial(self.priority_move, False),
+            text="↑",
+            style="Arrow.TButton",
+            command=partial(self.priority_move, 1),
         ).grid(column=1, row=2, sticky="nsew")
-        priority_frame.rowconfigure(2, weight=1)
+        priority_frame.rowconfigure(2, weight=weight_scale)
+        ttk.Button(  # Move down
+            priority_frame,
+            width=2,
+            text="↓",
+            style="Arrow.TButton",
+            command=partial(self.priority_move, -1),
+        ).grid(column=1, row=3, sticky="nsew")
+        priority_frame.rowconfigure(3, weight=weight_scale)
+        ttk.Button(  # Move to bottom
+            priority_frame,
+            width=2,
+            text="⇊",
+            style="Arrow.TButton",
+            command=partial(self.priority_move, -MAX_INT),
+        ).grid(column=1, row=4, sticky="nsew")
+        priority_frame.rowconfigure(4, weight=1)
         ttk.Button(
             priority_frame, text="❌", command=self.priority_delete, width=3, style="Large.TButton"
-        ).grid(column=1, row=3, sticky="ns")
-        priority_frame.rowconfigure(3, weight=1)
+        ).grid(column=1, row=5, sticky="nsew")
+        priority_frame.rowconfigure(5, weight=1)
+
         # Exclude section
         exclude_frame = ttk.LabelFrame(
             center_frame, padding=(4, 0, 4, 4), text=_("gui", "settings", "exclude")
         )
-        exclude_frame.grid(column=2, row=0, sticky="nsew")
+        exclude_frame.grid(column=2, row=0, rowspan=2, sticky="nsew")
         self._exclude_entry = PlaceholderCombobox(
             exclude_frame, placeholder=_("gui", "settings", "game_name"), width=26
         )
@@ -1743,7 +1835,7 @@ class SettingsPanel:
         ).grid(column=1, row=0)
         self._exclude_list = PaddedListbox(
             exclude_frame,
-            height=10,
+            height=12,
             padding=(1, 0),
             activestyle="none",
             selectmode="single",
@@ -1756,10 +1848,11 @@ class SettingsPanel:
         self._exclude_list.insert("end", *sorted(self._settings.exclude))
         ttk.Button(
             exclude_frame, text="❌", command=self.exclude_delete, width=3, style="Large.TButton"
-        ).grid(column=0, row=2, columnspan=2, sticky="ew")
+        ).grid(column=0, row=2, columnspan=2, sticky="nsew")
+
         # Reload button
         reload_frame = ttk.Frame(center_frame)
-        reload_frame.grid(column=0, row=1, columnspan=3, pady=4)
+        reload_frame.grid(column=0, row=2, columnspan=3, pady=4)
         ttk.Label(reload_frame, text=_("gui", "settings", "reload_text")).grid(column=0, row=0)
         ttk.Button(
             reload_frame,
@@ -1775,11 +1868,7 @@ class SettingsPanel:
 
     def update_dark_mode(self) -> None:
         self._settings.dark_mode = bool(self._vars["dark_mode"].get())
-        self._settings.alter()
         self._manager.apply_theme(self._settings.dark_mode)
-
-    def update_notifications(self) -> None:
-        self._settings.tray_notifications = bool(self._vars["tray_notifications"].get())
 
     def _get_self_path(self) -> str:
         # NOTE: we need double quotes in case the path contains spaces
@@ -1808,6 +1897,11 @@ class SettingsPanel:
                 autostart_folder = config_autostart
         return autostart_folder / f"{self.AUTOSTART_NAME}.desktop"
 
+    def _get_mac_autostart_filepath(self) -> Path:
+        return Path(
+            Path.home(), f"Library/LaunchAgents/com.devilxd.{self.AUTOSTART_NAME.lower()}.plist"
+        )
+
     def _query_autostart(self) -> bool:
         if sys.platform == "win32":
             with RegistryKey(self.AUTOSTART_KEY, read_only=True) as key:
@@ -1826,7 +1920,13 @@ class SettingsPanel:
                 return False
             with autostart_file.open('r', encoding="utf8") as file:
                 # TODO: Consider deleting the old file to avoid autostart errors
-                return self._get_self_path() not in file.read()
+                return self._get_self_path() in file.read()
+        elif sys.platform == "darwin":
+            plist_file = self._get_mac_autostart_filepath()
+            if not plist_file.exists():
+                return False
+            with plist_file.open('r', encoding="utf8") as file:
+                return str(SELF_PATH.resolve()) in file.read()
 
     def update_autostart(self) -> None:
         enabled = bool(self._vars["autostart"].get())
@@ -1858,6 +1958,21 @@ class SettingsPanel:
                     file.write(file_contents)
             else:
                 autostart_file.unlink(missing_ok=True)
+        elif sys.platform == "darwin":
+            plist_file = self._get_mac_autostart_filepath()
+
+            if enabled:
+                command_parts = shlex.split(self._get_autostart_path())
+                plist_data = {
+                    "Label": f"com.devilxd.{self.AUTOSTART_NAME.lower()}",
+                    "ProgramArguments": command_parts,
+                    "RunAtLoad": True,
+                }
+                plist_file.parent.mkdir(parents=True, exist_ok=True)
+                with plist_file.open("wb") as file:
+                    plistlib.dump(plist_data, file)
+            else:
+                plist_file.unlink(missing_ok=True)
 
     def update_excluded_choices(self) -> None:
         self._exclude_entry.config(
@@ -1901,21 +2016,32 @@ class SettingsPanel:
             return None
         return selection[0]
 
-    def priority_move(self, up: bool) -> None:
+    def priority_move(self, amount: int) -> None:
+        # amount > 0 = up, amount < 0 = down
         idx: int | None = self._priority_idx()
-        if idx is None:
+        max_idx: int = self._priority_list.size() - 1
+        if (
+            idx is None
+            or amount == 0
+            or amount > 0 and idx == 0
+            or amount < 0 and idx == max_idx
+        ):
             return
-        if up and idx == 0 or not up and idx == self._priority_list.size() - 1:
-            return
-        swap_idx: int = idx - 1 if up else idx + 1
+        insert_idx: int = idx - amount
+        if insert_idx <= 0:
+            insert_idx = 0
+        elif insert_idx >= max_idx:
+            insert_idx = max_idx
+
         item: str = self._priority_list.get(idx)
         self._priority_list.delete(idx)
-        self._priority_list.insert(swap_idx, item)
+        self._priority_list.insert(insert_idx, item)
         # reselect the item and scroll the list if needed
-        self._priority_list.selection_set(swap_idx)
-        self._priority_list.see(swap_idx)
-        p = self._settings.priority
-        p[idx], p[swap_idx] = p[swap_idx], p[idx]
+        self._priority_list.selection_set(insert_idx)
+        self._priority_list.see(insert_idx)
+        # update the underlying settings list too
+        self._settings.priority.pop(idx)
+        self._settings.priority.insert(insert_idx, item)
         self._settings.alter()
 
     def priority_delete(self) -> None:
@@ -2106,23 +2232,8 @@ class GUIManager:
         style.configure("green.TLabel", foreground="green")
         style.configure("yellow.TLabel", foreground="goldenrod")
         style.configure("red.TLabel", foreground="red")
-        # fonts
-        default_font = nametofont("TkDefaultFont")
-        self._fonts: dict[str, Font] = {
-            "default": default_font,
-            "large": default_font.copy(),
-            "monospaced": default_font.copy(),
-            "underlined": default_font.copy(),
-        }
-        self._fonts["large"].config(size=10)
-        self._fonts["underlined"].config(underline=True)
-        self._fonts["monospaced"].config(family="Courier New", size=10)
-        # label style with a monospace font
-        style.configure("MS.TLabel", font=self._fonts["monospaced"])
-        # button style with a larger font
-        style.configure("Large.TButton", font=self._fonts["large"])
-        # label style that mimics links
-        style.configure("Link.TLabel", font=self._fonts["underlined"], foreground="blue")
+        # fonts storage
+        self._fonts: dict[str, Font] = {}
         # end of style changes
 
         root_frame = ttk.Frame(root, padding=8)
@@ -2195,7 +2306,7 @@ class GUIManager:
             self._orig_theme_name = ''
         self.apply_theme(self._twitch.settings.dark_mode)
         # stay hidden in tray if needed, otherwise show the window when everything's ready
-        if self._twitch.settings.tray:
+        if self._twitch.settings.tray and sys.platform != "darwin":
             # NOTE: this starts the tray icon thread
             self._root.after_idle(self.tray.minimize)
         else:
@@ -2338,6 +2449,28 @@ class GUIManager:
         # print to our custom output
         self.output.print(message)
 
+    def _set_title_bar_color(self, color: int) -> None:
+        """
+        Set the Windows title bar color to match the theme.
+        Only works on Windows with DWM enabled.
+
+        Args:
+            color: ARGB color value (e.g., 0x001E1E1E for dark gray).
+        """
+        if sys.platform != "win32":
+            return
+        # DWMWA_CAPTION_COLOR = 35
+        DWMWA_CAPTION_COLOR = 35
+        hwnd = self._root.winfo_id()
+        frame_hwnd = ctypes.windll.user32.GetParent(hwnd)
+        color_value = ctypes.c_int(color)
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            frame_hwnd,
+            DWMWA_CAPTION_COLOR,
+            ctypes.byref(color_value),
+            ctypes.sizeof(ctypes.c_int),
+        )
+
     def apply_theme(self, dark: bool) -> None:
         """
         Apply dark/light palette to ttk styles and Tk widgets in a minimal, non-invasive way.
@@ -2345,7 +2478,7 @@ class GUIManager:
         # Palette
         if dark:
             # Switch to a configurable ttk theme for better color control
-            if self._style.theme_use() != "clam":
+            if sys.platform != "darwin" and self._style.theme_use() != "clam":
                 self._style.theme_use("clam")
             bg = "#1e1e1e"
             fg = "#e6e6e6"
@@ -2375,20 +2508,44 @@ class GUIManager:
             muted = "#404040"
             accent = "#0a84ff"
 
+        # Setting theme for macOS
+        if sys.platform == "darwin":
+            app = AppKit.NSApplication.sharedApplication()
+            if dark:
+                appearance = AppKit.NSAppearance.appearanceNamed_(AppKit.NSAppearanceNameDarkAqua)
+            else:
+                appearance = AppKit.NSAppearance.appearanceNamed_(AppKit.NSAppearanceNameAqua)
+            app.setAppearance_(appearance)
+
         s = self._style
+        # Fonts
+        default_font = nametofont("TkDefaultFont")
+        self._fonts["default"] = default_font
+        # Font - button style with a larger font
+        self._fonts["large"] = default_font.copy()
+        self._fonts["large"].config(size=10)
+        s.configure("Large.TButton", font=self._fonts["large"])
+        # Font - button style for sorting arrows
+        self._fonts["arrow"] = default_font.copy()
+        self._fonts["arrow"].config(size=16)
+        s.configure("Arrow.TButton", font=self._fonts["arrow"])
+        s.configure("Arrow.TButton", padding=-4)  # reduce padding on arrow buttons
+        # Font - label style that mimics links
+        self._fonts["underlined"] = default_font.copy()
+        self._fonts["underlined"].config(underline=True)
+        s.configure("Link.TLabel", font=self._fonts["underlined"], foreground=link)
+        # Font - label style with a monospace font
+        self._fonts["monospaced"] = default_font.copy()
+        self._fonts["monospaced"].config(family="Courier New", size=10)
+        s.configure("MS.TLabel", font=self._fonts["monospaced"])
+
         # Base containers and labels
         s.configure("TFrame", background=bg, foreground=fg)
         s.configure("TLabel", background=bg, foreground=fg)
         s.configure("TLabelframe", background=bg, foreground=fg)
         s.configure("TLabelframe.Label", background=bg, foreground=fg)
-        s.configure("MS.TLabel", background=bg, foreground=fg)
-        s.configure("green.TLabel", background=bg)
-        s.configure("yellow.TLabel", background=bg)
-        s.configure("red.TLabel", background=bg)
-        s.configure("Link.TLabel", font=self._fonts["underlined"], background=bg, foreground=link)
         # Buttons and checks
         s.configure("TButton", background=surface, foreground=fg, bordercolor=border)
-        s.configure("Large.TButton", background=surface, foreground=fg, bordercolor=border)
         s.map(
             "TButton",
             background=[("active", header), ("pressed", border)],
@@ -2510,6 +2667,14 @@ class GUIManager:
             "*Listbox.selectForeground",
         ):
             self._root.option_add(key, sel_fg)
+
+        # Set Windows title bar color to match dark theme
+        if dark:
+            # Use dark gray color 0x001E1E1E (ARGB format, matches bg color #1e1e1e)
+            self._set_title_bar_color(0x001E1E1E)
+        else:
+            # Reset to system default title bar color
+            self._set_title_bar_color(0xFFFFFFFF)
 
 
 ###################
@@ -2643,6 +2808,8 @@ if __name__ == "__main__":
                 autostart_tray=False,
                 exclude={"Lit Game"},
                 tray_notifications=True,
+                enable_badges_emotes=False,
+                available_drops_check=False,
                 logging_level=LOGGING_LEVELS[0],
                 priority_mode=PriorityMode.PRIORITY_ONLY,
             )

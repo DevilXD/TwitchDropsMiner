@@ -395,7 +395,9 @@ class DropsCampaign:
 
     @property
     def eligible(self) -> bool:
-        return self.linked or self.has_badge_or_emote
+        if self.has_badge_or_emote:
+            return self._twitch.settings.enable_badges_emotes
+        return self.linked
 
     @cached_property
     def has_badge_or_emote(self) -> bool:
@@ -455,12 +457,12 @@ class DropsCampaign:
                 channel is None or (  # channel isn't specified,
                     # or there's no ACL, or the channel is in the ACL
                     (not self.allowed_channels or channel in self.allowed_channels)
-                    # and the channel is live and playing the campaign's game
+                    # and the channel is live and playing the campaign's game,
+                    # or this campaign can be earned anywhere (special game)
                     and (
                         ignore_channel_status
-                        or channel.game is not None
-                        and channel.game == self.game
-                        or self.has_badge_or_emote
+                        or channel.game is not None and channel.game == self.game
+                        or self.game.is_special_events()
                     )
                 )
             )
