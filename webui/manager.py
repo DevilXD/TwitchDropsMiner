@@ -50,35 +50,61 @@ class WebUIManager:
         # Create mock objects for compatibility
         self.tray = MockTray()
         self.status = MockStatus(self)
-        self.progress = MockProgress()
+        self.progress = MockProgress(self)
         self.output = MockOutput(self)
-        self.channels = MockChannels()
+        self.channels = MockChannels(self)
         self.inv = MockInventory(self)
         self.login = MockLoginForm(self)
-        self.websockets = MockWebsocketStatus()
+        self.websockets = MockWebsocketStatus(self)
         self.settings = MockSettings(self)
         self.tabs = MockTabs()
 
-        # Initialize UI components as None - they'll be created when the UI starts
+        # Initialize UI components as None - created when each client connects
         self._status_label = None
         self._status_card = None
-        self._progress_bar = None
-        self._progress_label = None
         self._console = None
-        self._channels_list = None
-        self._drops_list = None
-        self._dark_mode_enabled = True  # Track dark mode state
+        self._dark_mode_enabled = True
 
-        # Additional UI components
-        self._campaign_name_label = None
-        self._game_name_label = None
-        self._time_remaining_label = None
-        self._ws_status_label = None
-        self._ws_topics_label = None
+        # Main panel UI elements
+        self._ws_container = None
         self._login_status_label = None
+        self._campaign_game_label = None
+        self._campaign_name_label = None
+        self._campaign_progress_bar = None
+        self._campaign_percentage_label = None
+        self._campaign_remaining_label = None
+        self._drop_rewards_label = None
+        self._drop_progress_bar = None
+        self._drop_percentage_label = None
+        self._drop_remaining_label = None
+        self._channels_table = None
+        self._channel_switch_btn = None
+
+        # Settings/inventory UI elements
         self._priority_list = None
         self._exclude_list = None
         self._filter_checkboxes = None
+        self._inventory_container = None
+
+        # WebSocket state (shared with MockWebsocketStatus)
+        self._ws_data: dict = {}        # idx -> {status, topics}
+        self._ws_dirty: bool = False
+
+        # Login state
+        self._login_status_text: str = (
+            f"{_('gui', 'login', 'logged_out')}\n-"
+        )
+        self._login_dirty: bool = False
+
+        # Channel list state (shared with MockChannels)
+        self._channel_map: dict = {}    # iid -> Channel
+        self._watching_channel_iid = None
+        self._channels_dirty: bool = False
+
+        # Drop/progress state
+        self._current_drop = None
+        self._countdown_active: bool = False
+        self._progress_seconds: int = 0
 
         # Inventory tracking
         self._inventory_filters = {
@@ -90,7 +116,6 @@ class WebUIManager:
             "finished": False,
         }
         self._campaigns = {}
-        self._inventory_container = None
 
         # Setup the UI page
         self._setup_ui()
