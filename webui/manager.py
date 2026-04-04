@@ -221,9 +221,9 @@ class WebUIManager:
                     ui.space()
                     manager._status_label = ui.label("Starting...").classes('text-body1 text-white')
                 with ui.tabs().classes('w-full bg-gray-800') as tabs:
-                    main_tab = ui.tab("Main", icon="home").classes('text-white')
-                    inventory_tab = ui.tab("Inventory", icon="inventory").classes('text-white')
-                    settings_tab = ui.tab("Settings", icon="settings").classes('text-white')
+                    main_tab = ui.tab("Main", icon="home")
+                    inventory_tab = ui.tab("Inventory", icon="inventory")
+                    settings_tab = ui.tab("Settings", icon="settings")
 
             with ui.tab_panels(tabs, value=main_tab).classes('w-full h-full bg-gray-900'):
                 # Main tab content - matching original GUI layout
@@ -251,7 +251,6 @@ class WebUIManager:
 
         # Update the CSS dynamically
         if enabled:
-            # Apply dark mode styles
             ui.add_head_html('''
                 <style id="dark-mode-styles">
                     body, html { background-color: #1f2937 !important; color: #ffffff !important; }
@@ -266,7 +265,6 @@ class WebUIManager:
                 </style>
             ''')
         else:
-            # Apply light mode styles
             ui.add_head_html('''
                 <style id="light-mode-styles">
                     body, html { background-color: #ffffff !important; color: #000000 !important; }
