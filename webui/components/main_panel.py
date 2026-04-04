@@ -62,11 +62,11 @@ def create_main_panel(manager: 'WebUIManager'):
                             ).classes('text-xs whitespace-pre leading-relaxed')
 
                 # Campaign Progress card - matches CampaignProgress class
-                with ui.card().props('flat').classes('w-full'):
+                with ui.card().props('flat').classes('w-full gap-1'):
                     ui.label(_("gui", "progress", "name")).classes('font-bold text-sm mb-2')
 
                     # Game and Campaign name row
-                    with ui.grid(columns=2).classes('w-full text-xs mb-1'):
+                    with ui.grid(columns=2).classes('w-full text-xs gap-1'):
                         ui.label(_("gui", "progress", "game")).classes('font-bold')
                         ui.label(_("gui", "progress", "campaign")).classes('font-bold')
                         manager._campaign_game_label = ui.label("...")
@@ -74,12 +74,12 @@ def create_main_panel(manager: 'WebUIManager'):
 
                     # Campaign progress section
                     ui.label(_("gui", "progress", "campaign_progress")).classes(
-                        'text-xs font-bold mt-1'
+                        'text-xs font-bold'
                     )
                     with ui.row().classes('w-full gap-2 items-center text-xs'):
                         manager._campaign_percentage_label = ui.label("-%").classes('w-24')
                         manager._campaign_remaining_label = ui.label("").classes('flex-1')
-                    manager._campaign_progress_bar = ui.linear_progress(value=0).classes('w-full')
+                    manager._campaign_progress_bar = ui.linear_progress(value=0, show_value=False).classes('w-full h-4')
 
                     ui.separator().classes('my-1')
 
@@ -87,12 +87,12 @@ def create_main_panel(manager: 'WebUIManager'):
                     ui.label(_("gui", "progress", "drop")).classes('text-xs font-bold')
                     manager._drop_rewards_label = ui.label("...").classes('text-xs')
                     ui.label(_("gui", "progress", "drop_progress")).classes(
-                        'text-xs font-bold mt-1'
+                        'text-xs font-bold'
                     )
                     with ui.row().classes('w-full gap-2 items-center text-xs'):
                         manager._drop_percentage_label = ui.label("-%").classes('w-24')
                         manager._drop_remaining_label = ui.label("").classes('flex-1')
-                    manager._drop_progress_bar = ui.linear_progress(value=0).classes('w-full')
+                    manager._drop_progress_bar = ui.linear_progress(value=0, show_value=False).classes('w-full h-4')
 
             # Right side: Channel List - matches ChannelList class (spans full height)
             with ui.card().props('flat id=tdm-channels-card').classes('flex-col').style('flex: 1; min-width: 0; display: flex; overflow: hidden'):
