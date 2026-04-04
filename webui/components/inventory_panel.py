@@ -159,8 +159,7 @@ def _render_drop_html(drop: 'TimedDrop') -> str:
     for benefit in drop.benefits:
         benefits_html += f'''
 <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
-  <div style="font-size:0.75rem;text-align:center;font-weight:500;max-width:90px;
-              overflow-wrap:break-word;">{_e(benefit.name)}</div>
+  <div style="font-size:0.75rem;text-align:center;font-weight:500;white-space:nowrap;">{_e(benefit.name)}</div>
   <img src="{_ea(str(benefit.image_url))}" loading="lazy"
        style="width:80px;height:80px;object-fit:contain;">
 </div>'''
@@ -170,7 +169,9 @@ def _render_drop_html(drop: 'TimedDrop') -> str:
 
     return f'''
 <div id="drop-{_ea(drop.id)}" class="tdm-drop-card">
-  {benefits_html}
+  <div style="display:flex;flex-direction:row;flex-wrap:wrap;justify-content:center;gap:6px;">
+    {benefits_html}
+  </div>
   <div id="drop-progress-{_ea(drop.id)}"
        style="font-size:0.75rem;text-align:center;white-space:pre;
               color:{progress_color};">{_e(progress_text)}</div>
