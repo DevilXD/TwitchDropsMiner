@@ -59,11 +59,10 @@ def create_inventory_panel(manager: 'WebUIManager'):
                     on_click=lambda: refresh_inventory(manager),
                 ).props('dense').classes('text-sm')
 
-        # Scrollable campaign list — each campaign is one ui.html() element
-        with ui.scroll_area().classes('w-full').style('height: calc(100vh - 160px)'):
-            manager._inventory_container = ui.column().classes('w-full gap-3')
-            with manager._inventory_container:
-                ui.label("Loading inventory...").classes('text-sm text-gray-500')
+        # Campaign list — uses browser scroll, no inner scroll area
+        manager._inventory_container = ui.column().classes('w-full gap-3')
+        with manager._inventory_container:
+            ui.label("Loading inventory...").classes('text-sm text-gray-500')
 
     ui.timer(2.0, lambda: _check_inventory_dirty(manager))
 
