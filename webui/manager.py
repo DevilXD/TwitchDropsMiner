@@ -88,6 +88,8 @@ class WebUIManager:
         # Settings/inventory UI elements
         self._priority_list = None
         self._exclude_list = None
+        self._priority_input = None
+        self._exclude_input = None
         self._filter_checkboxes = None
         self._inventory_container = None
         self._priority_selected: int | None = None

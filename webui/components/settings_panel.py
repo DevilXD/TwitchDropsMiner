@@ -114,6 +114,7 @@ def create_settings_panel(manager: 'WebUIManager'):
                     label=_("gui", "settings", "game_name"),
                     new_value_mode='add-unique',
                 ).classes('flex-1 text-xs').props('dense use-input hide-selected')
+                manager._priority_input = priority_input
                 ui.button('➕', on_click=lambda: _priority_add(manager, priority_input)).props('dense flat')
 
             # List with move buttons
@@ -142,6 +143,7 @@ def create_settings_panel(manager: 'WebUIManager'):
                     label=_("gui", "settings", "game_name"),
                     new_value_mode='add-unique',
                 ).classes('flex-1 text-xs').props('dense use-input hide-selected')
+                manager._exclude_input = exclude_input
                 ui.button('➕', on_click=lambda: _exclude_add(manager, exclude_input)).props('dense flat')
 
             # List + delete
@@ -182,6 +184,16 @@ def _get_exclude_options(manager: 'WebUIManager') -> list[str]:
     settings = manager._twitch.settings
     all_games = getattr(manager, '_game_names', set())
     return sorted(all_games - settings.exclude)
+
+
+def _refresh_input_options(manager: 'WebUIManager') -> None:
+    """Refresh the autocomplete options on both game-name inputs."""
+    if manager._priority_input is not None:
+        manager._priority_input.options = _get_priority_options(manager)
+        manager._priority_input.update()
+    if manager._exclude_input is not None:
+        manager._exclude_input.options = _get_exclude_options(manager)
+        manager._exclude_input.update()
 
 
 def _rebuild_priority_list(manager: 'WebUIManager'):
@@ -237,6 +249,7 @@ def _priority_add(manager: 'WebUIManager', input_el):
         settings.save()
     input_el.set_value(None)
     _rebuild_priority_list(manager)
+    _refresh_input_options(manager)
 
 
 def _priority_move(manager: 'WebUIManager', direction: str):
@@ -274,6 +287,7 @@ def _priority_delete(manager: 'WebUIManager'):
         manager._twitch.settings.save()
         manager._priority_selected = None
         _rebuild_priority_list(manager)
+        _refresh_input_options(manager)
 
 
 def _exclude_add(manager: 'WebUIManager', input_el):
@@ -288,6 +302,7 @@ def _exclude_add(manager: 'WebUIManager', input_el):
         settings.save()
     input_el.set_value(None)
     _rebuild_exclude_list(manager)
+    _refresh_input_options(manager)
 
 
 def _exclude_delete(manager: 'WebUIManager'):
@@ -300,6 +315,7 @@ def _exclude_delete(manager: 'WebUIManager'):
     settings.save()
     manager._exclude_selected = None
     _rebuild_exclude_list(manager)
+    _refresh_input_options(manager)
 
 
 def add_priority_game(manager: 'WebUIManager', game_name: str):
@@ -326,5 +342,6 @@ def add_excluded_game(manager: 'WebUIManager', game_name: str):
 
 
 def set_games(manager: 'WebUIManager', games) -> None:
-    """Called when game list is updated — store names for autocomplete."""
+    """Called when game list is updated — store names and refresh autocomplete options."""
     manager._game_names = {game.name for game in games}
+    _refresh_input_options(manager)
