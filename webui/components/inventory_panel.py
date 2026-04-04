@@ -286,7 +286,12 @@ def refresh_inventory_display(manager: 'WebUIManager'):
     manager._campaign_html_elements.clear()
     manager._inventory_container.clear()
 
-    campaigns = list(manager._inventory_campaigns.values())
+    # Sort matches the three stable sorts in twitch.py fetch_inventory:
+    # primary: eligible first, secondary: by date, tertiary: active first
+    campaigns = sorted(
+        manager._inventory_campaigns.values(),
+        key=lambda c: (not c.eligible, c.upcoming and c.starts_at or c.ends_at, not c.active),
+    )
     visible = [c for c in campaigns if _campaign_visible(manager, c)]
 
     with manager._inventory_container:
