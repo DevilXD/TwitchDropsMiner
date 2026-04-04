@@ -40,14 +40,16 @@ def create_settings_panel(manager: 'WebUIManager'):
                 language_select = ui.select(
                     options=list(_.languages),
                     value=_.current,
-                    on_change=lambda e: setattr(settings, 'language', e.value),
+                    on_change=lambda e: _set_and_save(settings, 'language', e.value),
                 ).classes('w-full text-xs').props('dense')
 
                 # Dark mode
                 with ui.row().classes('items-center gap-2 text-xs'):
                     ui.label(_("gui", "settings", "general", "dark_mode")).classes('flex-1')
-                    ui.switch(value=manager._dark_mode_enabled,
-                              on_change=lambda e: manager._toggle_dark_mode(e.value))
+                    ui.switch(
+                        value=manager._dark_mode_enabled,
+                        on_change=lambda e: (_set_and_save(settings, 'dark_mode', e.value), manager._toggle_dark_mode(e.value)),
+                    )
 
                 # Priority mode
                 priority_mode_options = {
@@ -60,7 +62,7 @@ def create_settings_panel(manager: 'WebUIManager'):
                 priority_select = ui.select(
                     options=priority_mode_options,
                     value=settings.priority_mode,
-                    on_change=lambda e: setattr(settings, 'priority_mode', e.value),
+                    on_change=lambda e: _set_and_save(settings, 'priority_mode', e.value),
                 ).classes('w-full text-xs').props('dense')
 
                 # Proxy
@@ -83,14 +85,14 @@ def create_settings_panel(manager: 'WebUIManager'):
                     ui.label(_("gui", "settings", "advanced", "enable_badges_emotes")).classes('flex-1')
                     ui.switch(
                         value=settings.enable_badges_emotes,
-                        on_change=lambda e: setattr(settings, 'enable_badges_emotes', e.value),
+                        on_change=lambda e: _set_and_save(settings, 'enable_badges_emotes', e.value),
                     )
 
                 with ui.row().classes('items-center gap-2 text-xs'):
                     ui.label(_("gui", "settings", "advanced", "available_drops_check")).classes('flex-1')
                     ui.switch(
                         value=settings.available_drops_check,
-                        on_change=lambda e: setattr(settings, 'available_drops_check', e.value),
+                        on_change=lambda e: _set_and_save(settings, 'available_drops_check', e.value),
                     )
 
             # Reload
@@ -123,10 +125,10 @@ def create_settings_panel(manager: 'WebUIManager'):
 
                 # Move buttons
                 with ui.column().classes('gap-1'):
-                    ui.button('⇈', on_click=lambda: _priority_move(manager, 'top')).props('dense flat').classes('text-xs')
-                    ui.button('↑', on_click=lambda: _priority_move(manager, 'up')).props('dense flat').classes('text-xs')
-                    ui.button('↓', on_click=lambda: _priority_move(manager, 'down')).props('dense flat').classes('text-xs')
-                    ui.button('⇊', on_click=lambda: _priority_move(manager, 'bottom')).props('dense flat').classes('text-xs')
+                    ui.button('⏫', on_click=lambda: _priority_move(manager, 'top')).props('dense flat').classes('text-xs')
+                    ui.button('⬆️', on_click=lambda: _priority_move(manager, 'up')).props('dense flat').classes('text-xs')
+                    ui.button('⬇️', on_click=lambda: _priority_move(manager, 'down')).props('dense flat').classes('text-xs')
+                    ui.button('⏬', on_click=lambda: _priority_move(manager, 'bottom')).props('dense flat').classes('text-xs')
                     ui.button('❌', on_click=lambda: _priority_delete(manager)).props('dense flat').classes('text-xs text-red-500')
 
         # ── Right column: Exclude list ─────────────────────────────────────────
@@ -156,10 +158,16 @@ def create_settings_panel(manager: 'WebUIManager'):
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
+def _set_and_save(settings, name: str, value) -> None:
+    setattr(settings, name, value)
+    settings.save()
+
+
 def _on_proxy_change(settings, value: str):
     from yarl import URL
     try:
         settings.proxy = URL(value) if value.strip() else None
+        settings.save()
     except Exception:
         pass
 
@@ -216,6 +224,7 @@ def _priority_add(manager: 'WebUIManager', input_el):
     if name not in settings.priority:
         settings.priority.append(name)
         settings.alter()
+        settings.save()
     input_el.set_value(None)
     _rebuild_priority_list(manager)
 
@@ -239,6 +248,7 @@ def _priority_move(manager: 'WebUIManager', direction: str):
     item = priority.pop(idx)
     priority.insert(new_idx, item)
     manager._twitch.settings.alter()
+    manager._twitch.settings.save()
     manager._priority_selected = new_idx
     _rebuild_priority_list(manager)
 
@@ -251,6 +261,7 @@ def _priority_delete(manager: 'WebUIManager'):
     if 0 <= idx < len(priority):
         del priority[idx]
         manager._twitch.settings.alter()
+        manager._twitch.settings.save()
         manager._priority_selected = None
         _rebuild_priority_list(manager)
 
@@ -264,6 +275,7 @@ def _exclude_add(manager: 'WebUIManager', input_el):
     if name not in settings.exclude:
         settings.exclude.add(name)
         settings.alter()
+        settings.save()
     input_el.set_value(None)
     _rebuild_exclude_list(manager)
 
@@ -275,6 +287,7 @@ def _exclude_delete(manager: 'WebUIManager'):
     settings = manager._twitch.settings
     settings.exclude.discard(name)
     settings.alter()
+    settings.save()
     manager._exclude_selected = None
     _rebuild_exclude_list(manager)
 
@@ -287,6 +300,7 @@ def add_priority_game(manager: 'WebUIManager', game_name: str):
     if game_name not in settings.priority:
         settings.priority.append(game_name)
         settings.alter()
+        settings.save()
     _rebuild_priority_list(manager)
 
 
@@ -297,6 +311,7 @@ def add_excluded_game(manager: 'WebUIManager', game_name: str):
     settings = manager._twitch.settings
     settings.exclude.add(game_name)
     settings.alter()
+    settings.save()
     _rebuild_exclude_list(manager)
 
 
