@@ -172,7 +172,7 @@ class WebUIManager:
         app.add_static_files('/static', str(Path(__file__).parent / 'static'))
 
         @ui.page('/')
-        def index():
+        def index(tab: str = 'main'):
             # Set page title and apply dark theme
             ui.page_title("Twitch Drops Miner")
             ui.dark_mode(True)
@@ -222,18 +222,25 @@ class WebUIManager:
             # Store references to self in the outer scope
             manager = self
 
+            initial_tab = tab if tab in ('main', 'inventory', 'settings') else 'main'
+
             with ui.header().classes('flex-col items-stretch p-0 gap-0'):
                 with ui.row().classes('tdm-header-row w-full items-center q-px-lg q-py-md'):
                     ui.image('/static/pickaxe.png').classes('w-8 h-8')
                     ui.label("Twitch Drops Miner").classes('text-h6')
                     ui.space()
                     manager._status_label = ui.label("Starting...").classes('text-body1')
-                with ui.tabs().classes('w-full') as tabs:
-                    main_tab = ui.tab("Main", icon="home")
-                    inventory_tab = ui.tab("Inventory", icon="inventory")
-                    settings_tab = ui.tab("Settings", icon="settings")
 
-            with ui.tab_panels(tabs, value=main_tab).classes('w-full h-full'):
+                def _on_tab_change(e):
+                    t = str(e.value)
+                    ui.run_javascript(f"history.replaceState(null, '', '?tab={t}')")
+
+                with ui.tabs(value=initial_tab, on_change=_on_tab_change).classes('w-full') as tabs:
+                    main_tab      = ui.tab('main',      label='Main',      icon='home')
+                    inventory_tab = ui.tab('inventory', label='Inventory', icon='inventory')
+                    settings_tab  = ui.tab('settings',  label='Settings',  icon='settings')
+
+            with ui.tab_panels(tabs, value=initial_tab).classes('w-full h-full'):
                 # Main tab content - matching original GUI layout
                 with ui.tab_panel(main_tab):
                     create_main_panel(manager)
