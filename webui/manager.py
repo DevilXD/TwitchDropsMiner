@@ -86,6 +86,9 @@ class WebUIManager:
         self._exclude_list = None
         self._filter_checkboxes = None
         self._inventory_container = None
+        self._priority_selected: int | None = None
+        self._exclude_selected: str | None = None
+        self._game_names: set = set()
 
         # WebSocket state (shared with MockWebsocketStatus)
         self._ws_data: dict = {}        # idx -> {status, topics}
