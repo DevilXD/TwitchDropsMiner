@@ -64,6 +64,9 @@ def create_inventory_panel(manager: 'WebUIManager'):
         with manager._inventory_container:
             ui.label("Loading inventory...").classes('text-sm text-gray-500')
 
+    # Flush any campaigns already collected before this client connected
+    refresh_inventory_display(manager)
+
     ui.timer(2.0, lambda: _check_inventory_dirty(manager))
 
 
