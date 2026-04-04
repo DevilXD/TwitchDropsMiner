@@ -8,6 +8,7 @@ import logging
 import threading
 import time
 from datetime import datetime
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 try:
@@ -147,7 +148,7 @@ class WebUIManager:
                     title="Twitch Drops Miner",
                     show=False,  # Don't auto-open browser
                     reload=False,
-                    favicon='/static/pickaxe.ico'
+                    favicon=Path(__file__).parent / 'static' / 'pickaxe.ico'
                 )
             except Exception as e:
                 print(f"Failed to start NiceGUI server: {e}")
@@ -160,8 +161,7 @@ class WebUIManager:
 
     def _setup_ui(self):
         """Setup the NiceGUI interface"""
-        import os
-        app.add_static_files('/static', os.path.join(os.path.dirname(__file__), 'static'))
+        app.add_static_files('/static', str(Path(__file__).parent / 'static'))
 
         @ui.page('/')
         def index():
