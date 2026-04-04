@@ -214,18 +214,18 @@ class WebUIManager:
             # Store references to self in the outer scope
             manager = self
 
-            with ui.header().classes('bg-gray-900 flex-col items-stretch').style('padding: 0; gap: 0'):
-                with ui.row().classes('w-full items-center q-px-lg q-py-md'):
+            with ui.header().classes('flex-col items-stretch p-0 gap-0'):
+                with ui.row().classes('tdm-header-row w-full items-center q-px-lg q-py-md'):
                     ui.image('/static/pickaxe.png').classes('w-8 h-8')
-                    ui.label("Twitch Drops Miner").classes('text-h6 text-white')
+                    ui.label("Twitch Drops Miner").classes('text-h6')
                     ui.space()
-                    manager._status_label = ui.label("Starting...").classes('text-body1 text-white')
-                with ui.tabs().classes('w-full bg-gray-800') as tabs:
+                    manager._status_label = ui.label("Starting...").classes('text-body1')
+                with ui.tabs().classes('w-full') as tabs:
                     main_tab = ui.tab("Main", icon="home")
                     inventory_tab = ui.tab("Inventory", icon="inventory")
                     settings_tab = ui.tab("Settings", icon="settings")
 
-            with ui.tab_panels(tabs, value=main_tab).classes('w-full h-full bg-gray-900'):
+            with ui.tab_panels(tabs, value=main_tab).classes('w-full h-full'):
                 # Main tab content - matching original GUI layout
                 with ui.tab_panel(main_tab):
                     create_main_panel(manager)
@@ -255,6 +255,7 @@ class WebUIManager:
                 <style id="dark-mode-styles">
                     body, html { background-color: #1f2937 !important; color: #ffffff !important; }
                     .nicegui-content { background-color: #1f2937 !important; color: #ffffff !important; }
+                    .tdm-header-row { color: #ffffff !important; background-color: #111827 !important; }
                     .q-tab { color: #ffffff !important; }
                     .q-tabs { background-color: #374151 !important; }
                     .q-tab-panels { background-color: #1f2937 !important; color: #ffffff !important; }
@@ -269,6 +270,7 @@ class WebUIManager:
                 <style id="light-mode-styles">
                     body, html { background-color: #ffffff !important; color: #000000 !important; }
                     .nicegui-content { background-color: #ffffff !important; color: #000000 !important; }
+                    .tdm-header-row { color: #000000 !important; background-color: #E5E7EB !important; }
                     .q-tab { color: #000000 !important; }
                     .q-tabs { background-color: #f3f4f6 !important; }
                     .q-tab-panels { background-color: #ffffff !important; color: #000000 !important; }
