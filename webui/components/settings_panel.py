@@ -28,7 +28,7 @@ def create_settings_panel(manager: 'WebUIManager'):
     with ui.row().classes('w-full gap-2 p-2 items-stretch'):
 
         # ── Left column: General + Advanced + Reload ──────────────────────────
-        with ui.column().classes('gap-2').style('min-width: 220px'):
+        with ui.column().classes('gap-2').style('flex: 1; min-width: 0'):
 
             # General section
             with ui.card().props('flat').classes('w-full q-pa-sm'):
