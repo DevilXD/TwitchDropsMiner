@@ -20,7 +20,7 @@ except ImportError:
     app = None
 
 from translate import _
-from constants import PriorityMode
+from constants import PriorityMode, OUTPUT_FORMATTER, FILE_FORMATTER
 from .mock_classes import (MockTray, MockStatus, MockProgress, MockOutput, MockChannels,
                           MockInventory, MockLoginForm, MockWebsocketStatus, MockSettings, MockTabs)
 from .handlers import WebUIOutputHandler
@@ -132,10 +132,13 @@ class WebUIManager:
         # Setup the UI page
         self._setup_ui()
 
-        # Setup logging handler
+        # Setup logging handler (same formatter as gui.py's _TKOutputHandler)
         self._handler = WebUIOutputHandler(self)
+        self._handler.setFormatter(OUTPUT_FORMATTER)
         logger = logging.getLogger("TwitchDrops")
         logger.addHandler(self._handler)
+        if (logging_level := logger.getEffectiveLevel()) < logging.ERROR:
+            self.print(f"Logging level: {logging.getLevelName(logging_level)}")
 
         # Start the server in a background task
         self._start_server()
@@ -284,9 +287,6 @@ class WebUIManager:
                 </style>
             ''')
 
-        # Print to console for feedback
-        mode_text = "dark" if enabled else "light"
-        self.print(f"Theme changed to {mode_text} mode")
 
 
     def _apply_initial_styles(self):
@@ -302,28 +302,37 @@ class WebUIManager:
         return self._close_requested.is_set()
 
     def print(self, message: str):
-        """Print message to console output"""
-        timestamp = datetime.now().strftime("%X")
-        formatted_message = f"{timestamp}: {message}"
+        """Print message to console output - matches gui.py ConsoleOutput.print() behaviour"""
+        stamp = datetime.now().strftime("%X")
+        # Replicate gui.py: prefix every line of a multiline message with the timestamp
+        if '\n' in message:
+            display_message = message.replace('\n', f"\n{stamp}: ")
+        else:
+            display_message = message
 
-        # Store in console log for display
-        self._console_log.append(formatted_message)
+        # Store each display line individually so replay on late-joining clients works
+        for line in display_message.split('\n'):
+            self._console_log.append(f"{stamp}: {line}")
 
-        # Also print to console if available
         if self._console is not None:
             try:
-                if '\n' in message:
-                    for line in message.split('\n'):
-                        if line.strip():
-                            self._console.push(f"{timestamp}: {line}")
-                else:
-                    self._console.push(formatted_message)
+                for line in display_message.split('\n'):
+                    self._console.push(f"{stamp}: {line}")
             except Exception:
-                # Fallback to standard print if UI update fails (e.g., during shutdown)
-                print(formatted_message)
-        else:
-            # Fallback to standard print if UI not ready
-            print(formatted_message)
+                pass
+
+        # stdlog: mirror to stdout/file just like gui.py ConsoleOutput.print()
+        if self._twitch.settings.stdlog:
+            record = logging.LogRecord(
+                name="GUI",
+                level=logging.INFO,
+                pathname="",
+                lineno=0,
+                msg=message,
+                args=(),
+                exc_info=None,
+            )
+            print(FILE_FORMATTER.format(record))
 
     def close(self, *args) -> int:
         """Request the GUI application to close"""
