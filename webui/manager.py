@@ -61,6 +61,9 @@ class WebUIManager:
         self.settings = MockSettings(self)
         self.tabs = MockTabs()
 
+        # Current status text (persisted so late-joining clients can restore it)
+        self._status_text: str = "Initializing..."
+
         # Initialize UI components as None - created when each client connects
         self._status_label = None
         self._status_card = None

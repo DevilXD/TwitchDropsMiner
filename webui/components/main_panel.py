@@ -168,6 +168,10 @@ def create_main_panel(manager: 'WebUIManager'):
                 'h-64 w-full font-mono text-xs'
             )
 
+    # Flush current app state into the freshly created UI elements so that
+    # clients connecting after initialization see the correct values immediately.
+    _flush_current_state(manager)
+
     # Per-client 1-second timer for countdown and dirty updates
     ui.timer(1.0, lambda: _tick_update(manager))
 
@@ -191,6 +195,61 @@ def create_main_panel(manager: 'WebUIManager'):
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
+def _flush_current_state(manager: 'WebUIManager'):
+    """
+    Populate freshly-created UI elements with the current manager state so that
+    clients connecting after initialization see the correct values immediately.
+    """
+    # Status labels (header + status card)
+    if manager._status_card is not None:
+        manager._status_card.set_text(manager._status_text)
+    if manager._status_label is not None:
+        manager._status_label.set_text(manager._status_text)
+
+    # Login status
+    if manager._login_status_label is not None:
+        manager._login_status_label.set_text(manager._login_status_text)
+
+    # WebSocket rows
+    _build_ws_rows(manager)
+
+    # Channel table
+    _rebuild_channel_table(manager)
+
+    # Drop / campaign progress — render stored state without touching the timer
+    if manager._current_drop is not None:
+        _render_drop_labels(manager)
+
+
+def _render_drop_labels(manager: 'WebUIManager'):
+    """Set all drop/campaign labels from the currently stored drop without altering timer state."""
+    drop = manager._current_drop
+    if drop is None:
+        return
+    try:
+        campaign = drop.campaign
+        if manager._campaign_game_label is not None:
+            manager._campaign_game_label.set_text(campaign.game.name)
+        if manager._campaign_name_label is not None:
+            manager._campaign_name_label.set_text(campaign.name)
+        if manager._campaign_progress_bar is not None:
+            manager._campaign_progress_bar.set_value(campaign.progress)
+        if manager._campaign_percentage_label is not None:
+            manager._campaign_percentage_label.set_text(
+                f"{campaign.progress:6.1%} ({campaign.claimed_drops}/{campaign.total_drops})"
+            )
+        if manager._drop_rewards_label is not None:
+            manager._drop_rewards_label.set_text(drop.rewards_text())
+        if manager._drop_progress_bar is not None:
+            manager._drop_progress_bar.set_value(drop.progress)
+        if manager._drop_percentage_label is not None:
+            manager._drop_percentage_label.set_text(f"{drop.progress:6.1%}")
+        # Update the remaining-time labels using the already-running timer state
+        _tick_progress(manager)
+    except Exception as e:
+        print(f"Failed to render drop labels on connect: {e}")
+
 
 def _build_ws_rows(manager: 'WebUIManager'):
     """(Re)build the websocket status rows inside _ws_container."""

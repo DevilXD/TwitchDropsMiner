@@ -45,6 +45,7 @@ class MockStatus:
         self._manager = manager
 
     def update(self, text: str):
+        self._manager._status_text = text
         try:
             if self._manager._status_card is not None:
                 self._manager._status_card.set_text(text)
