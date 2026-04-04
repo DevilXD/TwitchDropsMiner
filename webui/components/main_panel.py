@@ -39,10 +39,10 @@ def create_main_panel(manager: 'WebUIManager'):
         with ui.row().classes('w-full gap-2 items-start'):
 
             # Left column
-            with ui.column().classes('gap-2').style('flex: 1; min-width: 0'):
+            with ui.column().classes('gap-2').style('flex: 1; min-width: 0').props('id=tdm-left-col'):
 
                 # WebSocket Status + Login side by side - matches WebsocketStatus + LoginForm
-                with ui.row().classes('w-full gap-2 items-start'):
+                with ui.row().classes('w-full gap-2 items-stretch'):
 
                     # WebSocket Status card - matches WebsocketStatus class
                     with ui.card().props('flat').classes('flex-1'):
@@ -95,7 +95,7 @@ def create_main_panel(manager: 'WebUIManager'):
                     manager._drop_progress_bar = ui.linear_progress(value=0).classes('w-full')
 
             # Right side: Channel List - matches ChannelList class (spans full height)
-            with ui.card().props('flat').style('flex: 1; min-width: 0'):
+            with ui.card().props('flat id=tdm-channels-card').classes('flex-col').style('flex: 1; min-width: 0; display: flex; overflow: hidden'):
                 ui.label(_("gui", "channels", "name")).classes('font-bold text-sm mb-1')
 
                 # Switch button (disabled until a channel is selected)
@@ -152,7 +152,7 @@ def create_main_panel(manager: 'WebUIManager'):
                     row_key='iid',
                     selection='single',
                 ).classes('w-full text-xs').props('dense flat virtual-scroll').style(
-                    'max-height: 400px; overflow-y: auto;'
+                    'flex: 1; overflow-y: auto; min-height: 0; max-height: 100%;'
                 )
 
                 # Handle row selection to enable/disable Switch button
@@ -170,6 +170,18 @@ def create_main_panel(manager: 'WebUIManager'):
 
     # Per-client 1-second timer for countdown and dirty updates
     ui.timer(1.0, lambda: _tick_update(manager))
+
+    # Keep channels card max-height in sync with left column height
+    ui.run_javascript('''
+        (function() {
+            const leftCol = document.getElementById('tdm-left-col');
+            const card = document.getElementById('tdm-channels-card');
+            if (!leftCol || !card) return;
+            function sync() { card.style.maxHeight = leftCol.offsetHeight + 'px'; }
+            sync();
+            new ResizeObserver(sync).observe(leftCol);
+        })();
+    ''')
 
     # Restore any buffered console lines that arrived before the UI was ready
     for line in manager._console_log:
