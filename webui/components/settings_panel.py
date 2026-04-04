@@ -25,7 +25,7 @@ def create_settings_panel(manager: 'WebUIManager'):
 
     settings = manager._twitch.settings
 
-    with ui.row().classes('w-full gap-2 p-2 items-stretch'):
+    with ui.row().classes('w-full gap-2 items-stretch'):
 
         # ── Left column: General + Advanced + Reload ──────────────────────────
         with ui.column().classes('gap-2').style('flex: 1; min-width: 0'):
