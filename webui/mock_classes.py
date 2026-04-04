@@ -1,5 +1,39 @@
-# Mock classes that provide compatibility with the tkinter GUI interface
-# These classes ensure the WebUI can work as a drop-in replacement for GUIManager
+# Adapter classes that make WebUIManager look like the tkinter GUIManager.
+#
+# Background
+# ----------
+# twitch.py calls methods on a set of widget-like objects attached to the GUI
+# manager (manager.status, manager.channels, manager.login, …).  Those objects
+# were originally tkinter widgets.  The classes in this module are lightweight
+# adapters that implement the same method signatures so that twitch.py requires
+# no changes when the web UI is in use.
+#
+# How each class works
+# --------------------
+# Because NiceGUI's DOM can only be safely mutated from inside the NiceGUI
+# asyncio event loop, these adapters do NOT touch any NiceGUI widget directly.
+# Instead each method:
+#   1. Writes the new value into a plain Python field on the WebUIManager
+#      (e.g. _ws_data, _channel_map, _login_status_text).
+#   2. Sets a boolean "dirty" flag on the manager (e.g. _ws_dirty).
+#
+# A ui.timer running inside the NiceGUI event loop polls those dirty flags and
+# pushes the buffered state into the actual widgets.  This keeps all widget
+# access on the correct thread and lets twitch.py call these adapters from any
+# context without locking.
+#
+# Correspondence to tkinter classes
+# ----------------------------------
+#   MockTray            → system tray icon         (no-op; no tray in browser)
+#   MockStatus          → StatusBar                (header label + status card)
+#   MockProgress        → CampaignProgress         (delegates to display_drop)
+#   MockOutput          → ConsoleOutput            (forwards to manager.print)
+#   MockChannels        → ChannelList              (manages _channel_map)
+#   MockInventory       → InventoryOverview        (manages _inventory_campaigns)
+#   MockLoginForm       → LoginForm                (device-code / password flow)
+#   MockWebsocketStatus → WebsocketStatus          (manages _ws_data)
+#   MockSettings        → settings panel widget    (no-op stubs)
+#   MockTabs            → tab controller           (no-op stubs)
 
 from __future__ import annotations
 
@@ -103,7 +137,6 @@ class MockChannels:
     def __init__(self, manager: 'WebUIManager'):
         self._manager = manager
 
-    # ------------------------------------------------------------------
     def clear(self):
         self._manager._channel_map.clear()
         self._manager._watching_channel_iid = None
@@ -165,13 +198,12 @@ class MockInventory:
         self._manager = manager
 
     def clear(self):
-        """Mirrors InventoryOverview.clear()"""
         self._manager._inventory_campaigns.clear()
         self._manager._campaign_html_elements.clear()
         self._manager._inventory_dirty = True
 
     async def add_campaign(self, campaign) -> None:
-        """Mirrors InventoryOverview.add_campaign() - stores the real object."""
+        """Store the real DropsCampaign object; the dirty flag triggers re-render."""
         try:
             campaign_id = getattr(campaign, 'id', str(id(campaign)))
             self._manager._inventory_campaigns[campaign_id] = campaign
@@ -240,7 +272,6 @@ class MockLoginForm:
         webopen(page_url)
 
     def update(self, status: str, user_id: int | None):
-        """Update the login status display (mirrors LoginForm.update)"""
         user_str = str(user_id) if user_id is not None else "-"
         self._manager._login_status_text = f"{status}\n{user_str}"
         logged_in = (status == _("gui", "login", "logged_in"))
@@ -288,7 +319,15 @@ class MockWebsocketStatus:
 
 
 class MockSettings:
-    """Mock settings panel"""
+    """
+    Mirrors the tkinter settings panel widget.
+
+    twitch.py calls clear_selection() and set_games() on the settings object;
+    those operations are handled directly by the NiceGUI settings panel in
+    webui/components/settings_panel.py, so these stubs are intentional no-ops.
+    _priority_list / _exclude_list are kept so that any attribute access that
+    expects a list-like widget (e.g. configure_theme) does not raise.
+    """
 
     def __init__(self, manager: 'WebUIManager'):
         self._manager = manager
@@ -303,12 +342,20 @@ class MockSettings:
 
 
 class _MockList:
+    """Stub for tkinter Listbox-like objects that only need configure_theme."""
     def configure_theme(self, **kwargs):
         pass
 
 
 class MockTabs:
-    """Mock tabs handler"""
+    """
+    Mirrors the tkinter tab controller.
+
+    twitch.py uses current_tab() to read the active tab index and
+    add_view_event() to register a callback when the tab changes.  Neither is
+    meaningful for the web UI (tab state lives in the browser), so both are
+    stubs.  current_tab() returns 0 (the Main tab) as a safe default.
+    """
 
     def current_tab(self) -> int:
         return 0

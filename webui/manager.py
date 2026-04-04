@@ -1,5 +1,38 @@
-# Main WebUI Manager class
-# Handles the NiceGUI-based web interface that provides the same interface as GUIManager
+# WebUIManager — NiceGUI-based drop-in replacement for the tkinter GUIManager.
+#
+# Architecture overview
+# ---------------------
+# The application core (twitch.py) is written against a "GUIManager" interface
+# that was originally implemented with tkinter widgets. WebUIManager reimplements
+# that same interface so that twitch.py never needs to know whether it is talking
+# to a desktop window or a browser tab.
+#
+# The interface is satisfied in two layers:
+#
+#   1. Mock* objects (see mock_classes.py) – one per tkinter widget class
+#      (StatusBar, ChannelList, LoginForm, …). They are stored as attributes on
+#      WebUIManager (self.status, self.channels, self.login, …) so that every
+#      call site in twitch.py keeps working unchanged.
+#
+#   2. WebUIManager itself – owns the NiceGUI server, the shared UI state, and all
+#      top-level methods (print, close, display_drop, …) that twitch.py calls
+#      directly on the manager object.
+#
+# Dirty-flag / deferred-update pattern
+# --------------------------------------
+# NiceGUI's DOM can only be mutated from inside the server's asyncio event loop.
+# twitch.py calls come from a *different* context, so direct widget writes would
+# race. Instead every Mock* method writes to plain Python state stored on the
+# manager (e.g. _ws_data, _channel_map) and sets a boolean "dirty" flag
+# (e.g. _ws_dirty, _channels_dirty). A ui.timer running inside the NiceGUI
+# event loop checks these flags periodically and flushes the pending updates.
+#
+# Late-joining clients
+# --------------------
+# Multiple browser tabs can connect at any time, even after the miner has been
+# running for a while. All mutable UI state is persisted on the manager
+# (status text, console log, channel map, inventory, …) so that a fresh page
+# load can rebuild the full current view without waiting for the next update.
 
 from __future__ import annotations
 
@@ -35,7 +68,18 @@ if TYPE_CHECKING:
 
 class WebUIManager:
     """
-    NiceGUI-based web interface that provides the same interface as GUIManager
+    NiceGUI-based web interface that is a drop-in replacement for the tkinter GUIManager.
+
+    WebUIManager owns:
+    - The NiceGUI HTTP server (started in a daemon thread by _start_server).
+    - All shared mutable UI state (status text, console log, channel map, …)
+      that the Mock* attribute objects write to and the NiceGUI timer reads from.
+    - The top-level methods (print, close, display_drop, …) called directly by
+      twitch.py on the manager object.
+
+    The Mock* objects stored as attributes mirror the tkinter widget classes that
+    twitch.py expects (self.status → StatusBar, self.channels → ChannelList, …).
+    See mock_classes.py for details.
     """
 
     def __init__(self, twitch: 'Twitch', host: str = "127.0.0.1", port: int = 8080):
@@ -50,7 +94,6 @@ class WebUIManager:
         self._running = False
         self._console_log = []
 
-        # Create mock objects for compatibility
         self.tray = MockTray()
         self.status = MockStatus(self)
         self.progress = MockProgress(self)
@@ -65,7 +108,8 @@ class WebUIManager:
         # Current status text (persisted so late-joining clients can restore it)
         self._status_text: str = "Initializing..."
 
-        # Initialize UI components as None - created when each client connects
+        # NiceGUI widget references — None until the first client page load populates them.
+        # Each browser connection runs the index() handler which assigns these.
         self._status_label = None
         self._status_card = None
         self._console = None
@@ -136,10 +180,9 @@ class WebUIManager:
         self._campaign_html_elements: dict = {}     # campaign.id -> ui.html element
         self._inventory_dirty: bool = False
 
-        # Setup the UI page
         self._setup_ui()
 
-        # Setup logging handler (same formatter as gui.py's _TKOutputHandler)
+        # Use the same log formatter as gui.py's _TKOutputHandler so messages look identical.
         self._handler = WebUIOutputHandler(self)
         self._handler.setFormatter(OUTPUT_FORMATTER)
         logger = logging.getLogger("TwitchDrops")
@@ -147,11 +190,10 @@ class WebUIManager:
         if (logging_level := logger.getEffectiveLevel()) < logging.ERROR:
             self.print(f"Logging level: {logging.getLevelName(logging_level)}")
 
-        # Start the server in a background task
         self._start_server()
 
     def _start_server(self):
-        """Start the NiceGUI server"""
+        """Start the NiceGUI server in a daemon thread so it doesn't block the main loop."""
         def run_server():
             try:
                 print(f"Starting NiceGUI server on {self._host}:{self._port}")
@@ -169,16 +211,16 @@ class WebUIManager:
         server_thread = threading.Thread(target=run_server, daemon=True)
         server_thread.start()
 
-        # Give the server a moment to start
+        # Brief wait so the server is accepting connections before twitch.py continues.
         time.sleep(1)
 
     def _setup_ui(self):
-        """Setup the NiceGUI interface"""
+        """Register the NiceGUI page handler. The inner index() function runs once
+        per browser connection, building the full UI for that client."""
         app.add_static_files('/static', str(Path(__file__).parent / 'static'))
 
         @ui.page('/')
         def index(tab: str = 'main'):
-            # Set page title and apply dark theme
             ui.page_title("Twitch Drops Miner")
             ui.dark_mode(True)
             ui.query('.nicegui-content').style('padding: 0')
@@ -224,9 +266,10 @@ class WebUIManager:
                 }
             </style>''')
 
-            # Store references to self in the outer scope
+            # Alias so nested closures below can reference the manager unambiguously.
             manager = self
 
+            # Fall back to 'main' if the ?tab= query param is not a known tab name.
             initial_tab = tab if tab in ('main', 'inventory', 'settings', 'help') else 'main'
 
             with ui.header().classes('flex-col items-stretch p-0 gap-0'):
@@ -247,19 +290,15 @@ class WebUIManager:
                     help_tab      = ui.tab('help',      label=_('gui', 'tabs', 'help'), icon='help')
 
             with ui.tab_panels(tabs, value=initial_tab).classes('w-full h-full'):
-                # Main tab content - matching original GUI layout
                 with ui.tab_panel(main_tab):
                     create_main_panel(manager)
 
-                # Inventory tab content
                 with ui.tab_panel(inventory_tab):
                     create_inventory_panel(manager)
 
-                # Settings tab content
                 with ui.tab_panel(settings_tab):
                     create_settings_panel(manager)
 
-                # Help tab content
                 with ui.tab_panel(help_tab):
                     create_help_panel(manager)
 
@@ -268,13 +307,10 @@ class WebUIManager:
 
 
     def _toggle_dark_mode(self, enabled: bool):
-        """Toggle dark mode on/off"""
+        """Switch dark/light mode. NiceGUI's ui.dark_mode() flips Quasar's body class,
+        but Quasar component colours need explicit CSS overrides to follow suit."""
         self._dark_mode_enabled = enabled
-
-        # Update NiceGUI dark mode
         ui.dark_mode(enabled)
-
-        # Update the CSS dynamically
         if enabled:
             ui.add_head_html('''
                 <style id="dark-mode-styles">
@@ -306,10 +342,7 @@ class WebUIManager:
                 </style>
             ''')
 
-
-
     def _apply_initial_styles(self):
-        """Apply initial styling based on current dark mode setting"""
         self._toggle_dark_mode(self._dark_mode_enabled)
 
     @property
@@ -321,15 +354,16 @@ class WebUIManager:
         return self._close_requested.is_set()
 
     def print(self, message: str):
-        """Print message to console output - matches gui.py ConsoleOutput.print() behaviour"""
+        """Append a timestamped line to the in-browser console log.
+        Matches gui.py ConsoleOutput.print(): each line of a multiline message gets its own stamp."""
         stamp = datetime.now().strftime("%X")
-        # Replicate gui.py: prefix every line of a multiline message with the timestamp
+        # Prefix every line so multiline messages are readable in the log view.
         if '\n' in message:
             display_message = message.replace('\n', f"\n{stamp}: ")
         else:
             display_message = message
 
-        # Store each display line individually so replay on late-joining clients works
+        # Persist every line so late-joining clients can replay the full log on connect.
         for line in display_message.split('\n'):
             self._console_log.append(f"{stamp}: {line}")
 
@@ -340,7 +374,7 @@ class WebUIManager:
             except Exception:
                 pass
 
-        # stdlog: mirror to stdout/file just like gui.py ConsoleOutput.print()
+        # Mirror to stdout/file when stdlog is enabled, matching gui.py behaviour.
         if self._twitch.settings.stdlog:
             record = logging.LogRecord(
                 name="GUI",
@@ -354,7 +388,7 @@ class WebUIManager:
             print(FILE_FORMATTER.format(record))
 
     def close(self, *args) -> int:
-        """Request the GUI application to close"""
+        """Signal the main loop to shut down (mirrors GUIManager.close)."""
         self._close_requested.set()
         return 0
 
@@ -363,30 +397,25 @@ class WebUIManager:
         await self._close_requested.wait()
 
     def stop(self):
-        """Stop the GUI polling and cleanup"""
         self._running = False
 
     def close_window(self):
-        """Close the window and cleanup"""
         if hasattr(logging.getLogger("TwitchDrops"), 'removeHandler'):
             logging.getLogger("TwitchDrops").removeHandler(self._handler)
         app.shutdown()
 
     def grab_attention(self, *, sound: bool = True):
-        """Grab user attention (web UI equivalent)"""
-        # In a web UI, we can't grab attention in the same way
-        # But we can update the title or show a notification
+        """Browser equivalent of the desktop grab-attention (flash/sound). Logs a visible prompt instead."""
         self.print("⚠️  Attention: Application requires user interaction")
 
     def start(self):
-        """Start the web UI"""
         self._running = True
 
     async def coro_unless_closed(self, coro):
-        """Execute coroutine unless the GUI is closed"""
+        """Run coro, but raise ExitRequest instead if close() is called first."""
         from exceptions import ExitRequest
 
-        # In Python 3.11, we need to explicitly wrap awaitables
+        # ensure_future is required in Python 3.11+ to wrap plain awaitables for asyncio.wait.
         tasks = [asyncio.ensure_future(coro), asyncio.ensure_future(self._close_requested.wait())]
         done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
         for task in pending:
