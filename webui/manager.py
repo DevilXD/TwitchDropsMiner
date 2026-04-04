@@ -25,8 +25,8 @@ from .mock_classes import (MockTray, MockStatus, MockProgress, MockOutput, MockC
                           MockInventory, MockLoginForm, MockWebsocketStatus, MockSettings, MockTabs)
 from .handlers import WebUIOutputHandler
 from .components import (create_main_panel, create_settings_panel, create_inventory_panel,
-                        add_priority_game, add_excluded_game, refresh_inventory,
-                        update_filter, clear_drop, display_drop, set_games)
+                        create_help_panel, add_priority_game, add_excluded_game,
+                        refresh_inventory, update_filter, clear_drop, display_drop, set_games)
 
 if TYPE_CHECKING:
     from twitch import Twitch
@@ -222,7 +222,7 @@ class WebUIManager:
             # Store references to self in the outer scope
             manager = self
 
-            initial_tab = tab if tab in ('main', 'inventory', 'settings') else 'main'
+            initial_tab = tab if tab in ('main', 'inventory', 'settings', 'help') else 'main'
 
             with ui.header().classes('flex-col items-stretch p-0 gap-0'):
                 with ui.row().classes('tdm-header-row w-full items-center q-px-lg q-py-md'):
@@ -239,6 +239,7 @@ class WebUIManager:
                     main_tab      = ui.tab('main',      label='Main',      icon='home')
                     inventory_tab = ui.tab('inventory', label='Inventory', icon='inventory')
                     settings_tab  = ui.tab('settings',  label='Settings',  icon='settings')
+                    help_tab      = ui.tab('help',      label=_('gui', 'tabs', 'help'), icon='help')
 
             with ui.tab_panels(tabs, value=initial_tab).classes('w-full h-full'):
                 # Main tab content - matching original GUI layout
@@ -252,6 +253,10 @@ class WebUIManager:
                 # Settings tab content
                 with ui.tab_panel(settings_tab):
                     create_settings_panel(manager)
+
+                # Help tab content
+                with ui.tab_panel(help_tab):
+                    create_help_panel(manager)
 
             # Add initial dark mode styling (will be updated by toggle)
             manager._apply_initial_styles()
