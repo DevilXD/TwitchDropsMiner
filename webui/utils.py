@@ -1,12 +1,8 @@
-# Utility functions for the WebUI
-# Contains helper functions for campaign management, time formatting, etc.
-
 from datetime import datetime
 from typing import Any
 
 
 def get_campaign_status(campaign) -> str:
-    """Get campaign status text based on campaign properties"""
     if hasattr(campaign, 'active') and campaign.active:
         return "Active"
     elif hasattr(campaign, 'upcoming') and campaign.upcoming:
@@ -18,8 +14,6 @@ def get_campaign_status(campaign) -> str:
 
 
 def get_campaign_progress(campaign) -> float:
-    """Get campaign progress percentage"""
-    # Look for any drops with progress
     if hasattr(campaign, 'drops'):
         for drop in campaign.drops:
             if hasattr(drop, 'current_minutes') and hasattr(drop, 'required_minutes'):
@@ -29,7 +23,6 @@ def get_campaign_progress(campaign) -> float:
 
 
 def format_time_remaining(campaign) -> str:
-    """Get formatted time remaining for a campaign"""
     try:
         if hasattr(campaign, 'active') and campaign.active and hasattr(campaign, 'ends_at'):
             import pytz
@@ -64,30 +57,29 @@ def format_time_remaining(campaign) -> str:
 
 
 def should_show_campaign_with_filters(campaign_data: dict, filters: dict) -> bool:
-    """Determine if a campaign should be shown based on current filters"""
+    """Return True if the campaign passes the active inventory filters.
+
+    The inventory panel uses five boolean filters (not_linked, upcoming, expired,
+    excluded, finished).  When no filters are enabled nothing is shown.
+    """
     campaign = campaign_data.get('campaign_obj')
 
-    # Get filter states
     show_not_linked = filters.get("not_linked", False)
-    show_upcoming = filters.get("upcoming", False)
-    show_active = filters.get("active", False)
-    show_expired = filters.get("expired", False)
-    show_excluded = filters.get("excluded", False)
-    show_finished = filters.get("finished", False)
+    show_upcoming   = filters.get("upcoming", False)
+    show_active     = filters.get("active", False)
+    show_expired    = filters.get("expired", False)
+    show_excluded   = filters.get("excluded", False)
+    show_finished   = filters.get("finished", False)
 
-    # Check status filters based on campaign data
     status = campaign_data.get('status', '').lower()
 
-    # For test campaigns or campaigns without objects, use simpler logic
+    # Without a real campaign object (e.g. in tests), filter purely by status string.
     if not campaign:
-        # Check if any filters are enabled - if none are enabled, show nothing
         any_filter_enabled = (show_not_linked or show_upcoming or show_active or show_expired or
-                            show_excluded or show_finished)
-
+                              show_excluded or show_finished)
         if not any_filter_enabled:
-            return False  # Hide everything when no filters are selected
+            return False
 
-        # Only show if the corresponding filter is enabled
         if status == 'upcoming':
             return show_upcoming
         elif status == 'active':
@@ -97,14 +89,13 @@ def should_show_campaign_with_filters(campaign_data: dict, filters: dict) -> boo
         elif status == 'finished':
             return show_finished
         else:
-            # Unknown status, don't show
+            # Unknown status — don't show.
             return False
 
-    # For real campaign objects, use more complex logic
-    # Check eligibility (not linked filter)
+    # "not_linked" filter hides campaigns the user isn't eligible for.
     eligible = getattr(campaign, 'eligible', True)
     if show_not_linked and not eligible:
-        return False  # Don't show not linked if filter is on and it's linked
+        return False
 
     if status == 'upcoming':
         return show_upcoming
