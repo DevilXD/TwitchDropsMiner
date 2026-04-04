@@ -127,13 +127,11 @@ class WebUIManager:
 
     def _setup_ui(self):
         """Setup the NiceGUI interface"""
-        # Setup dark theme globally
-        ui.dark_mode(True)
-
         @ui.page('/')
         def index():
             # Set page title and apply dark theme
             ui.page_title("Twitch Drops Miner")
+            ui.dark_mode(True)
 
             # Store references to self in the outer scope
             manager = self
