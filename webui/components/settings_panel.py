@@ -189,8 +189,12 @@ def _rebuild_priority_list(manager: 'WebUIManager'):
         return
     manager._priority_list.clear()
     with manager._priority_list:
+        selected = getattr(manager, '_priority_selected', None)
         for i, name in enumerate(manager._twitch.settings.priority):
-            with ui.item().props('clickable').on('click', lambda _, idx=i: _priority_select(manager, idx)):
+            active = i == selected
+            with ui.item().props(f'clickable {"active" if active else ""}').classes(
+                'bg-primary text-white' if active else ''
+            ).on('click', lambda _, idx=i: _priority_select(manager, idx)):
                 with ui.item_section():
                     ui.item_label(name).classes('text-xs')
 
@@ -199,20 +203,26 @@ def _rebuild_exclude_list(manager: 'WebUIManager'):
     if manager._exclude_list is None:
         return
     manager._exclude_list.clear()
+    selected = getattr(manager, '_exclude_selected', None)
     with manager._exclude_list:
         for name in sorted(manager._twitch.settings.exclude):
-            with ui.item().props('clickable').on('click', lambda _, n=name: _exclude_select(manager, n)):
+            active = name == selected
+            with ui.item().props(f'clickable {"active" if active else ""}').classes(
+                'bg-primary text-white' if active else ''
+            ).on('click', lambda _, n=name: _exclude_select(manager, n)):
                 with ui.item_section():
                     ui.item_label(name).classes('text-xs')
 
 
 # Selection state (per-manager, stored as attributes)
 def _priority_select(manager: 'WebUIManager', idx: int):
-    manager._priority_selected = idx
+    manager._priority_selected = None if manager._priority_selected == idx else idx
+    _rebuild_priority_list(manager)
 
 
 def _exclude_select(manager: 'WebUIManager', name: str):
-    manager._exclude_selected = name
+    manager._exclude_selected = None if manager._exclude_selected == name else name
+    _rebuild_exclude_list(manager)
 
 
 def _priority_add(manager: 'WebUIManager', input_el):
