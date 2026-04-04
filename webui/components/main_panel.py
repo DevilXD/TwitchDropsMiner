@@ -29,17 +29,17 @@ def create_main_panel(manager: 'WebUIManager'):
 
     with ui.column().classes('w-full gap-2'):
 
-        # Row 0: Status Bar (full width) - matches StatusBar class
-        with ui.card().props('flat bordered').classes('w-full'):
-            with ui.row().classes('items-center gap-2 w-full'):
-                ui.label(_("gui", "status", "name") + ":").classes('font-bold text-sm')
-                manager._status_card = ui.label("Initializing...").classes('text-sm flex-1')
-
-        # Row 1: Left side (WebSocket + Login) and Right side (Channel List)
-        with ui.row().classes('w-full gap-2 items-start'):
+        # Row 1: Left side (Status, WebSocket + Login, Campaign Progress, Console) and Right side (Channel List)
+        with ui.row().classes('w-full gap-2 items-stretch'):
 
             # Left column
             with ui.column().classes('gap-2').style('flex: 1; min-width: 0').props('id=tdm-left-col'):
+
+                # Status Bar (full width) - matches StatusBar class
+                with ui.card().props('flat bordered').classes('w-full'):
+                    with ui.row().classes('items-center gap-2 w-full'):
+                        ui.label(_("gui", "status", "name") + ":").classes('font-bold text-sm')
+                        manager._status_card = ui.label("Initializing...").classes('text-sm flex-1')
 
                 # WebSocket Status + Login side by side - matches WebsocketStatus + LoginForm
                 with ui.row().classes('w-full gap-2 items-stretch'):
@@ -93,6 +93,13 @@ def create_main_panel(manager: 'WebUIManager'):
                         manager._drop_percentage_label = ui.label("-%").classes('w-24')
                         manager._drop_remaining_label = ui.label("").classes('flex-1')
                     manager._drop_progress_bar = ui.linear_progress(value=0, show_value=False).classes('w-full h-4')
+
+                # Console Output - matches ConsoleOutput class
+                with ui.card().props('flat bordered').classes('w-full gap-1'):
+                    ui.label(_("gui", "output")).classes('font-bold text-sm mb-1')
+                    manager._console = ui.log(max_lines=200).classes(
+                        'h-64 w-full font-mono text-xs'
+                    )
 
             # Right side: Channel List - matches ChannelList class (spans full height)
             with ui.card().props('flat bordered id=tdm-channels-card').classes('flex-col gap-1').style('flex: 1; min-width: 0; display: flex; overflow: hidden'):
@@ -161,31 +168,12 @@ def create_main_panel(manager: 'WebUIManager'):
                     lambda e: _on_table_selection(manager, e)
                 )
 
-        # Row 2: Console Output (full width) - matches ConsoleOutput class
-        with ui.card().props('flat bordered').classes('w-full gap-1'):
-            ui.label(_("gui", "output")).classes('font-bold text-sm mb-1')
-            manager._console = ui.log(max_lines=200).classes(
-                'h-64 w-full font-mono text-xs'
-            )
-
     # Flush current app state into the freshly created UI elements so that
     # clients connecting after initialization see the correct values immediately.
     _flush_current_state(manager)
 
     # Per-client 1-second timer for countdown and dirty updates
     ui.timer(1.0, lambda: _tick_update(manager))
-
-    # Keep channels card max-height in sync with left column height
-    ui.run_javascript('''
-        (function() {
-            const leftCol = document.getElementById('tdm-left-col');
-            const card = document.getElementById('tdm-channels-card');
-            if (!leftCol || !card) return;
-            function sync() { card.style.maxHeight = leftCol.offsetHeight + 'px'; }
-            sync();
-            new ResizeObserver(sync).observe(leftCol);
-        })();
-    ''')
 
     # Restore any buffered console lines that arrived before the UI was ready
     for line in manager._console_log:
