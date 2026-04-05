@@ -30,10 +30,10 @@ def create_main_panel(manager: 'WebUIManager'):
     with ui.column().classes('w-full gap-2'):
 
         # Row 1: Left side (Status, WebSocket + Login, Campaign Progress, Console) and Right side (Channel List)
-        with ui.row().classes('w-full gap-2 items-stretch'):
+        with ui.row().classes('w-full gap-2 items-stretch').style('flex-wrap: wrap'):
 
             # Left column
-            with ui.column().classes('gap-2').style('flex: 1; min-width: 0').props('id=tdm-left-col'):
+            with ui.column().classes('gap-2').style('flex: 1 1 300px; min-width: 0').props('id=tdm-left-col'):
 
                 # Status Bar (full width) - matches StatusBar class
                 with ui.card().props('flat bordered').classes('w-full'):
@@ -42,16 +42,16 @@ def create_main_panel(manager: 'WebUIManager'):
                         manager._status_card = ui.label("Initializing...").classes('text-sm flex-1')
 
                 # WebSocket Status + Login side by side - matches WebsocketStatus + LoginForm
-                with ui.row().classes('w-full gap-2 items-stretch'):
+                with ui.row().classes('w-full gap-2 items-stretch').style('flex-wrap: wrap'):
 
                     # WebSocket Status card - matches WebsocketStatus class
-                    with ui.card().props('flat bordered').classes('flex-1 gap-1'):
+                    with ui.card().props('flat bordered').classes('gap-1').style('flex: 1 1 180px'):
                         ui.label(_("gui", "websocket", "name")).classes('font-bold text-sm mb-1')
                         manager._ws_container = ui.column().classes('gap-0')
                         _build_ws_rows(manager)
 
                     # Login Form card - matches LoginForm class
-                    with ui.card().props('flat bordered').classes('flex-1 gap-1'):
+                    with ui.card().props('flat bordered').classes('gap-1').style('flex: 1 1 180px'):
                         ui.label(_("gui", "login", "name")).classes('font-bold text-sm mb-1')
                         with ui.row().classes('gap-4 items-start'):
                             ui.label(_("gui", "login", "labels")).classes(
@@ -114,7 +114,7 @@ def create_main_panel(manager: 'WebUIManager'):
                     )
 
             # Right side: Channel List - matches ChannelList class (spans full height)
-            with ui.card().props('flat bordered id=tdm-channels-card').classes('flex-col gap-1').style('flex: 1; min-width: 0; display: flex; overflow: hidden'):
+            with ui.card().props('flat bordered id=tdm-channels-card').classes('flex-col gap-1').style('flex: 1 1 300px; min-width: 0; display: flex; overflow: hidden'):
                 ui.label(_("gui", "channels", "name")).classes('font-bold text-sm mb-1')
 
                 # Switch button (disabled until a channel is selected)
