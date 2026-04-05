@@ -25,10 +25,10 @@ def create_settings_panel(manager: 'WebUIManager'):
 
     settings = manager._twitch.settings
 
-    with ui.row().classes('w-full gap-2 items-stretch'):
+    with ui.row().classes('w-full gap-2 items-stretch').style('flex-wrap: wrap'):
 
         # ── Left column: General + Advanced + Reload ──────────────────────────
-        with ui.column().classes('gap-2').style('flex: 1; min-width: 0'):
+        with ui.column().classes('gap-2').style('flex: 1 1 240px; min-width: 0'):
 
             # General section
             with ui.card().props('flat bordered').classes('w-full q-pa-sm'):
@@ -104,7 +104,7 @@ def create_settings_panel(manager: 'WebUIManager'):
                 ).props('dense').classes('text-xs w-full')
 
         # ── Middle column: Priority list ───────────────────────────────────────
-        with ui.card().props('flat bordered').classes('q-pa-sm flex-col').style('flex: 1; min-width: 0; display: flex'):
+        with ui.card().props('flat bordered').classes('q-pa-sm flex-col').style('flex: 1 1 240px; min-width: 0; display: flex'):
             ui.label(_("gui", "settings", "priority")).classes('font-bold text-sm')
 
             # Input + add
@@ -133,7 +133,7 @@ def create_settings_panel(manager: 'WebUIManager'):
                     ui.button('❌', on_click=lambda: _priority_delete(manager)).props('flat').classes('text-red-500 text-xl p-0 min-h-0')
 
         # ── Right column: Exclude list ─────────────────────────────────────────
-        with ui.card().props('flat bordered').classes('q-pa-sm flex-col').style('flex: 1; min-width: 0; display: flex'):
+        with ui.card().props('flat bordered').classes('q-pa-sm flex-col').style('flex: 1 1 240px; min-width: 0; display: flex'):
             ui.label(_("gui", "settings", "exclude")).classes('font-bold text-sm')
 
             # Input + add
