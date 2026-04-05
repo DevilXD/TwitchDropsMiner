@@ -159,7 +159,7 @@ def _render_drop_html(drop: 'TimedDrop') -> str:
     for benefit in drop.benefits:
         benefits_html += f'''
 <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
-  <div style="font-size:0.75rem;text-align:center;font-weight:500;overflow-wrap:break-word;max-width:80px;">{_e(benefit.name)}</div>
+  <div style="font-size:0.75rem;text-align:center;font-weight:500;white-space:nowrap;">{_e(benefit.name)}</div>
   <img src="{_ea(str(benefit.image_url))}" loading="lazy"
        style="width:80px;height:80px;object-fit:contain;">
 </div>'''
