@@ -169,7 +169,7 @@ def _render_drop_html(drop: 'TimedDrop') -> str:
 
     return f'''
 <div id="drop-{_ea(drop.id)}" class="tdm-drop-card">
-  <div style="display:flex;flex-direction:row;flex-wrap:wrap;justify-content:center;gap:6px;">
+  <div style="display:flex;flex-direction:row;flex-wrap:wrap;justify-content:center;gap:10px;">
     {benefits_html}
   </div>
   <div id="drop-progress-{_ea(drop.id)}"
