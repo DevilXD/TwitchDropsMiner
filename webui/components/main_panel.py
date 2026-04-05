@@ -316,7 +316,7 @@ def _on_logout(manager: 'WebUIManager'):
         # Clear all UI state immediately so old data doesn't linger while re-authing
         manager.channels.clear()
         manager.inv.clear()
-        manager.clear_drop()
+        manager._twitch.stop_watching()
         manager._ws_data.clear()
         manager._ws_dirty = True
         manager.login.update(_("gui", "login", "logged_out"), None)
