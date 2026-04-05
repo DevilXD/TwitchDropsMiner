@@ -273,6 +273,10 @@ class WebUIManager:
                         align-self: auto;
                     }
                 }
+                .tdm-campaign-date .default { display: inline; }
+                .tdm-campaign-date .hovered { display: none; }
+                .tdm-campaign-date:hover .default { display: none; }
+                .tdm-campaign-date:hover .hovered { display: inline; }
             </style>''')
 
             # Alias so nested closures below can reference the manager unambiguously.
