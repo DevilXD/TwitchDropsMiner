@@ -192,19 +192,19 @@ def _render_campaign_html(campaign: 'DropsCampaign') -> str:
         status_color = '#ef4444'
 
     # Dates
-    ends_html = starts_html = ''
+    date_html = ''
     try:
         ends_local = campaign.ends_at.astimezone().replace(microsecond=0, tzinfo=None)
-        ends_html = (
-            f'<div style="font-size:0.75rem;color:#9ca3af;">'
-            f'{_e(_("gui", "inventory", "ends").format(time=ends_local))}</div>'
+        ends_text = _e(_("gui", "inventory", "ends").format(time=ends_local))
+        starts_local = campaign.starts_at.astimezone().replace(microsecond=0, tzinfo=None)
+        starts_text = _e(_("gui", "inventory", "starts").format(time=starts_local))
+        date_html = (
+            f'<div class="tdm-campaign-date"'
+            f' style="font-size:0.75rem;color:#9ca3af;cursor:default;">'
+            f'<span class="default">{starts_text if campaign.upcoming else ends_text}</span>'
+            f'<span class="hovered">{ends_text if campaign.upcoming else starts_text}</span>'
+            f'</div>'
         )
-        if campaign.upcoming:
-            starts_local = campaign.starts_at.astimezone().replace(microsecond=0, tzinfo=None)
-            starts_html = (
-                f'<div style="font-size:0.75rem;color:#9ca3af;">'
-                f'{_e(_("gui", "inventory", "starts").format(time=starts_local))}</div>'
-            )
     except Exception:
         pass
 
@@ -240,7 +240,7 @@ def _render_campaign_html(campaign: 'DropsCampaign') -> str:
       <div style="font-weight:bold;font-size:0.875rem;">{_e(campaign.name)}</div>
       <div style="font-size:0.75rem;color:#9ca3af;">{_e(campaign.game.name)}</div>
       <div style="font-size:0.75rem;font-weight:bold;color:{status_color};">{_e(status_text)}</div>
-      {ends_html}{starts_html}
+      {date_html}
       <a href="{_ea(str(campaign.link_url))}" target="_blank"
          style="font-size:0.75rem;color:{link_color};text-decoration:underline;">{_e(link_text)}</a>
       <div style="font-size:0.75rem;color:#9ca3af;">
