@@ -35,7 +35,7 @@ def create_inventory_panel(manager: 'WebUIManager'):
     with ui.column().classes('w-full gap-2'):
 
         # Filter bar
-        with ui.card().props('flat bordered').classes('w-full'):
+        with ui.card().props('flat bordered').classes('w-full q-pa-xs'):
             with ui.row().classes('items-center gap-4 flex-wrap'):
                 ui.label(_("gui", "inventory", "filter", "show")).classes('text-sm font-bold')
 
@@ -51,7 +51,7 @@ def create_inventory_panel(manager: 'WebUIManager'):
                         _("gui", "inventory", "filter", label_key),
                         value=manager._inventory_filters[key],
                         on_change=lambda e, k=key: _on_filter_change(manager, k, e.value),
-                    ).classes('text-sm')
+                    ).classes('text-sm').props('dense')
                     manager._filter_checkboxes[key] = cb
 
                 ui.button(
