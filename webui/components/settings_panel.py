@@ -115,7 +115,7 @@ def create_settings_panel(manager: 'WebUIManager'):
                     new_value_mode='add-unique',
                 ).classes('flex-1 text-xs').props('dense use-input hide-selected')
                 manager._priority_input = priority_input
-                ui.button('➕', on_click=lambda: _priority_add(manager, priority_input)).props('dense flat')
+                ui.button('➕', on_click=lambda: _priority_add(manager, priority_input)).props('dense flat').classes('text-xl p-0 min-h-0')
 
             # List with move buttons
             with ui.row().classes('w-full gap-1 items-start').style('min-height: 200px'):
@@ -126,11 +126,11 @@ def create_settings_panel(manager: 'WebUIManager'):
 
                 # Move buttons
                 with ui.column().classes('gap-1'):
-                    ui.button('⏫', on_click=lambda: _priority_move(manager, 'top')).props('dense flat').classes('text-xs')
-                    ui.button('⬆️', on_click=lambda: _priority_move(manager, 'up')).props('dense flat').classes('text-xs')
-                    ui.button('⬇️', on_click=lambda: _priority_move(manager, 'down')).props('dense flat').classes('text-xs')
-                    ui.button('⏬', on_click=lambda: _priority_move(manager, 'bottom')).props('dense flat').classes('text-xs')
-                    ui.button('❌', on_click=lambda: _priority_delete(manager)).props('dense flat').classes('text-xs text-red-500')
+                    ui.button('⏫', on_click=lambda: _priority_move(manager, 'top')).props('flat').classes('text-xl p-0 min-h-0')
+                    ui.button('⬆️', on_click=lambda: _priority_move(manager, 'up')).props('flat').classes('text-xl p-0 min-h-0')
+                    ui.button('⬇️', on_click=lambda: _priority_move(manager, 'down')).props('flat').classes('text-xl p-0 min-h-0')
+                    ui.button('⏬', on_click=lambda: _priority_move(manager, 'bottom')).props('flat').classes('text-xl p-0 min-h-0')
+                    ui.button('❌', on_click=lambda: _priority_delete(manager)).props('flat').classes('text-red-500 text-xl p-0 min-h-0')
 
         # ── Right column: Exclude list ─────────────────────────────────────────
         with ui.card().props('flat bordered').classes('q-pa-sm flex-col').style('flex: 1; min-width: 0; display: flex'):
@@ -144,18 +144,17 @@ def create_settings_panel(manager: 'WebUIManager'):
                     new_value_mode='add-unique',
                 ).classes('flex-1 text-xs').props('dense use-input hide-selected')
                 manager._exclude_input = exclude_input
-                ui.button('➕', on_click=lambda: _exclude_add(manager, exclude_input)).props('dense flat')
+                ui.button('➕', on_click=lambda: _exclude_add(manager, exclude_input)).props('dense flat').classes('text-xl p-0 min-h-0')
 
-            # List + delete
-            manager._exclude_list = ui.list().props('dense bordered').classes(
-                'w-full text-xs overflow-y-auto'
-            ).style('min-height: 200px')
-            _rebuild_exclude_list(manager)
+            # List + delete button to the right
+            with ui.row().classes('w-full gap-1 items-start').style('min-height: 200px'):
+                manager._exclude_list = ui.list().props('dense bordered').classes(
+                    'flex-1 text-xs overflow-y-auto'
+                ).style('min-height: 200px')
+                _rebuild_exclude_list(manager)
 
-            ui.button('❌', on_click=lambda: _exclude_delete(manager)).props('dense flat').classes(
-                'text-xs text-red-500 w-full'
-            )
-
+                with ui.column().classes('gap-1'):
+                    ui.button('❌', on_click=lambda: _exclude_delete(manager)).props('flat').classes('text-red-500 text-xl p-0 min-h-0')
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
