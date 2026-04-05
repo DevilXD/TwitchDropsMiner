@@ -381,11 +381,15 @@ class WebUIManager:
             self._console_log.append(f"{stamp}: {line}")
 
         if self._console is not None:
-            try:
-                for line in display_message.split('\n'):
-                    self._console.push(f"{stamp}: {line}")
-            except Exception:
-                pass
+            lines = [f"{stamp}: {line}" for line in display_message.split('\n')]
+            console = self._console
+            def _push(console=console, lines=lines):
+                try:
+                    for line in lines:
+                        console.push(line)
+                except Exception:
+                    pass
+            self._main_loop.call_soon_threadsafe(_push)
 
         # Mirror to stdout/file when stdlog is enabled, matching gui.py behaviour.
         if self._twitch.settings.stdlog:
