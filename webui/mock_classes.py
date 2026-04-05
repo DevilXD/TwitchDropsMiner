@@ -307,6 +307,20 @@ class MockWebsocketStatus:
                 'status': _("gui", "websocket", "disconnected"),
                 'topics': 0,
             }
+            # If no status was provided for a new entry, check the live websocket
+            # state so already-connected sockets aren't stuck on the "Disconnected" fallback.
+            if status is None:
+                try:
+                    ws_list = self._manager._twitch.websocket.websockets
+                    if idx < len(ws_list):
+                        live_status = (
+                            _("gui", "websocket", "connected")
+                            if ws_list[idx].connected
+                            else _("gui", "websocket", "disconnected")
+                        )
+                        data[idx]['status'] = live_status
+                except Exception:
+                    pass
         if status is not None:
             data[idx]['status'] = status
         if topics is not None:
