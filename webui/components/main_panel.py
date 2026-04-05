@@ -313,15 +313,16 @@ def _on_logout(manager: 'WebUIManager'):
         if manager._twitch._session is not None:
             manager._twitch._session.cookie_jar.clear()
         manager._twitch._auth_state.clear()
-        manager.login.update(_("gui", "login", "logged_out"), None)
-        # Clear status and websocket display immediately
-        manager._twitch.gui.status.update(_("gui", "status", "idle"))
+        # Clear all UI state immediately so old data doesn't linger while re-authing
+        manager.channels.clear()
+        manager.inv.clear()
+        manager.clear_drop()
         manager._ws_data.clear()
         manager._ws_dirty = True
-        # Kick the main loop so it re-runs validate() and starts the login flow
-        manager._main_loop.call_soon_threadsafe(
-            manager._twitch.change_state, State.INVENTORY_FETCH
-        )
+        manager.login.update(_("gui", "login", "logged_out"), None)
+        manager.status.update(_("gui", "status", "idle"))
+        # Trigger re-auth the same way as the Settings Reload button
+        manager._twitch.state_change(State.INVENTORY_FETCH)()
     except Exception as e:
         print(f"Logout error: {e}")
 
