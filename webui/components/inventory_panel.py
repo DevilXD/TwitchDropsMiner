@@ -174,7 +174,7 @@ def _render_drop_html(drop: 'TimedDrop') -> str:
   </div>
   <div id="drop-progress-{_ea(drop.id)}"
        style="font-size:0.75rem;text-align:center;white-space:pre;
-              color:{progress_color};">{_e(progress_text)}</div>
+              color:{progress_color};">{_e(progress_text) if progress_text else '&nbsp;'}</div>
 </div>'''
 
 
