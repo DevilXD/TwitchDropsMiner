@@ -16,7 +16,7 @@ def create_gui_manager(twitch: Twitch) -> Union['GUIManager', 'WebUIManager']:
 
     Environment Variables:
         UI_BACKEND: Set to "nicegui" to use web UI, "tkinter" for desktop GUI (default: tkinter)
-        WEBUI_HOST: Host for web UI (default: 127.0.0.1)
+        WEBUI_HOST: Host for web UI (default: 0.0.0.0)
         WEBUI_PORT: Port for web UI (default: 8080)
 
     Returns:
@@ -30,7 +30,7 @@ def create_gui_manager(twitch: Twitch) -> Union['GUIManager', 'WebUIManager']:
             print("Using NiceGUI web interface")
 
             # Get host and port from environment
-            host = os.getenv('WEBUI_HOST', '127.0.0.1')
+            host = os.getenv('WEBUI_HOST', '0.0.0.0')
             port = int(os.getenv('WEBUI_PORT', '8080'))
 
             print(f"Web UI will be available at http://{host}:{port}")
@@ -59,6 +59,6 @@ def is_webui_enabled() -> bool:
 
 def get_webui_config() -> tuple[str, int]:
     """Get web UI host and port configuration"""
-    host = os.getenv('WEBUI_HOST', '127.0.0.1')
+    host = os.getenv('WEBUI_HOST', '0.0.0.0')
     port = int(os.getenv('WEBUI_PORT', '8080'))
     return host, port

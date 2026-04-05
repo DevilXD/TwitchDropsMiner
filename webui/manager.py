@@ -82,7 +82,7 @@ class WebUIManager:
     See mock_classes.py for details.
     """
 
-    def __init__(self, twitch: 'Twitch', host: str = "127.0.0.1", port: int = 8080):
+    def __init__(self, twitch: 'Twitch', host: str = "0.0.0.0", port: int = 8080):
         if not NICEGUI_AVAILABLE:
             raise ImportError("NiceGUI is not installed. Install it with: pip install nicegui")
 
