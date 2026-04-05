@@ -231,6 +231,7 @@ class WebUIManager:
                     border-radius: 8px;
                     padding: 10px;
                     display: flex;
+                    flex-wrap: wrap;
                     gap: 12px;
                     align-items: flex-start;
                     width: 100%;
@@ -249,7 +250,8 @@ class WebUIManager:
                     flex-direction: column;
                     align-items: center;
                     gap: 6px;
-                    flex-shrink: 0;
+                    min-width: 0;
+                    max-width: 100%;
                 }
                 body.body--dark .tdm-drop-card {
                     border-color: rgba(255,255,255,0.28);
@@ -263,6 +265,13 @@ class WebUIManager:
                 }
                 body.body--dark .tdm-campaign-divider {
                     background: rgba(255,255,255,0.28);
+                }
+                @media (max-width: 640px) {
+                    .tdm-campaign-divider {
+                        width: 100%;
+                        height: 1px;
+                        align-self: auto;
+                    }
                 }
             </style>''')
 

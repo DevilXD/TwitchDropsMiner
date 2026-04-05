@@ -159,7 +159,7 @@ def _render_drop_html(drop: 'TimedDrop') -> str:
     for benefit in drop.benefits:
         benefits_html += f'''
 <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
-  <div style="font-size:0.75rem;text-align:center;font-weight:500;white-space:nowrap;">{_e(benefit.name)}</div>
+  <div style="font-size:0.75rem;text-align:center;font-weight:500;overflow-wrap:break-word;max-width:80px;">{_e(benefit.name)}</div>
   <img src="{_ea(str(benefit.image_url))}" loading="lazy"
        style="width:80px;height:80px;object-fit:contain;">
 </div>'''
@@ -233,7 +233,7 @@ def _render_campaign_html(campaign: 'DropsCampaign') -> str:
     return f'''
 <div class="tdm-campaign-card">
 
-  <div style="width:400px;flex-shrink:0;display:flex;flex-direction:row;gap:12px;align-items:flex-start;">
+  <div style="flex:0 1 400px;min-width:0;display:flex;flex-direction:row;gap:12px;align-items:flex-start;">
     <img src="{_ea(str(campaign.image_url))}" loading="lazy"
          style="width:108px;height:144px;object-fit:cover;border-radius:4px;flex-shrink:0;">
     <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;">
@@ -303,7 +303,7 @@ def refresh_inventory_display(manager: 'WebUIManager'):
             return
 
         for campaign in visible:
-            elem = ui.html(_render_campaign_html(campaign))
+            elem = ui.html(_render_campaign_html(campaign)).style('width: 100%')
             manager._campaign_html_elements[campaign.id] = elem
 
 
