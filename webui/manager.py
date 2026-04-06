@@ -24,7 +24,7 @@
 # twitch.py calls come from a *different* context, so direct widget writes would
 # race. Instead every Mock* method writes to plain Python state stored on the
 # manager (e.g. _ws_data, _channel_map) and sets a boolean "dirty" flag
-# (e.g. _ws_dirty, _channels_dirty). A ui.timer running inside the NiceGUI
+# (e.g. _channels_dirty). A ui.timer running inside the NiceGUI
 # event loop checks these flags periodically and flushes the pending updates.
 #
 # Late-joining clients
@@ -152,7 +152,6 @@ class WebUIManager:
 
         # WebSocket state (shared with MockWebsocketStatus)
         self._ws_data: dict = {}        # idx -> {status, topics}
-        self._ws_dirty: bool = False
 
         # Login state
         self._login_status_text: str = (
@@ -367,6 +366,12 @@ class WebUIManager:
         if self._close_requested.is_set():
             raise ExitRequest()
         return await next(iter(done))
+
+    def rebuild_ws(self):
+        """Rebuild the websocket status display"""
+        if self._nicegui_loop is not None:
+            from .components.main_panel import _build_ws_rows
+            self._nicegui_loop.call_soon_threadsafe(lambda: _build_ws_rows(self))
 
     def clear_drop(self):
         """Clear the current drop display"""

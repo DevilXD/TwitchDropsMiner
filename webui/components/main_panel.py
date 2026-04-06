@@ -320,7 +320,7 @@ def _on_logout(manager: 'WebUIManager'):
         manager.inv.clear()
         manager._twitch.stop_watching()
         manager._ws_data.clear()
-        manager._ws_dirty = True
+        manager.rebuild_ws()
         manager.login.update(_("gui", "login", "logged_out"), None)
         manager.status.update(_("gui", "status", "idle"))
         # Trigger re-auth the same way as the Settings Reload button
@@ -332,11 +332,6 @@ def _on_logout(manager: 'WebUIManager'):
 def _tick_update(manager: 'WebUIManager'):
     """Called every second by ui.timer. Handles dirty flags and countdown."""
     try:
-        # WebSocket display
-        if manager._ws_dirty:
-            manager._ws_dirty = False
-            _build_ws_rows(manager)
-
         # Login display
         if manager._login_dirty:
             manager._login_dirty = False

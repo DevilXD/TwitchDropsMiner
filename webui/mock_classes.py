@@ -15,7 +15,7 @@
 # Instead each method:
 #   1. Writes the new value into a plain Python field on the WebUIManager
 #      (e.g. _ws_data, _channel_map, _login_status_text).
-#   2. Sets a boolean "dirty" flag on the manager (e.g. _ws_dirty).
+#   2. Sets a boolean "dirty" flag on the manager (e.g. _channels_dirty).
 #
 # A ui.timer running inside the NiceGUI event loop polls those dirty flags and
 # pushes the buffered state into the actual widgets.  This keeps all widget
@@ -315,7 +315,7 @@ class MockLoginForm:
 class MockWebsocketStatus:
     """
     Mirrors WebsocketStatus - stores per-websocket data on the manager
-    and marks _ws_dirty so the ui.timer rebuilds the display.
+    and schedules a UI rebuild on the NiceGUI event loop.
     """
 
     def __init__(self, manager: 'WebUIManager'):
@@ -348,11 +348,11 @@ class MockWebsocketStatus:
             data[idx]['status'] = status
         if topics is not None:
             data[idx]['topics'] = topics
-        self._manager._ws_dirty = True
+        self._manager.rebuild_ws()
 
     def remove(self, idx: int):
         self._manager._ws_data.pop(idx, None)
-        self._manager._ws_dirty = True
+        self._manager.rebuild_ws()
 
 
 class MockSettings:
