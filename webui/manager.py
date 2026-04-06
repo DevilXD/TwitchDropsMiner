@@ -174,6 +174,7 @@ class WebUIManager:
         self._current_drop = None
         self._countdown_active: bool = False
         self._progress_seconds: int = 0
+        self._countdown_start_time: float | None = None  # monotonic time when countdown began
 
         # Inventory tracking
         # Defaults match gui.py InventoryOverview.__init__:

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from math import ceil, log10
+from time import monotonic
 from typing import TYPE_CHECKING
 
 try:
@@ -359,13 +360,14 @@ def _tick_update(manager: 'WebUIManager'):
 
 
 def _tick_progress(manager: 'WebUIManager'):
-    """Decrement countdown seconds and update remaining time labels."""
+    """Update remaining time labels, deriving seconds from real elapsed time."""
     drop = manager._current_drop
     if drop is None:
         return
 
-    if manager._countdown_active and manager._progress_seconds > 0:
-        manager._progress_seconds -= 1
+    if manager._countdown_active and manager._countdown_start_time is not None:
+        elapsed = int(monotonic() - manager._countdown_start_time)
+        manager._progress_seconds = max(0, 60 - elapsed)
 
     secs = manager._progress_seconds % 60
 
@@ -435,6 +437,7 @@ def clear_drop(manager: 'WebUIManager'):
     """Clear the current drop display (mirrors CampaignProgress.display(None))."""
     manager._current_drop = None
     manager._countdown_active = False
+    manager._countdown_start_time = None
     manager._progress_seconds = 0
     try:
         if manager._drop_rewards_label is not None:
@@ -496,14 +499,17 @@ def display_drop(manager: 'WebUIManager', drop, *, countdown: bool = True, subon
         # --- Timer control ---
         if countdown:
             manager._countdown_active = True
+            manager._countdown_start_time = monotonic()
             manager._progress_seconds = 60
         elif subone:
             # show time with 0 seconds (minute will be subtracted on watch)
             manager._countdown_active = False
+            manager._countdown_start_time = None
             manager._progress_seconds = 0
         else:
             # display full time without subtracting
             manager._countdown_active = False
+            manager._countdown_start_time = None
             manager._progress_seconds = 60
 
         # Immediate time render
