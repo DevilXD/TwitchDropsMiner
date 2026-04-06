@@ -58,12 +58,10 @@ from .mock_classes import (MockTray, MockStatus, MockProgress, MockOutput, MockC
                           MockInventory, MockLoginForm, MockWebsocketStatus, MockSettings, MockTabs)
 from .handlers import WebUIOutputHandler
 from .components import (create_main_panel, create_settings_panel, create_inventory_panel,
-                        create_help_panel, add_priority_game, add_excluded_game,
-                        refresh_inventory, update_filter, clear_drop, display_drop, set_games)
+                        create_help_panel, clear_drop, display_drop, set_games)
 
 if TYPE_CHECKING:
     from twitch import Twitch
-    from yarl import URL
 
 
 class WebUIManager:
@@ -107,6 +105,7 @@ class WebUIManager:
 
         # Current status text (persisted so late-joining clients can restore it)
         self._status_text: str = "Initializing..."
+        self._status_dirty: bool = False
 
         # NiceGUI widget references — None until the first client page load populates them.
         # Each browser connection runs the index() handler which assigns these.

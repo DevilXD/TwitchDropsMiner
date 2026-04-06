@@ -37,7 +37,7 @@ def create_settings_panel(manager: 'WebUIManager'):
                 # Language
                 with ui.row().classes('items-center gap-2 text-xs'):
                     ui.label("Language 🌐 (requires restart):").classes('flex-1')
-                language_select = ui.select(
+                ui.select(
                     options=list(_.languages),
                     value=_.current,
                     on_change=lambda e: _set_and_save(settings, 'language', e.value),
@@ -59,7 +59,7 @@ def create_settings_panel(manager: 'WebUIManager'):
                 }
                 with ui.row().classes('items-center gap-2 text-xs'):
                     ui.label(_("gui", "settings", "general", "priority_mode")).classes('flex-1')
-                priority_select = ui.select(
+                ui.select(
                     options=priority_mode_options,
                     value=settings.priority_mode,
                     on_change=lambda e: _set_and_save(settings, 'priority_mode', e.value),
@@ -67,7 +67,7 @@ def create_settings_panel(manager: 'WebUIManager'):
 
                 # Proxy
                 ui.label(_("gui", "settings", "general", "proxy")).classes('text-xs')
-                proxy_input = ui.input(
+                ui.input(
                     value=str(settings.proxy) if settings.proxy else '',
                     placeholder='http://username:password@address:port',
                     on_change=lambda e: _on_proxy_change(settings, e.value),

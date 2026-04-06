@@ -80,13 +80,7 @@ class MockStatus:
 
     def update(self, text: str):
         self._manager._status_text = text
-        try:
-            if self._manager._status_card is not None:
-                self._manager._status_card.set_text(text)
-            if self._manager._status_label is not None:
-                self._manager._status_label.set_text(text)
-        except Exception as e:
-            print(f"Failed to update status: {e}")
+        self._manager._status_dirty = True
 
     def clear(self):
         self.update("")
