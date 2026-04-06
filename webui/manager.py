@@ -103,7 +103,7 @@ class WebUIManager:
         self._running = False
         self._console_log = []
 
-        self.tray = MockTray()
+        self.tray = MockTray(self)
         self.status = MockStatus(self)
         self.progress = MockProgress(self)
         self.output = MockOutput(self)

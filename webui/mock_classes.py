@@ -60,6 +60,9 @@ class LoginData:
 class MockTray:
     """Mock system tray - no-op for web UI"""
 
+    def __init__(self, manager: 'WebUIManager'):
+        self._manager = manager
+
     def change_icon(self, icon_name: str):
         pass
 
@@ -71,6 +74,17 @@ class MockTray:
 
     def stop(self):
         pass
+
+    def notify(self, message: str, title: str | None = None, duration: float = 10):
+        if self._manager._nicegui_loop is None:
+            return
+        text = f"{title}: {message}" if title else message
+        def _do():
+            from nicegui import Client, ui
+            for client in list(Client.instances.values()):
+                with client:
+                    ui.notify(text, timeout=duration * 1000)
+        self._manager._nicegui_loop.call_soon_threadsafe(_do)
 
 
 class MockStatus:
