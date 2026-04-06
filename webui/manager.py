@@ -98,6 +98,7 @@ class WebUIManager:
         self._host = host
         self._port = port
         self._main_loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
+        self._nicegui_loop: asyncio.AbstractEventLoop | None = None
         self._close_requested = asyncio.Event()
         self._running = False
         self._console_log = []
@@ -229,6 +230,10 @@ class WebUIManager:
         app.add_static_files('/static', str(Path(__file__).parent / 'static'))
         _css = (Path(__file__).parent / 'styles.css').read_text(encoding='utf-8')
 
+        @app.on_startup
+        async def _capture_loop():
+            self._nicegui_loop = asyncio.get_running_loop()
+
         @ui.page('/')
         def index(tab: str = 'main'):
             ui.page_title("Twitch Drops Miner")
@@ -308,7 +313,7 @@ class WebUIManager:
                         console.push(line)
                 except Exception:
                     pass
-            self._main_loop.call_soon_threadsafe(_push)
+            self._nicegui_loop.call_soon_threadsafe(_push)
 
         # Mirror to stdout/file when stdlog is enabled, matching gui.py behaviour.
         if self._twitch.settings.stdlog:
