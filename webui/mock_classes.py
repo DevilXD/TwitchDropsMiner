@@ -156,12 +156,17 @@ class MockChannels:
         return self._manager._channel_map.get(iid)
 
     def clear_selection(self):
-        table = self._manager._channels_table
-        if table is not None:
-            table.selected.clear()
-            table.update()
-        if self._manager._channel_switch_btn is not None:
-            self._manager._channel_switch_btn.props('disabled')
+        if self.manager._nicegui_loop is None:
+            return
+        def _do():
+            table = self._manager._channels_table
+            if table is not None:
+                table.selected.clear()
+                table.update()
+            switch_btn = self._manager._channel_switch_btn
+            if switch_btn is not None:
+                switch_btn.props('disabled')
+        self.manager._nicegui_loop.call_soon_threadsafe(_do)
 
     def display(self, channel: 'Channel', *, add: bool = False):
         """Add or update a channel entry in the list"""
@@ -211,15 +216,19 @@ class MockInventory:
         Mirrors InventoryOverview.update_drop() - re-renders the campaign's HTML
         element so the drop progress text updates live.
         """
-        try:
-            from webui.components.inventory_panel import _render_campaign_html
-            campaign = drop.campaign
-            elem = self._manager._campaign_html_elements.get(campaign.id)
-            if elem is None:
-                return
-            elem.content = _render_campaign_html(campaign)
-        except Exception as e:
-            print(f"update_drop failed: {e}")
+        if self._manager._nicegui_loop is None:
+            return
+        def _do():
+            try:
+                from webui.components.inventory_panel import _render_campaign_html
+                campaign = drop.campaign
+                elem = self._manager._campaign_html_elements.get(campaign.id)
+                if elem is None:
+                    return
+                elem.content = _render_campaign_html(campaign)
+            except Exception as e:
+                print(f"update_drop failed: {e}")
+        self._manager._nicegui_loop.call_soon_threadsafe(_do)
 
     def configure_theme(self, *, bg: str):
         pass

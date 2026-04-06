@@ -367,11 +367,15 @@ class WebUIManager:
 
     def clear_drop(self):
         """Clear the current drop display"""
-        clear_drop(self)
+        if self._nicegui_loop is not None:
+            self._nicegui_loop.call_soon_threadsafe(lambda: clear_drop(self))
 
     def display_drop(self, drop, *, countdown: bool = True, subone: bool = False):
         """Display current drop information"""
-        display_drop(self, drop, countdown=countdown, subone=subone)
+        if self._nicegui_loop is not None:
+            self._nicegui_loop.call_soon_threadsafe(
+                lambda: display_drop(self, drop, countdown=countdown, subone=subone)
+            )
 
     def set_games(self, games: set[Game]) -> None:
         """Set available games for settings"""
