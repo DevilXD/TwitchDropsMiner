@@ -16,6 +16,7 @@ from constants import PriorityMode, State
 
 if TYPE_CHECKING:
     from webui.manager import WebUIManager
+    from utils import Game
 
 
 def create_settings_panel(manager: 'WebUIManager'):
@@ -340,7 +341,7 @@ def add_excluded_game(manager: 'WebUIManager', game_name: str):
     _rebuild_exclude_list(manager)
 
 
-def set_games(manager: 'WebUIManager', games) -> None:
+def set_games(manager: 'WebUIManager', games: set[Game]) -> None:
     """Called when game list is updated — store names and refresh autocomplete options."""
     manager._game_names = {game.name for game in games}
     _refresh_input_options(manager)

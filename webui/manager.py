@@ -62,6 +62,16 @@ from .components import (create_main_panel, create_settings_panel, create_invent
 
 if TYPE_CHECKING:
     from twitch import Twitch
+    from nicegui.elements.button import Button as NiceButton
+    from nicegui.elements.checkbox import Checkbox as NiceCheckbox
+    from nicegui.elements.column import Column as NiceColumn
+    from nicegui.elements.label import Label as NiceLabel
+    from nicegui.elements.progress import LinearProgress as NiceLinearProgress
+    from nicegui.elements.list import List as NiceList
+    from nicegui.elements.log import Log as NiceLog
+    from nicegui.elements.select import Select as NiceSelect
+    from nicegui.elements.table import Table as NiceTable
+    from utils import Game
 
 
 class WebUIManager:
@@ -109,36 +119,36 @@ class WebUIManager:
 
         # NiceGUI widget references — None until the first client page load populates them.
         # Each browser connection runs the index() handler which assigns these.
-        self._status_label = None
-        self._status_card = None
-        self._console = None
-        self._dark_mode_enabled = True
+        self._status_label: NiceLabel | None = None
+        self._status_card: NiceLabel | None = None
+        self._console: NiceLog | None = None
+        self._dark_mode_enabled: bool = True
 
         # Main panel UI elements
-        self._ws_container = None
-        self._login_status_label = None
-        self._campaign_game_label = None
-        self._campaign_name_label = None
-        self._campaign_progress_bar = None
-        self._campaign_percentage_label = None
-        self._campaign_remaining_label = None
-        self._drop_rewards_label = None
-        self._drop_progress_bar = None
-        self._drop_percentage_label = None
-        self._drop_remaining_label = None
-        self._channels_table = None
-        self._channel_switch_btn = None
+        self._ws_container: NiceColumn | None = None
+        self._login_status_label: NiceLabel | None = None
+        self._campaign_game_label: NiceLabel | None = None
+        self._campaign_name_label: NiceLabel | None = None
+        self._campaign_progress_bar: NiceLinearProgress | None = None
+        self._campaign_percentage_label: NiceLabel | None = None
+        self._campaign_remaining_label: NiceLabel | None = None
+        self._drop_rewards_label: NiceLabel | None = None
+        self._drop_progress_bar: NiceLinearProgress | None = None
+        self._drop_percentage_label: NiceLabel | None = None
+        self._drop_remaining_label: NiceLabel | None = None
+        self._channels_table: NiceTable | None = None
+        self._channel_switch_btn: NiceButton | None = None
 
         # Settings/inventory UI elements
-        self._priority_list = None
-        self._exclude_list = None
-        self._priority_input = None
-        self._exclude_input = None
-        self._filter_checkboxes = None
-        self._inventory_container = None
+        self._priority_list: NiceList | None = None
+        self._exclude_list: NiceList | None = None
+        self._priority_input: NiceSelect | None = None
+        self._exclude_input: NiceSelect | None = None
+        self._filter_checkboxes: dict[str, NiceCheckbox] | None = None
+        self._inventory_container: NiceColumn | None = None
         self._priority_selected: int | None = None
         self._exclude_selected: str | None = None
-        self._game_names: set = set()
+        self._game_names: set[str] = set()
 
         # WebSocket state (shared with MockWebsocketStatus)
         self._ws_data: dict = {}        # idx -> {status, topics}
@@ -151,8 +161,8 @@ class WebUIManager:
         self._login_dirty: bool = False
         self._login_btn_visible: bool = False
         self._logout_btn_visible: bool = False
-        self._login_button = None
-        self._logout_button = None
+        self._login_button: NiceButton | None = None
+        self._logout_button: NiceButton | None = None
 
         # Channel list state (shared with MockChannels)
         self._channel_map: dict = {}    # iid -> Channel
@@ -358,7 +368,7 @@ class WebUIManager:
         """Display current drop information"""
         display_drop(self, drop, countdown=countdown, subone=subone)
 
-    def set_games(self, games) -> None:
+    def set_games(self, games: set[Game]) -> None:
         """Set available games for settings"""
         set_games(self, games)
 

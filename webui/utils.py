@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Any
 
 
 def get_campaign_status(campaign) -> str:

@@ -47,6 +47,7 @@ if TYPE_CHECKING:
     from yarl import URL
     from channel import Channel
     from webui.manager import WebUIManager
+    from utils import Game
 
 
 @dataclass
@@ -345,7 +346,7 @@ class MockSettings:
     def clear_selection(self):
         pass
 
-    def set_games(self, games):
+    def set_games(self, games: set[Game]):
         pass
 
 
