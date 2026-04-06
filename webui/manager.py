@@ -218,66 +218,14 @@ class WebUIManager:
         """Register the NiceGUI page handler. The inner index() function runs once
         per browser connection, building the full UI for that client."""
         app.add_static_files('/static', str(Path(__file__).parent / 'static'))
+        _css = (Path(__file__).parent / 'styles.css').read_text(encoding='utf-8')
 
         @ui.page('/')
         def index(tab: str = 'main'):
             ui.page_title("Twitch Drops Miner")
             ui.dark_mode(True)
             ui.query('.nicegui-content').style('padding: 0')
-            ui.add_head_html('''<style>
-                .tdm-campaign-card {
-                    border: 1px solid rgba(0,0,0,0.12);
-                    background: rgba(0,0,0,0.03);
-                    border-radius: 8px;
-                    padding: 10px;
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 12px;
-                    align-items: flex-start;
-                    width: 100%;
-                    box-sizing: border-box;
-                }
-                body.body--dark .tdm-campaign-card {
-                    border-color: rgba(255,255,255,0.28);
-                    background: rgba(255,255,255,0.05);
-                }
-                .tdm-drop-card {
-                    border: 1px solid rgba(0,0,0,0.12);
-                    background: rgba(0,0,0,0.06);
-                    border-radius: 4px;
-                    padding: 12px;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    gap: 6px;
-                    min-width: 0;
-                    max-width: 100%;
-                }
-                body.body--dark .tdm-drop-card {
-                    border-color: rgba(255,255,255,0.28);
-                    background: rgba(0,0,0,0.2);
-                }
-                .tdm-campaign-divider {
-                    width: 1px;
-                    background: rgba(0,0,0,0.12);
-                    align-self: stretch;
-                    flex-shrink: 0;
-                }
-                body.body--dark .tdm-campaign-divider {
-                    background: rgba(255,255,255,0.28);
-                }
-                @media (max-width: 640px) {
-                    .tdm-campaign-divider {
-                        width: 100%;
-                        height: 1px;
-                        align-self: auto;
-                    }
-                }
-                .tdm-campaign-date .default { display: inline; }
-                .tdm-campaign-date .hovered { display: none; }
-                .tdm-campaign-date:hover .default { display: none; }
-                .tdm-campaign-date:hover .hovered { display: inline; }
-            </style>''')
+            ui.add_head_html(f'<style>{_css}</style>')
 
             # Alias so nested closures below can reference the manager unambiguously.
             manager = self
@@ -315,48 +263,10 @@ class WebUIManager:
                 with ui.tab_panel(help_tab):
                     create_help_panel(manager)
 
-            # Add initial dark mode styling (will be updated by toggle)
-            manager._apply_initial_styles()
-
 
     def _toggle_dark_mode(self, enabled: bool):
-        """Switch dark/light mode. NiceGUI's ui.dark_mode() flips Quasar's body class,
-        but Quasar component colours need explicit CSS overrides to follow suit."""
         self._dark_mode_enabled = enabled
         ui.dark_mode(enabled)
-        if enabled:
-            ui.add_head_html('''
-                <style id="dark-mode-styles">
-                    body, html { background-color: #1f2937 !important; color: #ffffff !important; }
-                    .nicegui-content { background-color: #1f2937 !important; color: #ffffff !important; }
-                    .tdm-header-row { color: #ffffff !important; background-color: #111827 !important; }
-                    .q-tab { color: #ffffff !important; }
-                    .q-tabs { background-color: #374151 !important; }
-                    .q-tab-panels { background-color: #1f2937 !important; color: #ffffff !important; }
-                    .q-field__control { background-color: #374151 !important; color: #ffffff !important; }
-                    .q-field__native { color: #ffffff !important; }
-                    .q-card { background-color: #374151 !important; color: #ffffff !important; }
-                    .q-expansion-item { background-color: #374151 !important; color: #ffffff !important; }
-                </style>
-            ''')
-        else:
-            ui.add_head_html('''
-                <style id="light-mode-styles">
-                    body, html { background-color: #ffffff !important; color: #000000 !important; }
-                    .nicegui-content { background-color: #ffffff !important; color: #000000 !important; }
-                    .tdm-header-row { color: #000000 !important; background-color: #E5E7EB !important; }
-                    .q-tab { color: #000000 !important; }
-                    .q-tabs { background-color: #f3f4f6 !important; }
-                    .q-tab-panels { background-color: #ffffff !important; color: #000000 !important; }
-                    .q-field__control { background-color: #f9fafb !important; color: #000000 !important; }
-                    .q-field__native { color: #000000 !important; }
-                    .q-card { background-color: #f9fafb !important; color: #000000 !important; }
-                    .q-expansion-item { background-color: #f9fafb !important; color: #000000 !important; }
-                </style>
-            ''')
-
-    def _apply_initial_styles(self):
-        self._toggle_dark_mode(self._dark_mode_enabled)
 
     @property
     def running(self) -> bool:
