@@ -81,7 +81,14 @@ class MockStatus:
 
     def update(self, text: str):
         self._manager._status_text = text
-        self._manager._status_dirty = True
+        if self._manager._nicegui_loop is None:
+            return
+        def _do():
+            if self._manager._status_label is not None:
+                self._manager._status_label.set_text(text)
+            if self._manager._status_card is not None:
+                self._manager._status_card.set_text(text)
+        self._manager._nicegui_loop.call_soon_threadsafe(_do)
 
     def clear(self):
         self.update("")

@@ -116,7 +116,6 @@ class WebUIManager:
 
         # Current status text (persisted so late-joining clients can restore it)
         self._status_text: str = "Initializing..."
-        self._status_dirty: bool = False
 
         # NiceGUI widget references — None until the first client page load populates them.
         # Each browser connection runs the index() handler which assigns these.

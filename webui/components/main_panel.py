@@ -331,14 +331,6 @@ def _on_logout(manager: 'WebUIManager'):
 def _tick_update(manager: 'WebUIManager'):
     """Called every second by ui.timer. Handles dirty flags and countdown."""
     try:
-        # Status Label/Card
-        if manager._status_dirty:
-            manager._status_dirty = False
-            if manager._status_label is not None:
-                manager._status_label.set_text(manager._status_text)
-            if manager._status_card is not None:
-                manager._status_card.set_text(manager._status_text)
-
         # WebSocket display
         if manager._ws_dirty:
             manager._ws_dirty = False
