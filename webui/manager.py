@@ -168,6 +168,7 @@ class WebUIManager:
         # Channel list state (shared with MockChannels)
         self._channel_map: dict = {}    # iid -> Channel
         self._watching_channel_iid = None
+        self._selected_channel_iid = None
         self._channels_dirty: bool = False
 
         # Drop/progress state
@@ -341,9 +342,11 @@ class WebUIManager:
         self._running = False
 
     def close_window(self):
-        if hasattr(logging.getLogger("TwitchDrops"), 'removeHandler'):
-            logging.getLogger("TwitchDrops").removeHandler(self._handler)
-        app.shutdown()
+        logging.getLogger("TwitchDrops").removeHandler(self._handler)
+        if self._nicegui_loop is not None:
+            self._nicegui_loop.call_soon_threadsafe(app.shutdown)
+        else:
+            app.shutdown()
 
     def grab_attention(self, *, sound: bool = True):
         """Browser equivalent of the desktop grab-attention (flash/sound). Logs a visible prompt instead."""

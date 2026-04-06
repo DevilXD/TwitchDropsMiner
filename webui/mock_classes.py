@@ -147,15 +147,13 @@ class MockChannels:
 
     def get_selection(self) -> 'Channel | None':
         """Return the currently selected Channel (for CHANNEL_SWITCH state)"""
-        table = self._manager._channels_table
-        if table is None or not table.selected:
-            return None
-        iid = table.selected[0].get('iid')
+        iid = self._manager._selected_channel_iid
         if iid is None:
             return None
         return self._manager._channel_map.get(iid)
 
     def clear_selection(self):
+        self._manager._selected_channel_iid = None
         if self.manager._nicegui_loop is None:
             return
         def _do():

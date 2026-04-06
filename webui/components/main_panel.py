@@ -293,14 +293,15 @@ def _on_channel_switch(manager: 'WebUIManager'):
 def _on_table_selection(manager: 'WebUIManager', e):
     """Enable/disable the Switch button based on table selection."""
     try:
-        has_selection = bool(
-            manager._channels_table is not None and manager._channels_table.selected
-        )
-        if manager._channel_switch_btn is not None:
-            if has_selection:
-                manager._channel_switch_btn.props(remove='disabled')
+        selected = manager._channels_table.selected if manager._channels_table else []
+        iid = selected[0].get('iid') if selected else None
+        manager._selected_channel_iid = iid
+        switch_btn = manager._channel_switch_btn
+        if switch_btn is not None:
+            if iid is not None:
+                switch_btn.props(remove='disabled')
             else:
-                manager._channel_switch_btn.props('disabled')
+                switch_btn.props('disabled')
     except Exception as ex:
         print(f"Selection handler error: {ex}")
 
