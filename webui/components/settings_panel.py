@@ -342,10 +342,7 @@ def add_excluded_game(manager: 'WebUIManager', game_name: str):
 
 
 def set_games(manager: 'WebUIManager', games: set[Game]) -> None:
-    """Called when game list is updated — may arrive from twitch.py's thread.
-    Schedules the widget update onto NiceGUI's event loop via call_soon_threadsafe."""
+    """Update the available game list and refresh the input dropdowns.
+    Always called on the NiceGUI loop (manager.set_games is decorated with @on_nicegui_loop)."""
     manager._game_names = {game.name for game in games}
-    if manager._nicegui_loop is not None:
-        manager._nicegui_loop.call_soon_threadsafe(
-            lambda: _refresh_input_options(manager)
-        )
+    _refresh_input_options(manager)

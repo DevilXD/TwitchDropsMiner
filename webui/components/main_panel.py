@@ -7,6 +7,8 @@ from math import ceil, log10
 from time import monotonic
 from typing import TYPE_CHECKING
 
+from webui.thread_utils import call_on_main_loop
+
 try:
     from nicegui import ui
     NICEGUI_AVAILABLE = True
@@ -63,9 +65,7 @@ def create_main_panel(manager: 'WebUIManager'):
                             ).classes('text-xs whitespace-pre leading-relaxed')
                         manager._login_button = ui.button(
                             _("gui", "login", "button"),
-                            on_click=lambda: manager._main_loop.call_soon_threadsafe(
-                                manager.login._confirm.set
-                            )
+                            on_click=lambda: call_on_main_loop(manager.login, manager.login._confirm.set)
                         ).props('dense').classes('text-xs')
                         manager._login_button.set_visibility(False)
                         manager._logout_button = ui.button(

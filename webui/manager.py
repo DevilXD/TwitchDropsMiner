@@ -58,7 +58,9 @@ from .mock_classes import (MockTray, MockStatus, MockProgress, MockOutput, MockC
                           MockInventory, MockLoginForm, MockWebsocketStatus, MockSettings, MockTabs)
 from .handlers import WebUIOutputHandler
 from .components import (create_main_panel, create_settings_panel, create_inventory_panel,
-                        create_help_panel, clear_drop, display_drop, set_games)
+                        create_help_panel, clear_drop as _clear_drop,
+                        display_drop as _display_drop, set_games as _set_games)
+from .thread_utils import on_nicegui_loop, call_on_nicegui
 
 if TYPE_CHECKING:
     from twitch import Twitch
@@ -300,20 +302,13 @@ class WebUIManager:
         else:
             display_message = message
 
+        lines = [f"{stamp}: {line}" for line in display_message.split('\n')]
         # Persist every line so late-joining clients can replay the full log on connect.
-        for line in display_message.split('\n'):
-            self._console_log.append(f"{stamp}: {line}")
+        self._console_log.extend(lines)
 
         if self._console is not None:
-            lines = [f"{stamp}: {line}" for line in display_message.split('\n')]
             console = self._console
-            def _push(console=console, lines=lines):
-                try:
-                    for line in lines:
-                        console.push(line)
-                except Exception:
-                    pass
-            self._nicegui_loop.call_soon_threadsafe(_push)
+            call_on_nicegui(self, lambda: [console.push(line) for line in lines])
 
         # Mirror to stdout/file when stdlog is enabled, matching gui.py behaviour.
         if self._twitch.settings.stdlog:
@@ -342,10 +337,7 @@ class WebUIManager:
 
     def close_window(self):
         logging.getLogger("TwitchDrops").removeHandler(self._handler)
-        if self._nicegui_loop is not None:
-            self._nicegui_loop.call_soon_threadsafe(app.shutdown)
-        else:
-            app.shutdown()
+        call_on_nicegui(self, app.shutdown)
 
     def grab_attention(self, *, sound: bool = True):
         """Browser equivalent of the desktop grab-attention (flash/sound). Logs a visible prompt instead."""
@@ -367,27 +359,26 @@ class WebUIManager:
             raise ExitRequest()
         return await next(iter(done))
 
+    @on_nicegui_loop
     def rebuild_ws(self):
         """Rebuild the websocket status display"""
-        if self._nicegui_loop is not None:
-            from .components.main_panel import _build_ws_rows
-            self._nicegui_loop.call_soon_threadsafe(lambda: _build_ws_rows(self))
+        from .components.main_panel import _build_ws_rows
+        _build_ws_rows(self)
 
+    @on_nicegui_loop
     def clear_drop(self):
         """Clear the current drop display"""
-        if self._nicegui_loop is not None:
-            self._nicegui_loop.call_soon_threadsafe(lambda: clear_drop(self))
+        _clear_drop(self)
 
+    @on_nicegui_loop
     def display_drop(self, drop, *, countdown: bool = True, subone: bool = False):
         """Display current drop information"""
-        if self._nicegui_loop is not None:
-            self._nicegui_loop.call_soon_threadsafe(
-                lambda: display_drop(self, drop, countdown=countdown, subone=subone)
-            )
+        _display_drop(self, drop, countdown=countdown, subone=subone)
 
+    @on_nicegui_loop
     def set_games(self, games: set[Game]) -> None:
         """Set available games for settings"""
-        set_games(self, games)
+        _set_games(self, games)
 
     def apply_theme(self, dark: bool) -> None:
         """Apply theme (no-op for web UI)"""

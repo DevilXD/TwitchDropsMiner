@@ -42,6 +42,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from translate import _
+from .thread_utils import on_nicegui_loop, call_on_nicegui
 
 if TYPE_CHECKING:
     from yarl import URL
@@ -75,16 +76,13 @@ class MockTray:
     def stop(self):
         pass
 
+    @on_nicegui_loop
     def notify(self, message: str, title: str | None = None, duration: float = 10):
-        if self._manager._nicegui_loop is None:
-            return
         text = f"{title}: {message}" if title else message
-        def _do():
-            from nicegui import Client, ui
-            for client in list(Client.instances.values()):
-                with client:
-                    ui.notify(text, timeout=duration * 1000)
-        self._manager._nicegui_loop.call_soon_threadsafe(_do)
+        from nicegui import Client, ui
+        for client in list(Client.instances.values()):
+            with client:
+                ui.notify(text, timeout=duration * 1000)
 
 
 class MockStatus:
@@ -94,15 +92,13 @@ class MockStatus:
         self._manager = manager
 
     def update(self, text: str):
-        self._manager._status_text = text
-        if self._manager._nicegui_loop is None:
-            return
+        self._manager._status_text = text  # immediate: persists for late-joining clients
         def _do():
             if self._manager._status_label is not None:
                 self._manager._status_label.set_text(text)
             if self._manager._status_card is not None:
                 self._manager._status_card.set_text(text)
-        self._manager._nicegui_loop.call_soon_threadsafe(_do)
+        call_on_nicegui(self, _do)
 
     def clear(self):
         self.update("")
@@ -175,8 +171,6 @@ class MockChannels:
 
     def clear_selection(self):
         self._manager._selected_channel_iid = None
-        if self.manager._nicegui_loop is None:
-            return
         def _do():
             table = self._manager._channels_table
             if table is not None:
@@ -185,7 +179,7 @@ class MockChannels:
             switch_btn = self._manager._channel_switch_btn
             if switch_btn is not None:
                 switch_btn.props('disabled')
-        self.manager._nicegui_loop.call_soon_threadsafe(_do)
+        call_on_nicegui(self, _do)
 
     def display(self, channel: 'Channel', *, add: bool = False):
         """Add or update a channel entry in the list"""
@@ -235,19 +229,14 @@ class MockInventory:
         Mirrors InventoryOverview.update_drop() - re-renders the campaign's HTML
         element so the drop progress text updates live.
         """
-        if self._manager._nicegui_loop is None:
-            return
         def _do():
-            try:
-                from webui.components.inventory_panel import _render_campaign_html
-                campaign = drop.campaign
-                elem = self._manager._campaign_html_elements.get(campaign.id)
-                if elem is None:
-                    return
-                elem.content = _render_campaign_html(campaign)
-            except Exception as e:
-                print(f"update_drop failed: {e}")
-        self._manager._nicegui_loop.call_soon_threadsafe(_do)
+            from webui.components.inventory_panel import _render_campaign_html
+            campaign = drop.campaign
+            elem = self._manager._campaign_html_elements.get(campaign.id)
+            if elem is None:
+                return
+            elem.content = _render_campaign_html(campaign)
+        call_on_nicegui(self, _do)
 
     def configure_theme(self, *, bg: str):
         pass
