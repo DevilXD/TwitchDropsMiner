@@ -40,15 +40,9 @@ def create_inventory_panel(manager: 'WebUIManager'):
                 ui.label(_("gui", "inventory", "filter", "show")).classes('text-sm font-bold')
 
                 manager._filter_checkboxes = {}
-                for key, label_key in [
-                    ("not_linked", "not_linked"),
-                    ("upcoming",   "upcoming"),
-                    ("expired",    "expired"),
-                    ("excluded",   "excluded"),
-                    ("finished",   "finished"),
-                ]:
+                for key in ["not_linked", "upcoming", "expired", "excluded", "finished"]:
                     cb = ui.checkbox(
-                        _("gui", "inventory", "filter", label_key),
+                        _("gui", "inventory", "filter", key),
                         value=manager._inventory_filters[key],
                         on_change=lambda e, k=key: _on_filter_change(manager, k, e.value),
                     ).classes('text-sm').props('dense')
