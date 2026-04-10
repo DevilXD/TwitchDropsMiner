@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import html as _html
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
@@ -17,6 +16,7 @@ except ImportError:
 
 from translate import _
 from constants import PriorityMode
+from webui.html_utils import Tag
 
 if TYPE_CHECKING:
     from inventory import DropsCampaign, TimedDrop
@@ -95,16 +95,6 @@ def _campaign_visible(manager: 'WebUIManager', campaign: 'DropsCampaign') -> boo
 # HTML rendering helpers
 # ---------------------------------------------------------------------------
 
-def _e(text) -> str:
-    """HTML-escape a value for use in element content."""
-    return _html.escape(str(text))
-
-
-def _ea(text) -> str:
-    """HTML-escape a value for use inside an attribute (quotes escaped too)."""
-    return _html.escape(str(text), quote=True)
-
-
 def _drop_progress_text(drop: 'TimedDrop') -> str:
     """Exact port of InventoryOverview.update_progress text logic."""
     if drop.is_claimed:
@@ -139,70 +129,73 @@ def _drop_progress_text(drop: 'TimedDrop') -> str:
     return text
 
 
-def _drop_progress_color(drop: 'TimedDrop') -> str:
+def _drop_progress_color_cls(drop: 'TimedDrop') -> str:
+    """Return the Tailwind color class for the drop's progress text."""
     if drop.is_claimed:
-        return '#22c55e'
+        return 'text-green-500'
     if drop.can_claim:
-        return '#eab308'
-    return 'inherit'
+        return 'text-yellow-500'
+    return ''
 
 
-def _render_drop_html(drop: 'TimedDrop') -> str:
-    """Render one drop as an HTML string."""
-    def _benefit_html(benefit) -> str:
+def _build_drop(drop: 'TimedDrop') -> Tag:
+    """Build one drop as a Tag tree."""
+    def _benefit(benefit) -> Tag:
         return (
-            '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">'
-            f'<div style="font-size:0.75rem;text-align:center;font-weight:500;white-space:nowrap;">{_e(benefit.name)}</div>'
-            f'<img src="{_ea(str(benefit.image_url))}" loading="lazy" style="width:80px;height:80px;object-fit:contain;">'
-            '</div>'
+            Tag('div').classes('flex flex-col items-center gap-1').add(
+                Tag('div', benefit.name).classes('text-xs text-center font-medium whitespace-nowrap'),
+                Tag('img').props(src=str(benefit.image_url), loading='lazy')
+                          .classes('w-20 h-20 object-contain'),
+            )
         )
 
-    drop_id        = _ea(drop.id)
-    benefits       = ''.join(_benefit_html(b) for b in drop.benefits)
-    progress_text  = _drop_progress_text(drop)
-    progress_color = _drop_progress_color(drop)
-    progress       = _e(progress_text) if progress_text else '&nbsp;'
+    progress_text      = _drop_progress_text(drop)
+    progress_color_cls = _drop_progress_color_cls(drop)
 
     return (
-        f'<div id="drop-{drop_id}" class="tdm-drop-card">'
-          f'<div style="display:flex;flex-direction:row;flex-wrap:wrap;justify-content:center;gap:10px;">{benefits}</div>'
-          f'<div id="drop-progress-{drop_id}" style="font-size:0.75rem;text-align:center;white-space:pre;color:{progress_color};">{progress}</div>'
-        '</div>'
+        Tag('div').props(id=f'drop-{drop.id}').classes('tdm-drop-card').add(
+            Tag('div').classes('flex flex-row flex-wrap justify-center gap-2').add(
+                *[_benefit(b) for b in drop.benefits]
+            ),
+            Tag('div', progress_text or '\u00a0')
+                .props(id=f'drop-progress-{drop.id}')
+                .classes('text-xs text-center whitespace-pre', progress_color_cls),
+        )
     )
 
 
-def _render_campaign_html(campaign: 'DropsCampaign') -> str:
-    """Render one campaign row as a complete HTML string."""
+def _build_campaign(campaign: 'DropsCampaign') -> Tag:
+    """Build one campaign row as a Tag tree."""
     # Status badge
     if campaign.active:
-        status_text, status_color = _("gui", "inventory", "status", "active"),   '#22c55e'
+        status_text, status_cls = _("gui", "inventory", "status", "active"),   'text-green-500'
     elif campaign.upcoming:
-        status_text, status_color = _("gui", "inventory", "status", "upcoming"), '#eab308'
+        status_text, status_cls = _("gui", "inventory", "status", "upcoming"), 'text-yellow-500'
     else:
-        status_text, status_color = _("gui", "inventory", "status", "expired"),  '#ef4444'
+        status_text, status_cls = _("gui", "inventory", "status", "expired"),  'text-red-500'
 
     # Dates — shows primary date by default, secondary on hover
-    date_html = ''
+    date_tag = None
     try:
-        starts = _e(_("gui", "inventory", "starts").format(
+        starts = _("gui", "inventory", "starts").format(
             time=campaign.starts_at.astimezone().replace(microsecond=0, tzinfo=None)
-        ))
-        ends = _e(_("gui", "inventory", "ends").format(
+        )
+        ends = _("gui", "inventory", "ends").format(
             time=campaign.ends_at.astimezone().replace(microsecond=0, tzinfo=None)
-        ))
+        )
         primary, secondary = (starts, ends) if campaign.upcoming else (ends, starts)
-        date_html = (
-            '<div class="tdm-campaign-date" style="font-size:0.75rem;color:#9ca3af;cursor:default;">'
-            f'<span class="default">{primary}</span>'
-            f'<span class="hovered">{secondary}</span>'
-            '</div>'
+        date_tag = (
+            Tag('div').classes('tdm-campaign-date text-xs text-gray-400 cursor-default').add(
+                Tag('span', primary).classes('default'),
+                Tag('span', secondary).classes('hovered'),
+            )
         )
     except Exception:
         pass
 
     # Link eligibility
-    link_text  = _("gui", "inventory", "status", "linked" if campaign.eligible else "not_linked")
-    link_color = '#22c55e' if campaign.eligible else '#ef4444'
+    link_text = _("gui", "inventory", "status", "linked" if campaign.eligible else "not_linked")
+    link_cls  = 'text-green-500' if campaign.eligible else 'text-red-500'
 
     # Allowed channels
     acl = campaign.allowed_channels
@@ -215,30 +208,45 @@ def _render_campaign_html(campaign: 'DropsCampaign') -> str:
     else:
         acl_text = _("gui", "inventory", "all_channels")
 
-    # Left column: campaign image + metadata
-    info_html = (
-        '<div style="flex:0 1 400px;min-width:0;display:flex;flex-direction:row;gap:12px;align-items:flex-start;">'
-          f'<img src="{_ea(str(campaign.image_url))}" loading="lazy" style="width:108px;height:144px;object-fit:cover;border-radius:4px;flex-shrink:0;">'
-          '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;">'
-            f'<div style="font-weight:bold;font-size:0.875rem;">{_e(campaign.name)}</div>'
-            f'<div style="font-size:0.75rem;color:#9ca3af;">{_e(campaign.game.name)}</div>'
-            f'<div style="font-size:0.75rem;font-weight:bold;color:{status_color};">{_e(status_text)}</div>'
-            f'{date_html}'
-            f'<a href="{_ea(str(campaign.link_url))}" target="_blank" style="font-size:0.75rem;color:{link_color};text-decoration:underline;">{_e(link_text)}</a>'
-            f'<div style="font-size:0.75rem;color:#9ca3af;">{_e(_("gui", "inventory", "allowed_channels"))} {_e(acl_text)}</div>'
-          '</div>'
-        '</div>'
+    # Metadata column (right of image)
+    meta_col = Tag('div').classes('flex flex-col gap-1 flex-1 min-w-0').add(
+        Tag('div', campaign.name).classes('font-bold text-sm'),
+        Tag('div', campaign.game.name).classes('text-xs text-gray-400'),
+        Tag('div', status_text).classes('text-xs font-bold', status_cls),
+    )
+    if date_tag is not None:
+        meta_col.add(date_tag)
+    meta_col.add(
+        Tag('a', link_text)
+            .props(href=str(campaign.link_url), target='_blank')
+            .classes('text-xs underline', link_cls),
+        Tag('div', f'{_("gui", "inventory", "allowed_channels")} {acl_text}')
+            .classes('text-xs text-gray-400'),
     )
 
-    drops_html = ''.join(_render_drop_html(d) for d in campaign.drops)
+    # Left column: image + metadata
+    info = (
+        Tag('div').classes('flex flex-row grow-0 shrink basis-[400px] gap-3 items-start min-w-0').add(
+            Tag('img').classes('h-36').props(src=str(campaign.image_url), loading='lazy')
+                      .classes('object-cover rounded shrink-0'),
+            meta_col,
+        )
+    )
 
     return (
-        '<div class="tdm-campaign-card">'
-          f'{info_html}'
-          '<div class="tdm-campaign-divider"></div>'
-          f'<div style="display:flex;flex-wrap:wrap;gap:8px;flex:1;align-items:flex-start;">{drops_html}</div>'
-        '</div>'
+        Tag('div').classes('tdm-campaign-card').add(
+            info,
+            Tag('div').classes('tdm-campaign-divider'),
+            Tag('div').classes('flex flex-wrap gap-2 flex-1 items-start').add(
+                *[_build_drop(d) for d in campaign.drops]
+            ),
+        )
     )
+
+
+def _render_campaign_html(campaign: 'DropsCampaign') -> str:
+    """Render one campaign row as a complete HTML string."""
+    return str(_build_campaign(campaign))
 
 
 # ---------------------------------------------------------------------------
