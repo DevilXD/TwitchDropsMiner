@@ -37,7 +37,7 @@ body:not(.body--dark) .q-expansion-item { background-color: #f9fafb !important; 
 .tdm-campaign-card {
     border: 1px solid rgba(0,0,0,0.12);
     background: rgba(0,0,0,0.03);
-    border-radius: 8px;
+    border-radius: 4px;
     padding: 10px;
     display: flex;
     flex-wrap: wrap;
