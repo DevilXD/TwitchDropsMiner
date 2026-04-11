@@ -151,7 +151,7 @@ def _build_drop(drop: 'TimedDrop') -> Tag:
     progress_color_cls = _drop_progress_color_cls(drop)
 
     return (
-        Tag('div').props(id=f'drop-{drop.id}').classes('tdm-drop-card').add(
+        Tag('div').props(id=f'drop-{drop.id}').classes('tdm-drop-card rounded p-3 flex flex-col items-center gap-1.5 min-w-0 max-w-full').add(
             Tag('div').classes('flex flex-row flex-wrap justify-center gap-2').add(
                 *[_benefit(b) for b in drop.benefits]
             ),
@@ -162,8 +162,8 @@ def _build_drop(drop: 'TimedDrop') -> Tag:
     )
 
 
-def _build_campaign(campaign: 'DropsCampaign') -> Tag:
-    """Build one campaign row as a Tag tree."""
+def _build_campaign_info(campaign: 'DropsCampaign') -> Tag:
+    """Build the left-side info column (image + metadata) for a campaign."""
     # Status badge
     if campaign.active:
         status_text, status_cls = _("gui", "inventory", "status", "active"),   'text-green-500'
@@ -222,8 +222,7 @@ def _build_campaign(campaign: 'DropsCampaign') -> Tag:
             .classes('text-xs text-gray-400'),
     )
 
-    # Left column: image + metadata
-    info = (
+    return (
         Tag('div').classes('flex flex-row grow-0 shrink basis-[400px] gap-3 items-start min-w-0').add(
             Tag('img').classes('h-36').props(src=str(campaign.image_url), loading='lazy')
                       .classes('object-cover rounded shrink-0'),
@@ -231,10 +230,13 @@ def _build_campaign(campaign: 'DropsCampaign') -> Tag:
         )
     )
 
+
+def _build_campaign(campaign: 'DropsCampaign') -> Tag:
+    """Build one campaign row as a Tag tree."""
     return (
-        Tag('div').classes('tdm-campaign-card').add(
-            info,
-            Tag('div').classes('tdm-campaign-divider'),
+        Tag('div').classes('tdm-campaign-card rounded p-2.5 flex flex-wrap gap-3 items-start w-full box-border').add(
+            _build_campaign_info(campaign),
+            Tag('div').classes('tdm-campaign-divider w-full h-px self-auto sm:w-px sm:h-auto sm:self-stretch sm:shrink-0'),
             Tag('div').classes('flex flex-wrap gap-2 flex-1 items-start').add(
                 *[_build_drop(d) for d in campaign.drops]
             ),

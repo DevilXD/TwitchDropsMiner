@@ -32,19 +32,11 @@ body:not(.body--dark) .q-field__native  { color: #000000 !important; }
 body:not(.body--dark) .q-card           { background-color: #f9fafb !important; color: #000000 !important; }
 body:not(.body--dark) .q-expansion-item { background-color: #f9fafb !important; color: #000000 !important; }
 
-/* ── Inventory panel components ───────────────────────────────────────── */
+/* ── Inventory panel components — colors only for dark mode ─────── */
 
 .tdm-campaign-card {
     border: 1px solid rgba(0,0,0,0.12);
     background: rgba(0,0,0,0.03);
-    border-radius: 4px;
-    padding: 10px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    align-items: flex-start;
-    width: 100%;
-    box-sizing: border-box;
 }
 body.body--dark .tdm-campaign-card {
     border-color: rgba(255,255,255,0.28);
@@ -54,36 +46,14 @@ body.body--dark .tdm-campaign-card {
 .tdm-drop-card {
     border: 1px solid rgba(0,0,0,0.12);
     background: rgba(0,0,0,0.06);
-    border-radius: 4px;
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    min-width: 0;
-    max-width: 100%;
 }
 body.body--dark .tdm-drop-card {
     border-color: rgba(255,255,255,0.28);
     background: rgba(0,0,0,0.2);
 }
 
-.tdm-campaign-divider {
-    width: 1px;
-    background: rgba(0,0,0,0.12);
-    align-self: stretch;
-    flex-shrink: 0;
-}
-body.body--dark .tdm-campaign-divider {
-    background: rgba(255,255,255,0.28);
-}
-@media (max-width: 640px) {
-    .tdm-campaign-divider {
-        width: 100%;
-        height: 1px;
-        align-self: auto;
-    }
-}
+.tdm-campaign-divider                 { background: rgba(0,0,0,0.12); }
+body.body--dark .tdm-campaign-divider { background: rgba(255,255,255,0.28); }
 
 .tdm-campaign-date .default  { display: inline; }
 .tdm-campaign-date .hovered  { display: none; }
