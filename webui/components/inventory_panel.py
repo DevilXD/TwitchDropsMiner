@@ -20,8 +20,6 @@ from webui.html_utils import Tag
 from .base_panel import BasePanel
 
 if TYPE_CHECKING:
-    from nicegui.elements.checkbox import Checkbox as NiceCheckbox
-    from nicegui.elements.column import Column as NiceColumn
     from inventory import DropsCampaign, TimedDrop
     from webui.manager import WebUIManager
 
@@ -31,11 +29,12 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------------
 
 def create_inventory_panel(manager: 'WebUIManager'):
-    """Create the inventory panel - mirrors InventoryOverview in gui.py"""
+    """Create the inventory panel for the current client."""
     if not NICEGUI_AVAILABLE:
         return
 
     panel = manager._inventory_panel
+    client_id: str = ui.context.client.id
 
     with ui.column().classes('w-full gap-2'):
 
@@ -44,14 +43,14 @@ def create_inventory_panel(manager: 'WebUIManager'):
             with ui.row().classes('items-center gap-4 flex-wrap'):
                 ui.label(_("gui", "inventory", "filter", "show")).classes('text-sm font-bold')
 
-                panel._filter_checkboxes = {}
+                checkboxes: dict = {}
                 for key in ["not_linked", "upcoming", "expired", "excluded", "finished"]:
                     cb = ui.checkbox(
                         _("gui", "inventory", "filter", key),
                         value=panel._inventory_filters[key],
                         on_change=lambda e, k=key: _on_filter_change(manager, k, e.value),
                     ).classes('text-sm').props('dense')
-                    panel._filter_checkboxes[key] = cb
+                    checkboxes[key] = cb
 
                 ui.button(
                     _("gui", "inventory", "filter", "refresh"),
@@ -59,12 +58,15 @@ def create_inventory_panel(manager: 'WebUIManager'):
                 ).props('dense').classes('text-sm')
 
         # Campaign list — uses browser scroll, no inner scroll area
-        panel._inventory_container = ui.column().classes('w-full gap-3')
-        with panel._inventory_container:
+        container = ui.column().classes('w-full gap-3')
+        with container:
             ui.label("Loading inventory...").classes('text-sm text-gray-500')
 
-    # Flush any campaigns already collected before this client connected
-    refresh_inventory_display(manager)
+    panel._add_client(client_id, container, checkboxes)
+    ui.context.client.on_disconnect(lambda: panel._remove_client(client_id))
+
+    # Populate with any campaigns already collected before this client connected
+    _rebuild_client_container(panel, client_id)
 
 
 # ---------------------------------------------------------------------------
@@ -255,6 +257,42 @@ def _render_campaign_html(campaign: 'DropsCampaign') -> str:
 
 
 # ---------------------------------------------------------------------------
+# Per-client container rebuild
+# ---------------------------------------------------------------------------
+
+def _rebuild_client_container(panel: 'InventoryPanel', client_id: str) -> None:
+    """Rebuild the campaign list for one client's container."""
+    data = panel._client_data.get(client_id)
+    if data is None:
+        return
+    container = data['container']
+
+    # Sort matches the three stable sorts in twitch.py fetch_inventory:
+    # primary: eligible first, secondary: by date, tertiary: active first
+    campaigns = sorted(
+        panel._inventory_campaigns.values(),
+        key=lambda c: (not c.eligible, c.upcoming and c.starts_at or c.ends_at, not c.active),
+    )
+    visible = [c for c in campaigns if _campaign_visible(panel._manager, c)]
+
+    # Remove stale element refs for this client before rebuilding
+    for elem_map in panel._campaign_html_elements.values():
+        elem_map.pop(client_id, None)
+
+    container.clear()
+    with container:
+        if not visible:
+            ui.label("No campaigns match the current filters.").classes(
+                'text-sm text-gray-500 p-4'
+            )
+            return
+
+        for campaign in visible:
+            elem = ui.html(_render_campaign_html(campaign)).classes('w-full')
+            panel._campaign_html_elements.setdefault(campaign.id, {})[client_id] = elem
+
+
+# ---------------------------------------------------------------------------
 # Display rebuild
 # ---------------------------------------------------------------------------
 
@@ -272,32 +310,10 @@ def refresh_inventory(manager: 'WebUIManager'):
 
 
 def refresh_inventory_display(manager: 'WebUIManager'):
-    """Rebuild campaign list — one ui.html() per visible campaign."""
+    """Rebuild campaign list for all connected clients."""
     panel = manager._inventory_panel
-    if panel._inventory_container is None:
-        return
-
-    panel._campaign_html_elements.clear()
-    panel._inventory_container.clear()
-
-    # Sort matches the three stable sorts in twitch.py fetch_inventory:
-    # primary: eligible first, secondary: by date, tertiary: active first
-    campaigns = sorted(
-        panel._inventory_campaigns.values(),
-        key=lambda c: (not c.eligible, c.upcoming and c.starts_at or c.ends_at, not c.active),
-    )
-    visible = [c for c in campaigns if _campaign_visible(manager, c)]
-
-    with panel._inventory_container:
-        if not visible:
-            ui.label("No campaigns match the current filters.").classes(
-                'text-sm text-gray-500 p-4'
-            )
-            return
-
-        for campaign in visible:
-            elem = ui.html(_render_campaign_html(campaign)).classes('w-full')
-            panel._campaign_html_elements[campaign.id] = elem
+    for client_id in list(panel._client_data.keys()):
+        _rebuild_client_container(panel, client_id)
 
 
 # ---------------------------------------------------------------------------
@@ -305,23 +321,25 @@ def refresh_inventory_display(manager: 'WebUIManager'):
 # ---------------------------------------------------------------------------
 
 def update_filter(manager: 'WebUIManager', key: str, value: bool):
-    manager._inventory_panel._inventory_filters[key] = value
-    refresh_inventory_display(manager)
+    _on_filter_change(manager, key, value)
 
 
 def _on_filter_change(manager: 'WebUIManager', key: str, value: bool):
-    update_filter(manager, key, value)
+    panel = manager._inventory_panel
+    panel._inventory_filters[key] = value
+    # Push the new checkbox state to every connected client
+    for data in panel._client_data.values():
+        cb = data['checkboxes'].get(key)
+        if cb is not None:
+            cb.set_value(value)
+    refresh_inventory_display(manager)
 
 
 class InventoryPanel(BasePanel):
     def __init__(self, manager: 'WebUIManager') -> None:
         super().__init__(manager)
 
-        # Widget refs — populated by build()
-        self._filter_checkboxes: dict[str, NiceCheckbox] | None = None
-        self._inventory_container: NiceColumn | None = None
-
-        # State — persists between page loads so late-joining clients see current data
+        # Shared filter state — persists so late-joining clients start in sync
         _priority_only = manager._twitch.settings.priority_mode is PriorityMode.PRIORITY_ONLY
         self._inventory_filters: dict = {
             "not_linked": _priority_only,
@@ -330,8 +348,20 @@ class InventoryPanel(BasePanel):
             "excluded":   False,
             "finished":   False,
         }
-        self._inventory_campaigns: dict = {}        # campaign.id -> DropsCampaign
-        self._campaign_html_elements: dict = {}     # campaign.id -> ui.html element
+        self._inventory_campaigns: dict = {}   # campaign.id -> DropsCampaign
+
+        # Per-client widget refs: client_id -> {container, checkboxes}
+        self._client_data: dict = {}
+        # campaign.id -> {client_id -> ui.html element}
+        self._campaign_html_elements: dict = {}
+
+    def _add_client(self, client_id: str, container, checkboxes: dict) -> None:
+        self._client_data[client_id] = {'container': container, 'checkboxes': checkboxes}
+
+    def _remove_client(self, client_id: str) -> None:
+        self._client_data.pop(client_id, None)
+        for elem_map in self._campaign_html_elements.values():
+            elem_map.pop(client_id, None)
 
     def build(self) -> None:
         create_inventory_panel(self._manager)

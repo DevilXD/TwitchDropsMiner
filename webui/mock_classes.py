@@ -229,14 +229,15 @@ class MockInventory:
     def update_drop(self, drop) -> None:
         """
         Mirrors InventoryOverview.update_drop() - re-renders the campaign's HTML
-        element so the drop progress text updates live.
+        element on every connected client so drop progress updates live.
         """
         def _do():
             campaign = drop.campaign
-            elem = self._manager._inventory_panel._campaign_html_elements.get(campaign.id)
-            if elem is None:
-                return
-            elem.content = _render_campaign_html(campaign)
+            html = _render_campaign_html(campaign)
+            for elem in self._manager._inventory_panel._campaign_html_elements.get(
+                campaign.id, {}
+            ).values():
+                elem.content = html
         call_on_nicegui(self, _do)
 
     def configure_theme(self, *, bg: str):
