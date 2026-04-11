@@ -17,8 +17,11 @@ except ImportError:
 from translate import _
 from constants import PriorityMode
 from webui.html_utils import Tag
+from .base_panel import BasePanel
 
 if TYPE_CHECKING:
+    from nicegui.elements.checkbox import Checkbox as NiceCheckbox
+    from nicegui.elements.column import Column as NiceColumn
     from inventory import DropsCampaign, TimedDrop
     from webui.manager import WebUIManager
 
@@ -32,6 +35,8 @@ def create_inventory_panel(manager: 'WebUIManager'):
     if not NICEGUI_AVAILABLE:
         return
 
+    panel = manager._inventory_panel
+
     with ui.column().classes('w-full gap-2'):
 
         # Filter bar
@@ -39,14 +44,14 @@ def create_inventory_panel(manager: 'WebUIManager'):
             with ui.row().classes('items-center gap-4 flex-wrap'):
                 ui.label(_("gui", "inventory", "filter", "show")).classes('text-sm font-bold')
 
-                manager._filter_checkboxes = {}
+                panel._filter_checkboxes = {}
                 for key in ["not_linked", "upcoming", "expired", "excluded", "finished"]:
                     cb = ui.checkbox(
                         _("gui", "inventory", "filter", key),
-                        value=manager._inventory_filters[key],
+                        value=panel._inventory_filters[key],
                         on_change=lambda e, k=key: _on_filter_change(manager, k, e.value),
                     ).classes('text-sm').props('dense')
-                    manager._filter_checkboxes[key] = cb
+                    panel._filter_checkboxes[key] = cb
 
                 ui.button(
                     _("gui", "inventory", "filter", "refresh"),
@@ -54,8 +59,8 @@ def create_inventory_panel(manager: 'WebUIManager'):
                 ).props('dense').classes('text-sm')
 
         # Campaign list — uses browser scroll, no inner scroll area
-        manager._inventory_container = ui.column().classes('w-full gap-3')
-        with manager._inventory_container:
+        panel._inventory_container = ui.column().classes('w-full gap-3')
+        with panel._inventory_container:
             ui.label("Loading inventory...").classes('text-sm text-gray-500')
 
     # Flush any campaigns already collected before this client connected
@@ -67,7 +72,7 @@ def create_inventory_panel(manager: 'WebUIManager'):
 # ---------------------------------------------------------------------------
 
 def _campaign_visible(manager: 'WebUIManager', campaign: 'DropsCampaign') -> bool:
-    f = manager._inventory_filters
+    f = manager._inventory_panel._inventory_filters
     settings = manager._twitch.settings
     priority_only = settings.priority_mode is PriorityMode.PRIORITY_ONLY
     return (
@@ -255,33 +260,35 @@ def _render_campaign_html(campaign: 'DropsCampaign') -> str:
 
 def refresh_inventory(manager: 'WebUIManager'):
     """Re-read campaigns from twitch.inventory and rebuild display."""
-    manager._inventory_campaigns.clear()
-    manager._campaign_html_elements.clear()
+    panel = manager._inventory_panel
+    panel._inventory_campaigns.clear()
+    panel._campaign_html_elements.clear()
 
     if hasattr(manager._twitch, 'inventory') and manager._twitch.inventory:
         for campaign in manager._twitch.inventory:
-            manager._inventory_campaigns[campaign.id] = campaign
+            panel._inventory_campaigns[campaign.id] = campaign
 
     refresh_inventory_display(manager)
 
 
 def refresh_inventory_display(manager: 'WebUIManager'):
     """Rebuild campaign list — one ui.html() per visible campaign."""
-    if manager._inventory_container is None:
+    panel = manager._inventory_panel
+    if panel._inventory_container is None:
         return
 
-    manager._campaign_html_elements.clear()
-    manager._inventory_container.clear()
+    panel._campaign_html_elements.clear()
+    panel._inventory_container.clear()
 
     # Sort matches the three stable sorts in twitch.py fetch_inventory:
     # primary: eligible first, secondary: by date, tertiary: active first
     campaigns = sorted(
-        manager._inventory_campaigns.values(),
+        panel._inventory_campaigns.values(),
         key=lambda c: (not c.eligible, c.upcoming and c.starts_at or c.ends_at, not c.active),
     )
     visible = [c for c in campaigns if _campaign_visible(manager, c)]
 
-    with manager._inventory_container:
+    with panel._inventory_container:
         if not visible:
             ui.label("No campaigns match the current filters.").classes(
                 'text-sm text-gray-500 p-4'
@@ -290,7 +297,7 @@ def refresh_inventory_display(manager: 'WebUIManager'):
 
         for campaign in visible:
             elem = ui.html(_render_campaign_html(campaign)).classes('w-full')
-            manager._campaign_html_elements[campaign.id] = elem
+            panel._campaign_html_elements[campaign.id] = elem
 
 
 # ---------------------------------------------------------------------------
@@ -298,9 +305,33 @@ def refresh_inventory_display(manager: 'WebUIManager'):
 # ---------------------------------------------------------------------------
 
 def update_filter(manager: 'WebUIManager', key: str, value: bool):
-    manager._inventory_filters[key] = value
+    manager._inventory_panel._inventory_filters[key] = value
     refresh_inventory_display(manager)
 
 
 def _on_filter_change(manager: 'WebUIManager', key: str, value: bool):
     update_filter(manager, key, value)
+
+
+class InventoryPanel(BasePanel):
+    def __init__(self, manager: 'WebUIManager') -> None:
+        super().__init__(manager)
+
+        # Widget refs — populated by build()
+        self._filter_checkboxes: dict[str, NiceCheckbox] | None = None
+        self._inventory_container: NiceColumn | None = None
+
+        # State — persists between page loads so late-joining clients see current data
+        _priority_only = manager._twitch.settings.priority_mode is PriorityMode.PRIORITY_ONLY
+        self._inventory_filters: dict = {
+            "not_linked": _priority_only,
+            "upcoming":   True,
+            "expired":    False,
+            "excluded":   False,
+            "finished":   False,
+        }
+        self._inventory_campaigns: dict = {}        # campaign.id -> DropsCampaign
+        self._campaign_html_elements: dict = {}     # campaign.id -> ui.html element
+
+    def build(self) -> None:
+        create_inventory_panel(self._manager)

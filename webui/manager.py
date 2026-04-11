@@ -53,11 +53,11 @@ except ImportError:
     app = None
 
 from translate import _
-from constants import PriorityMode, OUTPUT_FORMATTER, FILE_FORMATTER
+from constants import OUTPUT_FORMATTER, FILE_FORMATTER
 from .mock_classes import (MockTray, MockStatus, MockProgress, MockOutput, MockChannels,
                           MockInventory, MockLoginForm, MockWebsocketStatus, MockSettings, MockTabs)
 from .handlers import WebUIOutputHandler
-from .components import (BasePanel, create_main_panel, create_inventory_panel,
+from .components import (BasePanel, create_main_panel, InventoryPanel,
                         HelpPanel, clear_drop as _clear_drop,
                         display_drop as _display_drop, SettingsPanel)
 from .thread_utils import on_nicegui_loop, call_on_nicegui
@@ -65,7 +65,6 @@ from .thread_utils import on_nicegui_loop, call_on_nicegui
 if TYPE_CHECKING:
     from twitch import Twitch
     from nicegui.elements.button import Button as NiceButton
-    from nicegui.elements.checkbox import Checkbox as NiceCheckbox
     from nicegui.elements.column import Column as NiceColumn
     from nicegui.elements.label import Label as NiceLabel
     from nicegui.elements.progress import LinearProgress as NiceLinearProgress
@@ -116,6 +115,7 @@ class WebUIManager:
 
         # Panel objects — own all widget references and state for their tab
         self._settings_panel: BasePanel = SettingsPanel(self)
+        self._inventory_panel: BasePanel = InventoryPanel(self)
         self._help_panel: BasePanel = HelpPanel(self)
 
         # Current status text (persisted so late-joining clients can restore it)
@@ -143,10 +143,6 @@ class WebUIManager:
         self._channels_table: NiceTable | None = None
         self._channel_switch_btn: NiceButton | None = None
 
-        # Inventory UI elements
-        self._filter_checkboxes: dict[str, NiceCheckbox] | None = None
-        self._inventory_container: NiceColumn | None = None
-
         # WebSocket state (shared with MockWebsocketStatus)
         self._ws_data: dict = {}        # idx -> {status, topics}
 
@@ -169,20 +165,6 @@ class WebUIManager:
         self._countdown_active: bool = False
         self._progress_seconds: int = 0
         self._countdown_start_time: float | None = None  # monotonic time when countdown began
-
-        # Inventory tracking
-        # Defaults match gui.py InventoryOverview.__init__:
-        # not_linked = True when priority_mode is PRIORITY_ONLY, upcoming = True, rest False
-        _priority_only = twitch.settings.priority_mode is PriorityMode.PRIORITY_ONLY
-        self._inventory_filters: dict = {
-            "not_linked": _priority_only,
-            "upcoming":   True,
-            "expired":    False,
-            "excluded":   False,
-            "finished":   False,
-        }
-        self._inventory_campaigns: dict = {}        # campaign.id -> DropsCampaign
-        self._campaign_html_elements: dict = {}     # campaign.id -> ui.html element
 
         self._setup_ui()
 
@@ -263,7 +245,7 @@ class WebUIManager:
                     create_main_panel(manager)
 
                 with ui.tab_panel(inventory_tab):
-                    create_inventory_panel(manager)
+                    manager._inventory_panel.build()
 
                 with ui.tab_panel(settings_tab):
                     manager._settings_panel.build()

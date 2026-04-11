@@ -212,15 +212,16 @@ class MockInventory:
         self._manager = manager
 
     def clear(self):
-        self._manager._inventory_campaigns.clear()
-        self._manager._campaign_html_elements.clear()
+        panel = self._manager._inventory_panel
+        panel._inventory_campaigns.clear()
+        panel._campaign_html_elements.clear()
         call_on_nicegui(self, lambda: refresh_inventory_display(self._manager))
 
     async def add_campaign(self, campaign) -> None:
         """Store the real DropsCampaign object and re-render the inventory."""
         try:
             campaign_id = getattr(campaign, 'id', str(id(campaign)))
-            self._manager._inventory_campaigns[campaign_id] = campaign
+            self._manager._inventory_panel._inventory_campaigns[campaign_id] = campaign
             call_on_nicegui(self, lambda: refresh_inventory_display(self._manager))
         except Exception as e:
             self._manager.print(f"Failed to add campaign: {e}")
@@ -232,7 +233,7 @@ class MockInventory:
         """
         def _do():
             campaign = drop.campaign
-            elem = self._manager._campaign_html_elements.get(campaign.id)
+            elem = self._manager._inventory_panel._campaign_html_elements.get(campaign.id)
             if elem is None:
                 return
             elem.content = _render_campaign_html(campaign)
