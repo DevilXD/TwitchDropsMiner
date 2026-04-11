@@ -197,6 +197,16 @@ def create_main_panel(manager: 'WebUIManager'):
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+def _flush_login(manager: 'WebUIManager'):
+    """Push current login state into the UI elements (must be called on the NiceGUI loop)."""
+    if manager._login_status_label is not None:
+        manager._login_status_label.set_text(manager._login_status_text)
+    if manager._login_button is not None:
+        manager._login_button.set_visibility(manager._login_btn_visible)
+    if manager._logout_button is not None:
+        manager._logout_button.set_visibility(manager._logout_btn_visible)
+
+
 def _flush_current_state(manager: 'WebUIManager'):
     """
     Populate freshly-created UI elements with the current manager state so that
@@ -209,12 +219,7 @@ def _flush_current_state(manager: 'WebUIManager'):
         manager._status_label.set_text(manager._status_text)
 
     # Login status
-    if manager._login_status_label is not None:
-        manager._login_status_label.set_text(manager._login_status_text)
-    if manager._login_button is not None:
-        manager._login_button.set_visibility(manager._login_btn_visible)
-    if manager._logout_button is not None:
-        manager._logout_button.set_visibility(manager._logout_btn_visible)
+    _flush_login(manager)
 
     # WebSocket rows
     _build_ws_rows(manager)
@@ -330,26 +335,9 @@ def _on_logout(manager: 'WebUIManager'):
 
 
 def _tick_update(manager: 'WebUIManager'):
-    """Called every second by ui.timer. Handles dirty flags and countdown."""
+    """Called every second by ui.timer. Handles countdown."""
     try:
-        # Login display
-        if manager._login_dirty:
-            manager._login_dirty = False
-            if manager._login_status_label is not None:
-                manager._login_status_label.set_text(manager._login_status_text)
-            if manager._login_button is not None:
-                manager._login_button.set_visibility(manager._login_btn_visible)
-            if manager._logout_button is not None:
-                manager._logout_button.set_visibility(manager._logout_btn_visible)
-
-        # Channel table
-        if manager._channels_dirty:
-            manager._channels_dirty = False
-            _rebuild_channel_table(manager)
-
-        # Progress countdown
         _tick_progress(manager)
-
     except Exception as e:
         print(f"Tick update error: {e}")
 

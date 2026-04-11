@@ -61,8 +61,6 @@ def create_inventory_panel(manager: 'WebUIManager'):
     # Flush any campaigns already collected before this client connected
     refresh_inventory_display(manager)
 
-    ui.timer(2.0, lambda: _check_inventory_dirty(manager))
-
 
 # ---------------------------------------------------------------------------
 # Filter logic — exact port of InventoryOverview._update_visibility
@@ -253,12 +251,6 @@ def _render_campaign_html(campaign: 'DropsCampaign') -> str:
 # Display rebuild
 # ---------------------------------------------------------------------------
 
-def _check_inventory_dirty(manager: 'WebUIManager'):
-    if manager._inventory_dirty:
-        manager._inventory_dirty = False
-        refresh_inventory_display(manager)
-
-
 def refresh_inventory(manager: 'WebUIManager'):
     """Re-read campaigns from twitch.inventory and rebuild display."""
     manager._inventory_campaigns.clear()
@@ -268,7 +260,7 @@ def refresh_inventory(manager: 'WebUIManager'):
         for campaign in manager._twitch.inventory:
             manager._inventory_campaigns[campaign.id] = campaign
 
-    manager._inventory_dirty = True
+    refresh_inventory_display(manager)
 
 
 def refresh_inventory_display(manager: 'WebUIManager'):

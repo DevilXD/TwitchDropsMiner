@@ -18,14 +18,14 @@
 #      top-level methods (print, close, display_drop, …) that twitch.py calls
 #      directly on the manager object.
 #
-# Dirty-flag / deferred-update pattern
-# --------------------------------------
+# Thread-safety
+# -------------
 # NiceGUI's DOM can only be mutated from inside the server's asyncio event loop.
 # twitch.py calls come from a *different* context, so direct widget writes would
-# race. Instead every Mock* method writes to plain Python state stored on the
-# manager (e.g. _ws_data, _channel_map) and sets a boolean "dirty" flag
-# (e.g. _channels_dirty). A ui.timer running inside the NiceGUI
-# event loop checks these flags periodically and flushes the pending updates.
+# race. Every Mock* method writes the new value into plain Python state on the
+# manager (e.g. _ws_data, _channel_map) and then uses call_on_nicegui() to
+# schedule the UI update on the NiceGUI event loop immediately — no polling or
+# dirty flags needed.
 #
 # Late-joining clients
 # --------------------
@@ -159,7 +159,6 @@ class WebUIManager:
         self._login_status_text: str = (
             f"{_('gui', 'login', 'logged_out')}\n-"
         )
-        self._login_dirty: bool = False
         self._login_btn_visible: bool = False
         self._logout_btn_visible: bool = False
         self._login_button: NiceButton | None = None
@@ -169,7 +168,6 @@ class WebUIManager:
         self._channel_map: dict = {}    # iid -> Channel
         self._watching_channel_iid = None
         self._selected_channel_iid = None
-        self._channels_dirty: bool = False
 
         # Drop/progress state
         self._current_drop = None
@@ -190,7 +188,6 @@ class WebUIManager:
         }
         self._inventory_campaigns: dict = {}        # campaign.id -> DropsCampaign
         self._campaign_html_elements: dict = {}     # campaign.id -> ui.html element
-        self._inventory_dirty: bool = False
 
         self._setup_ui()
 

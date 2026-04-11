@@ -15,12 +15,11 @@
 # Instead each method:
 #   1. Writes the new value into a plain Python field on the WebUIManager
 #      (e.g. _ws_data, _channel_map, _login_status_text).
-#   2. Sets a boolean "dirty" flag on the manager (e.g. _channels_dirty).
+#   2. Calls call_on_nicegui() to schedule the UI update on the NiceGUI event
+#      loop immediately — no polling or dirty flags needed.
 #
-# A ui.timer running inside the NiceGUI event loop polls those dirty flags and
-# pushes the buffered state into the actual widgets.  This keeps all widget
-# access on the correct thread and lets twitch.py call these adapters from any
-# context without locking.
+# The plain Python state persists so that late-joining clients can restore the
+# full current view on page load without waiting for the next update.
 #
 # Correspondence to tkinter classes
 # ----------------------------------
@@ -43,6 +42,8 @@ from typing import TYPE_CHECKING
 
 from translate import _
 from .thread_utils import on_nicegui_loop, call_on_nicegui
+from .components.main_panel import _flush_login, _rebuild_channel_table
+from .components.inventory_panel import refresh_inventory_display, _render_campaign_html
 
 if TYPE_CHECKING:
     from yarl import URL
@@ -142,8 +143,8 @@ class MockOutput:
 
 class MockChannels:
     """
-    Mirrors ChannelList - stores channel data on the manager and marks
-    _channels_dirty so the ui.timer rebuilds the table.
+    Mirrors ChannelList - stores channel data on the manager and schedules
+    a channel table rebuild on the NiceGUI event loop.
     """
 
     def __init__(self, manager: 'WebUIManager'):
@@ -152,15 +153,15 @@ class MockChannels:
     def clear(self):
         self._manager._channel_map.clear()
         self._manager._watching_channel_iid = None
-        self._manager._channels_dirty = True
+        call_on_nicegui(self, lambda: _rebuild_channel_table(self._manager))
 
     def set_watching(self, channel: 'Channel'):
         self._manager._watching_channel_iid = channel.iid
-        self._manager._channels_dirty = True
+        call_on_nicegui(self, lambda: _rebuild_channel_table(self._manager))
 
     def clear_watching(self):
         self._manager._watching_channel_iid = None
-        self._manager._channels_dirty = True
+        call_on_nicegui(self, lambda: _rebuild_channel_table(self._manager))
 
     def get_selection(self) -> 'Channel | None':
         """Return the currently selected Channel (for CHANNEL_SWITCH state)"""
@@ -191,20 +192,20 @@ class MockChannels:
         else:
             # Update the stored reference (in case the object changed)
             self._manager._channel_map[iid] = channel
-        self._manager._channels_dirty = True
+        call_on_nicegui(self, lambda: _rebuild_channel_table(self._manager))
 
     def remove(self, channel: 'Channel'):
         iid = channel.iid
         self._manager._channel_map.pop(iid, None)
         if self._manager._watching_channel_iid == iid:
             self._manager._watching_channel_iid = None
-        self._manager._channels_dirty = True
+        call_on_nicegui(self, lambda: _rebuild_channel_table(self._manager))
 
 
 class MockInventory:
     """
-    Mirrors InventoryOverview - stores DropsCampaign objects and keeps the
-    inventory panel in sync via dirty flags and label references.
+    Mirrors InventoryOverview - stores DropsCampaign objects and schedules
+    inventory panel rebuilds on the NiceGUI event loop.
     """
 
     def __init__(self, manager: 'WebUIManager'):
@@ -213,14 +214,14 @@ class MockInventory:
     def clear(self):
         self._manager._inventory_campaigns.clear()
         self._manager._campaign_html_elements.clear()
-        self._manager._inventory_dirty = True
+        call_on_nicegui(self, lambda: refresh_inventory_display(self._manager))
 
     async def add_campaign(self, campaign) -> None:
-        """Store the real DropsCampaign object; the dirty flag triggers re-render."""
+        """Store the real DropsCampaign object and re-render the inventory."""
         try:
             campaign_id = getattr(campaign, 'id', str(id(campaign)))
             self._manager._inventory_campaigns[campaign_id] = campaign
-            self._manager._inventory_dirty = True
+            call_on_nicegui(self, lambda: refresh_inventory_display(self._manager))
         except Exception as e:
             self._manager.print(f"Failed to add campaign: {e}")
 
@@ -230,7 +231,6 @@ class MockInventory:
         element so the drop progress text updates live.
         """
         def _do():
-            from webui.components.inventory_panel import _render_campaign_html
             campaign = drop.campaign
             elem = self._manager._campaign_html_elements.get(campaign.id)
             if elem is None:
@@ -258,7 +258,7 @@ class MockLoginForm:
     async def wait_for_login_press(self) -> None:
         self._confirm.clear()
         self._manager._login_btn_visible = True
-        self._manager._login_dirty = True
+        call_on_nicegui(self, lambda: _flush_login(self._manager))
         await self._manager.coro_unless_closed(self._confirm.wait())
 
     async def ask_login(self) -> LoginData:
@@ -290,7 +290,7 @@ class MockLoginForm:
         self._manager._logout_btn_visible = logged_in
         if status != _("gui", "login", "required"):
             self._manager._login_btn_visible = False
-        self._manager._login_dirty = True
+        call_on_nicegui(self, lambda: _flush_login(self._manager))
         # Mirror login state to the status bar when the main loop hasn't set it yet
         login_statuses = (
             _("gui", "login", "logging_in"),
