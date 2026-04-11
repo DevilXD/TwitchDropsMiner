@@ -327,7 +327,7 @@ def _on_logout(manager: 'WebUIManager'):
         manager._ws_data.clear()
         manager.rebuild_ws()
         manager.login.update(_("gui", "login", "logged_out"), None)
-        manager.status.update(_("gui", "status", "idle"))
+        manager.status.update(_("gui", "login", "request"))
         # Trigger re-auth the same way as the Settings Reload button
         manager._twitch.state_change(State.INVENTORY_FETCH)()
     except Exception as e:
