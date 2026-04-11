@@ -137,14 +137,11 @@ class SettingsPanel:
 
                 # Language
                 with ui.row().classes('items-center gap-2 text-xs'):
-                    ui.label("Language 🌐 (requires restart):").classes('flex-1')
+                    ui.label("Language:").classes('flex-1')
                 language_select = ui.select(
                     options=list(_.languages),
                     value=_.current,
-                    on_change=lambda e: (
-                        _set_and_save(settings, 'language', e.value),
-                        self._sync_others(self._language_selects, client_id, e.value),
-                    ),
+                    on_change=lambda e: self._on_language_change(e.value),
                 ).classes('w-full text-xs').props('dense')
                 self._language_selects[client_id] = language_select
 
@@ -322,6 +319,36 @@ class SettingsPanel:
             return ui.context.client.id
         except Exception:
             return None
+
+    def _on_language_change(self, language: str) -> None:
+        """Switch the active language and reload every connected browser tab.
+        The page reload re-runs build() with the new _.current, so all labels
+        and dropdowns render in the new language without restarting the server."""
+        _set_and_save(self.settings, 'language', language)
+        try:
+            _.set_language(language)
+        except ValueError:
+            return
+        self._reload_all_clients()
+
+    def _reload_all_clients(self) -> None:
+        """Send location.reload() to every connected NiceGUI browser tab."""
+        from nicegui import ui, Client
+
+        try:
+            current_id: str | None = ui.context.client.id
+        except Exception:
+            current_id = None
+
+        async def _reload(client) -> None:
+            with client:
+                ui.run_javascript('location.reload()')
+
+        for client_id, client in list(Client.instances.items()):
+            if client_id == current_id:
+                ui.run_javascript('location.reload()')
+            else:
+                asyncio.get_event_loop().create_task(_reload(client))
 
     def _sync_others(self, widget_dict: dict, source_id: str, value) -> None:
         """Push a new value to every connected client's copy of a widget,
