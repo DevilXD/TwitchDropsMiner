@@ -289,7 +289,7 @@ def refresh_inventory_display(manager: 'WebUIManager'):
             return
 
         for campaign in visible:
-            elem = ui.html(_render_campaign_html(campaign)).style('width: 100%')
+            elem = ui.html(_render_campaign_html(campaign)).classes('w-full')
             manager._campaign_html_elements[campaign.id] = elem
 
 

@@ -26,10 +26,10 @@ def create_settings_panel(manager: 'WebUIManager'):
 
     settings = manager._twitch.settings
 
-    with ui.row().classes('w-full gap-2 items-stretch').style('flex-wrap: wrap'):
+    with ui.row().classes('w-full gap-2 items-stretch flex-wrap'):
 
         # ── Left column: General + Advanced + Reload ──────────────────────────
-        with ui.column().classes('gap-2').style('flex: 1 1 240px; min-width: 0'):
+        with ui.column().classes('gap-2 grow shrink basis-60 min-w-0'):
 
             # General section
             with ui.card().props('flat bordered').classes('w-full q-pa-sm'):
@@ -105,7 +105,7 @@ def create_settings_panel(manager: 'WebUIManager'):
                 ).props('dense').classes('text-xs w-full')
 
         # ── Middle column: Priority list ───────────────────────────────────────
-        with ui.card().props('flat bordered').classes('q-pa-sm flex-col').style('flex: 1 1 240px; min-width: 0; display: flex'):
+        with ui.card().props('flat bordered').classes('q-pa-sm flex flex-col grow shrink basis-60 min-w-0'):
             ui.label(_("gui", "settings", "priority")).classes('font-bold text-sm')
 
             # Input + add
@@ -119,10 +119,10 @@ def create_settings_panel(manager: 'WebUIManager'):
                 ui.button('➕', on_click=lambda: _priority_add(manager, priority_input)).props('dense flat').classes('text-xl p-0 min-h-0')
 
             # List with move buttons
-            with ui.row().classes('w-full gap-1 items-start').style('min-height: 200px'):
+            with ui.row().classes('w-full gap-1 items-start min-h-[200px]'):
                 manager._priority_list = ui.list().props('dense bordered').classes(
-                    'flex-1 text-xs overflow-y-auto'
-                ).style('min-height: 200px')
+                    'flex-1 text-xs overflow-y-auto min-h-[200px]'
+                )
                 _rebuild_priority_list(manager)
 
                 # Move buttons
@@ -134,7 +134,7 @@ def create_settings_panel(manager: 'WebUIManager'):
                     ui.button('❌', on_click=lambda: _priority_delete(manager)).props('flat').classes('text-red-500 text-xl p-0 min-h-0')
 
         # ── Right column: Exclude list ─────────────────────────────────────────
-        with ui.card().props('flat bordered').classes('q-pa-sm flex-col').style('flex: 1 1 240px; min-width: 0; display: flex'):
+        with ui.card().props('flat bordered').classes('q-pa-sm flex flex-col grow shrink basis-60 min-w-0'):
             ui.label(_("gui", "settings", "exclude")).classes('font-bold text-sm')
 
             # Input + add
@@ -148,10 +148,10 @@ def create_settings_panel(manager: 'WebUIManager'):
                 ui.button('➕', on_click=lambda: _exclude_add(manager, exclude_input)).props('dense flat').classes('text-xl p-0 min-h-0')
 
             # List + delete button to the right
-            with ui.row().classes('w-full gap-1 items-start').style('min-height: 200px'):
+            with ui.row().classes('w-full gap-1 items-start min-h-[200px]'):
                 manager._exclude_list = ui.list().props('dense bordered').classes(
-                    'flex-1 text-xs overflow-y-auto'
-                ).style('min-height: 200px')
+                    'flex-1 text-xs overflow-y-auto min-h-[200px]'
+                )
                 _rebuild_exclude_list(manager)
 
                 with ui.column().classes('gap-1'):

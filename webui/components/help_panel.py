@@ -21,8 +21,8 @@ def create_help_panel(manager: 'WebUIManager'):
     if not NICEGUI_AVAILABLE:
         return
 
-    with ui.column().classes('w-full gap-2 items-center q-pa-md'):
-        with ui.column().classes('gap-2').style('width: 100%; max-width: 1000px'):
+    with ui.column().classes('w-full gap-2 items-center'):
+        with ui.column().classes('gap-2 w-full max-w-[1000px]'):
 
             # About
             with ui.card().props('flat bordered').classes('w-full q-pa-sm'):

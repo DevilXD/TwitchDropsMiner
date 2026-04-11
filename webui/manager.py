@@ -210,7 +210,7 @@ class WebUIManager:
                     host=self._host,
                     port=self._port,
                     title="Twitch Drops Miner",
-                    show=False,  # Don't auto-open browser
+                    show=False,
                     reload=False,
                     favicon=Path(__file__).parent / 'static' / 'pickaxe.ico'
                 )
@@ -237,7 +237,7 @@ class WebUIManager:
         def index(tab: str = 'main'):
             ui.page_title("Twitch Drops Miner")
             ui.dark_mode(True)
-            ui.query('.nicegui-content').style('padding: 0')
+            ui.query('.nicegui-content').classes('p-0')
             ui.add_head_html(f'<style>{_css}</style>')
 
             # Alias so nested closures below can reference the manager unambiguously.
@@ -258,10 +258,10 @@ class WebUIManager:
                     ui.run_javascript(f"history.replaceState(null, '', '?tab={t}')")
 
                 with ui.tabs(value=initial_tab, on_change=_on_tab_change).classes('w-full') as tabs:
-                    main_tab      = ui.tab('main',      label='Main',      icon='home')
-                    inventory_tab = ui.tab('inventory', label='Inventory', icon='inventory')
-                    settings_tab  = ui.tab('settings',  label='Settings',  icon='settings')
-                    help_tab      = ui.tab('help',      label=_('gui', 'tabs', 'help'), icon='help')
+                    main_tab      = ui.tab('main',      label=_('gui', 'tabs', 'main'),      icon='home')
+                    inventory_tab = ui.tab('inventory', label=_('gui', 'tabs', 'inventory'), icon='inventory')
+                    settings_tab  = ui.tab('settings',  label=_('gui', 'tabs', 'settings'),  icon='settings')
+                    help_tab      = ui.tab('help',      label=_('gui', 'tabs', 'help'),      icon='help')
 
             with ui.tab_panels(tabs, value=initial_tab).classes('w-full h-full'):
                 with ui.tab_panel(main_tab):
