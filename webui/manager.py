@@ -57,8 +57,8 @@ from constants import PriorityMode, OUTPUT_FORMATTER, FILE_FORMATTER
 from .mock_classes import (MockTray, MockStatus, MockProgress, MockOutput, MockChannels,
                           MockInventory, MockLoginForm, MockWebsocketStatus, MockSettings, MockTabs)
 from .handlers import WebUIOutputHandler
-from .components import (create_main_panel, create_inventory_panel,
-                        create_help_panel, clear_drop as _clear_drop,
+from .components import (BasePanel, create_main_panel, create_inventory_panel,
+                        HelpPanel, clear_drop as _clear_drop,
                         display_drop as _display_drop, SettingsPanel)
 from .thread_utils import on_nicegui_loop, call_on_nicegui
 
@@ -114,8 +114,9 @@ class WebUIManager:
         self.settings = MockSettings(self)
         self.tabs = MockTabs()
 
-        # Settings panel — owns all settings widget references and state
-        self._settings_panel = SettingsPanel(self)
+        # Panel objects — own all widget references and state for their tab
+        self._settings_panel: BasePanel = SettingsPanel(self)
+        self._help_panel: BasePanel = HelpPanel(self)
 
         # Current status text (persisted so late-joining clients can restore it)
         self._status_text: str = "Initializing..."
@@ -268,7 +269,7 @@ class WebUIManager:
                     manager._settings_panel.build()
 
                 with ui.tab_panel(help_tab):
-                    create_help_panel(manager)
+                    manager._help_panel.build()
 
 
     def _toggle_dark_mode(self, enabled: bool):

@@ -13,6 +13,7 @@ except ImportError:
 
 from translate import _
 from constants import PriorityMode, State
+from .base_panel import BasePanel
 
 if TYPE_CHECKING:
     from nicegui.elements.input import Input as NiceInput
@@ -23,7 +24,7 @@ if TYPE_CHECKING:
     from utils import Game
 
 
-class SettingsPanel:
+class SettingsPanel(BasePanel):
     """
     Owns all widget references and mutable state for the settings tab.
 
@@ -34,7 +35,7 @@ class SettingsPanel:
     """
 
     def __init__(self, manager: 'WebUIManager'):
-        self._manager = manager
+        super().__init__(manager)
 
         # Per-client widget refs (keyed by NiceGUI client ID).
         # Stale entries for disconnected clients are harmlessly skipped by
