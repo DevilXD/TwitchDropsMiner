@@ -57,9 +57,9 @@ from constants import PriorityMode, OUTPUT_FORMATTER, FILE_FORMATTER
 from .mock_classes import (MockTray, MockStatus, MockProgress, MockOutput, MockChannels,
                           MockInventory, MockLoginForm, MockWebsocketStatus, MockSettings, MockTabs)
 from .handlers import WebUIOutputHandler
-from .components import (create_main_panel, create_settings_panel, create_inventory_panel,
+from .components import (create_main_panel, create_inventory_panel,
                         create_help_panel, clear_drop as _clear_drop,
-                        display_drop as _display_drop, set_games as _set_games)
+                        display_drop as _display_drop, SettingsPanel)
 from .thread_utils import on_nicegui_loop, call_on_nicegui
 
 if TYPE_CHECKING:
@@ -69,9 +69,7 @@ if TYPE_CHECKING:
     from nicegui.elements.column import Column as NiceColumn
     from nicegui.elements.label import Label as NiceLabel
     from nicegui.elements.progress import LinearProgress as NiceLinearProgress
-    from nicegui.elements.list import List as NiceList
     from nicegui.elements.log import Log as NiceLog
-    from nicegui.elements.select import Select as NiceSelect
     from nicegui.elements.table import Table as NiceTable
     from utils import Game
 
@@ -116,6 +114,9 @@ class WebUIManager:
         self.settings = MockSettings(self)
         self.tabs = MockTabs()
 
+        # Settings panel — owns all settings widget references and state
+        self._settings_panel = SettingsPanel(self)
+
         # Current status text (persisted so late-joining clients can restore it)
         self._status_text: str = "Initializing..."
 
@@ -141,16 +142,9 @@ class WebUIManager:
         self._channels_table: NiceTable | None = None
         self._channel_switch_btn: NiceButton | None = None
 
-        # Settings/inventory UI elements
-        self._priority_list: NiceList | None = None
-        self._exclude_list: NiceList | None = None
-        self._priority_input: NiceSelect | None = None
-        self._exclude_input: NiceSelect | None = None
+        # Inventory UI elements
         self._filter_checkboxes: dict[str, NiceCheckbox] | None = None
         self._inventory_container: NiceColumn | None = None
-        self._priority_selected: int | None = None
-        self._exclude_selected: str | None = None
-        self._game_names: set[str] = set()
 
         # WebSocket state (shared with MockWebsocketStatus)
         self._ws_data: dict = {}        # idx -> {status, topics}
@@ -271,7 +265,7 @@ class WebUIManager:
                     create_inventory_panel(manager)
 
                 with ui.tab_panel(settings_tab):
-                    create_settings_panel(manager)
+                    manager._settings_panel.build()
 
                 with ui.tab_panel(help_tab):
                     create_help_panel(manager)
@@ -375,7 +369,7 @@ class WebUIManager:
     @on_nicegui_loop
     def set_games(self, games: set[Game]) -> None:
         """Set available games for settings"""
-        _set_games(self, games)
+        self._settings_panel.set_games(games)
 
     def apply_theme(self, dark: bool) -> None:
         """Apply theme (no-op for web UI)"""
