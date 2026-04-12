@@ -546,6 +546,6 @@ class MainPanel(BasePanel):
             self.rebuild_ws()
             manager.login.update(_("gui", "login", "logged_out"), None)
             manager.status.update(_("gui", "login", "request"))
-            manager._twitch.state_change(State.INVENTORY_FETCH)()
+            call_on_main_loop(manager, manager._twitch.state_change(State.INVENTORY_FETCH))
         except Exception as e:
             print(f"Logout error: {e}")
