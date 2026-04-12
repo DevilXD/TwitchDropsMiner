@@ -334,6 +334,14 @@ class MainPanel(BasePanel):
         # Channel table (ws rows already built in _create_panel)
         self._do_rebuild_channel_table(widgets)
 
+        # Switch button state based on current selection
+        btn = widgets.get('channel_switch_btn')
+        if btn is not None:
+            if self._selected_channel_iid is not None:
+                btn.props(remove='disabled')
+            else:
+                btn.props('disabled')
+
         # Drop / campaign progress
         if self._current_drop is not None:
             self._do_display_drop(widgets, self._current_drop)
@@ -494,20 +502,32 @@ class MainPanel(BasePanel):
             print(f"Channel switch error: {e}")
 
     def _on_table_selection(self, client_id: str, e) -> None:
-        """Handle row selection: update shared state and sync Switch button on all clients."""
+        """Handle row selection: sync selection highlight and Switch button to all clients."""
         try:
             w = self._client_widgets.get(client_id)
             table = w.get('channels_table') if w else None
             selected = table.selected if table else []
             iid = selected[0].get('iid') if selected else None
             self._selected_channel_iid = iid
-            for cw in self._client_widgets.values():
+
+            for cid, cw in self._client_widgets.items():
+                # Sync Switch button on every client
                 btn = cw.get('channel_switch_btn')
                 if btn is not None:
                     if iid is not None:
                         btn.props(remove='disabled')
                     else:
                         btn.props('disabled')
+
+                # Sync table selection highlight on every other client
+                if cid != client_id:
+                    other_table = cw.get('channels_table')
+                    if other_table is not None:
+                        other_table.selected = (
+                            [r for r in other_table.rows if r['iid'] == iid]
+                            if iid is not None else []
+                        )
+                        other_table.update()
         except Exception as ex:
             print(f"Selection handler error: {ex}")
 
