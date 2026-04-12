@@ -111,8 +111,8 @@ class WebUIManager:
         self._inventory_panel: BasePanel = InventoryPanel(self)
         self._help_panel: BasePanel = HelpPanel(self)
 
-        # Dark mode state (used by SettingsPanel; all other UI state lives on _main_panel)
-        self._dark_mode_enabled: bool = True
+        # Dark mode state — read from settings so the correct value is applied on every page load
+        self._dark_mode_enabled: bool = twitch.settings.dark_mode
 
         self._setup_ui()
 
@@ -161,7 +161,7 @@ class WebUIManager:
         @ui.page('/')
         def index(tab: str = 'main'):
             ui.page_title("Twitch Drops Miner")
-            ui.dark_mode(True)
+            ui.dark_mode(self._dark_mode_enabled)
             ui.query('.nicegui-content').classes('p-0')
             ui.add_head_html(f'<style>{_css}</style>')
 
@@ -207,8 +207,20 @@ class WebUIManager:
 
 
     def _toggle_dark_mode(self, enabled: bool):
+        """Apply dark mode to the current client's page and schedule it for all other clients."""
         self._dark_mode_enabled = enabled
         ui.dark_mode(enabled)
+        try:
+            current_id = ui.context.client.id
+        except Exception:
+            current_id = None
+        from nicegui import Client
+        async def _apply(client) -> None:
+            with client:
+                ui.dark_mode(enabled)
+        for client_id, client in list(Client.instances.items()):
+            if client_id != current_id:
+                asyncio.get_event_loop().create_task(_apply(client))
 
     @property
     def running(self) -> bool:
