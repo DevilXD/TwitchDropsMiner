@@ -39,8 +39,24 @@ class MainPanel(BasePanel):
 
     def __init__(self, manager: 'WebUIManager') -> None:
         super().__init__(manager)
-        # client_id -> dict of widget refs for that client
+        # Per-client widget refs (keyed by NiceGUI client ID)
         self._client_widgets: dict = {}
+
+        # Shared state — persisted so late-joining clients start in sync
+        self._status_text: str = "Initializing..."
+        self._ws_data: dict = {}                    # idx -> {status, topics}
+        self._login_status_text: str = (
+            f"{_('gui', 'login', 'logged_out')}\n-"
+        )
+        self._login_btn_visible: bool = False
+        self._logout_btn_visible: bool = False
+        self._channel_map: dict = {}                # iid -> Channel
+        self._watching_channel_iid = None
+        self._selected_channel_iid = None
+        self._current_drop = None
+        self._countdown_active: bool = False
+        self._progress_seconds: int = 0
+        self._countdown_start_time: float | None = None
 
     # -------------------------------------------------------------------------
     # Public API
@@ -63,18 +79,17 @@ class MainPanel(BasePanel):
         w = self._client_widgets.get(client_id)
         if w is not None:
             w['status_label'] = label
-            label.set_text(self._manager._status_text)
+            label.set_text(self._status_text)
 
     def flush_login(self) -> None:
         """Push current login state to all connected clients."""
-        manager = self._manager
         for w in self._client_widgets.values():
             if w.get('login_status_label') is not None:
-                w['login_status_label'].set_text(manager._login_status_text)
+                w['login_status_label'].set_text(self._login_status_text)
             if w.get('login_button') is not None:
-                w['login_button'].set_visibility(manager._login_btn_visible)
+                w['login_button'].set_visibility(self._login_btn_visible)
             if w.get('logout_button') is not None:
-                w['logout_button'].set_visibility(manager._logout_btn_visible)
+                w['logout_button'].set_visibility(self._logout_btn_visible)
 
     def flush_status(self, text: str) -> None:
         """Push status text to all connected clients (header + status card)."""
@@ -104,11 +119,10 @@ class MainPanel(BasePanel):
 
     def clear_drop(self) -> None:
         """Clear the drop display on all connected clients."""
-        manager = self._manager
-        manager._current_drop = None
-        manager._countdown_active = False
-        manager._countdown_start_time = None
-        manager._progress_seconds = 0
+        self._current_drop = None
+        self._countdown_active = False
+        self._countdown_start_time = None
+        self._progress_seconds = 0
         for w in self._client_widgets.values():
             self._do_clear_drop(w)
 
@@ -118,20 +132,19 @@ class MainPanel(BasePanel):
         if drop is None:
             self.clear_drop()
             return
-        manager = self._manager
-        manager._current_drop = drop
+        self._current_drop = drop
         if countdown:
-            manager._countdown_active = True
-            manager._countdown_start_time = monotonic()
-            manager._progress_seconds = 60
+            self._countdown_active = True
+            self._countdown_start_time = monotonic()
+            self._progress_seconds = 60
         elif subone:
-            manager._countdown_active = False
-            manager._countdown_start_time = None
-            manager._progress_seconds = 0
+            self._countdown_active = False
+            self._countdown_start_time = None
+            self._progress_seconds = 0
         else:
-            manager._countdown_active = False
-            manager._countdown_start_time = None
-            manager._progress_seconds = 60
+            self._countdown_active = False
+            self._countdown_start_time = None
+            self._progress_seconds = 60
         for w in self._client_widgets.values():
             self._do_display_drop(w, drop)
             self._do_tick_progress(w)
@@ -305,33 +318,31 @@ class MainPanel(BasePanel):
     # -------------------------------------------------------------------------
 
     def _flush_state(self, widgets: dict) -> None:
-        """Populate freshly-created widgets with the current manager state so
-        clients connecting after initialization see correct values immediately."""
-        manager = self._manager
-
+        """Populate freshly-created widgets with current state so clients
+        connecting after initialization see correct values immediately."""
         if widgets.get('status_card') is not None:
-            widgets['status_card'].set_text(manager._status_text)
+            widgets['status_card'].set_text(self._status_text)
 
         # Login state
         if widgets.get('login_status_label') is not None:
-            widgets['login_status_label'].set_text(manager._login_status_text)
+            widgets['login_status_label'].set_text(self._login_status_text)
         if widgets.get('login_button') is not None:
-            widgets['login_button'].set_visibility(manager._login_btn_visible)
+            widgets['login_button'].set_visibility(self._login_btn_visible)
         if widgets.get('logout_button') is not None:
-            widgets['logout_button'].set_visibility(manager._logout_btn_visible)
+            widgets['logout_button'].set_visibility(self._logout_btn_visible)
 
-        # Channel table (ws rows already built in _create_ui)
+        # Channel table (ws rows already built in _create_panel)
         self._do_rebuild_channel_table(widgets)
 
         # Drop / campaign progress
-        if manager._current_drop is not None:
-            self._do_display_drop(widgets, manager._current_drop)
+        if self._current_drop is not None:
+            self._do_display_drop(widgets, self._current_drop)
             self._do_tick_progress(widgets)
 
         # Replay buffered console history
         console = widgets.get('console')
         if console is not None:
-            for line in manager._console_log:
+            for line in self._manager._console_log:
                 console.push(line)
 
     # -------------------------------------------------------------------------
@@ -346,7 +357,7 @@ class MainPanel(BasePanel):
             container.clear()
             with container:
                 for idx in range(MAX_WEBSOCKETS):
-                    entry = self._manager._ws_data.get(idx)
+                    entry = self._ws_data.get(idx)
                     ws_name = _('gui', 'websocket', 'websocket').format(id=idx + 1)
                     if entry is None:
                         label_text = ws_name
@@ -366,9 +377,8 @@ class MainPanel(BasePanel):
         table = widgets.get('channels_table')
         if table is None:
             return
-        manager = self._manager
         rows = []
-        for iid, channel in manager._channel_map.items():
+        for iid, channel in self._channel_map.items():
             if channel.online:
                 status = _("gui", "channels", "online")
             elif channel.pending_online:
@@ -376,7 +386,7 @@ class MainPanel(BasePanel):
             else:
                 status = _("gui", "channels", "offline")
             name = channel.name
-            if iid == manager._watching_channel_iid:
+            if iid == self._watching_channel_iid:
                 name = "▶ " + name
             rows.append({
                 'iid': iid,
@@ -388,9 +398,8 @@ class MainPanel(BasePanel):
                 'acl_base': '✔' if channel.acl_based else '❌',
             })
         # Preserve the selected row if it still exists in the new rows
-        selected_iid = manager._selected_channel_iid
-        if selected_iid is not None:
-            table.selected = [r for r in rows if r['iid'] == selected_iid]
+        if self._selected_channel_iid is not None:
+            table.selected = [r for r in rows if r['iid'] == self._selected_channel_iid]
         table.rows = rows
         table.update()
 
@@ -441,19 +450,18 @@ class MainPanel(BasePanel):
 
     def _do_tick_progress(self, widgets: dict) -> None:
         """Update remaining-time labels for one client using real elapsed time."""
-        manager = self._manager
-        drop = manager._current_drop
+        drop = self._current_drop
         if drop is None:
             return
-        if manager._countdown_active and manager._countdown_start_time is not None:
-            elapsed = int(monotonic() - manager._countdown_start_time)
-            manager._progress_seconds = max(0, 60 - elapsed)
-        secs = manager._progress_seconds % 60
+        if self._countdown_active and self._countdown_start_time is not None:
+            elapsed = int(monotonic() - self._countdown_start_time)
+            self._progress_seconds = max(0, 60 - elapsed)
+        secs = self._progress_seconds % 60
 
         if widgets.get('drop_remaining_label') is not None:
             try:
                 drop_mins = drop.remaining_minutes
-                if manager._progress_seconds < 60 and drop_mins > 0:
+                if self._progress_seconds < 60 and drop_mins > 0:
                     drop_mins -= 1
                 h, m = divmod(drop_mins, 60)
                 widgets['drop_remaining_label'].set_text(
@@ -465,7 +473,7 @@ class MainPanel(BasePanel):
         if widgets.get('campaign_remaining_label') is not None:
             try:
                 camp_mins = drop.campaign.remaining_minutes
-                if manager._progress_seconds < 60 and camp_mins > 0:
+                if self._progress_seconds < 60 and camp_mins > 0:
                     camp_mins -= 1
                 h, m = divmod(camp_mins, 60)
                 widgets['campaign_remaining_label'].set_text(
@@ -492,7 +500,7 @@ class MainPanel(BasePanel):
             table = w.get('channels_table') if w else None
             selected = table.selected if table else []
             iid = selected[0].get('iid') if selected else None
-            self._manager._selected_channel_iid = iid
+            self._selected_channel_iid = iid
             for cw in self._client_widgets.values():
                 btn = cw.get('channel_switch_btn')
                 if btn is not None:
@@ -514,8 +522,8 @@ class MainPanel(BasePanel):
             manager.channels.clear()
             manager.inv.clear()
             manager._twitch.stop_watching()
-            manager._ws_data.clear()
-            manager.rebuild_ws()
+            self._ws_data.clear()
+            self.rebuild_ws()
             manager.login.update(_("gui", "login", "logged_out"), None)
             manager.status.update(_("gui", "login", "request"))
             manager._twitch.state_change(State.INVENTORY_FETCH)()

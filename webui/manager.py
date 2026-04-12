@@ -111,30 +111,8 @@ class WebUIManager:
         self._inventory_panel: BasePanel = InventoryPanel(self)
         self._help_panel: BasePanel = HelpPanel(self)
 
-        # Current status text (persisted so late-joining clients can restore it)
-        self._status_text: str = "Initializing..."
+        # Dark mode state (used by SettingsPanel; all other UI state lives on _main_panel)
         self._dark_mode_enabled: bool = True
-
-        # WebSocket state (shared with MockWebsocketStatus)
-        self._ws_data: dict = {}        # idx -> {status, topics}
-
-        # Login state (persisted for late-joining clients)
-        self._login_status_text: str = (
-            f"{_('gui', 'login', 'logged_out')}\n-"
-        )
-        self._login_btn_visible: bool = False
-        self._logout_btn_visible: bool = False
-
-        # Channel list state (shared with MockChannels)
-        self._channel_map: dict = {}    # iid -> Channel
-        self._watching_channel_iid = None
-        self._selected_channel_iid = None
-
-        # Drop/progress state (shared with MockProgress and MainPanel timers)
-        self._current_drop = None
-        self._countdown_active: bool = False
-        self._progress_seconds: int = 0
-        self._countdown_start_time: float | None = None  # monotonic time when countdown began
 
         self._setup_ui()
 
