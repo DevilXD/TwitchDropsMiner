@@ -35,8 +35,12 @@ def main():
         sys.exit(1)
     
     # Run the selected entry point with the same Python interpreter
-    result = subprocess.run([sys.executable, script])
-    sys.exit(result.returncode)
+    try:
+        result = subprocess.run([sys.executable, script])
+        sys.exit(result.returncode)
+    except KeyboardInterrupt:
+        # Handle Ctrl+C gracefully without showing traceback
+        sys.exit(0)
 
 
 if __name__ == "__main__":
