@@ -296,14 +296,14 @@ class InventoryPanel(BasePanel):
         meta_col = Tag('div').classes('flex flex-col gap-1 flex-1 min-w-0').add(
             Tag('div', campaign.name).classes('font-bold text-sm'),
             Tag('div', campaign.game.name).classes('text-xs text-gray-400'),
-            Tag('div', status_text).classes('text-xs font-bold', status_cls),
+            Tag('div', status_text).classes('text-xs', status_cls),
         )
         if date_tag is not None:
             meta_col.add(date_tag)
         meta_col.add(
             Tag('a', link_text)
                 .props(href=str(campaign.link_url), target='_blank', rel='noopener noreferrer')
-                .classes('text-xs underline', link_cls),
+                .classes('text-xs', link_cls),
             Tag('div', f'{_("gui", "inventory", "allowed_channels")} {acl_text}')
                 .classes('text-xs text-gray-400'),
         )
