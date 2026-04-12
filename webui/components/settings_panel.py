@@ -73,12 +73,8 @@ class SettingsPanel(BasePanel):
         if not NICEGUI_AVAILABLE:
             return
 
-        from nicegui import app
         client_id = ui.context.client.id
-
-        async def _on_disconnect():
-            self._remove_client(client_id)
-        app.on_disconnect(_on_disconnect)
+        ui.context.client.on_disconnect(lambda: self._remove_client(client_id))
 
         with ui.row().classes('w-full gap-2 items-stretch flex-wrap'):
             self._build_general_column(client_id)
