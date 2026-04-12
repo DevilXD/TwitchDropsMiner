@@ -40,7 +40,7 @@ AppDir:
     icon: io.github.devilxd.twitchdropsminer
     version: '{{APP_VERSION}}'
     exec: usr/bin/python3
-    exec_args: '${APPDIR}/usr/src/main.py $@'
+    exec_args: '${APPDIR}/usr/src/entrypoint.py $@'
 
   apt:
     arch:

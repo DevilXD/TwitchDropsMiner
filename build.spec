@@ -92,7 +92,7 @@ hiddenimports: list[str] = [
 #    }
 
 a = Analysis(
-    ["main.py"],
+    ["entrypoint.py"],
     datas=datas,
     binaries=binaries,
     hooksconfig=hooksconfig,
