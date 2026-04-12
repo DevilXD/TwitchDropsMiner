@@ -130,6 +130,13 @@ class WebUIManager:
             ui.dark_mode(self._dark_mode_enabled)
             ui.query('.nicegui-content').classes('p-0')
             ui.add_head_html(f'<style>{_css}</style>')
+            
+            # Request notification permission on page load
+            ui.run_javascript("""
+                if ('Notification' in window && Notification.permission === 'default') {
+                    Notification.requestPermission();
+                }
+            """)
 
             # Alias so nested closures below can reference the manager unambiguously.
             manager = self
