@@ -48,7 +48,7 @@ except ImportError:
     app = None
 
 from translate import _
-from constants import OUTPUT_FORMATTER, FILE_FORMATTER
+from constants import OUTPUT_FORMATTER, FILE_FORMATTER, WINDOW_TITLE
 from .mock_classes import (MockTray, MockStatus, MockProgress, MockOutput, MockChannels,
                           MockInventory, MockLoginForm, MockWebsocketStatus, MockSettings, MockTabs)
 from .handlers import WebUIOutputHandler
@@ -122,7 +122,7 @@ class WebUIManager:
 
         @ui.page('/')
         def index(tab: str = 'main'):
-            ui.page_title("Twitch Drops Miner")
+            ui.page_title(WINDOW_TITLE)
             ui.dark_mode(self._dark_mode_enabled)
             ui.query('.nicegui-content').classes('p-0')
             ui.add_head_html(f'<style>{_css}</style>')

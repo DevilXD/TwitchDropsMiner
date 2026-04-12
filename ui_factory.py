@@ -1,3 +1,9 @@
+"""Simplified UI factory that uses environment variable to select backend.
+
+Set UI_BACKEND environment variable to choose the interface:
+- UI_BACKEND=tkinter (default) - Uses tkinter desktop GUI
+- UI_BACKEND=nicegui - Uses NiceGUI web interface
+"""
 from __future__ import annotations
 
 import os
@@ -9,50 +15,17 @@ if TYPE_CHECKING:
     from webui import WebUIManager
 
 
-def create_gui_manager(twitch: Twitch) -> Union['GUIManager', 'WebUIManager']:
+def create_gui_manager(twitch: 'Twitch') -> Union['GUIManager', 'WebUIManager']:
     """
-    Factory function to create either a tkinter GUI or NiceGUI web interface
-    based on the UI_BACKEND environment variable.
-
-    Environment Variables:
-        UI_BACKEND: Set to "nicegui" to use web UI, "tkinter" for desktop GUI (default: tkinter)
-        WEBUI_HOST: Host for web UI (default: 0.0.0.0)
-        WEBUI_PORT: Port for web UI (default: 8080)
-
-    Returns:
-        GUIManager or WebUIManager instance with compatible interface
+    Create the appropriate GUI manager based on UI_BACKEND environment variable.
+    
+    Defaults to tkinter if UI_BACKEND is not set or is an unknown value.
     """
     ui_backend = os.getenv('UI_BACKEND', 'tkinter').lower()
 
     if ui_backend == 'nicegui':
-        try:
-            from webui import WebUIManager
-            print("Using NiceGUI web interface")
-            return WebUIManager(twitch)
-
-        except ImportError as e:
-            print(f"Warning: Failed to import NiceGUI web UI: {e}")
-            print("Falling back to tkinter GUI")
-            print("To use web UI, install NiceGUI: pip install nicegui")
-    elif ui_backend == 'tkinter':
-        pass  # Use default tkinter GUI
+        from webui import WebUIManager
+        return WebUIManager(twitch)
     else:
-        print(f"Warning: Unknown UI backend '{ui_backend}'. Valid options: 'tkinter', 'nicegui'")
-        print("Falling back to tkinter GUI")
-
-    # Default to tkinter GUI
-    from gui import GUIManager
-    print("Using tkinter GUI")
-    return GUIManager(twitch)
-
-
-def is_webui_enabled() -> bool:
-    """Check if web UI is enabled via environment variable"""
-    return os.getenv('UI_BACKEND', 'tkinter').lower() == 'nicegui'
-
-
-def get_webui_config() -> tuple[str, int]:
-    """Get web UI host and port configuration"""
-    host = os.getenv('WEBUI_HOST', '0.0.0.0')
-    port = int(os.getenv('WEBUI_PORT', '8080'))
-    return host, port
+        from gui import GUIManager
+        return GUIManager(twitch)

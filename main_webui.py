@@ -10,6 +10,8 @@ from __future__ import annotations
 # import an additional thing for proper PyInstaller freeze support
 from multiprocessing import freeze_support
 
+from constants import WINDOW_TITLE
+
 
 if __name__ == "__main__":
     freeze_support()
@@ -90,10 +92,10 @@ if __name__ == "__main__":
         settings = Settings(args)
     except Exception:
         print("ERROR: Settings error")
-        print(f"There was an error while loading the settings file.")
-        print(f"This is a docker permissions issue or you mounted the wrong folder.")
-        print(f"Check the readme at https://github.com/fireph/docker-twitch-drops-miner.")
-        print(f"DO NOT report this issue to the DevilXD/TwitchDropsMiner repository!")
+        print("There was an error while loading the settings file.")
+        print("This is a docker permissions issue or you mounted the wrong folder.")
+        print("Check the readme at https://github.com/fireph/docker-twitch-drops-miner.")
+        print("DO NOT report this issue to the DevilXD/TwitchDropsMiner repository!")
         print()
         traceback.print_exc()
         sys.exit(4)
@@ -215,7 +217,7 @@ if __name__ == "__main__":
             ui.run(
                 host=host,
                 port=port,
-                title="Twitch Drops Miner",
+                title=WINDOW_TITLE,
                 show=False,
                 reload=False,
                 favicon=Path(__file__).parent / 'webui' / 'static' / 'pickaxe.ico'
