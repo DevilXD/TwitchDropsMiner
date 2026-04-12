@@ -42,7 +42,7 @@ class MainPanel(BasePanel):
         self._client_widgets: dict = {}
 
         # Shared state — persisted so late-joining clients start in sync
-        self._status_text: str = "Initializing..."
+        # Status text is owned by manager._status_text (single source of truth)
         self._ws_data: dict = {}                    # idx -> {status, topics}
         self._login_status_text: str = (
             f"{_('gui', 'login', 'logged_out')}\n-"
@@ -72,13 +72,6 @@ class MainPanel(BasePanel):
         self._create_panel(client_id, widgets)
         self._flush_state(widgets)
 
-    def register_header_label(self, client_id: str, label) -> None:
-        """Register the header status label created in manager._setup_ui.
-        Called after build() so the client entry already exists."""
-        w = self._client_widgets.get(client_id)
-        if w is not None:
-            w['status_label'] = label
-            label.set_text(self._status_text)
 
     def flush_login(self) -> None:
         """Push current login state to all connected clients."""
@@ -90,11 +83,10 @@ class MainPanel(BasePanel):
             if w.get('logout_button') is not None:
                 w['logout_button'].set_visibility(self._logout_btn_visible)
 
-    def flush_status(self, text: str) -> None:
-        """Push status text to all connected clients (header + status card)."""
+    def update_status(self, text: str) -> None:
+        """Push status text to all connected clients' status cards.
+        Called by manager.update_status() - manager owns the status text."""
         for w in self._client_widgets.values():
-            if w.get('status_label') is not None:
-                w['status_label'].set_text(text)
             if w.get('status_card') is not None:
                 w['status_card'].set_text(text)
 
@@ -320,7 +312,8 @@ class MainPanel(BasePanel):
         """Populate freshly-created widgets with current state so clients
         connecting after initialization see correct values immediately."""
         if widgets.get('status_card') is not None:
-            widgets['status_card'].set_text(self._status_text)
+            # Status text is owned by the manager
+            widgets['status_card'].set_text(self._manager._status_text)
 
         # Login state
         if widgets.get('login_status_label') is not None:

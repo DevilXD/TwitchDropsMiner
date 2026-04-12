@@ -52,7 +52,7 @@ from constants import OUTPUT_FORMATTER, FILE_FORMATTER, WINDOW_TITLE
 from .mocks import (MockTray, MockStatus, MockProgress, MockOutput, MockChannels,
                     MockInventory, MockLoginForm, MockWebsocketStatus, MockSettings, MockTabs)
 from .handlers import WebUIOutputHandler
-from .components import (BasePanel, MainPanel, InventoryPanel, HelpPanel, SettingsPanel)
+from .components import (BasePanel, MainPanel, InventoryPanel, HelpPanel, SettingsPanel, HeaderBar)
 
 if TYPE_CHECKING:
     from twitch import Twitch
@@ -83,6 +83,9 @@ class WebUIManager:
         self._close_requested = asyncio.Event()
         self._running = False
         self._console_log = []
+        
+        # Shared UI state - single source of truth for all panels
+        self._status_text: str = "Initializing..."
 
         self.tray = MockTray(self)
         self.status = MockStatus(self)
@@ -96,6 +99,7 @@ class WebUIManager:
         self.tabs = MockTabs()
 
         # Panel objects — own all widget references and state for their tab
+        self._header_bar: HeaderBar = HeaderBar(self)
         self._main_panel: MainPanel = MainPanel(self)
         self._settings_panel: BasePanel = SettingsPanel(self)
         self._inventory_panel: BasePanel = InventoryPanel(self)
@@ -129,43 +133,28 @@ class WebUIManager:
 
             # Alias so nested closures below can reference the manager unambiguously.
             manager = self
-            client_id = ui.context.client.id
 
             # Fall back to 'main' if the ?tab= query param is not a known tab name.
             initial_tab = tab if tab in ('main', 'inventory', 'settings', 'help') else 'main'
 
-            with ui.header().classes('flex-col items-stretch p-0 gap-0'):
-                with ui.row().classes('tdm-header-row w-full items-center q-px-lg q-py-md'):
-                    ui.image('/static/pickaxe.png').classes('w-8 h-8')
-                    ui.label("Twitch Drops Miner").classes('text-h6')
-                    ui.space()
-                    header_label = ui.label("Starting...").classes('text-body1')
+            def _on_tab_change(e):
+                t = str(e.value)
+                ui.run_javascript(f"history.replaceState(null, '', '?tab={t}')")
 
-                def _on_tab_change(e):
-                    t = str(e.value)
-                    ui.run_javascript(f"history.replaceState(null, '', '?tab={t}')")
-
-                with ui.tabs(value=initial_tab, on_change=_on_tab_change).classes('w-full') as tabs:
-                    main_tab      = ui.tab('main',      label=_('gui', 'tabs', 'main'),      icon='home')
-                    inventory_tab = ui.tab('inventory', label=_('gui', 'tabs', 'inventory'), icon='inventory')
-                    settings_tab  = ui.tab('settings',  label=_('gui', 'tabs', 'settings'),  icon='settings')
-                    help_tab      = ui.tab('help',      label=_('gui', 'tabs', 'help'),      icon='help')
+            tabs = manager._header_bar.build(initial_tab, _on_tab_change)
 
             with ui.tab_panels(tabs, value=initial_tab).classes('w-full h-full'):
-                with ui.tab_panel(main_tab):
+                with ui.tab_panel('main'):
                     manager._main_panel.build()
 
-                with ui.tab_panel(inventory_tab):
+                with ui.tab_panel('inventory'):
                     manager._inventory_panel.build()
 
-                with ui.tab_panel(settings_tab):
+                with ui.tab_panel('settings'):
                     manager._settings_panel.build()
 
-                with ui.tab_panel(help_tab):
+                with ui.tab_panel('help'):
                     manager._help_panel.build()
-
-            # Register header label after build() so the client entry already exists
-            manager._main_panel.register_header_label(client_id, header_label)
 
 
     def toggle_dark_mode(self, enabled: bool):
@@ -285,3 +274,9 @@ class WebUIManager:
         """Prevent the application from closing (used for error states)"""
         self._close_requested.clear()
         self.print("Application prevented from closing due to error state")
+
+    def update_status(self, text: str) -> None:
+        """Update status text across all panels. Single source of truth."""
+        self._status_text = text
+        self._header_bar.update_status(text)
+        self._main_panel.update_status(text)

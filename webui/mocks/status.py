@@ -7,14 +7,14 @@ if TYPE_CHECKING:
 
 
 class MockStatus:
-    """Mirrors StatusBar - updates the status card label"""
+    """Mirrors StatusBar - delegates to manager to update both panels"""
 
     def __init__(self, manager: 'WebUIManager'):
         self._manager = manager
 
     def update(self, text: str):
-        self._manager._main_panel._status_text = text  # persists for late-joining clients
-        self._manager._main_panel.flush_status(text)
+        # Manager owns the status and notifies both panels
+        self._manager.update_status(text)
 
     def clear(self):
         self.update("")
