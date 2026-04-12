@@ -362,7 +362,7 @@ class InventoryPanel(BasePanel):
         else:
             text = ""
         now = datetime.now(timezone.utc)
-        if now < drop.starts_at > drop.campaign.starts_at:
+        if now < drop.starts_at and drop.starts_at > drop.campaign.starts_at:
             text += "\n" + _("gui", "inventory", "starts").format(
                 time=drop.starts_at.astimezone().replace(microsecond=0, tzinfo=None)
             )
