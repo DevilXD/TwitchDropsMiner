@@ -189,7 +189,10 @@ class InventoryPanel(BasePanel):
                 return
 
             for campaign in visible:
-                elem = ui.html(self._render_campaign_html(campaign)).classes('w-full')
+                elem = ui.html(
+                    self._render_campaign_html(campaign),
+                    sanitize=False
+                ).classes('w-full')
                 self._campaign_html_elements.setdefault(campaign.id, {})[client_id] = elem
 
     def _on_filter_change(self, key: str, value: bool) -> None:
@@ -299,7 +302,7 @@ class InventoryPanel(BasePanel):
             meta_col.add(date_tag)
         meta_col.add(
             Tag('a', link_text)
-                .props(href=str(campaign.link_url), target='_blank')
+                .props(href=str(campaign.link_url), target='_blank', rel='noopener noreferrer')
                 .classes('text-xs underline', link_cls),
             Tag('div', f'{_("gui", "inventory", "allowed_channels")} {acl_text}')
                 .classes('text-xs text-gray-400'),

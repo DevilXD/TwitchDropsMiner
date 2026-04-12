@@ -26,12 +26,13 @@ class HelpPanel(BasePanel):
                     ui.label("About").classes('font-bold text-sm')
                     with ui.grid(columns='auto 1fr').classes('gap-x-4 gap-y-1 text-sm'):
                         ui.label("Application created by:").classes('text-right')
-                        ui.link("DevilXD/fireph", "https://github.com/DevilXD").classes('text-sm')
+                        ui.link("DevilXD/fireph", "https://github.com/DevilXD", True).classes('text-sm')
 
                         ui.label("Repository:").classes('text-right')
                         ui.link(
                             "https://github.com/fireph/docker-twitch-drops-miner",
                             "https://github.com/fireph/docker-twitch-drops-miner",
+                            True,
                         ).classes('text-sm')
 
                     ui.separator().classes('my-1')
@@ -42,6 +43,7 @@ class HelpPanel(BasePanel):
                             "If you like the application and found it useful, "
                             "please consider donating a small amount of money to support me. Thank you!",
                             "https://www.buymeacoffee.com/DevilXD",
+                            True,
                         ).classes('text-sm')
 
                 # Useful Links
@@ -50,10 +52,12 @@ class HelpPanel(BasePanel):
                     ui.link(
                         _("gui", "help", "links", "inventory"),
                         "https://www.twitch.tv/drops/inventory",
+                        True,
                     ).classes('text-sm')
                     ui.link(
                         _("gui", "help", "links", "campaigns"),
                         "https://www.twitch.tv/drops/campaigns",
+                        True,
                     ).classes('text-sm')
 
                 # How It Works
