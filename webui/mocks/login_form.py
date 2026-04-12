@@ -1,0 +1,70 @@
+from __future__ import annotations
+
+import asyncio
+from typing import TYPE_CHECKING
+
+from translate import _
+from .login_data import LoginData
+
+if TYPE_CHECKING:
+    from yarl import URL
+    from webui.manager import WebUIManager
+
+
+class MockLoginForm:
+    """
+    Mirrors LoginForm - updates the login status labels and handles
+    the device-code activation flow.
+    """
+
+    def __init__(self, manager: 'WebUIManager'):
+        self._manager = manager
+        self._confirm = asyncio.Event()
+
+    def clear(self, login: bool = False, password: bool = False, token: bool = False):
+        pass
+
+    async def wait_for_login_press(self) -> None:
+        self._confirm.clear()
+        self._manager._main_panel._login_btn_visible = True
+        self._manager._main_panel.flush_login()
+        await self._manager.coro_unless_closed(self._confirm.wait())
+
+    async def ask_login(self) -> LoginData:
+        """Prompt for login via the console; device-code flow is preferred."""
+        self.update(_("gui", "login", "required"), None)
+        self._manager.grab_attention(sound=False)
+        self._manager.print(_("gui", "login", "request"))
+        await self.wait_for_login_press()
+        return LoginData("", "", "")
+
+    async def ask_enter_code(self, page_url: 'URL', user_code: str) -> None:
+        """Show the device activation code and wait for login button before opening browser."""
+        self.update(_("gui", "login", "required"), None)
+        self._manager.grab_attention(sound=False)
+        self._manager.print(_("gui", "login", "request"))
+        self._manager.print(
+            f"Enter this code on Twitch's device activation page: {user_code}"
+        )
+        twitch_login_url = f"https://www.twitch.tv/activate?device-code={user_code}"
+        self._manager.print(f"URL: {twitch_login_url}")
+        await self.wait_for_login_press()
+        from utils import webopen
+        webopen(page_url)
+
+    def update(self, status: str, user_id: int | None):
+        panel = self._manager._main_panel
+        user_str = str(user_id) if user_id is not None else "-"
+        panel._login_status_text = f"{status}\n{user_str}"
+        panel._logout_btn_visible = (status == _("gui", "login", "logged_in"))
+        if status != _("gui", "login", "required"):
+            panel._login_btn_visible = False
+        panel.flush_login()
+        # Mirror login state to the status bar when the main loop hasn't set it yet
+        login_statuses = (
+            _("gui", "login", "logging_in"),
+            _("gui", "login", "required"),
+            _("gui", "login", "logged_out"),
+        )
+        if status in login_statuses:
+            self._manager.status.update(status)

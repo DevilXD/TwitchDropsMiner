@@ -49,8 +49,8 @@ except ImportError:
 
 from translate import _
 from constants import OUTPUT_FORMATTER, FILE_FORMATTER, WINDOW_TITLE
-from .mock_classes import (MockTray, MockStatus, MockProgress, MockOutput, MockChannels,
-                          MockInventory, MockLoginForm, MockWebsocketStatus, MockSettings, MockTabs)
+from .mocks import (MockTray, MockStatus, MockProgress, MockOutput, MockChannels,
+                    MockInventory, MockLoginForm, MockWebsocketStatus, MockSettings, MockTabs)
 from .handlers import WebUIOutputHandler
 from .components import (BasePanel, MainPanel, InventoryPanel, HelpPanel, SettingsPanel)
 
