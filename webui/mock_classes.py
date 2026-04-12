@@ -43,7 +43,6 @@ from typing import TYPE_CHECKING
 from translate import _
 from .thread_utils import on_nicegui_loop, call_on_nicegui
 from .components.main_panel import _flush_login, _rebuild_channel_table
-from .components.inventory_panel import refresh_inventory_display, _render_campaign_html
 
 if TYPE_CHECKING:
     from yarl import URL
@@ -212,33 +211,15 @@ class MockInventory:
         self._manager = manager
 
     def clear(self):
-        panel = self._manager._inventory_panel
-        panel._inventory_campaigns.clear()
-        panel._campaign_html_elements.clear()
-        call_on_nicegui(self, lambda: refresh_inventory_display(self._manager))
+        call_on_nicegui(self, self._manager._inventory_panel.clear)
 
     async def add_campaign(self, campaign) -> None:
-        """Store the real DropsCampaign object and re-render the inventory."""
-        try:
-            campaign_id = getattr(campaign, 'id', str(id(campaign)))
-            self._manager._inventory_panel._inventory_campaigns[campaign_id] = campaign
-            call_on_nicegui(self, lambda: refresh_inventory_display(self._manager))
-        except Exception as e:
-            self._manager.print(f"Failed to add campaign: {e}")
+        """Delegates to InventoryPanel.add_campaign."""
+        call_on_nicegui(self, lambda: self._manager._inventory_panel.add_campaign(campaign))
 
     def update_drop(self, drop) -> None:
-        """
-        Mirrors InventoryOverview.update_drop() - re-renders the campaign's HTML
-        element on every connected client so drop progress updates live.
-        """
-        def _do():
-            campaign = drop.campaign
-            html = _render_campaign_html(campaign)
-            for elem in self._manager._inventory_panel._campaign_html_elements.get(
-                campaign.id, {}
-            ).values():
-                elem.content = html
-        call_on_nicegui(self, _do)
+        """Mirrors InventoryOverview.update_drop() - delegates to InventoryPanel."""
+        call_on_nicegui(self, lambda: self._manager._inventory_panel.update_drop(drop))
 
     def configure_theme(self, *, bg: str):
         pass
