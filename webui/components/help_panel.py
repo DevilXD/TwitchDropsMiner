@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 try:
     from nicegui import ui
     NICEGUI_AVAILABLE = True
@@ -13,9 +11,6 @@ except ImportError:
 
 from translate import _
 from .base_panel import BasePanel
-
-if TYPE_CHECKING:
-    from webui.manager import WebUIManager
 
 
 class HelpPanel(BasePanel):
