@@ -168,7 +168,7 @@ class WebUIManager:
             manager._main_panel.register_header_label(client_id, header_label)
 
 
-    def _toggle_dark_mode(self, enabled: bool):
+    def toggle_dark_mode(self, enabled: bool):
         """Apply dark mode to the current client's page and schedule it for all other clients."""
         self._dark_mode_enabled = enabled
         ui.dark_mode(enabled)
