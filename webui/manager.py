@@ -57,19 +57,11 @@ from constants import OUTPUT_FORMATTER, FILE_FORMATTER
 from .mock_classes import (MockTray, MockStatus, MockProgress, MockOutput, MockChannels,
                           MockInventory, MockLoginForm, MockWebsocketStatus, MockSettings, MockTabs)
 from .handlers import WebUIOutputHandler
-from .components import (BasePanel, create_main_panel, InventoryPanel,
-                        HelpPanel, clear_drop as _clear_drop,
-                        display_drop as _display_drop, SettingsPanel)
+from .components import (BasePanel, MainPanel, InventoryPanel, HelpPanel, SettingsPanel)
 from .thread_utils import on_nicegui_loop, call_on_nicegui
 
 if TYPE_CHECKING:
     from twitch import Twitch
-    from nicegui.elements.button import Button as NiceButton
-    from nicegui.elements.column import Column as NiceColumn
-    from nicegui.elements.label import Label as NiceLabel
-    from nicegui.elements.progress import LinearProgress as NiceLinearProgress
-    from nicegui.elements.log import Log as NiceLog
-    from nicegui.elements.table import Table as NiceTable
     from utils import Game
 
 
@@ -114,53 +106,31 @@ class WebUIManager:
         self.tabs = MockTabs()
 
         # Panel objects — own all widget references and state for their tab
+        self._main_panel: MainPanel = MainPanel(self)
         self._settings_panel: BasePanel = SettingsPanel(self)
         self._inventory_panel: BasePanel = InventoryPanel(self)
         self._help_panel: BasePanel = HelpPanel(self)
 
         # Current status text (persisted so late-joining clients can restore it)
         self._status_text: str = "Initializing..."
-
-        # NiceGUI widget references — None until the first client page load populates them.
-        # Each browser connection runs the index() handler which assigns these.
-        self._status_label: NiceLabel | None = None
-        self._status_card: NiceLabel | None = None
-        self._console: NiceLog | None = None
         self._dark_mode_enabled: bool = True
-
-        # Main panel UI elements
-        self._ws_container: NiceColumn | None = None
-        self._login_status_label: NiceLabel | None = None
-        self._campaign_game_label: NiceLabel | None = None
-        self._campaign_name_label: NiceLabel | None = None
-        self._campaign_progress_bar: NiceLinearProgress | None = None
-        self._campaign_percentage_label: NiceLabel | None = None
-        self._campaign_remaining_label: NiceLabel | None = None
-        self._drop_rewards_label: NiceLabel | None = None
-        self._drop_progress_bar: NiceLinearProgress | None = None
-        self._drop_percentage_label: NiceLabel | None = None
-        self._drop_remaining_label: NiceLabel | None = None
-        self._channels_table: NiceTable | None = None
-        self._channel_switch_btn: NiceButton | None = None
 
         # WebSocket state (shared with MockWebsocketStatus)
         self._ws_data: dict = {}        # idx -> {status, topics}
 
-        # Login state
+        # Login state (persisted for late-joining clients)
         self._login_status_text: str = (
             f"{_('gui', 'login', 'logged_out')}\n-"
         )
         self._login_btn_visible: bool = False
         self._logout_btn_visible: bool = False
-        self._login_button: NiceButton | None = None
-        self._logout_button: NiceButton | None = None
 
         # Channel list state (shared with MockChannels)
         self._channel_map: dict = {}    # iid -> Channel
         self._watching_channel_iid = None
         self._selected_channel_iid = None
 
-        # Drop/progress state
+        # Drop/progress state (shared with MockProgress and MainPanel timers)
         self._current_drop = None
         self._countdown_active: bool = False
         self._progress_seconds: int = 0
@@ -219,6 +189,7 @@ class WebUIManager:
 
             # Alias so nested closures below can reference the manager unambiguously.
             manager = self
+            client_id = ui.context.client.id
 
             # Fall back to 'main' if the ?tab= query param is not a known tab name.
             initial_tab = tab if tab in ('main', 'inventory', 'settings', 'help') else 'main'
@@ -228,7 +199,7 @@ class WebUIManager:
                     ui.image('/static/pickaxe.png').classes('w-8 h-8')
                     ui.label("Twitch Drops Miner").classes('text-h6')
                     ui.space()
-                    manager._status_label = ui.label("Starting...").classes('text-body1')
+                    header_label = ui.label("Starting...").classes('text-body1')
 
                 def _on_tab_change(e):
                     t = str(e.value)
@@ -242,7 +213,7 @@ class WebUIManager:
 
             with ui.tab_panels(tabs, value=initial_tab).classes('w-full h-full'):
                 with ui.tab_panel(main_tab):
-                    create_main_panel(manager)
+                    manager._main_panel.build()
 
                 with ui.tab_panel(inventory_tab):
                     manager._inventory_panel.build()
@@ -252,6 +223,9 @@ class WebUIManager:
 
                 with ui.tab_panel(help_tab):
                     manager._help_panel.build()
+
+            # Register header label after build() so the client entry already exists
+            manager._main_panel.register_header_label(client_id, header_label)
 
 
     def _toggle_dark_mode(self, enabled: bool):
@@ -270,7 +244,6 @@ class WebUIManager:
         """Append a timestamped line to the in-browser console log.
         Matches gui.py ConsoleOutput.print(): each line of a multiline message gets its own stamp."""
         stamp = datetime.now().strftime("%X")
-        # Prefix every line so multiline messages are readable in the log view.
         if '\n' in message:
             display_message = message.replace('\n', f"\n{stamp}: ")
         else:
@@ -280,9 +253,7 @@ class WebUIManager:
         # Persist every line so late-joining clients can replay the full log on connect.
         self._console_log.extend(lines)
 
-        if self._console is not None:
-            console = self._console
-            call_on_nicegui(self, lambda: [console.push(line) for line in lines])
+        call_on_nicegui(self, lambda: self._main_panel.push_console(lines))
 
         # Mirror to stdout/file when stdlog is enabled, matching gui.py behaviour.
         if self._twitch.settings.stdlog:
@@ -336,18 +307,17 @@ class WebUIManager:
     @on_nicegui_loop
     def rebuild_ws(self):
         """Rebuild the websocket status display"""
-        from .components.main_panel import _build_ws_rows
-        _build_ws_rows(self)
+        self._main_panel.rebuild_ws()
 
     @on_nicegui_loop
     def clear_drop(self):
         """Clear the current drop display"""
-        _clear_drop(self)
+        self._main_panel.clear_drop()
 
     @on_nicegui_loop
     def display_drop(self, drop, *, countdown: bool = True, subone: bool = False):
         """Display current drop information"""
-        _display_drop(self, drop, countdown=countdown, subone=subone)
+        self._main_panel.display_drop(drop, countdown=countdown, subone=subone)
 
     @on_nicegui_loop
     def set_games(self, games: set[Game]) -> None:

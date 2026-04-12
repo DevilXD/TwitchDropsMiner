@@ -42,7 +42,6 @@ from typing import TYPE_CHECKING
 
 from translate import _
 from .thread_utils import on_nicegui_loop, call_on_nicegui
-from .components.main_panel import _flush_login, _rebuild_channel_table
 
 if TYPE_CHECKING:
     from yarl import URL
@@ -93,12 +92,7 @@ class MockStatus:
 
     def update(self, text: str):
         self._manager._status_text = text  # immediate: persists for late-joining clients
-        def _do():
-            if self._manager._status_label is not None:
-                self._manager._status_label.set_text(text)
-            if self._manager._status_card is not None:
-                self._manager._status_card.set_text(text)
-        call_on_nicegui(self, _do)
+        call_on_nicegui(self, lambda: self._manager._main_panel.flush_status(text))
 
     def clear(self):
         self.update("")
@@ -152,15 +146,15 @@ class MockChannels:
     def clear(self):
         self._manager._channel_map.clear()
         self._manager._watching_channel_iid = None
-        call_on_nicegui(self, lambda: _rebuild_channel_table(self._manager))
+        call_on_nicegui(self, self._manager._main_panel.rebuild_channel_table)
 
     def set_watching(self, channel: 'Channel'):
         self._manager._watching_channel_iid = channel.iid
-        call_on_nicegui(self, lambda: _rebuild_channel_table(self._manager))
+        call_on_nicegui(self, self._manager._main_panel.rebuild_channel_table)
 
     def clear_watching(self):
         self._manager._watching_channel_iid = None
-        call_on_nicegui(self, lambda: _rebuild_channel_table(self._manager))
+        call_on_nicegui(self, self._manager._main_panel.rebuild_channel_table)
 
     def get_selection(self) -> 'Channel | None':
         """Return the currently selected Channel (for CHANNEL_SWITCH state)"""
@@ -171,15 +165,7 @@ class MockChannels:
 
     def clear_selection(self):
         self._manager._selected_channel_iid = None
-        def _do():
-            table = self._manager._channels_table
-            if table is not None:
-                table.selected.clear()
-                table.update()
-            switch_btn = self._manager._channel_switch_btn
-            if switch_btn is not None:
-                switch_btn.props('disabled')
-        call_on_nicegui(self, _do)
+        call_on_nicegui(self, self._manager._main_panel.clear_selection)
 
     def display(self, channel: 'Channel', *, add: bool = False):
         """Add or update a channel entry in the list"""
@@ -191,14 +177,14 @@ class MockChannels:
         else:
             # Update the stored reference (in case the object changed)
             self._manager._channel_map[iid] = channel
-        call_on_nicegui(self, lambda: _rebuild_channel_table(self._manager))
+        call_on_nicegui(self, self._manager._main_panel.rebuild_channel_table)
 
     def remove(self, channel: 'Channel'):
         iid = channel.iid
         self._manager._channel_map.pop(iid, None)
         if self._manager._watching_channel_iid == iid:
             self._manager._watching_channel_iid = None
-        call_on_nicegui(self, lambda: _rebuild_channel_table(self._manager))
+        call_on_nicegui(self, self._manager._main_panel.rebuild_channel_table)
 
 
 class MockInventory:
@@ -241,7 +227,7 @@ class MockLoginForm:
     async def wait_for_login_press(self) -> None:
         self._confirm.clear()
         self._manager._login_btn_visible = True
-        call_on_nicegui(self, lambda: _flush_login(self._manager))
+        call_on_nicegui(self, self._manager._main_panel.flush_login)
         await self._manager.coro_unless_closed(self._confirm.wait())
 
     async def ask_login(self) -> LoginData:
@@ -273,7 +259,7 @@ class MockLoginForm:
         self._manager._logout_btn_visible = logged_in
         if status != _("gui", "login", "required"):
             self._manager._login_btn_visible = False
-        call_on_nicegui(self, lambda: _flush_login(self._manager))
+        call_on_nicegui(self, self._manager._main_panel.flush_login)
         # Mirror login state to the status bar when the main loop hasn't set it yet
         login_statuses = (
             _("gui", "login", "logging_in"),
