@@ -262,10 +262,10 @@ class InventoryPanel(BasePanel):
         date_tag = None
         try:
             starts = _("gui", "inventory", "starts").format(
-                time=campaign.starts_at.astimezone().replace(microsecond=0, tzinfo=None)
+                time=InventoryPanel._fmt_datetime(campaign.starts_at)
             )
             ends = _("gui", "inventory", "ends").format(
-                time=campaign.ends_at.astimezone().replace(microsecond=0, tzinfo=None)
+                time=InventoryPanel._fmt_datetime(campaign.ends_at)
             )
             primary, secondary = (starts, ends) if campaign.upcoming else (ends, starts)
             date_tag = (
@@ -342,6 +342,11 @@ class InventoryPanel(BasePanel):
         )
 
     @staticmethod
+    def _fmt_datetime(dt: datetime) -> datetime:
+        """Remove microseconds and timezone info for display."""
+        return dt.astimezone().replace(microsecond=0, tzinfo=None)
+
+    @staticmethod
     def _drop_progress_text(drop: 'TimedDrop') -> str:
         """Exact port of InventoryOverview.update_progress text logic."""
         if drop.is_claimed:
@@ -355,7 +360,7 @@ class InventoryPanel(BasePanel):
             )
             if drop.ends_at < drop.campaign.ends_at:
                 text += "\n" + _("gui", "inventory", "ends").format(
-                    time=drop.ends_at.astimezone().replace(microsecond=0, tzinfo=None)
+                    time=InventoryPanel._fmt_datetime(drop.ends_at)
                 )
             return text
         if drop.required_minutes > 0:
@@ -367,11 +372,11 @@ class InventoryPanel(BasePanel):
         now = datetime.now(timezone.utc)
         if now < drop.starts_at and drop.starts_at > drop.campaign.starts_at:
             text += "\n" + _("gui", "inventory", "starts").format(
-                time=drop.starts_at.astimezone().replace(microsecond=0, tzinfo=None)
+                time=InventoryPanel._fmt_datetime(drop.starts_at)
             )
         elif drop.ends_at < drop.campaign.ends_at:
             text += "\n" + _("gui", "inventory", "ends").format(
-                time=drop.ends_at.astimezone().replace(microsecond=0, tzinfo=None)
+                time=InventoryPanel._fmt_datetime(drop.ends_at)
             )
         return text
 
