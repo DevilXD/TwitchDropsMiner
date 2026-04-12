@@ -32,7 +32,7 @@ body:not(.body--dark) .q-field__native  { color: #000000 !important; }
 body:not(.body--dark) .q-card           { background-color: #f9fafb !important; color: #000000 !important; }
 body:not(.body--dark) .q-expansion-item { background-color: #f9fafb !important; color: #000000 !important; }
 
-/* ── Inventory panel components — colors only for dark mode ─────── */
+/* ── Inventory panel components ─────── */
 
 .tdm-campaign-card {
     border: 1px solid rgba(0,0,0,0.12);
