@@ -28,13 +28,7 @@ def create_gui_manager(twitch: Twitch) -> Union['GUIManager', 'WebUIManager']:
         try:
             from webui import WebUIManager
             print("Using NiceGUI web interface")
-
-            # Get host and port from environment
-            host = os.getenv('WEBUI_HOST', '0.0.0.0')
-            port = int(os.getenv('WEBUI_PORT', '8080'))
-
-            print(f"Web UI will be available at http://{host}:{port}")
-            return WebUIManager(twitch, host=host, port=port)
+            return WebUIManager(twitch)
 
         except ImportError as e:
             print(f"Warning: Failed to import NiceGUI web UI: {e}")

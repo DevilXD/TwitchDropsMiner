@@ -18,7 +18,6 @@ except ImportError:
 
 from translate import _
 from constants import MAX_WEBSOCKETS, WS_TOPICS_LIMIT
-from webui.thread_utils import call_on_main_loop
 from .base_panel import BasePanel
 
 DIGITS = ceil(log10(WS_TOPICS_LIMIT))
@@ -207,7 +206,7 @@ class MainPanel(BasePanel):
                                 ).classes('text-xs whitespace-pre leading-relaxed')
                             widgets['login_button'] = ui.button(
                                 _("gui", "login", "button"),
-                                on_click=lambda: call_on_main_loop(manager.login, manager.login._confirm.set),
+                                on_click=manager.login._confirm.set,
                             ).props('dense').classes('text-xs')
                             widgets['login_button'].set_visibility(False)
                             widgets['logout_button'] = ui.button(
@@ -546,6 +545,6 @@ class MainPanel(BasePanel):
             self.rebuild_ws()
             manager.login.update(_("gui", "login", "logged_out"), None)
             manager.status.update(_("gui", "login", "request"))
-            call_on_main_loop(manager, manager._twitch.state_change(State.INVENTORY_FETCH))
+            manager._twitch.state_change(State.INVENTORY_FETCH)()
         except Exception as e:
             print(f"Logout error: {e}")

@@ -3,8 +3,6 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
-from webui.thread_utils import call_on_main_loop
-
 try:
     from nicegui import ui, Client
     NICEGUI_AVAILABLE = True
@@ -230,7 +228,7 @@ class SettingsPanel(BasePanel):
                 ui.label(_("gui", "settings", "reload_text")).classes('text-xs')
                 ui.button(
                     _("gui", "settings", "reload"),
-                    on_click=call_on_main_loop(manager, manager._twitch.state_change(State.INVENTORY_FETCH)),
+                    on_click=manager._twitch.state_change(State.INVENTORY_FETCH),
                 ).props('dense').classes('text-xs w-full')
 
     def _build_priority_column(self, client_id: str) -> None:

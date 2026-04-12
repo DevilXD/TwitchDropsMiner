@@ -18,14 +18,11 @@
 #      top-level methods (print, close, display_drop, …) that twitch.py calls
 #      directly on the manager object.
 #
-# Thread-safety
-# -------------
-# NiceGUI's DOM can only be mutated from inside the server's asyncio event loop.
-# twitch.py calls come from a *different* context, so direct widget writes would
-# race. Every Mock* method writes the new value into plain Python state on the
-# manager (e.g. _ws_data, _channel_map) and then uses call_on_nicegui() to
-# schedule the UI update on the NiceGUI event loop immediately — no polling or
-# dirty flags needed.
+# Single-threaded architecture
+# ----------------------------
+# Since the backend now runs within NiceGUI's event loop, everything operates on
+# the same asyncio loop. This eliminates the need for thread synchronization.
+# UI updates can be made directly since we're always on the NiceGUI loop.
 #
 # Late-joining clients
 # --------------------
@@ -38,8 +35,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import threading
-import time
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -58,7 +53,6 @@ from .mock_classes import (MockTray, MockStatus, MockProgress, MockOutput, MockC
                           MockInventory, MockLoginForm, MockWebsocketStatus, MockSettings, MockTabs)
 from .handlers import WebUIOutputHandler
 from .components import (BasePanel, MainPanel, InventoryPanel, HelpPanel, SettingsPanel)
-from .thread_utils import on_nicegui_loop, call_on_nicegui
 
 if TYPE_CHECKING:
     from twitch import Twitch
@@ -81,15 +75,11 @@ class WebUIManager:
     See mock_classes.py for details.
     """
 
-    def __init__(self, twitch: 'Twitch', host: str = "0.0.0.0", port: int = 8080):
+    def __init__(self, twitch: 'Twitch'):
         if not NICEGUI_AVAILABLE:
             raise ImportError("NiceGUI is not installed. Install it with: pip install nicegui")
 
         self._twitch: 'Twitch' = twitch
-        self._host = host
-        self._port = port
-        self._main_loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
-        self._nicegui_loop: asyncio.AbstractEventLoop | None = None
         self._close_requested = asyncio.Event()
         self._running = False
         self._console_log = []
@@ -124,39 +114,11 @@ class WebUIManager:
         if (logging_level := logger.getEffectiveLevel()) < logging.ERROR:
             self.print(f"Logging level: {logging.getLevelName(logging_level)}")
 
-        self._start_server()
-
-    def _start_server(self):
-        """Start the NiceGUI server in a daemon thread so it doesn't block the main loop."""
-        def run_server():
-            try:
-                print(f"Starting NiceGUI server on {self._host}:{self._port}")
-                ui.run(
-                    host=self._host,
-                    port=self._port,
-                    title="Twitch Drops Miner",
-                    show=False,
-                    reload=False,
-                    favicon=Path(__file__).parent / 'static' / 'pickaxe.ico'
-                )
-            except Exception as e:
-                print(f"Failed to start NiceGUI server: {e}")
-
-        server_thread = threading.Thread(target=run_server, daemon=True)
-        server_thread.start()
-
-        # Brief wait so the server is accepting connections before twitch.py continues.
-        time.sleep(1)
-
     def _setup_ui(self):
         """Register the NiceGUI page handler. The inner index() function runs once
         per browser connection, building the full UI for that client."""
         app.add_static_files('/static', str(Path(__file__).parent / 'static'))
         _css = (Path(__file__).parent / 'styles.css').read_text(encoding='utf-8')
-
-        @app.on_startup
-        async def _capture_loop():
-            self._nicegui_loop = asyncio.get_running_loop()
 
         @ui.page('/')
         def index(tab: str = 'main'):
@@ -243,7 +205,8 @@ class WebUIManager:
         # Persist every line so late-joining clients can replay the full log on connect.
         self._console_log.extend(lines)
 
-        call_on_nicegui(self, lambda: self._main_panel.push_console(lines))
+        # Direct call since we're on the same event loop now
+        self._main_panel.push_console(lines)
 
         # Mirror to stdout/file when stdlog is enabled, matching gui.py behaviour.
         if self._twitch.settings.stdlog:
@@ -272,7 +235,7 @@ class WebUIManager:
 
     def close_window(self):
         logging.getLogger("TwitchDrops").removeHandler(self._handler)
-        call_on_nicegui(self, app.shutdown)
+        app.shutdown()
 
     def grab_attention(self, *, sound: bool = True):
         """Browser equivalent of the desktop grab-attention (flash/sound). Logs a visible prompt instead."""
@@ -294,22 +257,18 @@ class WebUIManager:
             raise ExitRequest()
         return await next(iter(done))
 
-    @on_nicegui_loop
     def rebuild_ws(self):
         """Rebuild the websocket status display"""
         self._main_panel.rebuild_ws()
 
-    @on_nicegui_loop
     def clear_drop(self):
         """Clear the current drop display"""
         self._main_panel.clear_drop()
 
-    @on_nicegui_loop
     def display_drop(self, drop, *, countdown: bool = True, subone: bool = False):
         """Display current drop information"""
         self._main_panel.display_drop(drop, countdown=countdown, subone=subone)
 
-    @on_nicegui_loop
     def set_games(self, games: set[Game]) -> None:
         """Set available games for settings"""
         self._settings_panel.set_games(games)

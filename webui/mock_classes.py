@@ -10,13 +10,6 @@
 #
 # How each class works
 # --------------------
-# Because NiceGUI's DOM can only be safely mutated from inside the NiceGUI
-# asyncio event loop, these adapters do NOT touch any NiceGUI widget directly.
-# Instead each method:
-#   1. Writes the new value into a plain Python field on MainPanel
-#      (e.g. _ws_data, _channel_map, _login_status_text).
-#   2. Calls call_on_nicegui() to schedule the UI update on the NiceGUI event
-#      loop immediately — no polling or dirty flags needed.
 #
 # The plain Python state lives on MainPanel (not WebUIManager) and persists so
 # that late-joining clients can restore the full current view on page load
@@ -42,7 +35,6 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from translate import _
-from .thread_utils import on_nicegui_loop, call_on_nicegui
 
 if TYPE_CHECKING:
     from yarl import URL
@@ -76,7 +68,6 @@ class MockTray:
     def stop(self):
         pass
 
-    @on_nicegui_loop
     def notify(self, message: str, title: str | None = None, duration: float = 10):
         text = f"{title}: {message}" if title else message
         from nicegui import Client, ui
@@ -93,7 +84,7 @@ class MockStatus:
 
     def update(self, text: str):
         self._manager._main_panel._status_text = text  # persists for late-joining clients
-        call_on_nicegui(self, lambda: self._manager._main_panel.flush_status(text))
+        self._manager._main_panel.flush_status(text)
 
     def clear(self):
         self.update("")
@@ -146,17 +137,17 @@ class MockChannels:
         panel = self._manager._main_panel
         panel._channel_map.clear()
         panel._watching_channel_iid = None
-        call_on_nicegui(self, panel.rebuild_channel_table)
+        panel.rebuild_channel_table()
 
     def set_watching(self, channel: 'Channel'):
         panel = self._manager._main_panel
         panel._watching_channel_iid = channel.iid
-        call_on_nicegui(self, panel.rebuild_channel_table)
+        panel.rebuild_channel_table()
 
     def clear_watching(self):
         panel = self._manager._main_panel
         panel._watching_channel_iid = None
-        call_on_nicegui(self, panel.rebuild_channel_table)
+        panel.rebuild_channel_table()
 
     def get_selection(self) -> 'Channel | None':
         """Return the currently selected Channel (for CHANNEL_SWITCH state)"""
@@ -169,7 +160,7 @@ class MockChannels:
     def clear_selection(self):
         panel = self._manager._main_panel
         panel._selected_channel_iid = None
-        call_on_nicegui(self, panel.clear_selection)
+        panel.clear_selection()
 
     def display(self, channel: 'Channel', *, add: bool = False):
         """Add or update a channel entry in the list"""
@@ -181,7 +172,7 @@ class MockChannels:
             return
         else:
             panel._channel_map[iid] = channel
-        call_on_nicegui(self, panel.rebuild_channel_table)
+        panel.rebuild_channel_table()
 
     def remove(self, channel: 'Channel'):
         panel = self._manager._main_panel
@@ -189,7 +180,7 @@ class MockChannels:
         panel._channel_map.pop(iid, None)
         if panel._watching_channel_iid == iid:
             panel._watching_channel_iid = None
-        call_on_nicegui(self, panel.rebuild_channel_table)
+        panel.rebuild_channel_table()
 
 
 class MockInventory:
@@ -202,15 +193,15 @@ class MockInventory:
         self._manager = manager
 
     def clear(self):
-        call_on_nicegui(self, self._manager._inventory_panel.clear)
+        self._manager._inventory_panel.clear()
 
     async def add_campaign(self, campaign) -> None:
         """Delegates to InventoryPanel.add_campaign."""
-        call_on_nicegui(self, lambda: self._manager._inventory_panel.add_campaign(campaign))
+        self._manager._inventory_panel.add_campaign(campaign)
 
     def update_drop(self, drop) -> None:
         """Mirrors InventoryOverview.update_drop() - delegates to InventoryPanel."""
-        call_on_nicegui(self, lambda: self._manager._inventory_panel.update_drop(drop))
+        self._manager._inventory_panel.update_drop(drop)
 
     def configure_theme(self, *, bg: str):
         pass
@@ -232,7 +223,7 @@ class MockLoginForm:
     async def wait_for_login_press(self) -> None:
         self._confirm.clear()
         self._manager._main_panel._login_btn_visible = True
-        call_on_nicegui(self, self._manager._main_panel.flush_login)
+        self._manager._main_panel.flush_login()
         await self._manager.coro_unless_closed(self._confirm.wait())
 
     async def ask_login(self) -> LoginData:
@@ -264,7 +255,7 @@ class MockLoginForm:
         panel._logout_btn_visible = (status == _("gui", "login", "logged_in"))
         if status != _("gui", "login", "required"):
             panel._login_btn_visible = False
-        call_on_nicegui(self, panel.flush_login)
+        panel.flush_login()
         # Mirror login state to the status bar when the main loop hasn't set it yet
         login_statuses = (
             _("gui", "login", "logging_in"),
