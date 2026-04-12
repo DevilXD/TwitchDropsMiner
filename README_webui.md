@@ -1,10 +1,20 @@
 # Web UI for Twitch Drops Miner
 
-This project now supports both the traditional tkinter GUI and a new web-based interface using NiceGUI.
+The Twitch Drops Miner includes a modern web-based interface using [NiceGUI](https://nicegui.io/). Access your mining dashboard from any device on your network through a web browser - no desktop environment required.
+
+## How It Works
+
+The WebUI runs entirely within a single asyncio event loop alongside the Twitch backend. This single-threaded architecture eliminates thread synchronization issues and provides better performance and reliability compared to the previous threading-based implementation.
+
+When you start the WebUI:
+1. The NiceGUI server starts and serves the web interface
+2. The Twitch backend runs within the same event loop
+3. You access the dashboard through any web browser
+4. Multiple browser tabs can connect simultaneously with full state synchronization
 
 ## Installation
 
-To use the web UI, install NiceGUI:
+The WebUI requires NiceGUI to be installed:
 
 ```bash
 pip install nicegui
@@ -12,59 +22,93 @@ pip install nicegui
 
 ## Usage
 
-### Using Web UI
+### Starting the WebUI
 
-Set the `UI_BACKEND` environment variable to choose your interface:
+Run the application using `entrypoint.py` with the `UI_BACKEND` environment variable set to `webui`:
 
 ```bash
-# Windows
-set UI_BACKEND=nicegui
-python main.py
-
 # Linux/Mac
-UI_BACKEND=nicegui python main.py
+UI_BACKEND=webui python entrypoint.py
+
+# Windows
+set UI_BACKEND=webui
+python entrypoint.py
 ```
 
-### Configuration
+### Accessing the Interface
 
-You can configure the UI using environment variables:
+Once started, open your web browser and navigate to:
+- **Default**: `http://localhost:8080`
+- **Custom**: Depends on your `webui_host` and `webui_port` settings
 
-- `UI_BACKEND`: Set to "nicegui" for web UI or "tkinter" for desktop GUI (default: tkinter)
-- `WEBUI_HOST`: Host for web UI (default: 127.0.0.1)
-- `WEBUI_PORT`: Port for web UI (default: 8080)
+The WebUI is accessible from any device on your network. Use your machine's IP address to access remotely (e.g., `http://192.168.1.100:8080`).
 
-### Examples
+### Using tkinter Instead
+
+To use the traditional desktop GUI instead, either omit the environment variable or set it to `tkinter`:
 
 ```bash
-# Use web UI on default host and port
-UI_BACKEND=nicegui python main.py
+# Uses tkinter (default behavior)
+python entrypoint.py
 
-# Use web UI on custom host and port
-UI_BACKEND=nicegui WEBUI_HOST=0.0.0.0 WEBUI_PORT=9000 python main.py
-
-# Use traditional tkinter GUI (default)
-UI_BACKEND=tkinter python main.py
-
-# Use traditional tkinter GUI (default - no environment variable needed)
-python main.py
+# Or explicitly
+UI_BACKEND=tkinter python entrypoint.py
 ```
+
+## Configuration
+
+WebUI settings are stored in your standard Twitch Drops Miner settings file (`settings.json`):
+
+- **webui_host**: Network interface to bind to (default: `0.0.0.0`)
+  - `0.0.0.0` - Listen on all interfaces (accessible from other devices)
+  - `127.0.0.1` or `localhost` - Local access only
+  
+- **webui_port**: Port to serve on (default: `8080`)
+
+You can modify these settings in the WebUI's Settings tab or by editing `settings.json` directly.
 
 ## Features
 
-The web UI provides the same functionality as the tkinter GUI:
+The WebUI provides all the functionality of the traditional GUI:
 
-- Real-time console output
-- Status monitoring
-- Progress tracking
-- Channel management
-- Stop/start controls
+- **Main Tab**: Real-time console output, status monitoring, progress tracking, and channel management
+- **Inventory Tab**: View available drops and campaigns  
+- **Settings Tab**: Configure games, priorities, and WebUI settings
+- **Help Tab**: Application information and links
 
-## Browser Access
+## Comparison with tkinter GUI
 
-When using the web UI, open your browser and navigate to:
-- Default: http://127.0.0.1:8080
-- Custom: http://[WEBUI_HOST]:[WEBUI_PORT]
+| Feature | WebUI | tkinter GUI |
+|---------|-------|-------------|
+| Access | Any browser on network | Desktop only |
+| Multiple views | Multiple browser tabs | Single window |
+| Remote access | Yes | No |
+| System tray | Not available | Supported |
+| Architecture | Single event loop | Separate threads |
 
-## Fallback
+## Security Notes
 
-If NiceGUI is not installed or there's an error loading the web UI, the application will automatically fall back to the traditional tkinter GUI.
+- By default, the WebUI listens on all interfaces (`0.0.0.0`), making it accessible from other devices
+- Use `127.0.0.1` as the host for local-only access
+- No authentication is built-in - anyone on your network can access the interface
+- Consider firewall rules or a reverse proxy if exposing beyond your local network
+
+## Troubleshooting
+
+**"NiceGUI is not installed" error**
+```bash
+pip install nicegui
+```
+
+**Cannot access from another device**
+- Check that `webui_host` is set to `0.0.0.0` in settings
+- Verify firewall rules allow connections on the configured port
+- Use the host machine's IP address, not `localhost`
+
+**Port already in use**
+- Change `webui_port` to a different value (e.g., `8081` or `9000`)
+- Find what's using the port: `lsof -i :8080` (Linux/Mac) or `netstat -ano | findstr :8080` (Windows)
+
+## Technical Note
+
+The WebUI implementation uses a single-threaded architecture where the NiceGUI server and Twitch backend share the same asyncio event loop. This eliminates the need for thread synchronization utilities and provides better performance compared to the previous multi-threaded approach.
