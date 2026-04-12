@@ -64,20 +64,9 @@ class SettingsPanel(BasePanel):
     def settings(self):
         return self._manager._twitch.settings
 
-    def _remove_client(self, client_id: str) -> None:
-        """Drop all widget refs for a disconnected client."""
-        self._language_selects.pop(client_id, None)
-        self._dark_mode_switches.pop(client_id, None)
-        self._priority_mode_selects.pop(client_id, None)
-        self._proxy_inputs.pop(client_id, None)
-        self._enable_badges_switches.pop(client_id, None)
-        self._available_drops_switches.pop(client_id, None)
-        self._priority_lists.pop(client_id, None)
-        self._exclude_lists.pop(client_id, None)
-        self._priority_inputs.pop(client_id, None)
-        self._exclude_inputs.pop(client_id, None)
-
-    # ── Public API ────────────────────────────────────────────────────────────
+    # -------------------------------------------------------------------------
+    # Public API
+    # -------------------------------------------------------------------------
 
     def build(self) -> None:
         """Build the settings panel UI for the current NiceGUI client."""
@@ -123,7 +112,26 @@ class SettingsPanel(BasePanel):
         settings.save()
         self._rebuild_exclude_list()
 
-    # ── Build helpers ─────────────────────────────────────────────────────────
+    # -------------------------------------------------------------------------
+    # Private — client lifecycle
+    # -------------------------------------------------------------------------
+
+    def _remove_client(self, client_id: str) -> None:
+        """Drop all widget refs for a disconnected client."""
+        self._language_selects.pop(client_id, None)
+        self._dark_mode_switches.pop(client_id, None)
+        self._priority_mode_selects.pop(client_id, None)
+        self._proxy_inputs.pop(client_id, None)
+        self._enable_badges_switches.pop(client_id, None)
+        self._available_drops_switches.pop(client_id, None)
+        self._priority_lists.pop(client_id, None)
+        self._exclude_lists.pop(client_id, None)
+        self._priority_inputs.pop(client_id, None)
+        self._exclude_inputs.pop(client_id, None)
+
+    # -------------------------------------------------------------------------
+    # Private — build helpers
+    # -------------------------------------------------------------------------
 
     def _build_general_column(self, client_id: str) -> None:
         """Left column: General + Advanced + Reload cards."""
@@ -283,7 +291,9 @@ class SettingsPanel(BasePanel):
                 with ui.column().classes('gap-1'):
                     ui.button('❌', on_click=self._exclude_delete).props('flat').classes('text-red-500 text-xl p-0 min-h-0')
 
-    # ── Per-widget rebuild (operates on one list widget) ──────────────────────
+    # -------------------------------------------------------------------------
+    # Private — per-widget rebuild
+    # -------------------------------------------------------------------------
 
     def _do_rebuild_priority_list(self, priority_list: 'NiceList') -> None:
         priority_list.clear()
@@ -307,7 +317,9 @@ class SettingsPanel(BasePanel):
                     with ui.item_section():
                         ui.item_label(name).classes('text-xs')
 
-    # ── Broadcast helpers ─────────────────────────────────────────────────────
+    # -------------------------------------------------------------------------
+    # Private — broadcast helpers
+    # -------------------------------------------------------------------------
 
     def _priority_options(self) -> list[str]:
         return sorted(self._game_names - set(self.settings.priority))
@@ -438,7 +450,9 @@ class SettingsPanel(BasePanel):
                 e_input.options = exclude_opts
                 e_input.update()
 
-    # ── Priority actions ──────────────────────────────────────────────────────
+    # -------------------------------------------------------------------------
+    # Private — priority actions
+    # -------------------------------------------------------------------------
 
     def _priority_select(self, idx: int) -> None:
         self._priority_selected = None if self._priority_selected == idx else idx
@@ -494,7 +508,9 @@ class SettingsPanel(BasePanel):
             self._rebuild_priority_list()
             self._refresh_input_options()
 
-    # ── Exclude actions ───────────────────────────────────────────────────────
+    # -------------------------------------------------------------------------
+    # Private — exclude actions
+    # -------------------------------------------------------------------------
 
     def _exclude_select(self, name: str) -> None:
         self._exclude_selected = None if self._exclude_selected == name else name
@@ -527,7 +543,9 @@ class SettingsPanel(BasePanel):
         self._refresh_input_options()
 
 
-# ── Module-level helpers ──────────────────────────────────────────────────────
+# -------------------------------------------------------------------------
+# Settings helpers
+# -------------------------------------------------------------------------
 
 def _set_and_save(settings, name: str, value) -> None:
     setattr(settings, name, value)

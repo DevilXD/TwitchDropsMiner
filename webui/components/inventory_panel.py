@@ -56,15 +56,11 @@ class InventoryPanel(BasePanel):
         self._campaign_html_elements: dict = {}
 
     # -------------------------------------------------------------------------
-    # BasePanel interface
+    # Public API
     # -------------------------------------------------------------------------
 
     def build(self) -> None:
         self._create_panel()
-
-    # -------------------------------------------------------------------------
-    # Public API
-    # -------------------------------------------------------------------------
 
     def refresh_inventory_display(self) -> None:
         """Rebuild the campaign list for all connected clients."""
