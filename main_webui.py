@@ -11,7 +11,7 @@ from __future__ import annotations
 # import an additional thing for proper PyInstaller freeze support
 from multiprocessing import freeze_support
 
-from constants import WINDOW_TITLE
+from constants import WEBUI_TITLE
 
 
 if __name__ == "__main__":
@@ -221,7 +221,7 @@ if __name__ == "__main__":
             ui.run(
                 host=host,
                 port=port,
-                title=WINDOW_TITLE,
+                title=WEBUI_TITLE,
                 show=False,
                 reload=False,
                 favicon=Path(__file__).parent / "icons" / "pickaxe.ico",

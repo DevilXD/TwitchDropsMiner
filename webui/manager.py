@@ -48,7 +48,7 @@ except ImportError:
     ui = None
     app = None
 
-from constants import OUTPUT_FORMATTER, FILE_FORMATTER, WINDOW_TITLE
+from constants import OUTPUT_FORMATTER, FILE_FORMATTER, WEBUI_TITLE
 from .adapters import (
     TrayIconAdapter,
     StatusBarAdapter,
@@ -147,7 +147,7 @@ class WebUIManager:
 
         @ui.page("/")
         def index(tab: str = "main"):
-            ui.page_title(WINDOW_TITLE)
+            ui.page_title(WEBUI_TITLE)
             ui.dark_mode(self._dark_mode_enabled)
             ui.query(".nicegui-content").classes("p-0")
             ui.add_head_html(f"<style>{_css}</style>")
