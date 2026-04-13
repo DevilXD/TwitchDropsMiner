@@ -218,9 +218,9 @@ class InventoryPanel(BasePanel):
                 elem = ui.html(
                     self._render_campaign_html(campaign), sanitize=False
                 ).classes("w-full")
-                self._campaign_html_elements.setdefault(campaign.id, {})[client_id] = (
-                    elem
-                )
+                self._campaign_html_elements.setdefault(campaign.id, {})[
+                    client_id
+                ] = elem
 
     def _on_filter_change(self, key: str, value: bool) -> None:
         self._inventory_filters[key] = value

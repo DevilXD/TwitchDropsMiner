@@ -151,11 +151,13 @@ class WebUIManager:
             ui.add_head_html(f"<style>{_css}</style>")
 
             # Request notification permission on page load
-            ui.run_javascript("""
+            ui.run_javascript(
+                """
                 if ('Notification' in window && Notification.permission === 'default') {
                     Notification.requestPermission();
                 }
-            """)
+            """
+            )
 
             # Alias so nested closures below can reference the manager unambiguously.
             manager = self
@@ -212,7 +214,8 @@ class WebUIManager:
 
     def print(self, message: str):
         """Append a timestamped line to the in-browser console log.
-        Matches gui.py ConsoleOutput.print(): each line of a multiline message gets its own stamp."""
+        Matches gui.py ConsoleOutput.print(): each line of a multiline message gets its own stamp.
+        """
         stamp = datetime.now().strftime("%X")
         if "\n" in message:
             display_message = message.replace("\n", f"\n{stamp}: ")

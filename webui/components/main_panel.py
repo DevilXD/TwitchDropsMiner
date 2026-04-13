@@ -461,9 +461,9 @@ class MainPanel(BasePanel):
                     "status": status,
                     "game": str(channel.game or ""),
                     "drops": "✔" if channel.drops_enabled else "❌",
-                    "viewers": str(channel.viewers)
-                    if channel.viewers is not None
-                    else "",
+                    "viewers": (
+                        str(channel.viewers) if channel.viewers is not None else ""
+                    ),
                     "acl_base": "✔" if channel.acl_based else "❌",
                 }
             )
