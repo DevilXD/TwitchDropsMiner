@@ -5,6 +5,7 @@ This entry point starts the NiceGUI web interface first and runs the Twitch
 backend within the same asyncio event loop, eliminating the need for thread
 synchronization between the UI and backend.
 """
+
 from __future__ import annotations
 
 # import an additional thing for proper PyInstaller freeze support
@@ -24,6 +25,7 @@ if __name__ == "__main__":
     import traceback
 
     import truststore
+
     truststore.inject_into_ssl()
 
     from translate import _
@@ -86,7 +88,7 @@ if __name__ == "__main__":
         "--debug-gql", dest="_debug_gql", action="store_true", help=argparse.SUPPRESS
     )
     args = parser.parse_args(namespace=ParsedArgs())
-    
+
     # load settings
     try:
         settings = Settings(args)
@@ -94,12 +96,14 @@ if __name__ == "__main__":
         print("ERROR: Settings error")
         print("There was an error while loading the settings file.")
         print("This is a docker permissions issue or you mounted the wrong folder.")
-        print("Check the readme at https://github.com/fireph/docker-twitch-drops-miner.")
+        print(
+            "Check the readme at https://github.com/fireph/docker-twitch-drops-miner."
+        )
         print("DO NOT report this issue to the DevilXD/TwitchDropsMiner repository!")
         print()
         traceback.print_exc()
         sys.exit(4)
-    
+
     del parser
 
     # WebUI setup - we'll use NiceGUI's event loop for everything
@@ -146,7 +150,7 @@ if __name__ == "__main__":
         loop = asyncio.get_running_loop()
         client = await loop.run_in_executor(None, lambda: Twitch(settings))
         twitch_client = client
-        
+
         loop = asyncio.get_running_loop()
         if sys.platform == "linux":
             loop.add_signal_handler(signal.SIGINT, lambda *_: client.gui.close())
@@ -210,8 +214,8 @@ if __name__ == "__main__":
             sys.exit(3)
 
         # Get host/port from settings object (uses __getattr__)
-        host = getattr(settings, 'webui_host', '0.0.0.0')
-        port = getattr(settings, 'webui_port', 8080)
+        host = getattr(settings, "webui_host", "0.0.0.0")
+        port = getattr(settings, "webui_port", 8080)
 
         try:
             ui.run(
@@ -220,7 +224,7 @@ if __name__ == "__main__":
                 title=WINDOW_TITLE,
                 show=False,
                 reload=False,
-                favicon=Path(__file__).parent / 'webui' / 'static' / 'pickaxe.ico'
+                favicon=Path(__file__).parent / "webui" / "static" / "pickaxe.ico",
             )
         except KeyboardInterrupt:
             pass

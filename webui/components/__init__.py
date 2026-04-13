@@ -8,10 +8,10 @@ from .help_panel import HelpPanel
 from .header_bar import HeaderBar
 
 __all__ = [
-    'BasePanel',
-    'MainPanel',
-    'SettingsPanel',
-    'InventoryPanel',
-    'HelpPanel',
-    'HeaderBar',
+    "BasePanel",
+    "MainPanel",
+    "SettingsPanel",
+    "InventoryPanel",
+    "HelpPanel",
+    "HeaderBar",
 ]

@@ -4,6 +4,7 @@ Set UI_BACKEND environment variable to choose the interface:
 - UI_BACKEND=tkinter (default) - Uses tkinter desktop GUI
 - UI_BACKEND=nicegui - Uses NiceGUI web interface
 """
+
 from __future__ import annotations
 
 import os
@@ -15,17 +16,19 @@ if TYPE_CHECKING:
     from webui import WebUIManager
 
 
-def create_gui_manager(twitch: 'Twitch') -> Union['GUIManager', 'WebUIManager']:
+def create_gui_manager(twitch: "Twitch") -> Union["GUIManager", "WebUIManager"]:
     """
     Create the appropriate GUI manager based on UI_BACKEND environment variable.
-    
+
     Defaults to tkinter if UI_BACKEND is not set or is an unknown value.
     """
-    ui_backend = os.getenv('UI_BACKEND', 'tkinter').lower()
+    ui_backend = os.getenv("UI_BACKEND", "tkinter").lower()
 
-    if ui_backend == 'nicegui':
+    if ui_backend == "nicegui":
         from webui import WebUIManager
+
         return WebUIManager(twitch)
     else:
         from gui import GUIManager
+
         return GUIManager(twitch)

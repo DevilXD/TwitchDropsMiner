@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 
 
 class BasePanel(ABC):
-    def __init__(self, manager: 'WebUIManager'):
+    def __init__(self, manager: "WebUIManager"):
         self._manager = manager
 
     @abstractmethod
