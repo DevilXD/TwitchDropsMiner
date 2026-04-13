@@ -265,7 +265,7 @@ class WebUIManager:
 
     def grab_attention(self, *, sound: bool = True):
         """Browser equivalent of the desktop grab-attention (flash/sound). Logs a visible prompt instead."""
-        self.print("⚠️  Attention: Application requires user interaction")
+        self.print("⚠️ Attention: Application requires user interaction")
 
     def start(self):
         self._running = True

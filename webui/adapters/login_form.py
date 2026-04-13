@@ -50,11 +50,6 @@ class LoginFormAdapter:
         self.update(_("gui", "login", "required"), None)
         self._manager.grab_attention(sound=False)
         self._manager.print(_("gui", "login", "request"))
-        self._manager.print(
-            f"Enter this code on Twitch's device activation page: {user_code}"
-        )
-        twitch_login_url = f"https://www.twitch.tv/activate?device-code={user_code}"
-        self._manager.print(f"URL: {twitch_login_url}")
         await self.wait_for_login_press()
         from utils import webopen
 
