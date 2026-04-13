@@ -39,7 +39,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from nicegui import ui, app
+from nicegui import ui, Client, app
 
 from constants import OUTPUT_FORMATTER, FILE_FORMATTER
 from .adapters import (
@@ -90,11 +90,14 @@ class WebUIManager:
         self._twitch: "Twitch" = twitch
         self._close_requested = asyncio.Event()
         self._running = False
-        self._console_log = []
 
-        # Shared UI state - single source of truth for all panels
+        # Shared UI state
+        self._current_icon: str = "pickaxe"
+        self._dark_mode_enabled: bool = twitch.settings.dark_mode
         self._status_text: str = "Initializing..."
+        self._console_log: list[str] = []
 
+        # Adapters - mirrors of classes in gui.py
         self.tray = TrayIconAdapter(self)
         self.status = StatusBarAdapter(self)
         self.progress = CampaignProgressAdapter(self)
@@ -106,16 +109,12 @@ class WebUIManager:
         self.settings = SettingsAdapter(self)
         self.tabs = TabsAdapter()
 
-        # Panel objects — own all widget references and state for their tab
+        # Panel objects - own all widget references and state for their tab
         self._header_bar: HeaderBar = HeaderBar(self)
         self._main_panel: MainPanel = MainPanel(self)
         self._settings_panel: BasePanel = SettingsPanel(self)
         self._inventory_panel: BasePanel = InventoryPanel(self)
         self._help_panel: BasePanel = HelpPanel(self)
-
-        # Dark mode state — read from settings so the correct value is applied on every page load
-        self._dark_mode_enabled: bool = twitch.settings.dark_mode
-        self._current_icon: str = "pickaxe"
 
         self._setup_ui()
 
@@ -192,23 +191,18 @@ class WebUIManager:
                 with ui.tab_panel("help"):
                     manager._help_panel.build()
 
-    def toggle_dark_mode(self, enabled: bool):
-        """Apply dark mode to the current client's page and schedule it for all other clients."""
+    def set_dark_mode(self, enabled: bool) -> None:
+        """Apply dark mode to all connected clients."""
         self._dark_mode_enabled = enabled
-        ui.dark_mode(enabled)
-        try:
-            current_id = ui.context.client.id
-        except Exception:
-            current_id = None
-        from nicegui import Client
+        self._twitch.settings.dark_mode = enabled
+        self._twitch.settings.save()
 
         async def _apply(client) -> None:
             with client:
                 ui.dark_mode(enabled)
 
-        for client_id, client in list(Client.instances.items()):
-            if client_id != current_id:
-                asyncio.get_event_loop().create_task(_apply(client))
+        for client in list(Client.instances.values()):
+            asyncio.get_event_loop().create_task(_apply(client))
 
     @property
     def running(self) -> bool:

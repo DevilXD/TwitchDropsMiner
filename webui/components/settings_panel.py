@@ -154,8 +154,7 @@ class SettingsPanel(BasePanel):
                     dark_switch = ui.switch(
                         value=manager._dark_mode_enabled,
                         on_change=lambda e: (
-                            _set_and_save(settings, "dark_mode", e.value),
-                            manager.toggle_dark_mode(e.value),
+                            manager.set_dark_mode(e.value),
                             self._sync_others(
                                 self._dark_mode_switches, client_id, e.value
                             ),
