@@ -3,4 +3,4 @@
 
 from .manager import WebUIManager
 
-__all__ = ['WebUIManager']
+__all__ = ["WebUIManager"]

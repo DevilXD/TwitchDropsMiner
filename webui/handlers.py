@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 class WebUIOutputHandler(logging.Handler):
     """Logging handler that outputs to the web UI"""
 
-    def __init__(self, output: 'WebUIManager'):
+    def __init__(self, output: "WebUIManager"):
         super().__init__()
         self._output = output
 
