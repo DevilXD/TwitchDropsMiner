@@ -11,8 +11,6 @@ from __future__ import annotations
 # import an additional thing for proper PyInstaller freeze support
 from multiprocessing import freeze_support
 
-from constants import WEBUI_TITLE
-
 
 if __name__ == "__main__":
     freeze_support()
@@ -221,7 +219,7 @@ if __name__ == "__main__":
             ui.run(
                 host=host,
                 port=port,
-                title=WEBUI_TITLE,
+                title="Twitch Drops Miner",
                 show=False,
                 reload=False,
                 favicon=Path(__file__).parent / "icons" / "pickaxe.ico",

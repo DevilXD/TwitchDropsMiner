@@ -11,7 +11,10 @@ except ImportError:
     ui = None
 
 from translate import _
+from version import __version__
 from .base_panel import BasePanel
+
+REPOSITORY_URL = "https://github.com/fireph/docker-twitch-drops-miner"
 
 
 class HelpPanel(BasePanel):
@@ -26,14 +29,25 @@ class HelpPanel(BasePanel):
                     ui.label("About").classes("font-bold text-sm")
                     with ui.grid(columns="auto 1fr").classes("gap-x-4 gap-y-1 text-sm"):
                         ui.label("Application created by:").classes("text-right")
-                        ui.link(
-                            "DevilXD/fireph", "https://github.com/DevilXD", True
-                        ).classes("text-sm")
+                        with ui.row().classes("gap-0"):
+                            ui.link(
+                                "DevilXD", "https://github.com/DevilXD", True
+                            ).classes("text-sm")
+                            ui.link(
+                                "/fireph", "https://github.com/fireph", True
+                            ).classes("text-sm")
 
                         ui.label("Repository:").classes("text-right")
                         ui.link(
-                            "https://github.com/fireph/docker-twitch-drops-miner",
-                            "https://github.com/fireph/docker-twitch-drops-miner",
+                            REPOSITORY_URL,
+                            REPOSITORY_URL,
+                            True,
+                        ).classes("text-sm")
+
+                        ui.label("Version:").classes("text-right")
+                        ui.link(
+                            f"v{__version__}",
+                            f"{REPOSITORY_URL}/releases/tag/{__version__}",
                             True,
                         ).classes("text-sm")
 
