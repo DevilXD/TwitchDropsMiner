@@ -418,9 +418,13 @@ class InventoryPanel(BasePanel):
         )
 
     @staticmethod
-    def _fmt_datetime(dt: datetime) -> datetime:
+    def _fmt_datetime(dt: datetime) -> str:
         """Remove microseconds and timezone info for display."""
-        return dt.astimezone().replace(microsecond=0, tzinfo=None)
+        return (
+            dt.astimezone()
+            .replace(microsecond=0, tzinfo=None)
+            .strftime("%Y-%m-%d %H:%M:%S")
+        )
 
     @staticmethod
     def _drop_progress_text(drop: "TimedDrop") -> str:
