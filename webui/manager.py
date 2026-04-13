@@ -152,6 +152,19 @@ class WebUIManager:
             ui.query(".nicegui-content").classes("p-0")
             ui.add_head_html(f"<style>{_css}</style>")
 
+            # Fixed header + scrollable content below it only.
+            # .q-page-container starts at y=0 (behind the fixed header) with
+            # Quasar-injected padding-top equal to the header height. Putting
+            # overflow-y-auto on it makes the scrollbar run from y=0 (behind the
+            # header) downward. Moving scroll to .q-page fixes this: .q-page
+            # begins after the padding, so its scrollbar starts below the header.
+            ui.query("html").classes("!overflow-hidden !h-screen")
+            ui.query("body").classes("!overflow-hidden !h-screen")
+            ui.query(".q-page-container").classes(
+                "!box-border !h-screen !overflow-hidden"
+            )
+            ui.query(".q-page").classes("!h-full !min-h-0 !overflow-y-auto")
+
             # Set favicon to current icon state for late-joining clients
             ui.run_javascript(favicon_js(self._current_icon))
 
