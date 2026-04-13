@@ -6,13 +6,13 @@ if TYPE_CHECKING:
     from webui.manager import WebUIManager
 
 
-class MockProgress:
+class CampaignProgressAdapter:
     """
     Mirrors CampaignProgress - delegates display() to the main_panel
     display_drop() function via WebUIManager.display_drop().
     """
 
-    def __init__(self, manager: 'WebUIManager'):
+    def __init__(self, manager: "WebUIManager"):
         self._manager = manager
 
     def stop_timer(self):

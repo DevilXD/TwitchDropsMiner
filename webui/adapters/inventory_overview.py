@@ -6,13 +6,13 @@ if TYPE_CHECKING:
     from webui.manager import WebUIManager
 
 
-class MockInventory:
+class InventoryOverviewAdapter:
     """
     Mirrors InventoryOverview - stores DropsCampaign objects and schedules
     inventory panel rebuilds on the NiceGUI event loop.
     """
 
-    def __init__(self, manager: 'WebUIManager'):
+    def __init__(self, manager: "WebUIManager"):
         self._manager = manager
 
     def clear(self):

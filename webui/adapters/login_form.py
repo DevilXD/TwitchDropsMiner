@@ -1,23 +1,30 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from translate import _
-from .login_data import LoginData
 
 if TYPE_CHECKING:
     from yarl import URL
     from webui.manager import WebUIManager
 
 
-class MockLoginForm:
+@dataclass
+class LoginData:
+    username: str
+    password: str
+    token: str
+
+
+class LoginFormAdapter:
     """
     Mirrors LoginForm - updates the login status labels and handles
     the device-code activation flow.
     """
 
-    def __init__(self, manager: 'WebUIManager'):
+    def __init__(self, manager: "WebUIManager"):
         self._manager = manager
         self._confirm = asyncio.Event()
 
@@ -38,7 +45,7 @@ class MockLoginForm:
         await self.wait_for_login_press()
         return LoginData("", "", "")
 
-    async def ask_enter_code(self, page_url: 'URL', user_code: str) -> None:
+    async def ask_enter_code(self, page_url: "URL", user_code: str) -> None:
         """Show the device activation code and wait for login button before opening browser."""
         self.update(_("gui", "login", "required"), None)
         self._manager.grab_attention(sound=False)
@@ -50,13 +57,14 @@ class MockLoginForm:
         self._manager.print(f"URL: {twitch_login_url}")
         await self.wait_for_login_press()
         from utils import webopen
+
         webopen(page_url)
 
     def update(self, status: str, user_id: int | None):
         panel = self._manager._main_panel
         user_str = str(user_id) if user_id is not None else "-"
         panel._login_status_text = f"{status}\n{user_str}"
-        panel._logout_btn_visible = (status == _("gui", "login", "logged_in"))
+        panel._logout_btn_visible = status == _("gui", "login", "logged_in")
         if status != _("gui", "login", "required"):
             panel._login_btn_visible = False
         panel.flush_login()

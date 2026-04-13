@@ -7,13 +7,13 @@ if TYPE_CHECKING:
     from webui.manager import WebUIManager
 
 
-class MockChannels:
+class ChannelListAdapter:
     """
     Mirrors ChannelList - stores channel data on the manager and schedules
     a channel table rebuild on the NiceGUI event loop.
     """
 
-    def __init__(self, manager: 'WebUIManager'):
+    def __init__(self, manager: "WebUIManager"):
         self._manager = manager
 
     def clear(self):
@@ -22,7 +22,7 @@ class MockChannels:
         panel._watching_channel_iid = None
         panel.rebuild_channel_table()
 
-    def set_watching(self, channel: 'Channel'):
+    def set_watching(self, channel: "Channel"):
         panel = self._manager._main_panel
         panel._watching_channel_iid = channel.iid
         panel.rebuild_channel_table()
@@ -32,7 +32,7 @@ class MockChannels:
         panel._watching_channel_iid = None
         panel.rebuild_channel_table()
 
-    def get_selection(self) -> 'Channel | None':
+    def get_selection(self) -> "Channel | None":
         """Return the currently selected Channel (for CHANNEL_SWITCH state)"""
         panel = self._manager._main_panel
         iid = panel._selected_channel_iid
@@ -45,7 +45,7 @@ class MockChannels:
         panel._selected_channel_iid = None
         panel.clear_selection()
 
-    def display(self, channel: 'Channel', *, add: bool = False):
+    def display(self, channel: "Channel", *, add: bool = False):
         """Add or update a channel entry in the list"""
         panel = self._manager._main_panel
         iid = channel.iid
@@ -57,7 +57,7 @@ class MockChannels:
             panel._channel_map[iid] = channel
         panel.rebuild_channel_table()
 
-    def remove(self, channel: 'Channel'):
+    def remove(self, channel: "Channel"):
         panel = self._manager._main_panel
         iid = channel.iid
         panel._channel_map.pop(iid, None)

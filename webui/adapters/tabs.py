@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 
-class MockTabs:
+class TabsAdapter:
     """
-    Mirrors the tkinter tab controller.
+    Mirrors the tkinter tab controller (Notebook).
 
     twitch.py uses current_tab() to read the active tab index and
     add_view_event() to register a callback when the tab changes.  Neither is

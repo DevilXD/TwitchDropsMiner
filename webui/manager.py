@@ -41,18 +41,35 @@ from typing import TYPE_CHECKING
 
 try:
     from nicegui import ui, app
+
     NICEGUI_AVAILABLE = True
 except ImportError:
     NICEGUI_AVAILABLE = False
     ui = None
     app = None
 
-from translate import _
 from constants import OUTPUT_FORMATTER, FILE_FORMATTER, WINDOW_TITLE
-from .mocks import (MockTray, MockStatus, MockProgress, MockOutput, MockChannels,
-                    MockInventory, MockLoginForm, MockWebsocketStatus, MockSettings, MockTabs)
+from .adapters import (
+    TrayIconAdapter,
+    StatusBarAdapter,
+    CampaignProgressAdapter,
+    ConsoleOutputAdapter,
+    ChannelListAdapter,
+    InventoryOverviewAdapter,
+    LoginFormAdapter,
+    WebsocketStatusAdapter,
+    SettingsAdapter,
+    TabsAdapter,
+)
 from .handlers import WebUIOutputHandler
-from .components import (BasePanel, MainPanel, InventoryPanel, HelpPanel, SettingsPanel, HeaderBar)
+from .components import (
+    BasePanel,
+    MainPanel,
+    InventoryPanel,
+    HelpPanel,
+    SettingsPanel,
+    HeaderBar,
+)
 
 if TYPE_CHECKING:
     from twitch import Twitch
@@ -75,28 +92,30 @@ class WebUIManager:
     See mock_classes.py for details.
     """
 
-    def __init__(self, twitch: 'Twitch'):
+    def __init__(self, twitch: "Twitch"):
         if not NICEGUI_AVAILABLE:
-            raise ImportError("NiceGUI is not installed. Install it with: pip install nicegui")
+            raise ImportError(
+                "NiceGUI is not installed. Install it with: pip install nicegui"
+            )
 
-        self._twitch: 'Twitch' = twitch
+        self._twitch: "Twitch" = twitch
         self._close_requested = asyncio.Event()
         self._running = False
         self._console_log = []
-        
+
         # Shared UI state - single source of truth for all panels
         self._status_text: str = "Initializing..."
 
-        self.tray = MockTray(self)
-        self.status = MockStatus(self)
-        self.progress = MockProgress(self)
-        self.output = MockOutput(self)
-        self.channels = MockChannels(self)
-        self.inv = MockInventory(self)
-        self.login = MockLoginForm(self)
-        self.websockets = MockWebsocketStatus(self)
-        self.settings = MockSettings(self)
-        self.tabs = MockTabs()
+        self.tray = TrayIconAdapter(self)
+        self.status = StatusBarAdapter(self)
+        self.progress = CampaignProgressAdapter(self)
+        self.output = ConsoleOutputAdapter(self)
+        self.channels = ChannelListAdapter(self)
+        self.inv = InventoryOverviewAdapter(self)
+        self.login = LoginFormAdapter(self)
+        self.websockets = WebsocketStatusAdapter(self)
+        self.settings = SettingsAdapter(self)
+        self.tabs = TabsAdapter()
 
         # Panel objects — own all widget references and state for their tab
         self._header_bar: HeaderBar = HeaderBar(self)
@@ -121,16 +140,16 @@ class WebUIManager:
     def _setup_ui(self):
         """Register the NiceGUI page handler. The inner index() function runs once
         per browser connection, building the full UI for that client."""
-        app.add_static_files('/static', str(Path(__file__).parent / 'static'))
-        _css = (Path(__file__).parent / 'styles.css').read_text(encoding='utf-8')
+        app.add_static_files("/static", str(Path(__file__).parent / "static"))
+        _css = (Path(__file__).parent / "styles.css").read_text(encoding="utf-8")
 
-        @ui.page('/')
-        def index(tab: str = 'main'):
+        @ui.page("/")
+        def index(tab: str = "main"):
             ui.page_title(WINDOW_TITLE)
             ui.dark_mode(self._dark_mode_enabled)
-            ui.query('.nicegui-content').classes('p-0')
-            ui.add_head_html(f'<style>{_css}</style>')
-            
+            ui.query(".nicegui-content").classes("p-0")
+            ui.add_head_html(f"<style>{_css}</style>")
+
             # Request notification permission on page load
             ui.run_javascript("""
                 if ('Notification' in window && Notification.permission === 'default') {
@@ -142,7 +161,9 @@ class WebUIManager:
             manager = self
 
             # Fall back to 'main' if the ?tab= query param is not a known tab name.
-            initial_tab = tab if tab in ('main', 'inventory', 'settings', 'help') else 'main'
+            initial_tab = (
+                tab if tab in ("main", "inventory", "settings", "help") else "main"
+            )
 
             def _on_tab_change(e):
                 t = str(e.value)
@@ -150,19 +171,18 @@ class WebUIManager:
 
             tabs = manager._header_bar.build(initial_tab, _on_tab_change)
 
-            with ui.tab_panels(tabs, value=initial_tab).classes('w-full h-full'):
-                with ui.tab_panel('main'):
+            with ui.tab_panels(tabs, value=initial_tab).classes("w-full h-full"):
+                with ui.tab_panel("main"):
                     manager._main_panel.build()
 
-                with ui.tab_panel('inventory'):
+                with ui.tab_panel("inventory"):
                     manager._inventory_panel.build()
 
-                with ui.tab_panel('settings'):
+                with ui.tab_panel("settings"):
                     manager._settings_panel.build()
 
-                with ui.tab_panel('help'):
+                with ui.tab_panel("help"):
                     manager._help_panel.build()
-
 
     def toggle_dark_mode(self, enabled: bool):
         """Apply dark mode to the current client's page and schedule it for all other clients."""
@@ -173,9 +193,11 @@ class WebUIManager:
         except Exception:
             current_id = None
         from nicegui import Client
+
         async def _apply(client) -> None:
             with client:
                 ui.dark_mode(enabled)
+
         for client_id, client in list(Client.instances.items()):
             if client_id != current_id:
                 asyncio.get_event_loop().create_task(_apply(client))
@@ -192,12 +214,12 @@ class WebUIManager:
         """Append a timestamped line to the in-browser console log.
         Matches gui.py ConsoleOutput.print(): each line of a multiline message gets its own stamp."""
         stamp = datetime.now().strftime("%X")
-        if '\n' in message:
-            display_message = message.replace('\n', f"\n{stamp}: ")
+        if "\n" in message:
+            display_message = message.replace("\n", f"\n{stamp}: ")
         else:
             display_message = message
 
-        lines = [f"{stamp}: {line}" for line in display_message.split('\n')]
+        lines = [f"{stamp}: {line}" for line in display_message.split("\n")]
         # Persist every line so late-joining clients can replay the full log on connect.
         self._console_log.extend(lines)
 
@@ -245,7 +267,10 @@ class WebUIManager:
         from exceptions import ExitRequest
 
         # ensure_future is required in Python 3.11+ to wrap plain awaitables for asyncio.wait.
-        tasks = [asyncio.ensure_future(coro), asyncio.ensure_future(self._close_requested.wait())]
+        tasks = [
+            asyncio.ensure_future(coro),
+            asyncio.ensure_future(self._close_requested.wait()),
+        ]
         done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
         for task in pending:
             task.cancel()

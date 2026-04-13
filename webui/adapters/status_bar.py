@@ -6,10 +6,10 @@ if TYPE_CHECKING:
     from webui.manager import WebUIManager
 
 
-class MockStatus:
+class StatusBarAdapter:
     """Mirrors StatusBar - delegates to manager to update both panels"""
 
-    def __init__(self, manager: 'WebUIManager'):
+    def __init__(self, manager: "WebUIManager"):
         self._manager = manager
 
     def update(self, text: str):

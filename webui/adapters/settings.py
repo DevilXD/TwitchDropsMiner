@@ -7,9 +7,9 @@ if TYPE_CHECKING:
     from utils import Game
 
 
-class MockSettings:
+class SettingsAdapter:
     """
-    Mirrors the tkinter settings panel widget.
+    Mirrors the tkinter SettingsPanel.
 
     twitch.py calls clear_selection() and set_games() on the settings object;
     those operations are handled directly by the NiceGUI settings panel in
@@ -18,10 +18,10 @@ class MockSettings:
     expects a list-like widget (e.g. configure_theme) does not raise.
     """
 
-    def __init__(self, manager: 'WebUIManager'):
+    def __init__(self, manager: "WebUIManager"):
         self._manager = manager
-        self._priority_list = _MockList()
-        self._exclude_list = _MockList()
+        self._priority_list = _ListAdapter()
+        self._exclude_list = _ListAdapter()
 
     def clear_selection(self):
         pass
@@ -30,7 +30,8 @@ class MockSettings:
         pass
 
 
-class _MockList:
+class _ListAdapter:
     """Stub for tkinter Listbox-like objects that only need configure_theme."""
+
     def configure_theme(self, **kwargs):
         pass

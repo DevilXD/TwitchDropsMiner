@@ -6,10 +6,10 @@ if TYPE_CHECKING:
     from webui.manager import WebUIManager
 
 
-class MockOutput:
+class ConsoleOutputAdapter:
     """Mirrors ConsoleOutput"""
 
-    def __init__(self, manager: 'WebUIManager'):
+    def __init__(self, manager: "WebUIManager"):
         self._manager = manager
 
     def print(self, message: str):

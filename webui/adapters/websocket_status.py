@@ -8,13 +8,13 @@ if TYPE_CHECKING:
     from webui.manager import WebUIManager
 
 
-class MockWebsocketStatus:
+class WebsocketStatusAdapter:
     """
     Mirrors WebsocketStatus - stores per-websocket data on the manager
     and schedules a UI rebuild on the NiceGUI event loop.
     """
 
-    def __init__(self, manager: 'WebUIManager'):
+    def __init__(self, manager: "WebUIManager"):
         self._manager = manager
 
     def update(self, idx: int, status: str | None = None, topics: int | None = None):
@@ -23,8 +23,8 @@ class MockWebsocketStatus:
         data = self._manager._main_panel._ws_data
         if idx not in data:
             data[idx] = {
-                'status': _("gui", "websocket", "disconnected"),
-                'topics': 0,
+                "status": _("gui", "websocket", "disconnected"),
+                "topics": 0,
             }
             # If no status was provided for a new entry, check the live websocket
             # state so already-connected sockets aren't stuck on the "Disconnected" fallback.
@@ -37,13 +37,13 @@ class MockWebsocketStatus:
                             if ws_list[idx].connected
                             else _("gui", "websocket", "disconnected")
                         )
-                        data[idx]['status'] = live_status
+                        data[idx]["status"] = live_status
                 except Exception:
                     pass
         if status is not None:
-            data[idx]['status'] = status
+            data[idx]["status"] = status
         if topics is not None:
-            data[idx]['topics'] = topics
+            data[idx]["topics"] = topics
         self._manager.rebuild_ws()
 
     def remove(self, idx: int):
