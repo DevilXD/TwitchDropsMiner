@@ -218,7 +218,7 @@ class MainPanel(BasePanel):
                             widgets["login_button"] = (
                                 ui.button(
                                     _("gui", "login", "button"),
-                                    on_click=manager.login._confirm.set,
+                                    on_click=manager.login.open_login_popup,
                                 )
                                 .props("dense")
                                 .classes("text-xs")

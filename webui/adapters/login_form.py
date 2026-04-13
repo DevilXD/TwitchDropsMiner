@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 
 from translate import _
 
+from nicegui import ui
+
 if TYPE_CHECKING:
     from yarl import URL
     from webui.manager import WebUIManager
@@ -27,6 +29,7 @@ class LoginFormAdapter:
     def __init__(self, manager: "WebUIManager"):
         self._manager = manager
         self._confirm = asyncio.Event()
+        self._page_url: "URL | None" = None
 
     def clear(self, login: bool = False, password: bool = False, token: bool = False):
         pass
@@ -34,26 +37,31 @@ class LoginFormAdapter:
     async def wait_for_login_press(self) -> None:
         self._confirm.clear()
         self._manager._main_panel._login_btn_visible = True
+        self._manager._main_panel._logout_btn_visible = False
         self._manager._main_panel.flush_login()
         await self._manager.coro_unless_closed(self._confirm.wait())
 
     async def ask_login(self) -> LoginData:
-        """Prompt for login via the console; device-code flow is preferred."""
-        self.update(_("gui", "login", "required"), None)
-        self._manager.grab_attention(sound=False)
-        self._manager.print(_("gui", "login", "request"))
-        await self.wait_for_login_press()
+        """Deprecated login flow; device-code flow is required."""
         return LoginData("", "", "")
 
     async def ask_enter_code(self, page_url: "URL", user_code: str) -> None:
-        """Show the device activation code and wait for login button before opening browser."""
+        """Show the login button and wait for the user to click it before polling begins."""
+        self._page_url = page_url
         self.update(_("gui", "login", "required"), None)
         self._manager.grab_attention(sound=False)
         self._manager.print(_("gui", "login", "request"))
         await self.wait_for_login_press()
-        from utils import webopen
+        self._page_url = None
 
-        webopen(page_url)
+    async def open_login_popup(self) -> None:
+        """Open the Twitch login URL in a small popup window."""
+        if self._page_url is not None:
+            await ui.run_javascript(
+                f'window.open("{self._page_url}", "twitch_login",'
+                f' "width=600,height=800,toolbar=no,menubar=no,location=yes,resizable=yes"); null'
+            )
+        self._confirm.set()
 
     def update(self, status: str, user_id: int | None):
         panel = self._manager._main_panel
