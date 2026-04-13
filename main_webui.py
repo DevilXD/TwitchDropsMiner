@@ -224,7 +224,7 @@ if __name__ == "__main__":
                 title=WINDOW_TITLE,
                 show=False,
                 reload=False,
-                favicon=Path(__file__).parent / "webui" / "static" / "pickaxe.ico",
+                favicon=Path(__file__).parent / "icons" / "pickaxe.ico",
             )
         except KeyboardInterrupt:
             pass
