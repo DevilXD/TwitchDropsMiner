@@ -20,6 +20,38 @@ def ea(text) -> str:
     return _html.escape(str(text), quote=True)
 
 
+def notification_js(title: str, message: str) -> str:
+    js_title = title.replace("'", "\\'")
+    js_message = message.replace("'", "\\'")
+    return f"""
+if ("Notification" in window) {{
+    if (Notification.permission === "granted") {{
+        new Notification('{js_title}', {{ body: '{js_message}', icon: "/icons/pickaxe.ico" }});
+    }} else if (Notification.permission !== "denied") {{
+        Notification.requestPermission().then(function (permission) {{
+            if (permission === "granted") {{
+                new Notification('{js_title}', {{ body: '{js_message}', icon: "/icons/pickaxe.ico" }});
+            }}
+        }});
+    }}
+}}
+"""
+
+
+def favicon_js(icon_name: str) -> str:
+    return f"""
+(function() {{
+    var link = document.querySelector("link[rel~='icon']");
+    if (!link) {{
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.head.appendChild(link);
+    }}
+    link.href = '/icons/{icon_name}.ico';
+}})();
+"""
+
+
 class Tag:
     """Lightweight HTML builder with a NiceGUI-style chainable API.
 

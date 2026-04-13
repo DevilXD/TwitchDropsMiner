@@ -62,6 +62,7 @@ from .adapters import (
     TabsAdapter,
 )
 from .handlers import WebUIOutputHandler
+from .html_utils import favicon_js
 from .components import (
     BasePanel,
     MainPanel,
@@ -126,6 +127,7 @@ class WebUIManager:
 
         # Dark mode state — read from settings so the correct value is applied on every page load
         self._dark_mode_enabled: bool = twitch.settings.dark_mode
+        self._current_icon: str = "pickaxe"
 
         self._setup_ui()
 
@@ -140,7 +142,7 @@ class WebUIManager:
     def _setup_ui(self):
         """Register the NiceGUI page handler. The inner index() function runs once
         per browser connection, building the full UI for that client."""
-        app.add_static_files("/static", str(Path(__file__).parent / "static"))
+        app.add_static_files("/icons", str(Path(__file__).parent.parent / "icons"))
         _css = (Path(__file__).parent / "styles.css").read_text(encoding="utf-8")
 
         @ui.page("/")
@@ -149,6 +151,9 @@ class WebUIManager:
             ui.dark_mode(self._dark_mode_enabled)
             ui.query(".nicegui-content").classes("p-0")
             ui.add_head_html(f"<style>{_css}</style>")
+
+            # Set favicon to current icon state for late-joining clients
+            ui.run_javascript(favicon_js(self._current_icon))
 
             # Request notification permission on page load
             ui.run_javascript(

@@ -45,7 +45,7 @@ class HeaderBar:
 
         with ui.header().classes("flex-col items-stretch p-0 gap-0"):
             with ui.row().classes("tdm-header-row w-full items-center q-px-lg q-py-md"):
-                ui.image("/static/pickaxe.png").classes("w-8 h-8")
+                ui.image("/icons/pickaxe.ico").classes("w-8 h-8")
                 ui.label("Twitch Drops Miner").classes("text-h6")
                 ui.space()
                 header_label = ui.label(initial_status).classes("text-body1")
