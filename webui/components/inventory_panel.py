@@ -7,13 +7,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-try:
-    from nicegui import ui
-
-    NICEGUI_AVAILABLE = True
-except ImportError:
-    NICEGUI_AVAILABLE = False
-    ui = None
+from nicegui import ui
 
 from translate import _
 from constants import PriorityMode
@@ -115,9 +109,6 @@ class InventoryPanel(BasePanel):
 
     def _create_panel(self) -> None:
         """Build the inventory panel UI for the current NiceGUI client."""
-        if not NICEGUI_AVAILABLE:
-            return
-
         client_id: str = ui.context.client.id
 
         with ui.column().classes("w-full gap-2"):

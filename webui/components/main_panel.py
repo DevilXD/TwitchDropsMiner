@@ -9,13 +9,7 @@ from math import ceil, log10
 from time import monotonic
 from typing import TYPE_CHECKING
 
-try:
-    from nicegui import ui
-
-    NICEGUI_AVAILABLE = True
-except ImportError:
-    NICEGUI_AVAILABLE = False
-    ui = None
+from nicegui import ui
 
 from translate import _
 from constants import MAX_WEBSOCKETS, WS_TOPICS_LIMIT
@@ -62,8 +56,6 @@ class MainPanel(BasePanel):
 
     def build(self) -> None:
         """Build the main panel UI for the current NiceGUI client."""
-        if not NICEGUI_AVAILABLE:
-            return
         client_id = ui.context.client.id
         widgets: dict = {}
         self._client_widgets[client_id] = widgets

@@ -11,7 +11,6 @@ from __future__ import annotations
 # import an additional thing for proper PyInstaller freeze support
 from multiprocessing import freeze_support
 
-
 if __name__ == "__main__":
     freeze_support()
     import sys
@@ -105,7 +104,12 @@ if __name__ == "__main__":
     del parser
 
     # WebUI setup - we'll use NiceGUI's event loop for everything
-    from nicegui import ui, app
+    try:
+        from nicegui import ui, app
+    except ImportError:
+        print("ERROR: NiceGUI is not installed.")
+        print("Install it with: pip install nicegui")
+        sys.exit(1)
     from pathlib import Path
 
     # Global state for the Twitch client

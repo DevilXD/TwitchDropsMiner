@@ -2,13 +2,7 @@
 
 from __future__ import annotations
 
-try:
-    from nicegui import ui
-
-    NICEGUI_AVAILABLE = True
-except ImportError:
-    NICEGUI_AVAILABLE = False
-    ui = None
+from nicegui import ui
 
 from translate import _
 from version import __version__
@@ -18,10 +12,8 @@ REPOSITORY_URL = "https://github.com/fireph/docker-twitch-drops-miner"
 
 
 class HelpPanel(BasePanel):
-    def build(self) -> None:
-        if not NICEGUI_AVAILABLE:
-            return
 
+    def build(self) -> None:
         with ui.column().classes("w-full gap-2 items-center"):
             with ui.column().classes("gap-2 w-full max-w-[1000px]"):
                 # About
@@ -57,7 +49,7 @@ class HelpPanel(BasePanel):
                         ui.label("Donate:").classes("text-right")
                         ui.link(
                             "If you like the application and found it useful, "
-                            "please consider donating a small amount of money to support me. Thank you!",
+                            "please consider donating to DevilXD to support them!",
                             "https://www.buymeacoffee.com/DevilXD",
                             True,
                         ).classes("text-sm")

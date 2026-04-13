@@ -2,13 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-try:
-    from nicegui import ui
-
-    NICEGUI_AVAILABLE = True
-except ImportError:
-    NICEGUI_AVAILABLE = False
-    ui = None
+from nicegui import ui
 
 from translate import _
 
@@ -32,9 +26,6 @@ class HeaderBar:
 
     def build(self, initial_tab: str, on_tab_change):
         """Build the header UI for the current NiceGUI client."""
-        if not NICEGUI_AVAILABLE:
-            return
-
         client_id = ui.context.client.id
         ui.context.client.on_disconnect(
             lambda: self._client_labels.pop(client_id, None)

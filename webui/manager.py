@@ -39,14 +39,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-try:
-    from nicegui import ui, app
-
-    NICEGUI_AVAILABLE = True
-except ImportError:
-    NICEGUI_AVAILABLE = False
-    ui = None
-    app = None
+from nicegui import ui, app
 
 from constants import OUTPUT_FORMATTER, FILE_FORMATTER
 from .adapters import (
@@ -94,11 +87,6 @@ class WebUIManager:
     """
 
     def __init__(self, twitch: "Twitch"):
-        if not NICEGUI_AVAILABLE:
-            raise ImportError(
-                "NiceGUI is not installed. Install it with: pip install nicegui"
-            )
-
         self._twitch: "Twitch" = twitch
         self._close_requested = asyncio.Event()
         self._running = False

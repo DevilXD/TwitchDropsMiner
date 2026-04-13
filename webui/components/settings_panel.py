@@ -3,14 +3,7 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
-try:
-    from nicegui import ui, Client
-
-    NICEGUI_AVAILABLE = True
-except ImportError:
-    NICEGUI_AVAILABLE = False
-    ui = None
-    Client = None
+from nicegui import ui, Client
 
 from translate import _
 from constants import PriorityMode, State
@@ -71,9 +64,6 @@ class SettingsPanel(BasePanel):
 
     def build(self) -> None:
         """Build the settings panel UI for the current NiceGUI client."""
-        if not NICEGUI_AVAILABLE:
-            return
-
         client_id = ui.context.client.id
         ui.context.client.on_disconnect(lambda: self._remove_client(client_id))
 
