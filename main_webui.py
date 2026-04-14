@@ -26,6 +26,16 @@ if __name__ == "__main__":
     truststore.inject_into_ssl()
 
     from translate import _
+
+    # Install a stub gui module so twitch.py's `from gui import GUIManager`
+    # resolves to WebUIManager without loading tkinter.
+    import types as _types
+    from webui import WebUIManager as _WebUIManager
+    _gui_stub = _types.ModuleType('gui')
+    _gui_stub.GUIManager = _WebUIManager  # type: ignore[attr-defined]
+    sys.modules['gui'] = _gui_stub
+    del _types, _WebUIManager, _gui_stub
+
     from twitch import Twitch
     from settings import Settings
     from version import __version__
