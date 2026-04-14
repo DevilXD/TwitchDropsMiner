@@ -1,5 +1,5 @@
 # Multi-stage build for Alpine Linux
-FROM python:alpine AS builder
+FROM python-3.10:alpine AS builder
 
 # Build arguments
 ARG ARCH=x86_64
