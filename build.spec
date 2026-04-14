@@ -40,7 +40,7 @@ else:
 upx: bool = False  # Use UPX compression (reduces file size, may increase AV detections)
 console: bool = False  # True if you'd want to add a console window (useful for debugging)
 one_dir: bool = False  # True for one-dir, False for one-file
-optimize: int | None = None  # -1/None/0=none, 1=remove asserts, 2=also remove docstrings
+optimize: int = 2  # 0=none, 1=remove asserts, 2=also remove docstrings
 app_name: str = "Twitch Drops Miner (by DevilXD)"
 
 
@@ -81,7 +81,27 @@ hiddenimports: list[str] = [
 excludes: list[str] = []
 
 if UI_BACKEND == "nicegui":
-    excludes = ["tkinter", "Tkinter"]
+    excludes = [
+        "tkinter",
+        "Tkinter",
+        # Exclude heavy NiceGUI optional elements we don't use
+        "nicegui.elements.plotly",
+        "nicegui.elements.echart",
+        "nicegui.elements.mermaid",
+        "nicegui.elements.codemirror",
+        "nicegui.elements.aggrid",
+        "nicegui.elements.json_editor",
+        "nicegui.elements.scene",
+        "nicegui.elements.leaflet",
+        "nicegui.elements.joystick",
+        "nicegui.elements.xterm",
+        "nicegui.elements.anywidget",
+        "nicegui.testing",
+        # Exclude test frameworks that might get pulled in
+        "pytest",
+        "unittest",
+        "test",
+    ]
 else:
     hiddenimports.append("PIL._tkinter_finder")
 

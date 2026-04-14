@@ -195,7 +195,7 @@ class WebUIManager:
         """Apply dark mode to all connected clients."""
         self._dark_mode_enabled = enabled
         self._twitch.settings.dark_mode = enabled
-        self._twitch.settings.save()
+        self._twitch.settings.save(force=True)
 
         async def _apply(client) -> None:
             with client:

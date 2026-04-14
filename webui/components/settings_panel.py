@@ -85,8 +85,7 @@ class SettingsPanel(BasePanel):
         settings = self.settings
         if game_name not in settings.priority:
             settings.priority.append(game_name)
-            settings.alter()
-            settings.save()
+            settings.save(force=True)
         self._rebuild_priority_list()
 
     def add_excluded_game(self, game_name: str) -> None:
@@ -95,8 +94,7 @@ class SettingsPanel(BasePanel):
             return
         settings = self.settings
         settings.exclude.add(game_name)
-        settings.alter()
-        settings.save()
+        settings.save(force=True)
         self._rebuild_exclude_list()
 
     # -------------------------------------------------------------------------
@@ -541,8 +539,7 @@ class SettingsPanel(BasePanel):
         settings = self.settings
         if name not in settings.priority:
             settings.priority.append(name)
-            settings.alter()
-            settings.save()
+            settings.save(force=True)
         input_el.set_value(None)
         self._rebuild_priority_list()
         self._refresh_input_options()
@@ -565,8 +562,7 @@ class SettingsPanel(BasePanel):
             return
         item = priority.pop(idx)
         priority.insert(new_idx, item)
-        self.settings.alter()
-        self.settings.save()
+        self.settings.save(force=True)
         self._priority_selected = new_idx
         self._rebuild_priority_list()
 
@@ -577,8 +573,7 @@ class SettingsPanel(BasePanel):
         priority = self.settings.priority
         if 0 <= idx < len(priority):
             del priority[idx]
-            self.settings.alter()
-            self.settings.save()
+            self.settings.save(force=True)
             self._priority_selected = None
             self._rebuild_priority_list()
             self._refresh_input_options()
@@ -599,8 +594,7 @@ class SettingsPanel(BasePanel):
         settings = self.settings
         if name not in settings.exclude:
             settings.exclude.add(name)
-            settings.alter()
-            settings.save()
+            settings.save(force=True)
         input_el.set_value(None)
         self._rebuild_exclude_list()
         self._refresh_input_options()
@@ -611,8 +605,7 @@ class SettingsPanel(BasePanel):
             return
         settings = self.settings
         settings.exclude.discard(name)
-        settings.alter()
-        settings.save()
+        settings.save(force=True)
         self._exclude_selected = None
         self._rebuild_exclude_list()
         self._refresh_input_options()
@@ -625,7 +618,7 @@ class SettingsPanel(BasePanel):
 
 def _set_and_save(settings, name: str, value) -> None:
     setattr(settings, name, value)
-    settings.save()
+    settings.save(force=True)
 
 
 def _on_proxy_change(settings, value: str) -> None:
@@ -633,6 +626,6 @@ def _on_proxy_change(settings, value: str) -> None:
 
     try:
         settings.proxy = URL(value) if value.strip() else None
-        settings.save()
+        settings.save(force=True)
     except Exception:
         pass
