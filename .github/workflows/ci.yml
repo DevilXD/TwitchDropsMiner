@@ -3,7 +3,7 @@ name: Build
 on:
   push:
     branches:
-      - "no-sys-tray"
+      - "webui"
   pull_request:
   workflow_dispatch:
   repository_dispatch:
@@ -345,22 +345,39 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build with Docker
+      - name: Build tkinter version
         run: |
-          docker build -f Dockerfile.alpine --platform linux/${{matrix.platform}} --build-arg ARCH=${{matrix.arch}} -t twitch-drops-miner-alpine:${{matrix.arch}} .
+          docker build -f Dockerfile.alpine --platform linux/${{matrix.platform}} --build-arg ARCH=${{matrix.arch}} --build-arg UI_BACKEND=tkinter -t twitch-drops-miner-tkinter:${{matrix.arch}} .
 
-      - name: Extract build artifacts
+      - name: Extract tkinter build artifacts
         run: |
-          docker create --name extract twitch-drops-miner-alpine:${{matrix.arch}}
-          docker cp extract:/app/Twitch.Drops.Miner.Linux.musl.PyInstaller-${{matrix.arch}}.zip .
-          docker rm extract
+          docker create --name extract-tkinter twitch-drops-miner-tkinter:${{matrix.arch}}
+          docker cp extract-tkinter:/app/Twitch.Drops.Miner.Linux.musl.PyInstaller-tkinter-${{matrix.arch}}.zip .
+          docker rm extract-tkinter
 
-      - name: Upload build artifact
+      - name: Upload tkinter build artifact
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: error
-          name: Twitch.Drops.Miner.Linux.musl.PyInstaller-${{matrix.arch}}
-          path: Twitch.Drops.Miner.Linux.musl.PyInstaller-${{matrix.arch}}.zip
+          name: Twitch.Drops.Miner.Linux.musl.PyInstaller-tkinter-${{matrix.arch}}
+          path: Twitch.Drops.Miner.Linux.musl.PyInstaller-tkinter-${{matrix.arch}}.zip
+
+      - name: Build nicegui version
+        run: |
+          docker build -f Dockerfile.alpine --platform linux/${{matrix.platform}} --build-arg ARCH=${{matrix.arch}} --build-arg UI_BACKEND=nicegui -t twitch-drops-miner-nicegui:${{matrix.arch}} .
+
+      - name: Extract nicegui build artifacts
+        run: |
+          docker create --name extract-nicegui twitch-drops-miner-nicegui:${{matrix.arch}}
+          docker cp extract-nicegui:/app/Twitch.Drops.Miner.Linux.musl.PyInstaller-nicegui-${{matrix.arch}}.zip .
+          docker rm extract-nicegui
+
+      - name: Upload nicegui build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: error
+          name: Twitch.Drops.Miner.Linux.musl.PyInstaller-nicegui-${{matrix.arch}}
+          path: Twitch.Drops.Miner.Linux.musl.PyInstaller-nicegui-${{matrix.arch}}.zip
 
   update_releases_page:
     name: Upload builds to Releases

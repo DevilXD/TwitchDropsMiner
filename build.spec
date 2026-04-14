@@ -1,6 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 from __future__ import annotations
 
+import os
 import sys
 import platform
 import fnmatch
@@ -25,6 +26,9 @@ if TYPE_CHECKING:
 PYZTypeCOLLECT: TypeAlias = "abc.Iterable[_TOCTuple] | PYZ"
 PYZTypeEXE: TypeAlias = "abc.Iterable[_TOCTuple] | PYZ | Splash"
 
+
+# Detect UI backend from environment variable
+UI_BACKEND: str = os.getenv("UI_BACKEND", "tkinter").lower()
 
 # Simple configuration
 upx: bool = False  # Use UPX compression (reduces file size, may increase AV detections)
@@ -61,14 +65,19 @@ for source_path, dest_path, required in to_add:
 hooksconfig: dict[str, Any] = {}
 binaries: list[tuple[Path, str]] = []
 hiddenimports: list[str] = [
-    "PIL._tkinter_finder",
     "setuptools._distutils.log",
     "setuptools._distutils.dir_util",
     "setuptools._distutils.file_util",
     "setuptools._distutils.archive_util",
 ]
+excludes: list[str] = []
 
-#if sys.platform == "linux":
+if UI_BACKEND == "nicegui":
+    excludes = ["tkinter", "Tkinter"]
+else:
+    hiddenimports.append("PIL._tkinter_finder")
+
+# if sys.platform == "linux":
 #    # Needed files for better system tray support on Linux via pystray (AppIndicator backend).
 #    arch: str = platform.machine()
 #    libraries_path: Path = Path(f"/usr/lib/{arch}-linux-gnu")
@@ -97,6 +106,7 @@ a = Analysis(
     binaries=binaries,
     hooksconfig=hooksconfig,
     hiddenimports=hiddenimports,
+    excludes=excludes,
 )
 
 # Exclude unneeded Linux libraries (supports globbing)

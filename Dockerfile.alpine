@@ -1,22 +1,31 @@
 # Multi-stage build for Alpine Linux
 FROM python:alpine AS builder
 
-# Build argument for architecture
+# Build arguments
 ARG ARCH=x86_64
+ARG UI_BACKEND=tkinter
 
-# Install build dependencies
-RUN apk add --no-cache \
-    build-base \
-    python3-dev \
-    python3-tkinter \
-    libxft-dev \
-    musl-dev \
-    zlib-dev \
-    jpeg-dev \
-    freetype-dev \
-    7zip \
-    tk-dev \
-    tcl-dev
+# Install build dependencies based on UI backend
+RUN if [ "$UI_BACKEND" = "nicegui" ]; then \
+        apk add --no-cache \
+            build-base \
+            python3-dev \
+            musl-dev \
+            7zip; \
+    else \
+        apk add --no-cache \
+            build-base \
+            python3-dev \
+            python3-tkinter \
+            libxft-dev \
+            musl-dev \
+            zlib-dev \
+            jpeg-dev \
+            freetype-dev \
+            7zip \
+            tk-dev \
+            tcl-dev; \
+    fi
 
 # Set working directory
 WORKDIR /app
@@ -28,11 +37,15 @@ COPY . .
 RUN python3 -m venv env && \
     . env/bin/activate && \
     pip install wheel && \
-    pip install --no-cache-dir -r requirements.txt && \
+    if [ "$UI_BACKEND" = "nicegui" ]; then \
+        pip install --no-cache-dir -r requirements-nicegui.txt; \
+    else \
+        pip install --no-cache-dir -r requirements-tkinter.txt; \
+    fi && \
     pip install pyinstaller
 
 # Build the application
-RUN . env/bin/activate && pyinstaller build.spec
+RUN . env/bin/activate && UI_BACKEND=${UI_BACKEND} pyinstaller build.spec
 
 # Show PyInstaller warnings
 RUN cat build/build/warn-build.txt || true
@@ -41,4 +54,8 @@ RUN cat build/build/warn-build.txt || true
 RUN folder='Twitch Drops Miner' && \
     mkdir "${folder}" && \
     cp manual.txt dist/* "${folder}" && \
-    7z a "Twitch.Drops.Miner.Linux.musl.PyInstaller-${ARCH}.zip" "${folder}"
+    if [ "$UI_BACKEND" = "nicegui" ]; then \
+        7z a "Twitch.Drops.Miner.Linux.musl.PyInstaller-nicegui-${ARCH}.zip" "${folder}"; \
+    else \
+        7z a "Twitch.Drops.Miner.Linux.musl.PyInstaller-tkinter-${ARCH}.zip" "${folder}"; \
+    fi
