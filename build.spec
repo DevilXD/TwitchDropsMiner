@@ -30,6 +30,12 @@ PYZTypeEXE: TypeAlias = "abc.Iterable[_TOCTuple] | PYZ | Splash"
 # Detect UI backend from environment variable
 UI_BACKEND: str = os.getenv("UI_BACKEND", "tkinter").lower()
 
+# Select entry point based on UI backend
+if UI_BACKEND == "nicegui":
+    entry_script = "main_webui.py"
+else:
+    entry_script = "main.py"
+
 # Simple configuration
 upx: bool = False  # Use UPX compression (reduces file size, may increase AV detections)
 console: bool = False  # True if you'd want to add a console window (useful for debugging)
@@ -101,7 +107,7 @@ else:
 #    }
 
 a = Analysis(
-    ["entrypoint.py"],
+    [entry_script],
     datas=datas,
     binaries=binaries,
     hooksconfig=hooksconfig,
