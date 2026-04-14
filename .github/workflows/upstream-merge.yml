@@ -16,7 +16,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT_TOKEN }}
           fetch-depth: 0
           ref: webui
       
@@ -48,12 +48,6 @@ jobs:
         if: steps.check-changes.outputs.behind > 0
         run: |
           git push origin webui
-      
-      - name: Trigger CI workflow
-        if: steps.check-changes.outputs.behind > 0
-        uses: peter-evans/repository-dispatch@v3
-        with:
-          event-type: upstream-merged
       
       - name: Create summary
         run: |
