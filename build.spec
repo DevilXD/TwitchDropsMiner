@@ -87,7 +87,6 @@ if UI_BACKEND == "nicegui":
         # Exclude Python wrappers for heavy NiceGUI elements we don't use.
         # Note: this alone does NOT remove the JS/CSS asset bundles — those are
         # stripped below by filtering a.datas after Analysis.
-        "nicegui.elements.aggrid",
         "nicegui.elements.anywidget",
         "nicegui.elements.codemirror",
         "nicegui.elements.echart",
@@ -156,7 +155,6 @@ if UI_BACKEND == "nicegui":
     # by NiceGUI's hook must be removed by filtering a.datas directly.
     # These directories account for ~65 MB of unused assets.
     excluded_nicegui_data_prefixes = [
-        "nicegui/elements/aggrid/",
         "nicegui/elements/anywidget/",
         "nicegui/elements/codemirror/",
         "nicegui/elements/echart/",
