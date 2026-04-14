@@ -9,7 +9,7 @@
 #
 # The interface is satisfied in two layers:
 #
-#   1. Mock* objects (see mock_classes.py) – one per tkinter widget class
+#   1. *Adapter objects (see adapters/*.py) – one per tkinter widget class
 #      (StatusBar, ChannelList, LoginForm, …). They are stored as attributes on
 #      WebUIManager (self.status, self.channels, self.login, …) so that every
 #      call site in twitch.py keeps working unchanged.
@@ -27,9 +27,9 @@
 # Late-joining clients
 # --------------------
 # Multiple browser tabs can connect at any time, even after the miner has been
-# running for a while. All mutable UI state is persisted on the manager
-# (status text, console log, channel map, inventory, …) so that a fresh page
-# load can rebuild the full current view without waiting for the next update.
+# running for a while. Mutable UI state is persisted on each panel object, with
+# a small amount of global state (status text, console log) on the manager, so
+# that a fresh page load can show up to date information.
 
 from __future__ import annotations
 
@@ -77,13 +77,13 @@ class WebUIManager:
     WebUIManager owns:
     - The NiceGUI HTTP server (started in a daemon thread by _start_server).
     - All shared mutable UI state (status text, console log, channel map, …)
-      that the Mock* attribute objects write to and the NiceGUI timer reads from.
+      that the *Adapter attribute objects write to and the NiceGUI timer reads from.
     - The top-level methods (print, close, display_drop, …) called directly by
       twitch.py on the manager object.
 
-    The Mock* objects stored as attributes mirror the tkinter widget classes that
+    The *Adapter objects stored as attributes mirror the tkinter widget classes that
     twitch.py expects (self.status → StatusBar, self.channels → ChannelList, …).
-    See mock_classes.py for details.
+    See adapters/*.py for details.
     """
 
     def __init__(self, twitch: "Twitch"):
