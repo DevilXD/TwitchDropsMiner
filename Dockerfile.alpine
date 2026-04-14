@@ -11,6 +11,9 @@ RUN if [ "$UI_BACKEND" = "nicegui" ]; then \
             build-base \
             python3-dev \
             musl-dev \
+            zlib-dev \
+            jpeg-dev \
+            freetype-dev \
             7zip; \
     else \
         apk add --no-cache \
