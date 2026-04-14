@@ -140,7 +140,7 @@ if UI_BACKEND == "nicegui":
     # imports all of them eagerly — excluding the Python modules crashes on startup.
     # Filtering a.datas is the only safe way to shrink the bundle for unused elements.
     excluded_nicegui_data_prefixes = [
-        "nicegui/elements/altair/",
+        "nicegui/elements/aggrid/",
         "nicegui/elements/anywidget/",
         "nicegui/elements/codemirror/",
         "nicegui/elements/echart/",
@@ -150,6 +150,7 @@ if UI_BACKEND == "nicegui":
         "nicegui/elements/mermaid/",
         "nicegui/elements/plotly/",
         "nicegui/elements/scene/",
+        "nicegui/elements/sortable/",
         "nicegui/elements/xterm/",
     ]
     # a.datas entries are (dest_path, source_path, typecode) tuples.
