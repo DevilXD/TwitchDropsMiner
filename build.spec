@@ -40,7 +40,7 @@ else:
 upx: bool = False  # Use UPX compression (reduces file size, may increase AV detections)
 console: bool = False  # True if you'd want to add a console window (useful for debugging)
 one_dir: bool = False  # True for one-dir, False for one-file
-optimize: int = 0  # 0=none, 1=remove asserts, 2=also remove docstrings
+optimize: int | None = None  # -1/None/0=none, 1=remove asserts, 2=also remove docstrings
 app_name: str = "Twitch Drops Miner (by DevilXD)"
 
 
