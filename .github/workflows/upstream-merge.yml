@@ -18,7 +18,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
-          ref: no-sys-tray
+          ref: webui
       
       - name: Configure Git
         run: |
@@ -47,7 +47,7 @@ jobs:
       - name: Push changes
         if: steps.check-changes.outputs.behind > 0
         run: |
-          git push origin no-sys-tray
+          git push origin webui
       
       - name: Trigger CI workflow
         if: steps.check-changes.outputs.behind > 0
