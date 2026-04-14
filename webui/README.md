@@ -24,14 +24,14 @@ pip install nicegui
 
 ### Starting the WebUI
 
-Run the application using `entrypoint.py` with the `UI_BACKEND` environment variable set to `webui`:
+Run the application using `entrypoint.py` with the `UI_BACKEND` environment variable set to `nicegui`:
 
 ```bash
 # Linux/Mac
-UI_BACKEND=webui python entrypoint.py
+UI_BACKEND=nicegui python entrypoint.py
 
 # Windows
-set UI_BACKEND=webui
+set UI_BACKEND=nicegui
 python entrypoint.py
 ```
 
@@ -111,4 +111,4 @@ pip install nicegui
 
 ## Technical Note
 
-The WebUI implementation uses a single-threaded architecture where the NiceGUI server and Twitch backend share the same asyncio event loop. This eliminates the need for thread synchronization utilities and provides better performance compared to the previous multi-threaded approach.
+The WebUI implementation uses a single-threaded architecture where the NiceGUI server and Twitch backend share the same asyncio event loop. This eliminates the need for thread synchronization utilities and provides better performance.
