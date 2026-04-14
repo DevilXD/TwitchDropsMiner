@@ -84,25 +84,9 @@ if UI_BACKEND == "nicegui":
     excludes = [
         "tkinter",
         "Tkinter",
-        # Exclude Python wrappers for heavy NiceGUI elements we don't use.
-        # Note: this alone does NOT remove the JS/CSS asset bundles — those are
-        # stripped below by filtering a.datas after Analysis.
-        "nicegui.elements.altair",
-        "nicegui.elements.anywidget",
-        "nicegui.elements.codemirror",
-        "nicegui.elements.echart",
-        "nicegui.elements.joystick",
-        "nicegui.elements.json_editor",
-        "nicegui.elements.leaflet",
-        "nicegui.elements.mermaid",
-        "nicegui.elements.plotly",
-        "nicegui.elements.scene",
-        "nicegui.elements.xterm",
-        "nicegui.testing",
-        # Exclude test frameworks that might get pulled in
-        "pytest",
-        "unittest",
-        "test",
+        # NOTE: nicegui/ui.py eagerly imports ALL elements at module level,
+        # so no nicegui.elements.* modules can be listed here — they would crash on startup.
+        # Asset/data file pruning for unused elements is handled below via a.datas filtering.
     ]
 else:
     hiddenimports.append("PIL._tkinter_finder")
@@ -152,9 +136,9 @@ a.binaries = [
 
 if UI_BACKEND == "nicegui":
     # Strip JS/CSS asset bundles for NiceGUI elements we don't use.
-    # PyInstaller's `excludes` only removes Python modules; data files collected
-    # by NiceGUI's hook must be removed by filtering a.datas directly.
-    # These directories account for ~65 MB of unused assets.
+    # PyInstaller's `excludes` cannot be used for nicegui.elements.* because ui.py
+    # imports all of them eagerly — excluding the Python modules crashes on startup.
+    # Filtering a.datas is the only safe way to shrink the bundle for unused elements.
     excluded_nicegui_data_prefixes = [
         "nicegui/elements/altair/",
         "nicegui/elements/anywidget/",
