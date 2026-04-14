@@ -16,15 +16,15 @@ class InventoryOverviewAdapter:
         self._manager = manager
 
     def clear(self):
-        self._manager._inventory_panel.clear()
+        self._manager.inventory_panel.clear()
 
     async def add_campaign(self, campaign) -> None:
         """Delegates to InventoryPanel.add_campaign."""
-        self._manager._inventory_panel.add_campaign(campaign)
+        self._manager.inventory_panel.add_campaign(campaign)
 
     def update_drop(self, drop) -> None:
         """Mirrors InventoryOverview.update_drop() - delegates to InventoryPanel."""
-        self._manager._inventory_panel.update_drop(drop)
+        self._manager.inventory_panel.update_drop(drop)
 
     def configure_theme(self, *, bg: str):
         pass

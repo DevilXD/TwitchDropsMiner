@@ -20,7 +20,7 @@ class WebsocketStatusAdapter:
     def update(self, idx: int, status: str | None = None, topics: int | None = None):
         if status is None and topics is None:
             raise TypeError("You need to provide at least one of: status, topics")
-        data = self._manager._main_panel._ws_data
+        data = self._manager.main_panel._ws_data
         if idx not in data:
             data[idx] = {
                 "status": _("gui", "websocket", "disconnected"),
@@ -47,5 +47,5 @@ class WebsocketStatusAdapter:
         self._manager.rebuild_ws()
 
     def remove(self, idx: int):
-        self._manager._main_panel._ws_data.pop(idx, None)
+        self._manager.main_panel._ws_data.pop(idx, None)
         self._manager.rebuild_ws()

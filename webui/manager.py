@@ -110,11 +110,11 @@ class WebUIManager:
         self.tabs = TabsAdapter()
 
         # Panel objects - own all widget references and state for their tab
-        self._header_bar: HeaderBar = HeaderBar(self)
-        self._main_panel: MainPanel = MainPanel(self)
-        self._settings_panel: BasePanel = SettingsPanel(self)
-        self._inventory_panel: BasePanel = InventoryPanel(self)
-        self._help_panel: BasePanel = HelpPanel(self)
+        self.header_bar: HeaderBar = HeaderBar(self)
+        self.main_panel: MainPanel = MainPanel(self)
+        self.inventory_panel: BasePanel = InventoryPanel(self)
+        self.settings_panel: BasePanel = SettingsPanel(self)
+        self.help_panel: BasePanel = HelpPanel(self)
 
         self._setup_ui()
 
@@ -176,20 +176,20 @@ class WebUIManager:
                 t = str(e.value)
                 ui.run_javascript(f"history.replaceState(null, '', '?tab={t}')")
 
-            tabs = manager._header_bar.build(initial_tab, _on_tab_change)
+            tabs = manager.header_bar.build(initial_tab, _on_tab_change)
 
             with ui.tab_panels(tabs, value=initial_tab).classes("w-full h-full"):
                 with ui.tab_panel("main"):
-                    manager._main_panel.build()
+                    manager.main_panel.build()
 
                 with ui.tab_panel("inventory"):
-                    manager._inventory_panel.build()
+                    manager.inventory_panel.build()
 
                 with ui.tab_panel("settings"):
-                    manager._settings_panel.build()
+                    manager.settings_panel.build()
 
                 with ui.tab_panel("help"):
-                    manager._help_panel.build()
+                    manager.help_panel.build()
 
     def set_dark_mode(self, enabled: bool) -> None:
         """Apply dark mode to all connected clients."""
@@ -227,7 +227,7 @@ class WebUIManager:
         self._console_log.extend(lines)
 
         # Direct call since we're on the same event loop now
-        self._main_panel.push_console(lines)
+        self.main_panel.push_console(lines)
 
         # Mirror to stdout/file when stdlog is enabled, matching gui.py behaviour.
         if self._twitch.settings.stdlog:
@@ -283,11 +283,11 @@ class WebUIManager:
 
     def rebuild_ws(self):
         """Rebuild the websocket status display"""
-        self._main_panel.rebuild_ws()
+        self.main_panel.rebuild_ws()
 
     def clear_drop(self):
         """Clear the current drop display"""
-        self._main_panel.clear_drop()
+        self.main_panel.clear_drop()
 
     def display_drop(self, drop, *, countdown: bool = True, subone: bool = False):
         """Display current drop information"""
@@ -295,7 +295,7 @@ class WebUIManager:
 
     def set_games(self, games: set[Game]) -> None:
         """Set available games for settings"""
-        self._settings_panel.set_games(games)
+        self.settings_panel.set_games(games)
 
     def apply_theme(self, dark: bool) -> None:
         """Apply theme (no-op for web UI)"""
@@ -313,5 +313,5 @@ class WebUIManager:
     def update_status(self, text: str) -> None:
         """Update status text across all panels. Single source of truth."""
         self._status_text = text
-        self._header_bar.update_status(text)
-        self._main_panel.update_status(text)
+        self.header_bar.update_status(text)
+        self.main_panel.update_status(text)

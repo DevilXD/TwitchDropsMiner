@@ -16,13 +16,13 @@ class CampaignProgressAdapter:
         self._manager = manager
 
     def stop_timer(self):
-        self._manager._main_panel._countdown_active = False
+        self._manager.main_panel._countdown_active = False
 
     def display(self, drop, *, countdown: bool = True, subone: bool = False):
         """Called by twitch.py via GUIManager.display_drop() path"""
-        self._manager._main_panel.display_drop(drop, countdown=countdown, subone=subone)
+        self._manager.main_panel.display_drop(drop, countdown=countdown, subone=subone)
 
     def minute_almost_done(self) -> bool:
         """True when the countdown timer is at or near 0"""
-        panel = self._manager._main_panel
+        panel = self._manager.main_panel
         return not panel._countdown_active or panel._progress_seconds <= 10
