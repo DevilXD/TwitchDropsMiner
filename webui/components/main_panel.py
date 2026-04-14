@@ -358,7 +358,8 @@ class MainPanel(BasePanel):
                         lambda e, cid=client_id: self._on_table_selection(cid, e),
                     )
 
-        ui.timer(1.0, lambda: self.tick(client_id))
+        timer = ui.timer(1.0, lambda: self.tick(client_id))
+        ui.context.client.on_disconnect(lambda: timer.cancel())
 
     # -------------------------------------------------------------------------
     # Private — state flush
