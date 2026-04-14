@@ -20,9 +20,7 @@ class CampaignProgressAdapter:
 
     def display(self, drop, *, countdown: bool = True, subone: bool = False):
         """Called by twitch.py via GUIManager.display_drop() path"""
-        # WebUIManager.display_drop() already calls main_panel.display_drop(),
-        # so this is intentionally a no-op to avoid double updates.
-        pass
+        self._manager._main_panel.display_drop(drop, countdown=countdown, subone=subone)
 
     def minute_almost_done(self) -> bool:
         """True when the countdown timer is at or near 0"""

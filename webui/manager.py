@@ -291,7 +291,7 @@ class WebUIManager:
 
     def display_drop(self, drop, *, countdown: bool = True, subone: bool = False):
         """Display current drop information"""
-        self._main_panel.display_drop(drop, countdown=countdown, subone=subone)
+        self.progress.display(drop, countdown=countdown, subone=subone)
 
     def set_games(self, games: set[Game]) -> None:
         """Set available games for settings"""
