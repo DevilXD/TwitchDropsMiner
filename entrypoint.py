@@ -37,7 +37,7 @@ def main():
 
     # Run the selected entry point with the same Python interpreter
     try:
-        result = subprocess.run([sys.executable, script])
+        result = subprocess.run([sys.executable, script] + sys.argv[1:])
         sys.exit(result.returncode)
     except KeyboardInterrupt:
         # Handle Ctrl+C gracefully without showing traceback
