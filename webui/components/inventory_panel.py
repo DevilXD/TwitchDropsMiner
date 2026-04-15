@@ -49,7 +49,7 @@ class InventoryPanel(BasePanel):
 
         # Per-client widget refs: client_id -> {container, checkboxes}
         self._client_data: dict = {}
-        # campaign.id -> {client_id -> ui.html element}
+        # client_id -> {campaign.id -> ui.html element}
         self._campaign_html_elements: dict = {}
 
     # -------------------------------------------------------------------------
@@ -77,16 +77,12 @@ class InventoryPanel(BasePanel):
         self.refresh_inventory_display()
 
     def update_drop(self, drop) -> None:
-        """
-        Re-render one campaign's HTML on every connected client.
-
-        _campaign_html_elements maps campaign.id -> {client_id -> ui.html}.
-        Each ui.html element knows its own client, so assigning .content pushes
-        the update to the right browser tab automatically.
-        """
+        """Re-render one campaign's HTML on every connected client."""
         html = self._render_campaign_html(drop.campaign)
-        for elem in self._campaign_html_elements.get(drop.campaign.id, {}).values():
-            elem.content = html
+        for client_elems in self._campaign_html_elements.values():
+            elem = client_elems.get(drop.campaign.id)
+            if elem is not None:
+                elem.content = html
 
     # -------------------------------------------------------------------------
     # Private — client lifecycle
@@ -100,8 +96,7 @@ class InventoryPanel(BasePanel):
 
     def _remove_client(self, client_id: str) -> None:
         self._client_data.pop(client_id, None)
-        for elem_map in self._campaign_html_elements.values():
-            elem_map.pop(client_id, None)
+        self._campaign_html_elements.pop(client_id, None)
 
     # -------------------------------------------------------------------------
     # Private — panel creation
@@ -194,8 +189,7 @@ class InventoryPanel(BasePanel):
         visible = [c for c in campaigns if self._campaign_visible(c)]
 
         # Remove stale element refs for this client before rebuilding
-        for elem_map in self._campaign_html_elements.values():
-            elem_map.pop(client_id, None)
+        self._campaign_html_elements.pop(client_id, None)
 
         container.clear()
         with container:
@@ -205,13 +199,12 @@ class InventoryPanel(BasePanel):
                 )
                 return
 
+            client_elems = self._campaign_html_elements.setdefault(client_id, {})
             for campaign in visible:
                 elem = ui.html(
                     self._render_campaign_html(campaign), sanitize=False
                 ).classes("w-full")
-                self._campaign_html_elements.setdefault(campaign.id, {})[
-                    client_id
-                ] = elem
+                client_elems[campaign.id] = elem
 
     def _on_filter_change(self, key: str, value: bool) -> None:
         self._inventory_filters[key] = value
