@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 from nicegui import ui
 
 from translate import _
+from webui.utils import for_each_client
 
 if TYPE_CHECKING:
     from webui.manager import WebUIManager
@@ -57,5 +58,4 @@ class HeaderBar:
     def update_status(self, text: str) -> None:
         """Update the status text for all connected clients.
         Called by manager.update_status() - manager owns the status text."""
-        for label in self._client_labels.values():
-            label.set_text(text)
+        for_each_client(self._client_labels, lambda label: label.set_text(text))

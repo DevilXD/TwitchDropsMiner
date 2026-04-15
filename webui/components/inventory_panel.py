@@ -12,6 +12,7 @@ from nicegui import ui
 from translate import _
 from constants import PriorityMode
 from webui.html_utils import Tag
+from webui.utils import for_each_client
 from .base_panel import BasePanel
 
 if TYPE_CHECKING:
@@ -61,8 +62,15 @@ class InventoryPanel(BasePanel):
 
     def refresh_inventory_display(self) -> None:
         """Rebuild the campaign list for all connected clients."""
+        stale_clients = []
         for client_id in list(self._client_data.keys()):
-            self._rebuild_client_container(client_id)
+            try:
+                self._rebuild_client_container(client_id)
+            except RuntimeError:
+                stale_clients.append(client_id)
+        for client_id in stale_clients:
+            self._client_data.pop(client_id, None)
+            self._campaign_html_elements.pop(client_id, None)
 
     def clear(self) -> None:
         """Clear all campaigns and rebuild the display."""
@@ -79,10 +87,14 @@ class InventoryPanel(BasePanel):
     def update_drop(self, drop) -> None:
         """Re-render one campaign's HTML on every connected client."""
         html = self._render_campaign_html(drop.campaign)
-        for client_elems in self._campaign_html_elements.values():
-            elem = client_elems.get(drop.campaign.id)
+        campaign_id = drop.campaign.id
+
+        def _update(client_elems):
+            elem = client_elems.get(campaign_id)
             if elem is not None:
                 elem.content = html
+
+        for_each_client(self._campaign_html_elements, _update)
 
     # -------------------------------------------------------------------------
     # Private — client lifecycle
@@ -209,10 +221,12 @@ class InventoryPanel(BasePanel):
     def _on_filter_change(self, key: str, value: bool) -> None:
         self._inventory_filters[key] = value
         # Push the new checkbox state to every connected client
-        for data in self._client_data.values():
+        def _update(data):
             cb = data["checkboxes"].get(key)
             if cb is not None:
                 cb.set_value(value)
+
+        for_each_client(self._client_data, _update)
         self.refresh_inventory_display()
 
     def _campaign_visible(self, campaign: "DropsCampaign") -> bool:

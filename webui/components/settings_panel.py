@@ -431,6 +431,7 @@ class SettingsPanel(BasePanel):
             if client_id == source_id:
                 continue
             if Client.instances.get(client_id) is None:
+                widget_dict.pop(client_id, None)
                 continue
             asyncio.get_event_loop().create_task(
                 self._async_set_value(Client.instances[client_id], widget, value)
@@ -441,6 +442,7 @@ class SettingsPanel(BasePanel):
         current_id = self._current_client_id()
         for client_id, priority_list in list(self._priority_lists.items()):
             if Client.instances.get(client_id) is None:
+                self._priority_lists.pop(client_id, None)
                 continue
             if client_id == current_id:
                 self._do_rebuild_priority_list(priority_list)
@@ -456,6 +458,7 @@ class SettingsPanel(BasePanel):
         current_id = self._current_client_id()
         for client_id, exclude_list in list(self._exclude_lists.items()):
             if Client.instances.get(client_id) is None:
+                self._exclude_lists.pop(client_id, None)
                 continue
             if client_id == current_id:
                 self._do_rebuild_exclude_list(exclude_list)
@@ -474,6 +477,8 @@ class SettingsPanel(BasePanel):
         all_ids = set(self._priority_inputs) | set(self._exclude_inputs)
         for client_id in list(all_ids):
             if Client.instances.get(client_id) is None:
+                self._priority_inputs.pop(client_id, None)
+                self._exclude_inputs.pop(client_id, None)
                 continue
             p_input = self._priority_inputs.get(client_id)
             e_input = self._exclude_inputs.get(client_id)

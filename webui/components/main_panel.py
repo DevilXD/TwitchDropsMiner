@@ -13,6 +13,7 @@ from nicegui import ui
 
 from translate import _
 from constants import MAX_WEBSOCKETS, WS_TOPICS_LIMIT
+from webui.utils import for_each_client
 from .base_panel import BasePanel
 
 DIGITS = ceil(log10(WS_TOPICS_LIMIT))
@@ -78,27 +79,32 @@ class MainPanel(BasePanel):
     def update_status(self, text: str) -> None:
         """Push status text to all connected clients' status cards.
         Called by manager.update_status() - manager owns the status text."""
-        for w in self._client_widgets.values():
-            if w.get("status_card") is not None:
-                w["status_card"].set_text(text)
+
+        def _update(w):
+            status_card = w.get("status_card")
+            if status_card is not None:
+                status_card.set_text(text)
+
+        for_each_client(self._client_widgets, _update)
 
     def rebuild_channel_table(self) -> None:
         """Rebuild channel table rows on all connected clients."""
-        for w in self._client_widgets.values():
-            self._do_rebuild_channel_table(w)
+        for_each_client(self._client_widgets, self._do_rebuild_channel_table)
 
     def rebuild_ws(self) -> None:
         """Rebuild websocket status rows on all connected clients."""
-        for w in self._client_widgets.values():
-            self._do_rebuild_ws(w)
+        for_each_client(self._client_widgets, self._do_rebuild_ws)
 
     def push_console(self, lines: list) -> None:
         """Push new log lines to all connected clients' consoles."""
-        for w in self._client_widgets.values():
+
+        def _push(w):
             console = w.get("console")
             if console is not None:
                 for line in lines:
                     console.push(line)
+
+        for_each_client(self._client_widgets, _push)
 
     def clear_drop(self) -> None:
         """Clear the drop display on all connected clients."""
@@ -106,8 +112,7 @@ class MainPanel(BasePanel):
         self._countdown_active = False
         self._countdown_start_time = None
         self._progress_seconds = 0
-        for w in self._client_widgets.values():
-            self._do_clear_drop(w)
+        for_each_client(self._client_widgets, self._do_clear_drop)
 
     def display_drop(
         self, drop, *, countdown: bool = True, subone: bool = False
@@ -130,13 +135,17 @@ class MainPanel(BasePanel):
             self._countdown_active = False
             self._countdown_start_time = None
             self._progress_seconds = 60
-        for w in self._client_widgets.values():
+
+        def _display_and_tick(w):
             self._do_display_drop(w, drop)
             self._do_tick_progress(w)
 
+        for_each_client(self._client_widgets, _display_and_tick)
+
     def clear_selection(self) -> None:
         """Clear channel table selection and disable the Switch button on all clients."""
-        for w in self._client_widgets.values():
+
+        def _clear(w):
             table = w.get("channels_table")
             if table is not None:
                 table.selected.clear()
@@ -144,6 +153,8 @@ class MainPanel(BasePanel):
             btn = w.get("channel_switch_btn")
             if btn is not None:
                 btn.props("disabled")
+
+        for_each_client(self._client_widgets, _clear)
 
     def tick(self, client_id: str) -> None:
         """Per-client 1-second timer tick — updates only this client's labels."""
@@ -467,49 +478,43 @@ class MainPanel(BasePanel):
         table.update()
 
     def _do_display_drop(self, widgets: dict, drop) -> None:
-        try:
-            campaign = drop.campaign
-            if widgets.get("campaign_game_label") is not None:
-                widgets["campaign_game_label"].set_text(campaign.game.name)
-            if widgets.get("campaign_name_label") is not None:
-                widgets["campaign_name_label"].set_text(campaign.name)
-            if widgets.get("campaign_progress_bar") is not None:
-                widgets["campaign_progress_bar"].set_value(campaign.progress)
-            if widgets.get("campaign_percentage_label") is not None:
-                widgets["campaign_percentage_label"].set_text(
-                    f"{campaign.progress:6.1%} ({campaign.claimed_drops}/{campaign.total_drops})"
-                )
-            if widgets.get("drop_rewards_label") is not None:
-                widgets["drop_rewards_label"].set_text(drop.rewards_text())
-            if widgets.get("drop_progress_bar") is not None:
-                widgets["drop_progress_bar"].set_value(drop.progress)
-            if widgets.get("drop_percentage_label") is not None:
-                widgets["drop_percentage_label"].set_text(f"{drop.progress:6.1%}")
-        except Exception as e:
-            print(f"Failed to display drop: {e}")
+        campaign = drop.campaign
+        if widgets.get("campaign_game_label") is not None:
+            widgets["campaign_game_label"].set_text(campaign.game.name)
+        if widgets.get("campaign_name_label") is not None:
+            widgets["campaign_name_label"].set_text(campaign.name)
+        if widgets.get("campaign_progress_bar") is not None:
+            widgets["campaign_progress_bar"].set_value(campaign.progress)
+        if widgets.get("campaign_percentage_label") is not None:
+            widgets["campaign_percentage_label"].set_text(
+                f"{campaign.progress:6.1%} ({campaign.claimed_drops}/{campaign.total_drops})"
+            )
+        if widgets.get("drop_rewards_label") is not None:
+            widgets["drop_rewards_label"].set_text(drop.rewards_text())
+        if widgets.get("drop_progress_bar") is not None:
+            widgets["drop_progress_bar"].set_value(drop.progress)
+        if widgets.get("drop_percentage_label") is not None:
+            widgets["drop_percentage_label"].set_text(f"{drop.progress:6.1%}")
 
     def _do_clear_drop(self, widgets: dict) -> None:
-        try:
-            if widgets.get("drop_rewards_label") is not None:
-                widgets["drop_rewards_label"].set_text("...")
-            if widgets.get("drop_progress_bar") is not None:
-                widgets["drop_progress_bar"].set_value(0)
-            if widgets.get("drop_percentage_label") is not None:
-                widgets["drop_percentage_label"].set_text("-%")
-            if widgets.get("drop_remaining_label") is not None:
-                widgets["drop_remaining_label"].set_text("")
-            if widgets.get("campaign_name_label") is not None:
-                widgets["campaign_name_label"].set_text("...")
-            if widgets.get("campaign_game_label") is not None:
-                widgets["campaign_game_label"].set_text("...")
-            if widgets.get("campaign_progress_bar") is not None:
-                widgets["campaign_progress_bar"].set_value(0)
-            if widgets.get("campaign_percentage_label") is not None:
-                widgets["campaign_percentage_label"].set_text("-%")
-            if widgets.get("campaign_remaining_label") is not None:
-                widgets["campaign_remaining_label"].set_text("")
-        except Exception as e:
-            print(f"Failed to clear drop: {e}")
+        if widgets.get("drop_rewards_label") is not None:
+            widgets["drop_rewards_label"].set_text("...")
+        if widgets.get("drop_progress_bar") is not None:
+            widgets["drop_progress_bar"].set_value(0)
+        if widgets.get("drop_percentage_label") is not None:
+            widgets["drop_percentage_label"].set_text("-%")
+        if widgets.get("drop_remaining_label") is not None:
+            widgets["drop_remaining_label"].set_text("")
+        if widgets.get("campaign_name_label") is not None:
+            widgets["campaign_name_label"].set_text("...")
+        if widgets.get("campaign_game_label") is not None:
+            widgets["campaign_game_label"].set_text("...")
+        if widgets.get("campaign_progress_bar") is not None:
+            widgets["campaign_progress_bar"].set_value(0)
+        if widgets.get("campaign_percentage_label") is not None:
+            widgets["campaign_percentage_label"].set_text("-%")
+        if widgets.get("campaign_remaining_label") is not None:
+            widgets["campaign_remaining_label"].set_text("")
 
     def _do_tick_progress(self, widgets: dict) -> None:
         """Update remaining-time labels for one client using real elapsed time."""
@@ -522,32 +527,26 @@ class MainPanel(BasePanel):
         secs = self._progress_seconds % 60
 
         if widgets.get("drop_remaining_label") is not None:
-            try:
-                drop_mins = drop.remaining_minutes
-                if self._progress_seconds < 60 and drop_mins > 0:
-                    drop_mins -= 1
-                h, m = divmod(drop_mins, 60)
-                widgets["drop_remaining_label"].set_text(
-                    _("gui", "progress", "remaining").format(
-                        time=f"{h:>2}:{m:02}:{secs:02}"
-                    )
+            drop_mins = drop.remaining_minutes
+            if self._progress_seconds < 60 and drop_mins > 0:
+                drop_mins -= 1
+            h, m = divmod(drop_mins, 60)
+            widgets["drop_remaining_label"].set_text(
+                _("gui", "progress", "remaining").format(
+                    time=f"{h:>2}:{m:02}:{secs:02}"
                 )
-            except Exception:
-                pass
+            )
 
         if widgets.get("campaign_remaining_label") is not None:
-            try:
-                camp_mins = drop.campaign.remaining_minutes
-                if self._progress_seconds < 60 and camp_mins > 0:
-                    camp_mins -= 1
-                h, m = divmod(camp_mins, 60)
-                widgets["campaign_remaining_label"].set_text(
-                    _("gui", "progress", "remaining").format(
-                        time=f"{h:>2}:{m:02}:{secs:02}"
-                    )
+            camp_mins = drop.campaign.remaining_minutes
+            if self._progress_seconds < 60 and camp_mins > 0:
+                camp_mins -= 1
+            h, m = divmod(camp_mins, 60)
+            widgets["campaign_remaining_label"].set_text(
+                _("gui", "progress", "remaining").format(
+                    time=f"{h:>2}:{m:02}:{secs:02}"
                 )
-            except Exception:
-                pass
+            )
 
     # -------------------------------------------------------------------------
     # Private — event handlers
