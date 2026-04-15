@@ -8,6 +8,8 @@ from translate import _
 
 from nicegui import ui
 
+from webui.html_utils import popup_js
+
 if TYPE_CHECKING:
     from yarl import URL
     from webui.manager import WebUIManager
@@ -57,10 +59,8 @@ class LoginFormAdapter:
     async def open_login_popup(self) -> None:
         """Open the Twitch login URL in a small popup window."""
         if self._page_url is not None:
-            await ui.run_javascript(
-                f'window.open("{self._page_url}", "twitch_login",'
-                f' "width=600,height=800,toolbar=no,menubar=no,location=yes,resizable=yes"); null'
-            )
+            js = popup_js(str(self._page_url), "twitch_login")
+            await ui.run_javascript(js)
         self._confirm.set()
 
     def update(self, status: str, user_id: int | None):

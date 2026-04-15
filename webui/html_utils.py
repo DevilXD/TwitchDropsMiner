@@ -8,6 +8,7 @@ to create per-item, e.g. the inventory panel).
 from __future__ import annotations
 
 import html as _html
+import json
 
 
 def e(text) -> str:
@@ -21,16 +22,16 @@ def ea(text) -> str:
 
 
 def notification_js(title: str, message: str) -> str:
-    js_title = title.replace("'", "\\'")
-    js_message = message.replace("'", "\\'")
+    js_title = json.dumps(title)
+    js_message = json.dumps(message)
     return f"""
 if ("Notification" in window) {{
     if (Notification.permission === "granted") {{
-        new Notification('{js_title}', {{ body: '{js_message}', icon: "/icons/pickaxe.ico" }});
+        new Notification({js_title}, {{ body: {js_message}, icon: "/icons/pickaxe.ico" }});
     }} else if (Notification.permission !== "denied") {{
         Notification.requestPermission().then(function (permission) {{
             if (permission === "granted") {{
-                new Notification('{js_title}', {{ body: '{js_message}', icon: "/icons/pickaxe.ico" }});
+                new Notification({js_title}, {{ body: {js_message}, icon: "/icons/pickaxe.ico" }});
             }}
         }});
     }}
@@ -50,6 +51,20 @@ def favicon_js(icon_name: str) -> str:
     link.href = '/icons/{icon_name}.ico';
 }})();
 """
+
+
+def popup_js(url: str, name: str, width: int = 600, height: int = 800) -> str:
+    """Generate JavaScript to open a popup window with the given URL.
+
+    Uses JSON serialization to safely escape the URL and window name.
+    """
+    js_url = json.dumps(url)
+    js_name = json.dumps(name)
+    return (
+        f"window.open({js_url}, {js_name}, "
+        f'"width={width},height={height},toolbar=no,menubar=no,location=yes,resizable=yes"); '
+        f"null"
+    )
 
 
 class Tag:
