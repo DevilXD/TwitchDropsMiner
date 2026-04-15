@@ -3,7 +3,7 @@ name: Merge Upstream
 on:
   schedule:
     # Run every 6 hours
-    - cron: '0 */6 * * *'
+    - cron: "0 */6 * * *"
   workflow_dispatch: # Allow manual triggering
 
 jobs:
@@ -11,25 +11,25 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    
+
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           token: ${{ secrets.PAT_TOKEN }}
           fetch-depth: 0
           ref: webui
-      
+
       - name: Configure Git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-      
+
       - name: Add upstream remote
         run: |
           git remote add upstream https://github.com/DevilXD/TwitchDropsMiner.git
           git fetch upstream
-      
+
       - name: Check for changes
         id: check-changes
         run: |
@@ -37,18 +37,18 @@ jobs:
           BEHIND=$(git rev-list --count HEAD..upstream/master)
           echo "behind=$BEHIND" >> $GITHUB_OUTPUT
           echo "Commits behind upstream: $BEHIND"
-      
+
       - name: Merge upstream changes
         if: steps.check-changes.outputs.behind > 0
         run: |
           echo "Merging ${{ steps.check-changes.outputs.behind }} new commits from upstream"
           git merge upstream/master --no-edit
-      
+
       - name: Push changes
         if: steps.check-changes.outputs.behind > 0
         run: |
           git push origin webui
-      
+
       - name: Create summary
         run: |
           if [ "${{ steps.check-changes.outputs.behind }}" -gt 0 ]; then
