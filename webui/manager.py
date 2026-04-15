@@ -201,8 +201,9 @@ class WebUIManager:
             with client:
                 ui.dark_mode(enabled)
 
+        loop = asyncio.get_running_loop()
         for client in list(Client.instances.values()):
-            asyncio.get_event_loop().create_task(_apply(client))
+            loop.create_task(_apply(client))
 
     @property
     def running(self) -> bool:
@@ -269,14 +270,17 @@ class WebUIManager:
         """Run coro, but raise ExitRequest instead if close() is called first."""
         from exceptions import ExitRequest
 
-        # ensure_future is required in Python 3.11+ to wrap plain awaitables for asyncio.wait.
         tasks = [
-            asyncio.ensure_future(coro),
-            asyncio.ensure_future(self._close_requested.wait()),
+            asyncio.create_task(coro),
+            asyncio.create_task(self._close_requested.wait()),
         ]
         done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
         for task in pending:
             task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
         if self._close_requested.is_set():
             raise ExitRequest()
         return await next(iter(done))
