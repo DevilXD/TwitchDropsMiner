@@ -171,11 +171,17 @@ else:
     exe_args = (a.datas, a.binaries)
     collect_args = tuple()
 
+# Force unbuffered stdout/stderr (-u), equivalent to PYTHONUNBUFFERED=1.
+# PyInstaller bundles ignore environment variables like PYTHONUNBUFFERED,
+# so this is the only reliable way to make --stdlog work correctly.
+options = [('u', None, 'OPTION')]
+
 pyz = PYZ(a.pure)
 try:
     exe = EXE(
         pyz,
         a.scripts,
+        options,
         *exe_args,
         upx=upx,
         debug=False,
