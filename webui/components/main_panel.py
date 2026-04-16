@@ -1,7 +1,7 @@
 # Main panel — mirrors gui.py's main tab exactly.
 # Shared state (channel map, drop, ws data, login state) lives on this object.
-# Bound attrs propagate to all clients automatically; @ui.refreshable methods
-# rebuild structural content across all registered client call sites at once.
+# Bound attrs propagate to all clients automatically. The channel table uses
+# per-client ui.table instances updated via .rows/.selected + .update().
 
 from __future__ import annotations
 
@@ -41,6 +41,8 @@ class MainPanel(BasePanel):
         self._channel_map: dict = {}  # iid -> Channel
         self._watching_channel_iid = None
         self._selected_channel_iid = None
+        self._channel_rows: list[dict] = []  # shared row state for all clients
+        self._channel_tables: list = []  # one ui.table per connected client
 
         # Drop / campaign state - Not directly bound to UI
         self._current_drop = None
@@ -68,10 +70,6 @@ class MainPanel(BasePanel):
     def build(self) -> None:
         """Build the main panel UI for the current NiceGUI client."""
         self._create_panel()
-
-    def rebuild_channel_table(self) -> None:
-        """Rebuild channel table rows on all connected clients."""
-        self._channel_table_content.refresh()
 
     def rebuild_ws(self) -> None:
         """Rebuild websocket status rows on all connected clients."""
@@ -112,18 +110,55 @@ class MainPanel(BasePanel):
             self._countdown_start_time = None
             self._progress_seconds = 60
         self._do_display_drop(drop)
-        self._do_tick_progress()
+        self._tick()
+
+    def clear_channels(self) -> None:
+        """Clear all channels and rebuild the table."""
+        self._channel_map.clear()
+        self._watching_channel_iid = None
+        self._selected_channel_iid = None
+        self._rebuild_channel_table()
+
+    def display_channel(self, channel, *, add: bool = False) -> None:
+        """Add or update a channel entry, then rebuild the table."""
+        iid = channel.iid
+        if not add and iid not in self._channel_map:
+            return
+        self._channel_map[iid] = channel
+        self._rebuild_channel_table()
+
+    def remove_channel(self, channel) -> None:
+        """Remove a channel entry, then rebuild the table."""
+        iid = channel.iid
+        self._channel_map.pop(iid, None)
+        if self._watching_channel_iid == iid:
+            self._watching_channel_iid = None
+        if self._selected_channel_iid == iid:
+            self._selected_channel_iid = None
+        self._rebuild_channel_table()
+
+    def set_watching_channel(self, channel) -> None:
+        """Mark a channel as currently being watched, then rebuild the table."""
+        self._watching_channel_iid = channel.iid
+        self._rebuild_channel_table()
+
+    def clear_watching_channel(self) -> None:
+        """Clear the watching marker, then rebuild the table."""
+        self._watching_channel_iid = None
+        self._rebuild_channel_table()
+
+    def get_selected_channel(self):
+        """Return the currently selected Channel, or None."""
+        iid = self._selected_channel_iid
+        if iid is None:
+            return None
+        return self._channel_map.get(iid)
 
     def clear_selection(self) -> None:
         """Clear channel table selection on all clients."""
-        needs_refresh = self._selected_channel_iid is not None
         self._selected_channel_iid = None
-        if needs_refresh:
-            self._channel_table_content.refresh()
-
-    def tick(self) -> None:
-        """1-second timer tick — updates bound drop/campaign attrs for all clients."""
-        self._do_tick_progress()
+        for table in self._channel_tables:
+            table.selected = []
 
     # -------------------------------------------------------------------------
     # Private — UI creation
@@ -268,9 +303,9 @@ class MainPanel(BasePanel):
                     ).props("dense").classes("mb-2 text-xs").bind_enabled_from(
                         self, "_selected_channel_iid"
                     )
-                    self._channel_table_content()
+                    self._create_channel_table()
 
-        timer = ui.timer(1.0, self.tick)
+        timer = ui.timer(1.0, self._tick)
         ui.context.client.on_disconnect(lambda: timer.cancel())
 
     # -------------------------------------------------------------------------
@@ -302,9 +337,46 @@ class MainPanel(BasePanel):
         for line in self._console_log:
             log.push(line)
 
-    @ui.refreshable
-    def _channel_table_content(self) -> None:
-        """Refreshable content for the channel list table."""
+    def _rebuild_channel_table(self) -> None:
+        """Push updated rows and selection to all connected client tables."""
+        self._build_channel_rows()
+        selected = [
+            r for r in self._channel_rows if r["iid"] == self._selected_channel_iid
+        ]
+        for table in self._channel_tables:
+            table.rows = self._channel_rows
+            table.selected = selected
+            table.update()
+
+    def _build_channel_rows(self) -> None:
+        """Rebuild _channel_rows in-place from _channel_map."""
+        self._channel_rows.clear()
+        for iid, channel in self._channel_map.items():
+            if channel.online:
+                status = _("gui", "channels", "online")
+            elif channel.pending_online:
+                status = _("gui", "channels", "pending")
+            else:
+                status = _("gui", "channels", "offline")
+            name = channel.name
+            if iid == self._watching_channel_iid:
+                name = "▶ " + name
+            self._channel_rows.append(
+                {
+                    "iid": iid,
+                    "channel": name,
+                    "status": status,
+                    "game": str(channel.game or ""),
+                    "drops": "✔" if channel.drops_enabled else "❌",
+                    "viewers": (
+                        str(channel.viewers) if channel.viewers is not None else ""
+                    ),
+                    "acl_base": "✔" if channel.acl_based else "❌",
+                }
+            )
+
+    def _create_channel_table(self) -> None:
+        """Create the channel table for this client and register it for live updates."""
         columns = [
             {
                 "name": "channel",
@@ -346,34 +418,10 @@ class MainPanel(BasePanel):
                 "align": "center",
             },
         ]
-        rows = []
-        for iid, channel in self._channel_map.items():
-            if channel.online:
-                status = _("gui", "channels", "online")
-            elif channel.pending_online:
-                status = _("gui", "channels", "pending")
-            else:
-                status = _("gui", "channels", "offline")
-            name = channel.name
-            if iid == self._watching_channel_iid:
-                name = "▶ " + name
-            rows.append(
-                {
-                    "iid": iid,
-                    "channel": name,
-                    "status": status,
-                    "game": str(channel.game or ""),
-                    "drops": "✔" if channel.drops_enabled else "❌",
-                    "viewers": (
-                        str(channel.viewers) if channel.viewers is not None else ""
-                    ),
-                    "acl_base": "✔" if channel.acl_based else "❌",
-                }
-            )
         table = (
             ui.table(
                 columns=columns,
-                rows=rows,
+                rows=self._channel_rows,
                 row_key="iid",
                 selection="single",
                 on_select=self._on_table_selection,
@@ -382,7 +430,17 @@ class MainPanel(BasePanel):
             .props("dense flat virtual-scroll")
         )
         if self._selected_channel_iid is not None:
-            table.selected = [r for r in rows if r["iid"] == self._selected_channel_iid]
+            table.selected = [
+                r for r in self._channel_rows if r["iid"] == self._selected_channel_iid
+            ]
+        self._channel_tables.append(table)
+        ui.context.client.on_disconnect(
+            lambda: (
+                self._channel_tables.remove(table)
+                if table in self._channel_tables
+                else None
+            )
+        )
 
     def _do_display_drop(self, drop) -> None:
         """Update drop/campaign display attrs — bindings propagate to all clients."""
@@ -407,7 +465,7 @@ class MainPanel(BasePanel):
         self._drop_percentage_text = "-%"
         self._drop_remaining_text = ""
 
-    def _do_tick_progress(self) -> None:
+    def _tick(self) -> None:
         """Update remaining-time attrs — bindings propagate to all clients."""
         drop = self._current_drop
         if drop is None:
@@ -444,16 +502,11 @@ class MainPanel(BasePanel):
             print(f"Channel switch error: {e}")
 
     def _on_table_selection(self, e) -> None:
-        """Handle row selection: update shared state only.
-        The Switch button is bound to _selected_channel_iid so it updates on all
-        clients automatically. Table highlight syncs on the next data-driven rebuild."""
-        new_selected_channel_iid = (
-            e.sender.selected[0].get("iid") if e.sender.selected else None
-        )
-        needs_refresh = new_selected_channel_iid != self._selected_channel_iid
-        self._selected_channel_iid = new_selected_channel_iid
-        if needs_refresh:
-            self._channel_table_content.refresh()
+        """Handle row selection: sync selection to all client tables."""
+        selected = e.sender.selected
+        self._selected_channel_iid = selected[0].get("iid") if selected else None
+        for table in self._channel_tables:
+            table.selected = selected
 
     def _on_logout(self) -> None:
         try:
