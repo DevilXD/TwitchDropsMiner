@@ -1,7 +1,7 @@
 # Main panel — mirrors gui.py's main tab exactly.
-# All widget refs are stored per-client in _client_widgets so multiple browser
-# tabs stay in sync. Shared state (channel map, drop, ws data, login state)
-# lives on WebUIManager and is read by the per-widget helpers here.
+# Shared state (channel map, drop, ws data, login state) lives on this object.
+# Bound attrs propagate to all clients automatically; @ui.refreshable methods
+# rebuild structural content across all registered client call sites at once.
 
 from __future__ import annotations
 
@@ -12,8 +12,7 @@ from typing import TYPE_CHECKING
 from nicegui import ui
 
 from translate import _
-from constants import MAX_WEBSOCKETS, WS_TOPICS_LIMIT
-from webui.utils import for_each_client
+from constants import MAX_WEBSOCKETS, WS_TOPICS_LIMIT, COOKIES_PATH, State
 from .base_panel import BasePanel
 
 DIGITS = ceil(log10(WS_TOPICS_LIMIT))
@@ -24,21 +23,17 @@ if TYPE_CHECKING:
 
 class MainPanel(BasePanel):
     """
-    Owns all widget references and mutable state for the main tab.
+    Owns all mutable state for the main tab.
 
     One instance lives on WebUIManager. Each browser client calls build(),
-    which creates that client's widgets and stores refs in _client_widgets
-    keyed by client ID. Shared state (channel map, drop progress, ws data,
-    login state) lives on WebUIManager and is read by the helpers here.
+    which registers that client's call sites for all @ui.refreshable methods.
+    Shared state lives directly on this object; bound attrs propagate to all
+    clients automatically, and .refresh() rebuilds structural content for all.
     """
 
     def __init__(self, manager: "WebUIManager") -> None:
         super().__init__(manager)
-        # Per-client widget refs (keyed by NiceGUI client ID)
-        self._client_widgets: dict = {}
-
-        # Shared state — persisted so late-joining clients start in sync
-        # Status text is owned by manager._status_text (single source of truth)
+        # Shared state
         self._ws_data: dict = {}  # idx -> {status, topics}
         self._login_status_text: str = f"{_('gui', 'login', 'logged_out')}\n-"
         self._login_btn_visible: bool = False
@@ -46,10 +41,25 @@ class MainPanel(BasePanel):
         self._channel_map: dict = {}  # iid -> Channel
         self._watching_channel_iid = None
         self._selected_channel_iid = None
+
+        # Drop / campaign state - Not directly bound to UI
         self._current_drop = None
         self._countdown_active: bool = False
         self._progress_seconds: int = 0
         self._countdown_start_time: float | None = None
+
+        # Drop / campaign display state - bound to UI labels and bars
+        self._campaign_game_text: str = "..."
+        self._campaign_name_text: str = "..."
+        self._campaign_progress_value: float = 0.0
+        self._campaign_percentage_text: str = "-%"
+        self._campaign_remaining_text: str = ""
+        self._drop_rewards_text: str = "..."
+        self._drop_progress_value: float = 0.0
+        self._drop_percentage_text: str = "-%"
+        self._drop_remaining_text: str = ""
+
+        self._console_log: list[str] = []
 
     # -------------------------------------------------------------------------
     # Public API
@@ -57,67 +67,33 @@ class MainPanel(BasePanel):
 
     def build(self) -> None:
         """Build the main panel UI for the current NiceGUI client."""
-        client_id = ui.context.client.id
-        widgets: dict = {}
-        self._client_widgets[client_id] = widgets
-        ui.context.client.on_disconnect(
-            lambda: self._client_widgets.pop(client_id, None)
-        )
-        self._create_panel(client_id, widgets)
-        self._flush_state(widgets)
-
-    def flush_login(self) -> None:
-        """Push current login state to all connected clients."""
-        for w in self._client_widgets.values():
-            if w.get("login_status_label") is not None:
-                w["login_status_label"].set_text(self._login_status_text)
-            if w.get("login_button") is not None:
-                w["login_button"].set_visibility(self._login_btn_visible)
-            if w.get("logout_button") is not None:
-                w["logout_button"].set_visibility(self._logout_btn_visible)
-
-    def update_status(self, text: str) -> None:
-        """Push status text to all connected clients' status cards.
-        Called by manager.update_status() - manager owns the status text."""
-
-        def _update(w):
-            status_card = w.get("status_card")
-            if status_card is not None:
-                status_card.set_text(text)
-
-        for_each_client(self._client_widgets, _update)
+        self._create_panel()
 
     def rebuild_channel_table(self) -> None:
         """Rebuild channel table rows on all connected clients."""
-        for_each_client(self._client_widgets, self._do_rebuild_channel_table)
+        self._channel_table_content.refresh()
 
     def rebuild_ws(self) -> None:
         """Rebuild websocket status rows on all connected clients."""
-        for_each_client(self._client_widgets, self._do_rebuild_ws)
+        self._ws_status_content.refresh()
 
     def push_console(self, lines: list) -> None:
-        """Push new log lines to all connected clients' consoles."""
-
-        def _push(w):
-            console = w.get("console")
-            if console is not None:
-                for line in lines:
-                    console.push(line)
-
-        for_each_client(self._client_widgets, _push)
+        """Refresh the console display on all connected clients."""
+        self._console_log.extend(lines)
+        self._console_content.refresh()
 
     def clear_drop(self) -> None:
-        """Clear the drop display on all connected clients."""
+        """Clear the drop display — bound attrs propagate to all connected clients."""
         self._current_drop = None
         self._countdown_active = False
         self._countdown_start_time = None
         self._progress_seconds = 0
-        for_each_client(self._client_widgets, self._do_clear_drop)
+        self._do_clear_drop()
 
     def display_drop(
         self, drop, *, countdown: bool = True, subone: bool = False
     ) -> None:
-        """Display current drop/campaign progress on all connected clients.
+        """Display current drop/campaign progress — bound attrs propagate to all clients.
         Mirrors CampaignProgress.display() exactly."""
         if drop is None:
             self.clear_drop()
@@ -135,39 +111,26 @@ class MainPanel(BasePanel):
             self._countdown_active = False
             self._countdown_start_time = None
             self._progress_seconds = 60
-
-        def _display_and_tick(w):
-            self._do_display_drop(w, drop)
-            self._do_tick_progress(w)
-
-        for_each_client(self._client_widgets, _display_and_tick)
+        self._do_display_drop(drop)
+        self._do_tick_progress()
 
     def clear_selection(self) -> None:
-        """Clear channel table selection and disable the Switch button on all clients."""
+        """Clear channel table selection on all clients."""
+        needs_refresh = self._selected_channel_iid is not None
+        self._selected_channel_iid = None
+        if needs_refresh:
+            self._channel_table_content.refresh()
 
-        def _clear(w):
-            table = w.get("channels_table")
-            if table is not None:
-                table.selected.clear()
-                table.update()
-            btn = w.get("channel_switch_btn")
-            if btn is not None:
-                btn.props("disabled")
-
-        for_each_client(self._client_widgets, _clear)
-
-    def tick(self, client_id: str) -> None:
-        """Per-client 1-second timer tick — updates only this client's labels."""
-        w = self._client_widgets.get(client_id)
-        if w is not None:
-            self._do_tick_progress(w)
+    def tick(self) -> None:
+        """1-second timer tick — updates bound drop/campaign attrs for all clients."""
+        self._do_tick_progress()
 
     # -------------------------------------------------------------------------
     # Private — UI creation
     # -------------------------------------------------------------------------
 
-    def _create_panel(self, client_id: str, widgets: dict) -> None:
-        """Build all widgets for one client and store refs in widgets."""
+    def _create_panel(self) -> None:
+        """Build all widgets for this client."""
         manager = self._manager
 
         with ui.column().classes("w-full gap-2"):
@@ -184,9 +147,9 @@ class MainPanel(BasePanel):
                             ui.label(_("gui", "status", "name") + ":").classes(
                                 "font-bold text-sm"
                             )
-                            widgets["status_card"] = ui.label(
-                                "Initializing..."
-                            ).classes("text-sm flex-1")
+                            ui.label().classes("text-sm flex-1").bind_text_from(
+                                manager, "_status_text"
+                            )
 
                     # WebSocket Status + Login side by side
                     with ui.row().classes("w-full gap-2 items-stretch flex-wrap"):
@@ -199,8 +162,8 @@ class MainPanel(BasePanel):
                             ui.label(_("gui", "websocket", "name")).classes(
                                 "font-bold text-sm mb-1"
                             )
-                            widgets["ws_container"] = ui.column().classes("gap-0")
-                            self._do_rebuild_ws(widgets)
+                            with ui.column().classes("gap-0"):
+                                self._ws_status_content()
 
                         # Login Form — matches LoginForm class
                         with (
@@ -215,27 +178,27 @@ class MainPanel(BasePanel):
                                 ui.label(_("gui", "login", "labels")).classes(
                                     "text-xs whitespace-pre leading-relaxed"
                                 )
-                                widgets["login_status_label"] = ui.label(
-                                    f"{_('gui', 'login', 'logged_out')}\n-"
-                                ).classes("text-xs whitespace-pre leading-relaxed")
-                            widgets["login_button"] = (
+                                ui.label().classes(
+                                    "text-xs whitespace-pre leading-relaxed"
+                                ).bind_text_from(self, "_login_status_text")
+                            (
                                 ui.button(
                                     _("gui", "login", "button"),
                                     on_click=manager.login.open_login_popup,
                                 )
                                 .props("dense")
                                 .classes("text-xs")
+                                .bind_visibility_from(self, "_login_btn_visible")
                             )
-                            widgets["login_button"].set_visibility(False)
-                            widgets["logout_button"] = (
+                            (
                                 ui.button(
                                     "Logout",
                                     on_click=lambda: self._on_logout(),
                                 )
                                 .props("dense")
                                 .classes("text-xs")
+                                .bind_visibility_from(self, "_logout_btn_visible")
                             )
-                            widgets["logout_button"].set_visibility(False)
 
                     # Campaign Progress — matches CampaignProgress class
                     with ui.card().props("flat bordered").classes("w-full gap-1"):
@@ -247,48 +210,46 @@ class MainPanel(BasePanel):
                             ui.label(_("gui", "progress", "campaign")).classes(
                                 "font-bold"
                             )
-                            widgets["campaign_game_label"] = ui.label("...")
-                            widgets["campaign_name_label"] = ui.label("...")
+                            ui.label().bind_text_from(self, "_campaign_game_text")
+                            ui.label().bind_text_from(self, "_campaign_name_text")
                         ui.label(_("gui", "progress", "campaign_progress")).classes(
                             "text-xs font-bold"
                         )
                         with ui.row().classes("w-full gap-2 items-center text-xs"):
-                            widgets["campaign_percentage_label"] = ui.label(
-                                "-%"
-                            ).classes("w-24")
-                            widgets["campaign_remaining_label"] = ui.label("").classes(
-                                "flex-1"
+                            ui.label().classes("w-24").bind_text_from(
+                                self, "_campaign_percentage_text"
                             )
-                        widgets["campaign_progress_bar"] = ui.linear_progress(
-                            value=0, show_value=False
-                        ).classes("w-full h-4")
+                            ui.label().classes("flex-1").bind_text_from(
+                                self, "_campaign_remaining_text"
+                            )
+                        ui.linear_progress(value=0, show_value=False).classes(
+                            "w-full h-4"
+                        ).bind_value_from(self, "_campaign_progress_value")
                         ui.separator().classes("my-1")
                         ui.label(_("gui", "progress", "drop")).classes(
                             "text-xs font-bold"
                         )
-                        widgets["drop_rewards_label"] = ui.label("...").classes(
-                            "text-xs"
+                        ui.label().classes("text-xs").bind_text_from(
+                            self, "_drop_rewards_text"
                         )
                         ui.label(_("gui", "progress", "drop_progress")).classes(
                             "text-xs font-bold"
                         )
                         with ui.row().classes("w-full gap-2 items-center text-xs"):
-                            widgets["drop_percentage_label"] = ui.label("-%").classes(
-                                "w-24"
+                            ui.label().classes("w-24").bind_text_from(
+                                self, "_drop_percentage_text"
                             )
-                            widgets["drop_remaining_label"] = ui.label("").classes(
-                                "flex-1"
+                            ui.label().classes("flex-1").bind_text_from(
+                                self, "_drop_remaining_text"
                             )
-                        widgets["drop_progress_bar"] = ui.linear_progress(
-                            value=0, show_value=False
-                        ).classes("w-full h-4")
+                        ui.linear_progress(value=0, show_value=False).classes(
+                            "w-full h-4"
+                        ).bind_value_from(self, "_drop_progress_value")
 
                     # Console Output — matches ConsoleOutput class
                     with ui.card().props("flat bordered").classes("w-full gap-1"):
                         ui.label(_("gui", "output")).classes("font-bold text-sm mb-1")
-                        widgets["console"] = ui.log(max_lines=200).classes(
-                            "h-64 w-full font-mono text-xs"
-                        )
+                        self._console_content()
 
                 # Right side: Channel List — matches ChannelList class
                 with (
@@ -301,152 +262,90 @@ class MainPanel(BasePanel):
                     ui.label(_("gui", "channels", "name")).classes(
                         "font-bold text-sm mb-1"
                     )
-                    widgets["channel_switch_btn"] = (
-                        ui.button(
-                            _("gui", "channels", "switch"),
-                            on_click=lambda: self._on_channel_switch(),
-                        )
-                        .props("disabled dense")
-                        .classes("mb-2 text-xs")
+                    ui.button(
+                        _("gui", "channels", "switch"),
+                        on_click=lambda: self._on_channel_switch(),
+                    ).props("dense").classes("mb-2 text-xs").bind_enabled_from(
+                        self, "_selected_channel_iid"
                     )
+                    self._channel_table_content()
 
-                    columns = [
-                        {
-                            "name": "channel",
-                            "label": _("gui", "channels", "headings", "channel"),
-                            "field": "channel",
-                            "align": "left",
-                            "sortable": True,
-                        },
-                        {
-                            "name": "status",
-                            "label": _("gui", "channels", "headings", "status"),
-                            "field": "status",
-                            "align": "left",
-                        },
-                        {
-                            "name": "game",
-                            "label": _("gui", "channels", "headings", "game"),
-                            "field": "game",
-                            "align": "left",
-                            "sortable": True,
-                        },
-                        {
-                            "name": "drops",
-                            "label": "🎁",
-                            "field": "drops",
-                            "align": "center",
-                        },
-                        {
-                            "name": "viewers",
-                            "label": _("gui", "channels", "headings", "viewers"),
-                            "field": "viewers",
-                            "align": "right",
-                            "sortable": True,
-                        },
-                        {
-                            "name": "acl_base",
-                            "label": "📋",
-                            "field": "acl_base",
-                            "align": "center",
-                        },
-                    ]
-                    table = (
-                        ui.table(
-                            columns=columns,
-                            rows=[],
-                            row_key="iid",
-                            selection="single",
-                        )
-                        .classes(
-                            "w-full text-xs flex-1 overflow-y-auto min-h-0 max-h-full"
-                        )
-                        .props("dense flat virtual-scroll")
-                    )
-                    widgets["channels_table"] = table
-                    table.on(
-                        "selection",
-                        lambda e, cid=client_id: self._on_table_selection(cid, e),
-                    )
-
-        timer = ui.timer(1.0, lambda: self.tick(client_id))
+        timer = ui.timer(1.0, self.tick)
         ui.context.client.on_disconnect(lambda: timer.cancel())
 
     # -------------------------------------------------------------------------
-    # Private — state flush
+    # Private — refreshable content methods
     # -------------------------------------------------------------------------
 
-    def _flush_state(self, widgets: dict) -> None:
-        """Populate freshly-created widgets with current state so clients
-        connecting after initialization see correct values immediately."""
-        if widgets.get("status_card") is not None:
-            # Status text is owned by the manager
-            widgets["status_card"].set_text(self._manager._status_text)
-
-        # Login state
-        if widgets.get("login_status_label") is not None:
-            widgets["login_status_label"].set_text(self._login_status_text)
-        if widgets.get("login_button") is not None:
-            widgets["login_button"].set_visibility(self._login_btn_visible)
-        if widgets.get("logout_button") is not None:
-            widgets["logout_button"].set_visibility(self._logout_btn_visible)
-
-        # Channel table (ws rows already built in _create_panel)
-        self._do_rebuild_channel_table(widgets)
-
-        # Switch button state based on current selection
-        btn = widgets.get("channel_switch_btn")
-        if btn is not None:
-            if self._selected_channel_iid is not None:
-                btn.props(remove="disabled")
+    @ui.refreshable
+    def _ws_status_content(self) -> None:
+        """Refreshable content for the WebSocket status display."""
+        for idx in range(MAX_WEBSOCKETS):
+            entry = self._ws_data.get(idx)
+            ws_name = _("gui", "websocket", "websocket").format(id=idx + 1)
+            if entry is None:
+                label_text = ws_name
             else:
-                btn.props("disabled")
+                status = entry.get("status", _("gui", "websocket", "disconnected"))
+                topics = entry.get("topics", 0)
+                label_text = (
+                    f"{ws_name}"
+                    f" {status:<20}"
+                    f" {topics:>{DIGITS}}/{WS_TOPICS_LIMIT}"
+                )
+            ui.label(label_text).classes("font-mono text-xs")
 
-        # Drop / campaign progress
-        if self._current_drop is not None:
-            self._do_display_drop(widgets, self._current_drop)
-            self._do_tick_progress(widgets)
+    @ui.refreshable
+    def _console_content(self) -> None:
+        """Refreshable console log — rebuilt from the full log on each push."""
+        log = ui.log(max_lines=200).classes("h-64 w-full font-mono text-xs")
+        for line in self._console_log:
+            log.push(line)
 
-        # Replay buffered console history
-        console = widgets.get("console")
-        if console is not None:
-            for line in self._manager._console_log:
-                console.push(line)
-
-    # -------------------------------------------------------------------------
-    # Private — per-widget update helpers
-    # -------------------------------------------------------------------------
-
-    def _do_rebuild_ws(self, widgets: dict) -> None:
-        container = widgets.get("ws_container")
-        if container is None:
-            return
-        try:
-            container.clear()
-            with container:
-                for idx in range(MAX_WEBSOCKETS):
-                    entry = self._ws_data.get(idx)
-                    ws_name = _("gui", "websocket", "websocket").format(id=idx + 1)
-                    if entry is None:
-                        label_text = ws_name
-                    else:
-                        status = entry.get(
-                            "status", _("gui", "websocket", "disconnected")
-                        )
-                        topics = entry.get("topics", 0)
-                        label_text = (
-                            f"{ws_name}"
-                            f" {status:<20}"
-                            f" {topics:>{DIGITS}}/{WS_TOPICS_LIMIT}"
-                        )
-                    ui.label(label_text).classes("font-mono text-xs")
-        except Exception as e:
-            print(f"Failed to rebuild WS display: {e}")
-
-    def _do_rebuild_channel_table(self, widgets: dict) -> None:
-        table = widgets.get("channels_table")
-        if table is None:
-            return
+    @ui.refreshable
+    def _channel_table_content(self) -> None:
+        """Refreshable content for the channel list table."""
+        columns = [
+            {
+                "name": "channel",
+                "label": _("gui", "channels", "headings", "channel"),
+                "field": "channel",
+                "align": "left",
+                "sortable": True,
+            },
+            {
+                "name": "status",
+                "label": _("gui", "channels", "headings", "status"),
+                "field": "status",
+                "align": "left",
+            },
+            {
+                "name": "game",
+                "label": _("gui", "channels", "headings", "game"),
+                "field": "game",
+                "align": "left",
+                "sortable": True,
+            },
+            {
+                "name": "drops",
+                "label": "🎁",
+                "field": "drops",
+                "align": "center",
+            },
+            {
+                "name": "viewers",
+                "label": _("gui", "channels", "headings", "viewers"),
+                "field": "viewers",
+                "align": "right",
+                "sortable": True,
+            },
+            {
+                "name": "acl_base",
+                "label": "📋",
+                "field": "acl_base",
+                "align": "center",
+            },
+        ]
         rows = []
         for iid, channel in self._channel_map.items():
             if channel.online:
@@ -471,53 +370,45 @@ class MainPanel(BasePanel):
                     "acl_base": "✔" if channel.acl_based else "❌",
                 }
             )
-        # Preserve the selected row if it still exists in the new rows
+        table = (
+            ui.table(
+                columns=columns,
+                rows=rows,
+                row_key="iid",
+                selection="single",
+                on_select=self._on_table_selection,
+            )
+            .classes("w-full text-xs flex-1 overflow-y-auto min-h-0 max-h-full")
+            .props("dense flat virtual-scroll")
+        )
         if self._selected_channel_iid is not None:
             table.selected = [r for r in rows if r["iid"] == self._selected_channel_iid]
-        table.rows = rows
-        table.update()
 
-    def _do_display_drop(self, widgets: dict, drop) -> None:
+    def _do_display_drop(self, drop) -> None:
+        """Update drop/campaign display attrs — bindings propagate to all clients."""
         campaign = drop.campaign
-        if widgets.get("campaign_game_label") is not None:
-            widgets["campaign_game_label"].set_text(campaign.game.name)
-        if widgets.get("campaign_name_label") is not None:
-            widgets["campaign_name_label"].set_text(campaign.name)
-        if widgets.get("campaign_progress_bar") is not None:
-            widgets["campaign_progress_bar"].set_value(campaign.progress)
-        if widgets.get("campaign_percentage_label") is not None:
-            widgets["campaign_percentage_label"].set_text(
-                f"{campaign.progress:6.1%} ({campaign.claimed_drops}/{campaign.total_drops})"
-            )
-        if widgets.get("drop_rewards_label") is not None:
-            widgets["drop_rewards_label"].set_text(drop.rewards_text())
-        if widgets.get("drop_progress_bar") is not None:
-            widgets["drop_progress_bar"].set_value(drop.progress)
-        if widgets.get("drop_percentage_label") is not None:
-            widgets["drop_percentage_label"].set_text(f"{drop.progress:6.1%}")
+        self._campaign_game_text = campaign.game.name
+        self._campaign_name_text = campaign.name
+        self._campaign_progress_value = campaign.progress
+        self._campaign_percentage_text = f"{campaign.progress:6.1%} ({campaign.claimed_drops}/{campaign.total_drops})"
+        self._drop_rewards_text = drop.rewards_text()
+        self._drop_progress_value = drop.progress
+        self._drop_percentage_text = f"{drop.progress:6.1%}"
 
-    def _do_clear_drop(self, widgets: dict) -> None:
-        if widgets.get("drop_rewards_label") is not None:
-            widgets["drop_rewards_label"].set_text("...")
-        if widgets.get("drop_progress_bar") is not None:
-            widgets["drop_progress_bar"].set_value(0)
-        if widgets.get("drop_percentage_label") is not None:
-            widgets["drop_percentage_label"].set_text("-%")
-        if widgets.get("drop_remaining_label") is not None:
-            widgets["drop_remaining_label"].set_text("")
-        if widgets.get("campaign_name_label") is not None:
-            widgets["campaign_name_label"].set_text("...")
-        if widgets.get("campaign_game_label") is not None:
-            widgets["campaign_game_label"].set_text("...")
-        if widgets.get("campaign_progress_bar") is not None:
-            widgets["campaign_progress_bar"].set_value(0)
-        if widgets.get("campaign_percentage_label") is not None:
-            widgets["campaign_percentage_label"].set_text("-%")
-        if widgets.get("campaign_remaining_label") is not None:
-            widgets["campaign_remaining_label"].set_text("")
+    def _do_clear_drop(self) -> None:
+        """Reset drop/campaign display attrs — bindings propagate to all clients."""
+        self._campaign_game_text = "..."
+        self._campaign_name_text = "..."
+        self._campaign_progress_value = 0.0
+        self._campaign_percentage_text = "-%"
+        self._campaign_remaining_text = ""
+        self._drop_rewards_text = "..."
+        self._drop_progress_value = 0.0
+        self._drop_percentage_text = "-%"
+        self._drop_remaining_text = ""
 
-    def _do_tick_progress(self, widgets: dict) -> None:
-        """Update remaining-time labels for one client using real elapsed time."""
+    def _do_tick_progress(self) -> None:
+        """Update remaining-time attrs — bindings propagate to all clients."""
         drop = self._current_drop
         if drop is None:
             return
@@ -526,27 +417,21 @@ class MainPanel(BasePanel):
             self._progress_seconds = max(0, 60 - elapsed)
         secs = self._progress_seconds % 60
 
-        if widgets.get("drop_remaining_label") is not None:
-            drop_mins = drop.remaining_minutes
-            if self._progress_seconds < 60 and drop_mins > 0:
-                drop_mins -= 1
-            h, m = divmod(drop_mins, 60)
-            widgets["drop_remaining_label"].set_text(
-                _("gui", "progress", "remaining").format(
-                    time=f"{h:>2}:{m:02}:{secs:02}"
-                )
-            )
+        drop_mins = drop.remaining_minutes
+        if self._progress_seconds < 60 and drop_mins > 0:
+            drop_mins -= 1
+        h, m = divmod(drop_mins, 60)
+        self._drop_remaining_text = _("gui", "progress", "remaining").format(
+            time=f"{h:>2}:{m:02}:{secs:02}"
+        )
 
-        if widgets.get("campaign_remaining_label") is not None:
-            camp_mins = drop.campaign.remaining_minutes
-            if self._progress_seconds < 60 and camp_mins > 0:
-                camp_mins -= 1
-            h, m = divmod(camp_mins, 60)
-            widgets["campaign_remaining_label"].set_text(
-                _("gui", "progress", "remaining").format(
-                    time=f"{h:>2}:{m:02}:{secs:02}"
-                )
-            )
+        camp_mins = drop.campaign.remaining_minutes
+        if self._progress_seconds < 60 and camp_mins > 0:
+            camp_mins -= 1
+        h, m = divmod(camp_mins, 60)
+        self._campaign_remaining_text = _("gui", "progress", "remaining").format(
+            time=f"{h:>2}:{m:02}:{secs:02}"
+        )
 
     # -------------------------------------------------------------------------
     # Private — event handlers
@@ -554,47 +439,24 @@ class MainPanel(BasePanel):
 
     def _on_channel_switch(self) -> None:
         try:
-            from constants import State
-
             self._manager._twitch.state_change(State.CHANNEL_SWITCH)()
         except Exception as e:
             print(f"Channel switch error: {e}")
 
-    def _on_table_selection(self, client_id: str, e) -> None:
-        """Handle row selection: sync selection highlight and Switch button to all clients."""
-        try:
-            w = self._client_widgets.get(client_id)
-            table = w.get("channels_table") if w else None
-            selected = table.selected if table else []
-            iid = selected[0].get("iid") if selected else None
-            self._selected_channel_iid = iid
-
-            for cid, cw in self._client_widgets.items():
-                # Sync Switch button on every client
-                btn = cw.get("channel_switch_btn")
-                if btn is not None:
-                    if iid is not None:
-                        btn.props(remove="disabled")
-                    else:
-                        btn.props("disabled")
-
-                # Sync table selection highlight on every other client
-                if cid != client_id:
-                    other_table = cw.get("channels_table")
-                    if other_table is not None:
-                        other_table.selected = (
-                            [r for r in other_table.rows if r["iid"] == iid]
-                            if iid is not None
-                            else []
-                        )
-                        other_table.update()
-        except Exception as ex:
-            print(f"Selection handler error: {ex}")
+    def _on_table_selection(self, e) -> None:
+        """Handle row selection: update shared state only.
+        The Switch button is bound to _selected_channel_iid so it updates on all
+        clients automatically. Table highlight syncs on the next data-driven rebuild."""
+        new_selected_channel_iid = (
+            e.sender.selected[0].get("iid") if e.sender.selected else None
+        )
+        needs_refresh = new_selected_channel_iid != self._selected_channel_iid
+        self._selected_channel_iid = new_selected_channel_iid
+        if needs_refresh:
+            self._channel_table_content.refresh()
 
     def _on_logout(self) -> None:
         try:
-            from constants import COOKIES_PATH, State
-
             manager = self._manager
             COOKIES_PATH.unlink(missing_ok=True)
             if manager._twitch._session is not None:

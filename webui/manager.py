@@ -93,9 +93,7 @@ class WebUIManager:
 
         # Shared UI state
         self._current_icon: str = "pickaxe"
-        self._dark_mode_enabled: bool = twitch.settings.dark_mode
         self._status_text: str = "Initializing..."
-        self._console_log: list[str] = []
 
         # Adapters - mirrors of classes in gui.py
         self.tray = TrayIconAdapter(self)
@@ -135,7 +133,9 @@ class WebUIManager:
         @ui.page("/")
         def index(tab: str = "main"):
             ui.page_title("Twitch Drops Miner")
-            ui.dark_mode(self._dark_mode_enabled)
+            ui.dark_mode(self._twitch.settings.dark_mode).bind_value_from(
+                self._twitch.settings, "dark_mode"
+            )
             ui.query(".nicegui-content").classes("p-0")
             ui.add_head_html(f"<style>{_css}</style>")
 
@@ -193,17 +193,8 @@ class WebUIManager:
 
     def set_dark_mode(self, enabled: bool) -> None:
         """Apply dark mode to all connected clients."""
-        self._dark_mode_enabled = enabled
         self._twitch.settings.dark_mode = enabled
         self._twitch.settings.save(force=True)
-
-        async def _apply(client) -> None:
-            with client:
-                ui.dark_mode(enabled)
-
-        loop = asyncio.get_running_loop()
-        for client in list(Client.instances.values()):
-            loop.create_task(_apply(client))
 
     @property
     def running(self) -> bool:
@@ -224,13 +215,10 @@ class WebUIManager:
             display_message = message
 
         lines = [f"{stamp}: {line}" for line in display_message.split("\n")]
-        # Persist every line so late-joining clients can replay the full log on connect.
-        self._console_log.extend(lines)
 
-        # Direct call since we're on the same event loop now
         self.main_panel.push_console(lines)
 
-        # Mirror to stdout/file when stdlog is enabled, matching gui.py behaviour.
+        # Mirror to stdout/file when stdlog is enabled.
         if self._twitch.settings.stdlog:
             record = logging.LogRecord(
                 name="GUI",
@@ -315,7 +303,5 @@ class WebUIManager:
         self.print("Application prevented from closing due to error state")
 
     def update_status(self, text: str) -> None:
-        """Update status text across all panels. Single source of truth."""
+        """Update status text — bindings propagate the new value to all connected clients."""
         self._status_text = text
-        self.header_bar.update_status(text)
-        self.main_panel.update_status(text)

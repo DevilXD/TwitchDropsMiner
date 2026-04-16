@@ -40,7 +40,6 @@ class LoginFormAdapter:
         self._confirm.clear()
         self._manager.main_panel._login_btn_visible = True
         self._manager.main_panel._logout_btn_visible = False
-        self._manager.main_panel.flush_login()
         await self._manager.coro_unless_closed(self._confirm.wait())
 
     async def ask_login(self) -> LoginData:
@@ -70,7 +69,6 @@ class LoginFormAdapter:
         panel._logout_btn_visible = status == _("gui", "login", "logged_in")
         if status != _("gui", "login", "required"):
             panel._login_btn_visible = False
-        panel.flush_login()
         # Mirror login state to the status bar when the main loop hasn't set it yet
         login_statuses = (
             _("gui", "login", "logging_in"),

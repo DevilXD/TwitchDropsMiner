@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING
 from nicegui import ui
 
 from translate import _
-from webui.utils import for_each_client
 
 if TYPE_CHECKING:
     from webui.manager import WebUIManager
@@ -13,35 +12,25 @@ if TYPE_CHECKING:
 
 class HeaderBar:
     """
-    Owns all widget references for the header bar.
+    Owns the header bar UI for each client.
 
-    The header is displayed on every tab, so it's built in manager._setup_ui()
-    before the tab panels. Status text is owned by the manager (single source
-    of truth) - this just manages the widget references.
+    Status text is owned by manager._status_text and bound directly —
+    no per-client widget tracking needed for the status label.
     """
 
     def __init__(self, manager: "WebUIManager") -> None:
         self._manager = manager
-        # Per-client widget refs
-        self._client_labels: dict = {}
 
     def build(self, initial_tab: str, on_tab_change):
         """Build the header UI for the current NiceGUI client."""
-        client_id = ui.context.client.id
-        ui.context.client.on_disconnect(
-            lambda: self._client_labels.pop(client_id, None)
-        )
-
-        # Status text is owned by manager - use it for initial value
-        initial_status = self._manager._status_text
-
         with ui.header().classes("flex-col items-stretch p-0 gap-0"):
             with ui.row().classes("tdm-header-row w-full items-center q-px-lg q-py-md"):
                 ui.image("/icons/pickaxe.ico").classes("w-8 h-8")
                 ui.label("Twitch Drops Miner").classes("text-h6")
                 ui.space()
-                header_label = ui.label(initial_status).classes("text-body1")
-                self._client_labels[client_id] = header_label
+                ui.label().classes("text-body1").bind_text_from(
+                    self._manager, "_status_text"
+                )
 
             with ui.tabs(value=initial_tab, on_change=on_tab_change).classes(
                 "w-full"
@@ -54,8 +43,3 @@ class HeaderBar:
                 ui.tab("help", label=_("gui", "tabs", "help"), icon="help")
 
         return tabs
-
-    def update_status(self, text: str) -> None:
-        """Update the status text for all connected clients.
-        Called by manager.update_status() - manager owns the status text."""
-        for_each_client(self._client_labels, lambda label: label.set_text(text))
