@@ -71,8 +71,35 @@ class MainPanel(BasePanel):
         """Build the main panel UI for the current NiceGUI client."""
         self._create_panel()
 
-    def rebuild_ws(self) -> None:
-        """Rebuild websocket status rows on all connected clients."""
+    def update_ws(
+        self, idx: int, *, status: str | None = None, topics: int | None = None
+    ) -> None:
+        """Update a websocket entry and refresh the display."""
+        if idx not in self._ws_data:
+            self._ws_data[idx] = {
+                "status": _("gui", "websocket", "disconnected"),
+                "topics": 0,
+            }
+            if status is None:
+                try:
+                    ws_list = self._manager._twitch.websocket.websockets
+                    if idx < len(ws_list):
+                        status = (
+                            _("gui", "websocket", "connected")
+                            if ws_list[idx].connected
+                            else _("gui", "websocket", "disconnected")
+                        )
+                except Exception:
+                    pass
+        if status is not None:
+            self._ws_data[idx]["status"] = status
+        if topics is not None:
+            self._ws_data[idx]["topics"] = topics
+        self._ws_status_content.refresh()
+
+    def remove_ws(self, idx: int) -> None:
+        """Remove a websocket entry and refresh the display."""
+        self._ws_data.pop(idx, None)
         self._ws_status_content.refresh()
 
     def push_console(self, lines: list) -> None:
@@ -519,7 +546,7 @@ class MainPanel(BasePanel):
             manager.inv.clear()
             manager._twitch.stop_watching()
             self._ws_data.clear()
-            self.rebuild_ws()
+            self._ws_status_content.refresh()
             manager.login.update(_("gui", "login", "logged_out"), None)
             manager.status.update(_("gui", "login", "request"))
             manager._twitch.state_change(State.INVENTORY_FETCH)()

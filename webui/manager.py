@@ -273,10 +273,6 @@ class WebUIManager:
             raise ExitRequest()
         return await next(iter(done))
 
-    def rebuild_ws(self):
-        """Rebuild the websocket status display"""
-        self.main_panel.rebuild_ws()
-
     def clear_drop(self):
         """Clear the current drop display"""
         self.main_panel.clear_drop()
