@@ -12,6 +12,7 @@ from datetime import datetime, timedelta, timezone
 from contextlib import suppress, asynccontextmanager
 from typing import Any, Literal, Final, NoReturn, overload, cast, TYPE_CHECKING
 
+from http_client import create_tcp_connector
 import aiohttp
 from yarl import URL
 
@@ -476,7 +477,7 @@ class Twitch:
             total=10*connection_quality,
         )
         # create session, limited to 50 connections at maximum
-        connector = aiohttp.TCPConnector(limit=50)
+        connector = create_tcp_connector(limit=50)
         self._session = aiohttp.ClientSession(
             timeout=timeout,
             connector=connector,
