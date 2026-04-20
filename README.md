@@ -159,6 +159,8 @@ placed past the period character at the end.
 @LusTerCsI - For the Traditional Chinese (繁體中文) translation corrections and revisions.  
 @nwvh - For the entirety of the Czech (Čeština) translation.  
 @Kjerne - For the entirety of the Danish (Dansk) translation.  
+@lmdpocus - For the entirety of the Dutch (Nederlandse) translation.  
+@Rensoraa - For the Traditional Dutch (Nederlandse) translation corrections and revisions.  
 @roobini-gamer - For the entirety of the French (Français) translation.  
 @Calvineries - For the French (Français) translation revisions.  
 @ThisIsCyreX - For the entirety of the German (Deutsch) translation.  
