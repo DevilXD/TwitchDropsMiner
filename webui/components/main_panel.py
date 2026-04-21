@@ -105,6 +105,8 @@ class MainPanel(BasePanel):
     def push_console(self, lines: list) -> None:
         """Refresh the console display on all connected clients."""
         self._console_log.extend(lines)
+        if len(self._console_log) > 200:
+            del self._console_log[:-200]
         self._console_content.refresh()
 
     def clear_drop(self) -> None:
