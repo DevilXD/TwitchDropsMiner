@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 from nicegui import ui
 
 from translate import _
-from constants import MAX_WEBSOCKETS, WS_TOPICS_LIMIT, COOKIES_PATH, State
+from constants import MAX_WEBSOCKETS, WS_TOPICS_LIMIT, COOKIES_PATH, CONFIG_PATH, State
 from .base_panel import BasePanel
 
 DIGITS = ceil(log10(WS_TOPICS_LIMIT))
@@ -61,7 +61,8 @@ class MainPanel(BasePanel):
         self._drop_percentage_text: str = "-%"
         self._drop_remaining_text: str = ""
 
-        self._console_log: list[str] = []
+        self._console_log_path = CONFIG_PATH / "console.log"
+        self._console_log: list[str] = self._load_console_log()
 
     # -------------------------------------------------------------------------
     # Public API
@@ -107,6 +108,7 @@ class MainPanel(BasePanel):
         self._console_log.extend(lines)
         if len(self._console_log) > 200:
             del self._console_log[:-200]
+        self._save_console_log(lines)
         self._console_content.refresh()
 
     def clear_drop(self) -> None:
@@ -188,6 +190,25 @@ class MainPanel(BasePanel):
         self._selected_channel_iid = None
         for table in self._channel_tables:
             table.selected = []
+
+    # -------------------------------------------------------------------------
+    # Private — console persistence
+    # -------------------------------------------------------------------------
+
+    def _load_console_log(self) -> list[str]:
+        try:
+            lines = self._console_log_path.read_text(encoding="utf-8").splitlines()
+            return lines[-200:]
+        except (FileNotFoundError, OSError):
+            return []
+
+    def _save_console_log(self, lines: list[str]) -> None:
+        try:
+            CONFIG_PATH.mkdir(parents=True, exist_ok=True)
+            with self._console_log_path.open("a", encoding="utf-8") as f:
+                f.write("\n".join(lines) + "\n")
+        except OSError:
+            pass
 
     # -------------------------------------------------------------------------
     # Private — UI creation
