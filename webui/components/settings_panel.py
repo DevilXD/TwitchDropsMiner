@@ -10,7 +10,7 @@ from constants import PriorityMode, State
 from .base_panel import BasePanel
 
 if TYPE_CHECKING:
-    from nicegui.elements.select import Select as NiceSelect
+    from nicegui.elements.input import Input as NiceInput
     from webui.manager import WebUIManager
     from utils import Game
 
@@ -251,14 +251,20 @@ class SettingsPanel(BasePanel):
     def _priority_input_content(self) -> None:
         with ui.row().classes("w-full gap-1 items-center"):
             priority_input = (
-                ui.select(
-                    options=self._priority_options(),
+                ui.input(
                     label=_("gui", "settings", "game_name"),
-                    new_value_mode="add-unique",
+                    autocomplete=self._priority_options(),
                 )
                 .classes("flex-1 text-xs")
-                .props("dense use-input hide-selected")
+                .props("dense")
+                .on("keydown.enter", lambda: self._priority_add(priority_input))
             )
+            with ui.button(icon="expand_more").props("dense flat").classes("p-0 min-h-0"):
+                with ui.menu():
+                    for name in self._priority_options():
+                        ui.menu_item(
+                            name, on_click=lambda _, n=name: priority_input.set_value(n)
+                        ).classes("text-xs")
             ui.button("➕", on_click=lambda: self._priority_add(priority_input)).props(
                 "dense flat"
             ).classes("text-xl p-0 min-h-0")
@@ -285,14 +291,20 @@ class SettingsPanel(BasePanel):
     def _exclude_input_content(self) -> None:
         with ui.row().classes("w-full gap-1 items-center"):
             exclude_input = (
-                ui.select(
-                    options=self._exclude_options(),
+                ui.input(
                     label=_("gui", "settings", "game_name"),
-                    new_value_mode="add-unique",
+                    autocomplete=self._exclude_options(),
                 )
                 .classes("flex-1 text-xs")
-                .props("dense use-input hide-selected")
+                .props("dense")
+                .on("keydown.enter", lambda: self._exclude_add(exclude_input))
             )
+            with ui.button(icon="expand_more").props("dense flat").classes("p-0 min-h-0"):
+                with ui.menu():
+                    for name in self._exclude_options():
+                        ui.menu_item(
+                            name, on_click=lambda _, n=name: exclude_input.set_value(n)
+                        ).classes("text-xs")
             ui.button("➕", on_click=lambda: self._exclude_add(exclude_input)).props(
                 "dense flat"
             ).classes("text-xl p-0 min-h-0")
@@ -300,6 +312,26 @@ class SettingsPanel(BasePanel):
     # -------------------------------------------------------------------------
     # Private — helpers
     # -------------------------------------------------------------------------
+
+    def _correct_game_case(self, value: str) -> str:
+        lower = value.lower()
+        for name in self._game_names:
+            if name.lower() == lower:
+                return name
+        return value
+
+    def _confirm_unknown_game(self, name: str, on_confirm) -> None:
+        """Show a confirmation dialog when adding a game with no active campaigns."""
+        with ui.dialog() as dialog, ui.card().classes("q-pa-sm"):
+            ui.label(f'"{name}" has no active drop campaigns.').classes("text-sm font-bold")
+            ui.label("Add it anyway?").classes("text-xs")
+            with ui.row().classes("gap-2 justify-end w-full"):
+                ui.button("Cancel", on_click=dialog.close).props("dense flat").classes("text-xs")
+                def _confirm():
+                    dialog.close()
+                    on_confirm()
+                ui.button("Add", on_click=_confirm).props("dense").classes("text-xs")
+        dialog.open()
 
     def _priority_options(self) -> list[str]:
         return sorted(self._game_names - set(self.settings.priority))
@@ -343,15 +375,24 @@ class SettingsPanel(BasePanel):
         self._priority_selected = None if self._priority_selected == idx else idx
         self._priority_list_content.refresh()
 
-    def _priority_add(self, input_el: "NiceSelect") -> None:
+    def _priority_add(self, input_el: "NiceInput") -> None:
         name = input_el.value
         if not name or not str(name).strip():
             return
-        name = str(name).strip()
+        name = self._correct_game_case(str(name).strip())
+        if name not in self._game_names:
+            self._confirm_unknown_game(
+                name, lambda: self._do_priority_add(name, input_el)
+            )
+            return
+        self._do_priority_add(name, input_el)
+
+    def _do_priority_add(self, name: str, input_el: "NiceInput") -> None:
         settings = self.settings
         if name not in settings.priority:
             settings.priority.append(name)
             settings.save(force=True)
+        input_el.set_value("")
         self._priority_list_content.refresh()
         self._priority_input_content.refresh()
 
@@ -397,15 +438,24 @@ class SettingsPanel(BasePanel):
         self._exclude_selected = None if self._exclude_selected == name else name
         self._exclude_list_content.refresh()
 
-    def _exclude_add(self, input_el: "NiceSelect") -> None:
+    def _exclude_add(self, input_el: "NiceInput") -> None:
         name = input_el.value
         if not name or not str(name).strip():
             return
-        name = str(name).strip()
+        name = self._correct_game_case(str(name).strip())
+        if name not in self._game_names:
+            self._confirm_unknown_game(
+                name, lambda: self._do_exclude_add(name, input_el)
+            )
+            return
+        self._do_exclude_add(name, input_el)
+
+    def _do_exclude_add(self, name: str, input_el: "NiceInput") -> None:
         settings = self.settings
         if name not in settings.exclude:
             settings.exclude.add(name)
             settings.save(force=True)
+        input_el.set_value("")
         self._exclude_list_content.refresh()
         self._exclude_input_content.refresh()
 
