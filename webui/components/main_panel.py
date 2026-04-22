@@ -16,6 +16,7 @@ from constants import MAX_WEBSOCKETS, WS_TOPICS_LIMIT, COOKIES_PATH, CONFIG_PATH
 from .base_panel import BasePanel
 
 DIGITS = ceil(log10(WS_TOPICS_LIMIT))
+_MAX_CONSOLE_LOG_SIZE = 10 * 1024 * 1024  # 10 MB
 
 if TYPE_CHECKING:
     from webui.manager import WebUIManager
@@ -207,6 +208,10 @@ class MainPanel(BasePanel):
             CONFIG_PATH.mkdir(parents=True, exist_ok=True)
             with self._console_log_path.open("a", encoding="utf-8") as f:
                 f.write("\n".join(lines) + "\n")
+            if self._console_log_path.stat().st_size > _MAX_CONSOLE_LOG_SIZE:
+                all_lines = self._console_log_path.read_text(encoding="utf-8").splitlines()
+                keep = all_lines[len(all_lines) // 2:]
+                self._console_log_path.write_text("\n".join(keep) + "\n", encoding="utf-8")
         except OSError:
             pass
 
