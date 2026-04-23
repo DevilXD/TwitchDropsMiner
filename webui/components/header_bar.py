@@ -28,9 +28,9 @@ class HeaderBar:
                 ui.image("/icons/pickaxe.ico").classes("w-8 h-8")
                 ui.label("Twitch Drops Miner").classes("text-h6")
                 ui.space()
-                ui.label().classes("text-body1").bind_text_from(
-                    self._manager, "_status_text"
-                )
+                ui.label().classes(
+                    "text-body1 q-px-md q-py-xs rounded-borders bg-gray-300 dark:bg-gray-800"
+                ).bind_text_from(self._manager, "_status_text")
 
             with ui.tabs(value=initial_tab, on_change=on_tab_change).classes(
                 "w-full"
