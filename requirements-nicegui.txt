@@ -1,2 +1,2 @@
 -r requirements.txt
-nicegui
+nicegui>=3.11.1,<4.0.0
