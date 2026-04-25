@@ -130,7 +130,7 @@ class InventoryPanel(BasePanel):
         )
         visible = [c for c in campaigns if self._campaign_visible(c)]
 
-        with ui.column().classes("w-full gap-3"):
+        with ui.column().classes("w-full gap-2"):
             if not visible:
                 ui.label("No campaigns match the current filters.").classes(
                     "text-sm text-gray-500 p-4"
@@ -197,12 +197,15 @@ class InventoryPanel(BasePanel):
         return (
             Tag("div")
             .classes(
-                "tdm-campaign-card rounded p-2.5 flex flex-wrap gap-3 items-start w-full box-border"
+                "rounded p-2.5 flex flex-wrap gap-3 items-start w-full box-border",
+                "bg-slate-100 dark:bg-slate-700",
+                "border-1 border-black/[0.12] dark:border-white/[0.28]",
             )
             .add(
                 InventoryPanel._build_campaign_info(campaign),
                 Tag("div").classes(
-                    "tdm-campaign-divider w-full h-px self-auto sm:w-px sm:h-auto sm:self-stretch sm:shrink-0"
+                    "w-full h-px self-auto sm:w-px sm:h-auto sm:self-stretch sm:shrink-0",
+                    "bg-slate-300 dark:bg-slate-500",
                 ),
                 Tag("div")
                 .classes("flex flex-wrap gap-2 flex-1 items-start")
@@ -242,10 +245,10 @@ class InventoryPanel(BasePanel):
             primary, secondary = (starts, ends) if campaign.upcoming else (ends, starts)
             date_tag = (
                 Tag("div")
-                .classes("tdm-campaign-date text-xs text-gray-400 cursor-default")
+                .classes("group text-xs text-gray-400 cursor-default")
                 .add(
-                    Tag("span", primary).classes("default"),
-                    Tag("span", secondary).classes("hovered"),
+                    Tag("span", primary).classes("inline group-hover:hidden!"),
+                    Tag("span", secondary).classes("hidden group-hover:inline!"),
                 )
             )
         except Exception:
@@ -335,7 +338,9 @@ class InventoryPanel(BasePanel):
             Tag("div")
             .props(id=f"drop-{drop.id}")
             .classes(
-                "tdm-drop-card rounded p-3 flex flex-col items-center gap-1.5 min-w-0 max-w-full"
+                "rounded p-3 flex flex-col items-center gap-1.5 min-w-0 max-w-full",
+                "bg-slate-200 dark:bg-slate-800",
+                "border-1 border-black/[0.12] dark:border-white/[0.28]",
             )
             .add(
                 Tag("div")

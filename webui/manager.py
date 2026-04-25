@@ -128,7 +128,6 @@ class WebUIManager:
         """Register the NiceGUI page handler. The inner index() function runs once
         per browser connection, building the full UI for that client."""
         app.add_static_files("/icons", str(Path(__file__).parent.parent / "icons"))
-        _css = (Path(__file__).parent / "styles.css").read_text(encoding="utf-8")
 
         @ui.page("/")
         def index(tab: str = "main"):
@@ -136,8 +135,12 @@ class WebUIManager:
             ui.dark_mode(self._twitch.settings.dark_mode).bind_value_from(
                 self._twitch.settings, "dark_mode"
             )
+
+            ui.colors(dark_page="var(--color-slate-800)", dark="var(--color-slate-800)")
+            ui.card.default_classes("bg-slate-100 dark:bg-slate-700")
+            ui.table.default_classes("bg-slate-100 dark:bg-slate-700")
+
             ui.query(".nicegui-content").classes("p-0")
-            ui.add_head_html(f"<style>{_css}</style>")
 
             # Fixed header + scrollable content below it only.
             # .q-page-container starts at y=0 (behind the fixed header) with
