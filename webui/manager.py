@@ -41,7 +41,8 @@ from typing import TYPE_CHECKING
 
 from nicegui import ui, Client, app
 
-from constants import OUTPUT_FORMATTER, FILE_FORMATTER
+from constants import OUTPUT_FORMATTER, FILE_FORMATTER, COOKIES_PATH, State
+from translate import _
 from .adapters import (
     TrayIconAdapter,
     StatusBarAdapter,
@@ -279,6 +280,22 @@ class WebUIManager:
     def clear_drop(self):
         """Clear the current drop display"""
         self.main_panel.clear_drop()
+
+    def on_logout(self) -> None:
+        try:
+            COOKIES_PATH.unlink(missing_ok=True)
+            if self._twitch._session is not None:
+                self._twitch._session.cookie_jar.clear()
+            self._twitch._auth_state.clear()
+            self.channels.clear()
+            self.inv.clear()
+            self._twitch.stop_watching()
+            self.main_panel.clear_ws()
+            self.login.update(_("gui", "login", "logged_out"), None)
+            self.status.update(_("gui", "login", "request"))
+            self._twitch.state_change(State.INVENTORY_FETCH)()
+        except Exception as e:
+            print(f"Logout error: {e}")
 
     def display_drop(self, drop, *, countdown: bool = True, subone: bool = False):
         """Display current drop information"""
