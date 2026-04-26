@@ -97,6 +97,18 @@ For elements that must be updated live across all connected clients (channel tab
 ### Single event loop
 Both the NiceGUI UI and the async backend run on NiceGUI's event loop — no thread queues needed. Use `asyncio.create_task()` for background work; use `await ui.run_javascript()` for client-side interactions.
 
+### Logout / session teardown
+`logout()` in `manager.py` is webui-only (the tkinter GUI has no logout). It works by racing a signal against the next HTTP request rather than doing teardown itself:
+
+1. `session.cookie_jar.clear()` — empties the in-memory jar so `shutdown()` saves empty cookies to disk, preventing auto-login on restart.
+2. `self.channels.clear()` — clears the channel list UI immediately (the adapter-only call; `shutdown()` clears `twitch.py`'s internal dict but doesn't update the UI).
+3. `_reload_requested.set()` — arms the signal.
+4. `state_change(INVENTORY_FETCH)` — wakes the main loop out of IDLE so it reaches an HTTP call.
+
+`coro_unless_closed()` races every HTTP request against `_reload_requested`. When it fires, `ReloadRequest` is raised and propagates up through `_run()` to `run()`, which calls `shutdown()` (full teardown: stops websockets, closes session, clears all internal state) then restarts `_run()` fresh (re-login flow, new user topics).
+
+Do not add teardown logic to `logout()` that `shutdown()` already handles — it will run redundantly.
+
 ### No direct UI calls from backend
 `twitch.py` never calls `ui.*` directly. The flow is always:
 ```
