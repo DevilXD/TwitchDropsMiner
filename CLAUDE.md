@@ -85,7 +85,7 @@ Sections and what they own:
 | `ChannelsSection` | channel map, rows, per-client `ui.table` list | rebuilds rows on any channel change |
 | `ConsoleSection` | console log, per-client `ui.log` list | pushes lines directly to live log instances (no refresh) |
 | `DropSection` | drop/campaign display attrs, countdown timer | manages its own `ui.timer` in `build()` |
-| `LoginSection` | login status text, button visibility | logout button calls `manager.on_logout()` |
+| `LoginSection` | login status text, button visibility | logout button calls `manager.logout()` |
 | `WebsocketSection` | ws data dict | refreshable status display |
 
 ### Shared state on sections

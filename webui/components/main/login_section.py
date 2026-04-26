@@ -37,7 +37,7 @@ class LoginSection:
             )
             ui.button(
                 "Logout",
-                on_click=self._manager.on_logout,
-            ).props(
-                "dense"
-            ).classes("text-xs").bind_visibility_from(self, "_logout_btn_visible")
+                on_click=self._manager.logout,
+            ).props("dense").classes(
+                "text-xs"
+            ).bind_visibility_from(self, "_logout_btn_visible")

@@ -281,7 +281,9 @@ class WebUIManager:
         """Clear the current drop display"""
         self.main_panel.clear_drop()
 
-    def on_logout(self) -> None:
+    def logout(self) -> None:
+        # TODO: this doesn't quite work perfectly
+        # Websocket clearing is a bit buggy
         try:
             COOKIES_PATH.unlink(missing_ok=True)
             if self._twitch._session is not None:
