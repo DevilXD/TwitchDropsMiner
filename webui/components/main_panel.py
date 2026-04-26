@@ -63,9 +63,6 @@ class MainPanel(BasePanel):
     def remove_ws(self, idx: int) -> None:
         self._ws_section.remove(idx)
 
-    def clear_ws(self) -> None:
-        self._ws_section.clear()
-
     def push_console(self, lines: list) -> None:
         self._console_section.push(lines)
 

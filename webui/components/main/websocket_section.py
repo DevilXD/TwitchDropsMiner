@@ -56,10 +56,6 @@ class WebsocketSection:
         self._ws_data.pop(idx, None)
         self._content.refresh()
 
-    def clear(self) -> None:
-        self._ws_data.clear()
-        self._content.refresh()
-
     @ui.refreshable
     def _content(self) -> None:
         for idx in range(MAX_WEBSOCKETS):

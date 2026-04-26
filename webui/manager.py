@@ -41,7 +41,7 @@ from typing import TYPE_CHECKING
 
 from nicegui import ui, Client, app
 
-from constants import OUTPUT_FORMATTER, FILE_FORMATTER, COOKIES_PATH, State
+from constants import OUTPUT_FORMATTER, FILE_FORMATTER, State
 from translate import _
 from .adapters import (
     TrayIconAdapter,
@@ -90,6 +90,7 @@ class WebUIManager:
     def __init__(self, twitch: "Twitch"):
         self._twitch: "Twitch" = twitch
         self._close_requested = asyncio.Event()
+        self._reload_requested = asyncio.Event()
         self._running = False
 
         # Shared UI state
@@ -259,12 +260,13 @@ class WebUIManager:
         self._running = True
 
     async def coro_unless_closed(self, coro):
-        """Run coro, but raise ExitRequest instead if close() is called first."""
-        from exceptions import ExitRequest
+        """Run coro, but raise ExitRequest or ReloadRequest if those are signalled first."""
+        from exceptions import ExitRequest, ReloadRequest
 
         tasks = [
             asyncio.create_task(coro),
             asyncio.create_task(self._close_requested.wait()),
+            asyncio.create_task(self._reload_requested.wait()),
         ]
         done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
         for task in pending:
@@ -273,6 +275,9 @@ class WebUIManager:
                 await task
             except asyncio.CancelledError:
                 pass
+        if self._reload_requested.is_set():
+            self._reload_requested.clear()
+            raise ReloadRequest()
         if self._close_requested.is_set():
             raise ExitRequest()
         return await next(iter(done))
@@ -282,19 +287,16 @@ class WebUIManager:
         self.main_panel.clear_drop()
 
     def logout(self) -> None:
-        # TODO: this doesn't quite work perfectly
-        # Websocket clearing is a bit buggy
         try:
-            COOKIES_PATH.unlink(missing_ok=True)
-            if self._twitch._session is not None:
-                self._twitch._session.cookie_jar.clear()
-            self._twitch._auth_state.clear()
+            session = self._twitch._session
+            if session is not None:
+                session.cookie_jar.clear()
             self.channels.clear()
-            self.inv.clear()
-            self._twitch.stop_watching()
-            self.main_panel.clear_ws()
-            self.login.update(_("gui", "login", "logged_out"), None)
-            self.status.update(_("gui", "login", "request"))
+            # _reload_requested races against the next HTTP request in coro_unless_closed(),
+            # raising ReloadRequest up through _run() into run(), which calls shutdown()
+            # (full teardown) then restarts _run() fresh. state_change(INVENTORY_FETCH)
+            # wakes the loop out of IDLE so it reaches an HTTP call where the race fires.
+            self._reload_requested.set()
             self._twitch.state_change(State.INVENTORY_FETCH)()
         except Exception as e:
             print(f"Logout error: {e}")
