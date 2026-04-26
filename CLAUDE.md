@@ -59,10 +59,16 @@ webui/
 └── components/              # NiceGUI panels (one per tab)
     ├── base_panel.py        # Abstract base
     ├── header_bar.py        # Fixed header with tabs and status indicator
-    ├── main_panel.py        # Main tab: channel table, drop progress, console
+    ├── main_panel.py        # Main tab: thin aggregator, delegates to main/ sections
     ├── inventory_panel.py   # Inventory tab
     ├── settings_panel.py    # Settings tab
-    └── help_panel.py        # Help tab
+    ├── help_panel.py        # Help tab
+    └── main/                # Sub-components of the main tab
+        ├── channels_section.py  # Channel table (map, rows, per-client instances)
+        ├── console_section.py   # Console log (persistence, per-client ui.log instances)
+        ├── drop_section.py      # Drop/campaign progress display and tick timer
+        ├── login_section.py     # Login status labels and login/logout buttons
+        └── websocket_section.py # WebSocket status display
 ```
 
 ## Architecture Patterns
@@ -70,8 +76,23 @@ webui/
 ### Adapter pattern
 Each attribute on `GUIManager` (e.g. `self.gui.status`, `self.gui.channels`) has a matching adapter in `webui/adapters/`. Adapters are thin — typically 15-40 lines — and just forward calls to `MainPanel` or `WebUIManager`. When adding support for a new `twitch.py` GUI call, add or extend an adapter rather than touching `twitch.py`.
 
-### Shared state on `MainPanel`
-`MainPanel` owns all mutable display state (`_channel_rows`, `_console_log`, etc.) as instance variables. This lets late-joining browser clients restore full state on page load without waiting for backend updates. Do not store display state in local scope or per-request objects.
+### Section pattern (main tab)
+`MainPanel` is a thin aggregator. Each logical area of the main tab lives in its own section class under `webui/components/main/`. Each section owns both its state and its UI code — they are colocated because NiceGUI's `.bind_*_from` and `@ui.refreshable` both reference `self`. `MainPanel` instantiates the five sections and exposes a public API that delegates to them; external code (adapters, `manager.py`) only calls `MainPanel`'s public methods, never reaching into section internals directly.
+
+Sections and what they own:
+| Section | State | Key behaviour |
+|---|---|---|
+| `ChannelsSection` | channel map, rows, per-client `ui.table` list | rebuilds rows on any channel change |
+| `ConsoleSection` | console log, per-client `ui.log` list | pushes lines directly to live log instances (no refresh) |
+| `DropSection` | drop/campaign display attrs, countdown timer | manages its own `ui.timer` in `build()` |
+| `LoginSection` | login status text, button visibility | logout button calls `manager.on_logout()` |
+| `WebsocketSection` | ws data dict | refreshable status display |
+
+### Shared state on sections
+Each section owns its mutable display state as instance variables. This lets late-joining browser clients restore full state on page load without waiting for backend updates. Do not store display state in local scope or per-request objects.
+
+### Per-client element tracking
+For elements that must be updated live across all connected clients (channel table, console log), sections keep a list of per-client element instances (e.g. `_channel_tables`, `_log_instances`). Each `build()` call appends the new element and registers an `on_disconnect` handler to remove it.
 
 ### Single event loop
 Both the NiceGUI UI and the async backend run on NiceGUI's event loop — no thread queues needed. Use `asyncio.create_task()` for background work; use `await ui.run_javascript()` for client-side interactions.
@@ -79,7 +100,7 @@ Both the NiceGUI UI and the async backend run on NiceGUI's event loop — no thr
 ### No direct UI calls from backend
 `twitch.py` never calls `ui.*` directly. The flow is always:
 ```
-twitch.py → adapter → WebUIManager / MainPanel → ui.*
+twitch.py → adapter → WebUIManager / MainPanel → section → ui.*
 ```
 
 ## Dependencies
