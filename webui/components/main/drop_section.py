@@ -119,6 +119,12 @@ class DropSection:
             time=f"{h:>2}:{m:02}:{secs:02}"
         )
 
+    def stop_countdown(self) -> None:
+        self._countdown_active = False
+
+    def minute_almost_done(self) -> bool:
+        return not self._countdown_active or self._progress_seconds <= 10
+
     def _do_display(self, drop) -> None:
         campaign = drop.campaign
         self._campaign_game_text = campaign.game.name

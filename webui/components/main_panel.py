@@ -55,6 +55,24 @@ class MainPanel(BasePanel):
 
                 self._channels_section.build()
 
+    # -------------------------------------------------------------------------
+    # Console Section
+    # -------------------------------------------------------------------------
+
+    def push_console(self, lines: list) -> None:
+        self._console_section.push(lines)
+
+    # -------------------------------------------------------------------------
+    # Login Section
+    # -------------------------------------------------------------------------
+
+    def update_login(self, status: str, user_id: int | None) -> None:
+        self._login_section.update(status, user_id)
+
+    # -------------------------------------------------------------------------
+    # Websocket Section
+    # -------------------------------------------------------------------------
+
     def update_ws(
         self, idx: int, *, status: str | None = None, topics: int | None = None
     ) -> None:
@@ -63,8 +81,9 @@ class MainPanel(BasePanel):
     def remove_ws(self, idx: int) -> None:
         self._ws_section.remove(idx)
 
-    def push_console(self, lines: list) -> None:
-        self._console_section.push(lines)
+    # -------------------------------------------------------------------------
+    # Drop Section
+    # -------------------------------------------------------------------------
 
     def clear_drop(self) -> None:
         self._drop_section.clear()
@@ -73,6 +92,16 @@ class MainPanel(BasePanel):
         self, drop, *, countdown: bool = True, subone: bool = False
     ) -> None:
         self._drop_section.display(drop, countdown=countdown, subone=subone)
+
+    def drop_stop_countdown(self) -> None:
+        self._drop_section.stop_countdown()
+
+    def drop_minute_almost_done(self) -> bool:
+        return self._drop_section.minute_almost_done()
+
+    # -------------------------------------------------------------------------
+    # Channels Section
+    # -------------------------------------------------------------------------
 
     def clear_channels(self) -> None:
         self._channels_section.clear()

@@ -13,9 +13,15 @@ if TYPE_CHECKING:
 class LoginSection:
     def __init__(self, manager: "WebUIManager") -> None:
         self._manager = manager
-        self._login_status_text: str = f"{_('gui', 'login', 'logged_out')}\n-"
-        self._login_btn_visible: bool = False
-        self._logout_btn_visible: bool = False
+        self._login_status_text: str = "\n-"
+        self._login_state: str = ""
+        self._btn_enabled: bool = True
+
+    def update(self, status: str, user_id: int | None) -> None:
+        user_str = str(user_id) if user_id is not None else "-"
+        self._login_status_text = f"{status}\n{user_str}"
+        self._login_state = status
+        self._btn_enabled = True
 
     def build(self) -> None:
         with ui.card().props("flat bordered").classes(
@@ -30,14 +36,33 @@ class LoginSection:
                     "text-xs whitespace-pre leading-relaxed"
                 ).bind_text_from(self, "_login_status_text")
             ui.button(
-                _("gui", "login", "button"),
-                on_click=self._manager.login.open_login_popup,
-            ).props("dense").classes("text-xs").bind_visibility_from(
-                self, "_login_btn_visible"
+                on_click=self._on_btn_click,
+            ).props(
+                "dense"
+            ).classes("text-xs").bind_text_from(
+                self,
+                "_login_state",
+                backward=lambda s: (
+                    "Logout"
+                    if s == _("gui", "login", "logged_in")
+                    else _("gui", "login", "button")
+                ),
+            ).bind_visibility_from(
+                self,
+                "_login_state",
+                backward=lambda s: s
+                in (
+                    _("gui", "login", "logged_in"),
+                    _("gui", "login", "required"),
+                ),
+            ).bind_enabled_from(
+                self, "_btn_enabled"
             )
-            ui.button(
-                "Logout",
-                on_click=self._manager.logout,
-            ).props("dense").classes(
-                "text-xs"
-            ).bind_visibility_from(self, "_logout_btn_visible")
+
+    async def _on_btn_click(self) -> None:
+        self._btn_enabled = False
+        if self._login_state == _("gui", "login", "logged_in"):
+            self._manager.logout()
+        else:
+            await self._manager.login.open_login_popup()
+            self._btn_enabled = True

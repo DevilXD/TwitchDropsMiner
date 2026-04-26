@@ -52,9 +52,9 @@ class GeneralSection:
                         "flex-1"
                     )
                 ui.select(
-                    options=_priority_mode_options(),
+                    options=GeneralSection._priority_mode_options(),
                     value=settings.priority_mode,
-                    on_change=lambda e: _set_and_save(
+                    on_change=lambda e: GeneralSection._set_and_save(
                         settings, "priority_mode", e.value
                     ),
                 ).classes("w-full text-xs").props("dense").bind_value_from(
@@ -65,7 +65,9 @@ class GeneralSection:
                 ui.input(
                     value=str(settings.proxy) if settings.proxy else "",
                     placeholder="http://username:password@address:port",
-                    on_change=lambda e: _on_proxy_change(settings, e.value),
+                    on_change=lambda e: GeneralSection._on_proxy_change(
+                        settings, e.value
+                    ),
                 ).classes("w-full text-xs").props("dense").bind_value_from(
                     settings, "proxy", backward=lambda v: str(v) if v else ""
                 )
@@ -87,7 +89,7 @@ class GeneralSection:
                     ).classes("flex-1")
                     ui.switch(
                         value=settings.enable_badges_emotes,
-                        on_change=lambda e: _set_and_save(
+                        on_change=lambda e: GeneralSection._set_and_save(
                             settings, "enable_badges_emotes", e.value
                         ),
                     ).bind_value_from(settings, "enable_badges_emotes")
@@ -98,7 +100,7 @@ class GeneralSection:
                     ).classes("flex-1")
                     ui.switch(
                         value=settings.available_drops_check,
-                        on_change=lambda e: _set_and_save(
+                        on_change=lambda e: GeneralSection._set_and_save(
                             settings, "available_drops_check", e.value
                         ),
                     ).bind_value_from(settings, "available_drops_check")
@@ -113,7 +115,7 @@ class GeneralSection:
     def _on_language_change(self, language: str) -> None:
         # Page reload re-runs build() with the new _.current, so all labels
         # and dropdowns render in the new language without restarting the server.
-        _set_and_save(self._settings, "language", language)
+        GeneralSection._set_and_save(self._settings, "language", language)
         try:
             _.set_language(language)
         except ValueError:
@@ -136,30 +138,32 @@ class GeneralSection:
             else:
                 asyncio.get_event_loop().create_task(_reload(client))
 
+    @staticmethod
+    def _set_and_save(settings, name: str, value) -> None:
+        setattr(settings, name, value)
+        settings.save(force=True)
 
-def _set_and_save(settings, name: str, value) -> None:
-    setattr(settings, name, value)
-    settings.save(force=True)
+    @staticmethod
+    def _on_proxy_change(settings, value: str) -> None:
+        from yarl import URL
 
+        try:
+            GeneralSection._set_and_save(
+                settings, "proxy", URL(value) if value.strip() else None
+            )
+        except Exception:
+            pass
 
-def _on_proxy_change(settings, value: str) -> None:
-    from yarl import URL
-
-    try:
-        _set_and_save(settings, "proxy", URL(value) if value.strip() else None)
-    except Exception:
-        pass
-
-
-def _priority_mode_options() -> dict:
-    return {
-        PriorityMode.PRIORITY_ONLY: _(
-            "gui", "settings", "priority_modes", "priority_only"
-        ),
-        PriorityMode.ENDING_SOONEST: _(
-            "gui", "settings", "priority_modes", "ending_soonest"
-        ),
-        PriorityMode.LOW_AVBL_FIRST: _(
-            "gui", "settings", "priority_modes", "low_availability"
-        ),
-    }
+    @staticmethod
+    def _priority_mode_options() -> dict:
+        return {
+            PriorityMode.PRIORITY_ONLY: _(
+                "gui", "settings", "priority_modes", "priority_only"
+            ),
+            PriorityMode.ENDING_SOONEST: _(
+                "gui", "settings", "priority_modes", "ending_soonest"
+            ),
+            PriorityMode.LOW_AVBL_FIRST: _(
+                "gui", "settings", "priority_modes", "low_availability"
+            ),
+        }

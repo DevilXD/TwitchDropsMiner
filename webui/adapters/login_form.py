@@ -38,9 +38,6 @@ class LoginFormAdapter:
 
     async def wait_for_login_press(self) -> None:
         self._confirm.clear()
-        login = self._manager.main_panel._login_section
-        login._login_btn_visible = True
-        login._logout_btn_visible = False
         await self._manager.coro_unless_closed(self._confirm.wait())
 
     async def ask_login(self) -> LoginData:
@@ -54,7 +51,6 @@ class LoginFormAdapter:
         self._manager.grab_attention(sound=False)
         self._manager.print(_("gui", "login", "request"))
         await self.wait_for_login_press()
-        self._page_url = None
 
     async def open_login_popup(self) -> None:
         """Open the Twitch login URL in a small popup window."""
@@ -64,12 +60,7 @@ class LoginFormAdapter:
         self._confirm.set()
 
     def update(self, status: str, user_id: int | None):
-        login = self._manager.main_panel._login_section
-        user_str = str(user_id) if user_id is not None else "-"
-        login._login_status_text = f"{status}\n{user_str}"
-        login._logout_btn_visible = status == _("gui", "login", "logged_in")
-        if status != _("gui", "login", "required"):
-            login._login_btn_visible = False
+        self._manager.main_panel.update_login(status, user_id)
         # Mirror login state to the status bar when the main loop hasn't set it yet
         login_statuses = (
             _("gui", "login", "logging_in"),
