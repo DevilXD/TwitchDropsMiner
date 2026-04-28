@@ -46,7 +46,7 @@ from constants import (
     DUMP_PATH,
     COOKIES_PATH,
     MAX_CHANNELS,
-    GQL_OPERATIONS,
+    GQL_QUERIES,
     WATCH_INTERVAL,
     State,
     ClientType,
@@ -906,7 +906,7 @@ class Twitch:
                 # Solution 1: use GQL to query for the currently mined drop status
                 try:
                     context = await self.gql_request(
-                        GQL_OPERATIONS["CurrentDrop"].with_variables(
+                        GQL_QUERIES["CurrentDrop"].with_variables(
                             {"channelID": str(channel.id)}
                         )
                     )
@@ -1175,7 +1175,7 @@ class Twitch:
             if watching_channel is not None:
                 for attempt in range(8):
                     context = await self.gql_request(
-                        GQL_OPERATIONS["CurrentDrop"].with_variables(
+                        GQL_QUERIES["CurrentDrop"].with_variables(
                             {"channelID": str(watching_channel.id)}
                         )
                     )
@@ -1215,7 +1215,7 @@ class Twitch:
             ):
                 self.change_state(State.INVENTORY_FETCH)
                 await self.gql_request(
-                    GQL_OPERATIONS["NotificationsDelete"].with_variables(
+                    GQL_QUERIES["NotificationsDelete"].with_variables(
                         {"input": {"id": data["id"]}}
                     )
                 )
@@ -1387,7 +1387,7 @@ class Twitch:
         auth_state = await self.get_auth()
         response_list: list[JsonType] = await self.gql_request(
             [
-                GQL_OPERATIONS["CampaignDetails"].with_variables(
+                GQL_QUERIES["CampaignDetails"].with_variables(
                     {"channelLogin": str(auth_state.user_id), "dropID": cid}
                 )
                 for cid in campaign_ids
@@ -1403,7 +1403,7 @@ class Twitch:
         status_update = self.gui.status.update
         status_update(_("gui", "status", "fetching_inventory"))
         # fetch in-progress campaigns (inventory)
-        response = await self.gql_request(GQL_OPERATIONS["Inventory"])
+        response = await self.gql_request(GQL_QUERIES["Inventory"])
         inventory: JsonType = response["data"]["currentUser"]["inventory"]
         ongoing_campaigns: list[JsonType] = inventory["dropCampaignsInProgress"] or []
         # this contains claimed benefit edge IDs, not drop IDs
@@ -1412,7 +1412,7 @@ class Twitch:
         }
         inventory_data: dict[str, JsonType] = {c["id"]: c for c in ongoing_campaigns}
         # fetch general available campaigns data (campaigns)
-        response = await self.gql_request(GQL_OPERATIONS["Campaigns"])
+        response = await self.gql_request(GQL_QUERIES["Campaigns"])
         available_list: list[JsonType] = response["data"]["currentUser"]["dropCampaigns"] or []
         applicable_statuses = ("ACTIVE", "UPCOMING")
         available_campaigns: dict[str, JsonType] = {
@@ -1546,7 +1546,7 @@ class Twitch:
             filters.append("DROPS_ENABLED")
         try:
             response = await self.gql_request(
-                GQL_OPERATIONS["GameDirectory"].with_variables({
+                GQL_QUERIES["GameDirectory"].with_variables({
                     "limit": limit,
                     "slug": game.slug,
                     "options": {
@@ -1598,7 +1598,7 @@ class Twitch:
         acl_available_drops_map: dict[int, list[JsonType]] = {}
         if self.settings.available_drops_check:
             available_gql_ops: list[GQLOperation] = [
-                GQL_OPERATIONS["AvailableDrops"].with_variables({"channelID": str(channel_id)})
+                GQL_QUERIES["AvailableDrops"].with_variables({"channelID": str(channel_id)})
                 for channel_id, channel_data in acl_streams_map.items()
                 if channel_data["stream"] is not None  # only do this for ONLINE channels
             ]
