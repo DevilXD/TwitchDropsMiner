@@ -178,7 +178,7 @@ class InventoryPanel(BasePanel):
                 self._filter_excluded
                 or (
                     campaign.game.name not in settings.exclude
-                    and (not priority_only or campaign.game.name in settings.priority)
+                    and not priority_only or campaign.game.name in settings.priority
                 )
             )
             and (self._filter_finished or not campaign.finished)
