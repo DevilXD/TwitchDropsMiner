@@ -214,12 +214,7 @@ class WebUIManager:
         Matches gui.py ConsoleOutput.print(): each line of a multiline message gets its own stamp.
         """
         stamp = datetime.now().strftime("%X")
-        if "\n" in message:
-            display_message = message.replace("\n", f"\n{stamp}: ")
-        else:
-            display_message = message
-
-        lines = [f"{stamp}: {line}" for line in display_message.split("\n")]
+        lines = [f"{stamp}: {line}" for line in message.split("\n")]
 
         self.main_panel.push_console(lines)
 
