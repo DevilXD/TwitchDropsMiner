@@ -3,7 +3,7 @@ from __future__ import annotations
 from time import monotonic
 from typing import TYPE_CHECKING
 
-from nicegui import ui
+from nicegui import app, ui
 
 from translate import _
 
@@ -29,6 +29,8 @@ class DropSection:
         self._drop_progress_value: float = 0.0
         self._drop_percentage_text: str = "-%"
         self._drop_remaining_text: str = ""
+
+        app.timer(1.0, self.tick)
 
     def build(self) -> None:
         with ui.card().props("flat bordered").classes("w-full gap-1"):
@@ -63,9 +65,6 @@ class DropSection:
             ui.linear_progress(value=0, show_value=False).classes(
                 "w-full h-4"
             ).bind_value_from(self, "_drop_progress_value")
-
-        timer = ui.timer(1.0, self.tick)
-        ui.context.client.on_disconnect(lambda: timer.cancel())
 
     def display(self, drop, *, countdown: bool = True, subone: bool = False) -> None:
         if drop is None:
