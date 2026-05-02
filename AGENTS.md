@@ -129,13 +129,25 @@ twitch.py → adapter → WebUIManager / MainPanel → section → ui.*
 
 ## NiceGUI Documentation
 
-When researching NiceGUI v3 APIs, these JSON indexes are available on the docs site and are more useful than the search index alone:
+NiceGUI serves its entire documentation as machine-readable JSON endpoints. Each index is a JSON array of objects with these fields:
 
-| URL | Contents |
-|---|---|
-| `https://nicegui.io/static/sitewide_index.json` | Documentation pages with code — no examples (best for learning API syntax) |
-| `https://nicegui.io/static/examples_index.json` | Examples only |
-| `https://nicegui.io/static/search_index.json` | Minimal index used by the site's search UI |
+| Field | Type | Description |
+|---|---|---|
+| title | string | Section heading, e.g. "Button: Click Handler" or "Example: Chat App" |
+| content | string | Description or search text (Markdown or reStructuredText) |
+| format | string | Content format: "md" or "rst" |
+| url | string | Doc page path or GitHub example link |
+| demo | string? | Complete Python demo code, or "" if none (sitewide index only; key absent in other indices) |
+
+Available indices:
+
+| Endpoint | Entries | Tokens | Includes code | Use case |
+|---|---|---|---|---|
+| `https://nicegui.io/static/sitewide_index.json` | ~764 | ~148k | Yes | RAG, AI tooling, full context |
+| `https://nicegui.io/static/search_index.json` | ~823 | ~102k | No | Powers the on-site doc search; includes GitHub examples |
+| `https://nicegui.io/static/examples_index.json` | ~59 | ~3k | No | [GitHub examples](https://github.com/zauberzeug/nicegui/tree/main/examples) only |
+
+The Entries and Tokens values may not be 100% accurate, they are just estimates.
 
 ## Dependencies
 
