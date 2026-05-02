@@ -36,7 +36,7 @@ class GeneralSection:
                     options=list(_.languages),
                     value=_.current,
                     on_change=lambda e: self._on_language_change(e.value),
-                ).classes("w-full text-xs").props("dense")
+                ).classes("w-full text-xs").props("dense").bind_value_from(_, "current")
 
                 with ui.row().classes("items-center gap-2 text-xs"):
                     ui.label(_("gui", "settings", "general", "dark_mode")).classes(
@@ -113,14 +113,13 @@ class GeneralSection:
                 ).props("dense").classes("text-xs w-full")
 
     def _on_language_change(self, language: str) -> None:
-        # Page reload re-runs build() with the new _.current, so all labels
-        # and dropdowns render in the new language without restarting the server.
-        GeneralSection._set_and_save(self._settings, "language", language)
         try:
             _.set_language(language)
+            GeneralSection._set_and_save(self._settings, "language", language)
+            self._reload_all_clients()
+            self._manager.restart()
         except ValueError:
             return
-        self._reload_all_clients()
 
     def _reload_all_clients(self) -> None:
         try:

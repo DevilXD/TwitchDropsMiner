@@ -287,18 +287,22 @@ class WebUIManager:
         """Clear the current drop display"""
         self.main_panel.clear_drop()
 
+    def restart(self) -> None:
+        """Restarts the twitch miner backend.
+        _reload_requested races against the next HTTP request in coro_unless_closed(),
+        raising ReloadRequest up through _run() into run(), which calls shutdown()
+        (full teardown) then restarts _run() fresh. state_change(INVENTORY_FETCH)
+        wakes the loop out of IDLE so it reaches an HTTP call where the race fires."""
+        self._reload_requested.set()
+        self._twitch.state_change(State.INVENTORY_FETCH)()
+
     def logout(self) -> None:
         try:
             session = self._twitch._session
             if session is not None:
                 session.cookie_jar.clear()
             self.channels.clear()
-            # _reload_requested races against the next HTTP request in coro_unless_closed(),
-            # raising ReloadRequest up through _run() into run(), which calls shutdown()
-            # (full teardown) then restarts _run() fresh. state_change(INVENTORY_FETCH)
-            # wakes the loop out of IDLE so it reaches an HTTP call where the race fires.
-            self._reload_requested.set()
-            self._twitch.state_change(State.INVENTORY_FETCH)()
+            self.restart()
         except Exception as e:
             print(f"Logout error: {e}")
 
