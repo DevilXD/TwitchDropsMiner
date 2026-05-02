@@ -239,6 +239,7 @@ class WebUIManager:
     def close(self, *args) -> int:
         """Signal the main loop to shut down (mirrors GUIManager.close)."""
         self._close_requested.set()
+        self._twitch.close()
         return 0
 
     async def wait_until_closed(self):
