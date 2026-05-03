@@ -185,7 +185,7 @@ class ChannelsSection:
         try:
             self._manager._twitch.state_change(State.CHANNEL_SWITCH)()
         except Exception as e:
-            print(f"Channel switch error: {e}")
+            self._manager.print(f"Channel switch error: {e}")
 
     def _on_table_selection(self, e) -> None:
         selected = e.sender.selected
