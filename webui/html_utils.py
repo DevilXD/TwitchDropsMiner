@@ -40,6 +40,7 @@ if ("Notification" in window) {{
 
 
 def favicon_js(icon_name: str) -> str:
+    js_icon_name = json.dumps(icon_name)
     return f"""
 (function() {{
     var link = document.querySelector("link[rel~='icon']");
@@ -48,7 +49,7 @@ def favicon_js(icon_name: str) -> str:
         link.rel = 'icon';
         document.head.appendChild(link);
     }}
-    link.href = '/icons/{icon_name}.ico';
+    link.href = '/icons/{js_icon_name}.ico';
 }})();
 """
 
@@ -57,14 +58,21 @@ def popup_js(url: str, name: str, width: int = 600, height: int = 800) -> str:
     """Generate JavaScript to open a popup window with the given URL.
 
     Uses JSON serialization to safely escape the URL and window name.
+    Returns an expression that evaluates to ``true`` if the popup opened,
+    ``false`` if it was blocked.
     """
     js_url = json.dumps(url)
     js_name = json.dumps(name)
     return (
         f"window.open({js_url}, {js_name}, "
-        f'"width={width},height={height},toolbar=no,menubar=no,location=yes,resizable=yes"); '
-        f"null"
+        f"'width={width},height={height},toolbar=no,menubar=no,location=yes,resizable=yes') !== null"
     )
+
+
+def close_popup_js(name: str) -> str:
+    """Generate JavaScript to close a named popup window."""
+    js_name = json.dumps(name)
+    return f"var w = window.open('', {js_name}); if (w && !w.closed) w.close();"
 
 
 class Tag:

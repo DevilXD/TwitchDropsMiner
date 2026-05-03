@@ -6,10 +6,6 @@ from typing import TYPE_CHECKING
 
 from translate import _
 
-from nicegui import ui
-
-from webui.html_utils import popup_js
-
 if TYPE_CHECKING:
     from yarl import URL
     from webui.manager import WebUIManager
@@ -31,7 +27,7 @@ class LoginFormAdapter:
     def __init__(self, manager: "WebUIManager"):
         self._manager = manager
         self._confirm = asyncio.Event()
-        self._page_url: "URL | None" = None
+        self.page_url: "URL | None" = None
 
     def clear(self, login: bool = False, password: bool = False, token: bool = False):
         pass
@@ -46,17 +42,14 @@ class LoginFormAdapter:
 
     async def ask_enter_code(self, page_url: "URL", user_code: str) -> None:
         """Show the login button and wait for the user to click it before polling begins."""
-        self._page_url = page_url
+        self.page_url = page_url
         self.update(_("gui", "login", "required"), None)
         self._manager.grab_attention(sound=False)
         self._manager.print(_("gui", "login", "request"))
         await self.wait_for_login_press()
 
-    async def open_login_popup(self) -> None:
-        """Open the Twitch login URL in a small popup window."""
-        if self._page_url is not None:
-            js = popup_js(str(self._page_url), "twitch_login")
-            await ui.run_javascript(js)
+    def confirm(self) -> None:
+        """Signal that the user has pressed the login button."""
         self._confirm.set()
 
     def update(self, status: str, user_id: int | None):
