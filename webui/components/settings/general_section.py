@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from nicegui import app, ui
+from yarl import URL
 
 from translate import _
 from constants import PriorityMode, State
@@ -14,6 +15,11 @@ if TYPE_CHECKING:
 class GeneralSection:
     def __init__(self, manager: "WebUIManager") -> None:
         self._manager = manager
+        self._proxy_text: str = (
+            str(manager._twitch.settings.proxy)
+            if manager._twitch.settings.proxy
+            else ""
+        )
 
     @property
     def _settings(self):
@@ -64,11 +70,14 @@ class GeneralSection:
                 ui.input(
                     value=str(settings.proxy) if settings.proxy else "",
                     placeholder="http://username:password@address:port",
-                    on_change=lambda e: GeneralSection._on_proxy_change(
-                        settings, e.value
+                    on_change=lambda e: self._on_proxy_change(e.value),
+                    validation=lambda v: (
+                        "Invalid proxy URL"
+                        if not GeneralSection._proxy_is_valid(v)
+                        else None
                     ),
                 ).classes("w-full text-xs").props("dense").bind_value_from(
-                    settings, "proxy", backward=lambda v: str(v) if v else ""
+                    self, "_proxy_text"
                 )
 
             with ui.card().props("flat bordered").classes("w-full q-pa-sm"):
@@ -125,21 +134,29 @@ class GeneralSection:
             with client:
                 ui.run_javascript("location.reload()")
 
+    def _on_proxy_change(self, value: str) -> None:
+        self._proxy_text = value
+        if GeneralSection._proxy_is_valid(value):
+            value = value.strip()
+            GeneralSection._set_and_save(
+                self._settings, "proxy", URL(value) if value else None
+            )
+
     @staticmethod
     def _set_and_save(settings, name: str, value) -> None:
         setattr(settings, name, value)
         settings.save(force=True)
 
     @staticmethod
-    def _on_proxy_change(settings, value: str) -> None:
-        from yarl import URL
-
+    def _proxy_is_valid(value: str) -> bool:
+        value = value.strip()
+        if not value:
+            return True
         try:
-            GeneralSection._set_and_save(
-                settings, "proxy", URL(value) if value.strip() else None
-            )
+            url = URL(value)
         except Exception:
-            pass
+            return False
+        return url.host is not None and url.port is not None
 
     @staticmethod
     def _priority_mode_options() -> dict:
