@@ -31,9 +31,10 @@ if __name__ == "__main__":
     # resolves to WebUIManager without loading tkinter.
     import types as _types
     from webui import WebUIManager as _WebUIManager
-    _gui_stub = _types.ModuleType('gui')
+
+    _gui_stub = _types.ModuleType("gui")
     _gui_stub.GUIManager = _WebUIManager  # type: ignore[attr-defined]
-    sys.modules['gui'] = _gui_stub
+    sys.modules["gui"] = _gui_stub
     del _types, _WebUIManager, _gui_stub
 
     from twitch import Twitch
@@ -157,10 +158,10 @@ if __name__ == "__main__":
         logging.getLogger("TwitchDrops.gql").setLevel(settings.debug_gql)
         logging.getLogger("TwitchDrops.websocket").setLevel(settings.debug_ws)
 
-        # Create Twitch client - this will create WebUIManager which registers pages
-        # Run in executor to avoid blocking the event loop
-        loop = asyncio.get_running_loop()
-        client = await loop.run_in_executor(None, lambda: Twitch(settings))
+        # Create Twitch client - this will create WebUIManager which registers
+        # NiceGUI page handlers. Must run on the event loop thread because
+        # route registration is not thread-safe.
+        client = Twitch(settings)
         twitch_client = client
 
         loop = asyncio.get_running_loop()
