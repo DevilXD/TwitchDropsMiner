@@ -299,7 +299,7 @@ class WebUIManager:
             self.channels.clear()
             self.restart()
         except Exception as e:
-            print(f"Logout error: {e}")
+            self.print(f"Logout error: {e}")
 
     def display_drop(self, drop, *, countdown: bool = True, subone: bool = False):
         """Display current drop information"""
