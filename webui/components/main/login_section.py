@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from nicegui import Client, ui
+from nicegui import app, ui
 
 from translate import _
 from webui.html_utils import close_popup_js, popup_js
@@ -78,7 +78,7 @@ class LoginSection:
     def _close_login_popup(self) -> None:
         self._popup_maybe_open = False
         js = close_popup_js("twitch_login")
-        for client in list(Client.instances.values()):
+        for client in app.clients():
             with client:
                 ui.run_javascript(js)
 

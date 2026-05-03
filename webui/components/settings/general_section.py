@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import asyncio
 from typing import TYPE_CHECKING
 
-from nicegui import ui, Client
+from nicegui import app, ui
 
 from translate import _
 from constants import PriorityMode, State
@@ -122,20 +121,9 @@ class GeneralSection:
             return
 
     def _reload_all_clients(self) -> None:
-        try:
-            current_id: str | None = ui.context.client.id
-        except Exception:
-            current_id = None
-
-        async def _reload(client) -> None:
+        for client in app.clients():
             with client:
                 ui.run_javascript("location.reload()")
-
-        for client_id, client in list(Client.instances.items()):
-            if client_id == current_id:
-                ui.run_javascript("location.reload()")
-            else:
-                asyncio.get_event_loop().create_task(_reload(client))
 
     @staticmethod
     def _set_and_save(settings, name: str, value) -> None:
