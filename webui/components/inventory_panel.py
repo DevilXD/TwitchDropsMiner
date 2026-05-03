@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 from nicegui import ui
 
 from translate import _
-from constants import PriorityMode
+from constants import PriorityMode, State
 from webui.html_utils import Tag
 from .base_panel import BasePanel
 
@@ -25,16 +25,14 @@ class InventoryPanel(BasePanel):
 
     One instance lives on WebUIManager. Each browser client calls build(),
     which registers that client's call site for _campaign_list_content.
-    Filter state and campaign data are shared; .refresh() rebuilds the list
-    for all connected clients at once.
+    Filter state is shared; .refresh() rebuilds the list for all connected
+    clients at once. Campaign data is read directly from
+    self._manager._twitch.inventory (the source of truth).
     """
 
     def __init__(self, manager: "WebUIManager") -> None:
         super().__init__(manager)
 
-        # Shared filter state — persists so late-joining clients start in sync.
-        # Defaults match gui.py InventoryOverview.__init__:
-        # not_linked = True when priority_mode is PRIORITY_ONLY, upcoming = True, rest False
         _priority_only = (
             manager._twitch.settings.priority_mode is PriorityMode.PRIORITY_ONLY
         )
@@ -44,8 +42,6 @@ class InventoryPanel(BasePanel):
         self._filter_excluded: bool = False
         self._filter_finished: bool = False
 
-        self._inventory_campaigns: dict = {}  # campaign.id -> DropsCampaign
-
     # -------------------------------------------------------------------------
     # Public API
     # -------------------------------------------------------------------------
@@ -53,19 +49,12 @@ class InventoryPanel(BasePanel):
     def build(self) -> None:
         self._create_panel()
 
-    def refresh_inventory_display(self) -> None:
-        """Rebuild the campaign list for all connected clients."""
-        self._campaign_list_content.refresh()
-
     def clear(self) -> None:
-        """Clear all campaigns and rebuild the display."""
-        self._inventory_campaigns.clear()
+        """Re-render the campaign list after campaigns have been cleared."""
         self._campaign_list_content.refresh()
 
     def add_campaign(self, campaign) -> None:
-        """Add or update a campaign and rebuild the display."""
-        campaign_id = getattr(campaign, "id", str(id(campaign)))
-        self._inventory_campaigns[campaign_id] = campaign
+        """Re-render the campaign list to reflect added campaign."""
         self._campaign_list_content.refresh()
 
     def update_drop(self, drop) -> None:
@@ -121,22 +110,21 @@ class InventoryPanel(BasePanel):
         # Sort matches the three stable sorts in twitch.py fetch_inventory:
         # primary: eligible first, secondary: by date, tertiary: active first
         campaigns = sorted(
-            self._inventory_campaigns.values(),
+            (c for c in self._get_campaigns() if self._campaign_visible(c)),
             key=lambda c: (
                 not c.eligible,
                 c.upcoming and c.starts_at or c.ends_at,
                 not c.active,
             ),
         )
-        visible = [c for c in campaigns if self._campaign_visible(c)]
 
         with ui.column().classes("w-full gap-2"):
-            if not visible:
+            if not campaigns:
                 ui.label("No campaigns match the current filters.").classes(
                     "text-sm text-gray-500 p-4"
                 )
                 return
-            for campaign in visible:
+            for campaign in campaigns:
                 ui.html(self._render_campaign_html(campaign), sanitize=False).classes(
                     "w-full"
                 )
@@ -146,17 +134,12 @@ class InventoryPanel(BasePanel):
     # -------------------------------------------------------------------------
 
     def _refresh_inventory(self) -> None:
-        """Re-read all campaigns from twitch.inventory and rebuild the display."""
-        self._inventory_campaigns.clear()
+        """Trigger a backend inventory fetch."""
+        self._manager._twitch.state_change(State.INVENTORY_FETCH)()
 
-        if (
-            hasattr(self._manager._twitch, "inventory")
-            and self._manager._twitch.inventory
-        ):
-            for campaign in self._manager._twitch.inventory:
-                self._inventory_campaigns[campaign.id] = campaign
-
-        self._campaign_list_content.refresh()
+    def _get_campaigns(self) -> list:
+        """Read the current campaign list from the backend."""
+        return list(self._manager._twitch.inventory)
 
     def _on_filter_change(self, key: str, value: bool) -> None:
         setattr(self, f"_filter_{key}", value)
