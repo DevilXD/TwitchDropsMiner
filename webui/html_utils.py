@@ -49,7 +49,7 @@ def favicon_js(icon_name: str) -> str:
         link.rel = 'icon';
         document.head.appendChild(link);
     }}
-    link.href = '/icons/{js_icon_name}.ico';
+    link.href = '/icons/' + {js_icon_name} + '.ico';
 }})();
 """
 
