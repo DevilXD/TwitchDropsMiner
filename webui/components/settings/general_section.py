@@ -7,6 +7,7 @@ from yarl import URL
 
 from translate import _
 from constants import PriorityMode, State
+from webui.html_utils import request_notification_permission_js
 
 if TYPE_CHECKING:
     from webui.manager import WebUIManager
@@ -51,6 +52,15 @@ class GeneralSection:
                         value=settings.dark_mode,
                         on_change=lambda e: manager.set_dark_mode(e.value),
                     ).bind_value_from(settings, "dark_mode")
+
+                with ui.row().classes("items-center gap-2 text-xs"):
+                    ui.label(
+                        _("gui", "settings", "general", "tray_notifications")
+                    ).classes("flex-1")
+                    ui.switch(
+                        value=settings.tray_notifications,
+                        on_change=lambda e: self._on_tray_notifications_change(e.value),
+                    ).bind_value_from(settings, "tray_notifications")
 
                 with ui.row().classes("items-center gap-2 text-xs"):
                     ui.label(_("gui", "settings", "general", "priority_mode")).classes(
@@ -141,6 +151,13 @@ class GeneralSection:
             GeneralSection._set_and_save(
                 self._settings, "proxy", URL(value) if value else None
             )
+
+    def _on_tray_notifications_change(self, value: bool) -> None:
+        GeneralSection._set_and_save(self._settings, "tray_notifications", value)
+        if value:
+            for client in app.clients():
+                with client:
+                    ui.run_javascript(request_notification_permission_js())
 
     @staticmethod
     def _set_and_save(settings, name: str, value) -> None:

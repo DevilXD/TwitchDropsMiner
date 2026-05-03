@@ -56,7 +56,7 @@ from .adapters import (
     TabsAdapter,
 )
 from .handlers import WebUIOutputHandler
-from .html_utils import favicon_js
+from .html_utils import favicon_js, request_notification_permission_js
 from .components import (
     BasePanel,
     MainPanel,
@@ -160,14 +160,9 @@ class WebUIManager:
             # Set favicon to current icon state for late-joining clients
             ui.run_javascript(favicon_js(self._current_icon))
 
-            # Request notification permission on page load
-            ui.run_javascript(
-                """
-                if ('Notification' in window && Notification.permission === 'default') {
-                    Notification.requestPermission();
-                }
-            """
-            )
+            # Request notification permission on page load if enabled
+            if self._twitch.settings.tray_notifications:
+                ui.run_javascript(request_notification_permission_js())
 
             # Alias so nested closures below can reference the manager unambiguously.
             manager = self

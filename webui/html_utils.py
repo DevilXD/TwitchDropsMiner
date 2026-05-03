@@ -39,6 +39,14 @@ if ("Notification" in window) {{
 """
 
 
+def request_notification_permission_js() -> str:
+    return """
+if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+}
+"""
+
+
 def favicon_js(icon_name: str) -> str:
     js_icon_name = json.dumps(icon_name)
     return f"""
