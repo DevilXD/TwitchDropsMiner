@@ -228,7 +228,7 @@ if __name__ == "__main__":
 
         # Get host/port from settings object (uses __getattr__)
         host = getattr(settings, "webui_host", "0.0.0.0")
-        port = getattr(settings, "webui_port", 8080)
+        port = getattr(settings, "webui_port", 5800)
 
         try:
             ui.run(

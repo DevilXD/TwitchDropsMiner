@@ -38,10 +38,10 @@ python entrypoint.py
 ### Accessing the Interface
 
 Once started, open your web browser and navigate to:
-- **Default**: `http://localhost:8080`
+- **Default**: `http://localhost:5800`
 - **Custom**: Depends on your `webui_host` and `webui_port` settings
 
-The WebUI is accessible from any device on your network. Use your machine's IP address to access remotely (e.g., `http://192.168.1.100:8080`).
+The WebUI is accessible from any device on your network. Use your machine's IP address to access remotely (e.g., `http://192.168.1.100:5800`).
 
 ### Using tkinter Instead
 
@@ -63,7 +63,7 @@ WebUI settings are stored in your standard Twitch Drops Miner settings file (`se
   - `0.0.0.0` - Listen on all interfaces (accessible from other devices)
   - `127.0.0.1` or `localhost` - Local access only
   
-- **webui_port**: Port to serve on (default: `8080`)
+- **webui_port**: Port to serve on (default: `5800`)
 
 You can modify these settings in the WebUI's Settings tab or by editing `settings.json` directly.
 
@@ -107,7 +107,7 @@ pip install nicegui
 
 **Port already in use**
 - Change `webui_port` to a different value (e.g., `8081` or `9000`)
-- Find what's using the port: `lsof -i :8080` (Linux/Mac) or `netstat -ano | findstr :8080` (Windows)
+- Find what's using the port: `lsof -i :5800` (Linux/Mac) or `netstat -ano | findstr :5800` (Windows)
 
 ## Technical Note
 
