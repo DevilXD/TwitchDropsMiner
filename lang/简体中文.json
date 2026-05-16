@@ -136,7 +136,7 @@
                 "tray_notifications": "启用托盘通知",
                 "dark_mode": "夜间模式",
                 "priority_mode": "掉宝挖掘模式",
-                "proxy": "代理地址："
+                "proxy": "代理地址（需要重启）："
             },
             "advanced": {
                 "name": "高级设置",
