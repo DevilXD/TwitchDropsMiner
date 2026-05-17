@@ -107,6 +107,10 @@ def timestamp(string: str) -> datetime:
         return datetime.strptime(string, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
 
 
+def isonow() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", 'Z')
+
+
 CHARS_ASCII = string.ascii_letters + string.digits
 CHARS_HEX_LOWER = string.digits + "abcdef"
 CHARS_HEX_UPPER = string.digits + "ABCDEF"

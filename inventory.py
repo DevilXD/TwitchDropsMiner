@@ -13,7 +13,7 @@ from translate import _
 from channel import Channel
 from utils import timestamp, Game
 from exceptions import GQLException
-from constants import GQL_OPERATIONS, MAX_EXTRA_MINUTES, URLType, State
+from constants import GQL_QUERIES, MAX_EXTRA_MINUTES, URLType, State
 
 if TYPE_CHECKING:
     from collections import abc
@@ -194,7 +194,7 @@ class BaseDrop:
             return False
         try:
             response = await self._twitch.gql_request(
-                GQL_OPERATIONS["ClaimDrop"].with_variables(
+                GQL_QUERIES["ClaimDrop"].with_variables(
                     {"input": {"dropInstanceID": self.claim_id}}
                 )
             )
@@ -323,7 +323,7 @@ class TimedDrop(BaseDrop):
             self._gui_inv.update_drop(self)
 
     def _update_real_minutes(self, delta: int) -> None:
-        if delta == 0 or self.real_current_minutes + delta < 0 or not self.can_earn():
+        if delta == 0 or self.real_current_minutes + delta < 0:
             return
         if self.real_current_minutes + delta < self.required_minutes:
             self.real_current_minutes += delta

@@ -27,7 +27,7 @@
     "error": {
         "captcha": "Der Anmeldeversuch wurde durch CAPTCHA verweigert.\nBitte versuche es in mindestens 12 Stunden erneut.",
         "site_down": "Twitch ist nicht erreichbar. Erneuter Versuch in {seconds} Sekunden...",
-        "no_connection": "Keine Verbindung zu Twitch möglich. Erneuter Versuch in {seconds} Sekunden..."
+        "no_connection": "Keine Verbindung zu Twitch möglich. Erneuter Versuch in {seconds} Sekunden... ({url})"
     },
     "gui": {
         "output": "Protokoll",

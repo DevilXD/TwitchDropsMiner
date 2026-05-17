@@ -162,6 +162,14 @@ If you'd be interested in running the latest master from source or building your
 
 ### Support
 
+If you'd encounter any issues with the miner:
+
+- Please see the [troubleshooting page](https://github.com/DevilXD/TwitchDropsMiner/wiki/Troubleshooting) for some common issues and their explanation.  
+- Please [search the issues page](https://github.com/DevilXD/TwitchDropsMiner/issues?q=sort%3Aupdated-desc%20is%3Aissue) to see if your issue hasn't been reported yet.  
+- If it's not been reported yet, feel free to open a new issue, describing your problem.
+
+If you like the application and found it useful, please consider donating a small amount of money to support me. Thank you!
+
 <div align="center">
 
 [![Buy me a coffee](https://i.imgur.com/cL95gzE.png)](
@@ -235,6 +243,8 @@ placed past the period character at the end.
 @LusTerCsI - For the Traditional Chinese (繁體中文) translation corrections and revisions.  
 @nwvh - For the entirety of the Czech (Čeština) translation.  
 @Kjerne - For the entirety of the Danish (Dansk) translation.  
+@lmdpocus - For the entirety of the Dutch (Nederlandse) translation.  
+@Rensoraa - For the Traditional Dutch (Nederlandse) translation corrections and revisions.  
 @roobini-gamer - For the entirety of the French (Français) translation.  
 @Calvineries - For the French (Français) translation revisions.  
 @ThisIsCyreX - For the entirety of the German (Deutsch) translation.  
