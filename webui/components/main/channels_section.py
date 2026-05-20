@@ -19,7 +19,7 @@ class ChannelsSection:
         self._watching_channel_iid = None
         self._selected_channel_iid = None
         self._channel_rows: list[dict] = []
-        self._channel_tables: list = []
+        self._channel_tables: list[ui.table] = []
 
     def build(self) -> None:
         with (

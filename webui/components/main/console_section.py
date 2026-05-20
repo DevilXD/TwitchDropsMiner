@@ -12,7 +12,7 @@ class ConsoleSection:
     def __init__(self) -> None:
         self._console_log_path = CONFIG_PATH / "console.log"
         self._console_log: list[str] = self._load()
-        self._log_instances: list = []
+        self._log_instances: list[ui.log] = []
 
     def build(self) -> None:
         with ui.card().props("flat bordered").classes("w-full gap-1"):
@@ -21,22 +21,18 @@ class ConsoleSection:
             for line in self._console_log:
                 log.push(line)
             self._log_instances.append(log)
-            ui.context.client.on_disconnect(
-                lambda: (
-                    self._log_instances.remove(log)
-                    if log in self._log_instances
-                    else None
-                )
-            )
 
     def push(self, lines: list[str]) -> None:
         self._console_log.extend(lines)
         if len(self._console_log) > 200:
             del self._console_log[:-200]
         self._save(lines)
-        for log in self._log_instances:
-            for line in lines:
-                log.push(line)
+        for log in list(self._log_instances):
+            try:
+                for line in lines:
+                    log.push(line)
+            except RuntimeError:
+                self._log_instances.remove(log)
 
     def _load(self) -> list[str]:
         try:
