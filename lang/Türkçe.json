@@ -7,34 +7,27 @@
         "goes_offline": "{channel} ÇEVRİMDIŞI oldu, geçiş yapılıyor...",
         "claimed_drop": "Alınan drop: {drop}",
         "no_channel": "İzlenecek uygun kanal yok. ÇEVRİMİÇİ bir kanal bekleniyor...",
-        "no_campaign": "Drop kasılacak aktif kampanya yok. Aktif bir kampanya bekleniyor...",
+        "no_campaign": "Drop kasılacak aktif kampanya yok. Aktif bir kampanya bekleniyor..."
     },
     "login": {
-        "unexpected_content": (
-            "Beklenmeyen içerik türü döndürüldü, genellikle bir yönlendirmeden kaynaklanır. "
-            "İnternet erişimi için giriş yapmanız gerekiyor mu?"
-        ),
+        "unexpected_content": "Beklenmeyen içerik türü döndürüldü, genellikle bir yönlendirmeden kaynaklanır. İnternet erişimi için giriş yapmanız gerekiyor mu?",
         "chrome": {
             "startup": "Chrome açılıyor...",
-            "login_to_complete": (
-                "Giriş düğmesine tekrar basarak giriş işlemini manuel olarak tamamlayın."
-            ),
+            "login_to_complete": "Giriş düğmesine tekrar basarak giriş işlemini manuel olarak tamamlayın.",
             "no_token": "Yetkilendirme anahtarı (token) bulunamadı.",
-            "closed_window": (
-                "Giriş işlemi tamamlanamadan Chrome penceresi kapatıldı."
-            ),
+            "closed_window": "Giriş işlemi tamamlanamadan Chrome penceresi kapatıldı."
         },
         "error_code": "Giriş hata kodu: {error_code}",
         "incorrect_login_pass": "Hatalı kullanıcı adı veya şifre.",
         "incorrect_email_code": "Hatalı e-posta kodu.",
         "incorrect_twofa_code": "Hatalı 2FA kodu.",
         "email_code_required": "E-posta kodu gerekli. E-postanızı kontrol edin.",
-        "twofa_code_required": "2FA kodu gerekli.",
+        "twofa_code_required": "2FA kodu gerekli."
     },
     "error": {
         "captcha": "Giriş denemeniz CAPTCHA tarafından reddedildi.\nLütfen 12+ saat sonra tekrar deneyin.",
         "site_down": "Twitch çöktü, {seconds} saniye içinde tekrar deneniyor...",
-        "no_connection": "Twitch'e bağlanılamıyor, {seconds} saniye içinde tekrar deneniyor... ({url})",
+        "no_connection": "Twitch'e bağlanılamıyor, {seconds} saniye içinde tekrar deneniyor... ({url})"
     },
     "gui": {
         "output": "Çıktı",
@@ -48,19 +41,19 @@
             "switching": "Kanal değiştiriliyor...",
             "fetching_inventory": "Envanter getiriliyor...",
             "fetching_campaigns": "Kampanyalar getiriliyor...",
-            "adding_campaigns": "Kampanyalar envantere ekleniyor... {counter}",
+            "adding_campaigns": "Kampanyalar envantere ekleniyor... {counter}"
         },
         "tabs": {
             "main": "Ana Sayfa",
             "inventory": "Envanter",
             "settings": "Ayarlar",
-            "help": "Yardım",
+            "help": "Yardım"
         },
         "tray": {
             "notification_title": "Kazanılan Drop",
             "minimize": "Sistem Tepsisine Küçült",
             "show": "Göster",
-            "quit": "Çıkış",
+            "quit": "Çıkış"
         },
         "login": {
             "name": "Giriş Formu",
@@ -73,7 +66,7 @@
             "username": "Kullanıcı Adı",
             "password": "Şifre",
             "twofa_code": "2FA kodu (isteğe bağlı)",
-            "button": "Giriş",
+            "button": "Giriş"
         },
         "websocket": {
             "name": "Websocket Durumu",
@@ -83,7 +76,7 @@
             "disconnected": "Bağlantı Kesildi",
             "connecting": "Bağlanılıyor...",
             "disconnecting": "Bağlantı kesiliyor...",
-            "reconnecting": "Yeniden bağlanılıyor...",
+            "reconnecting": "Yeniden bağlanılıyor..."
         },
         "progress": {
             "name": "Kampanya İlerlemesi",
@@ -92,7 +85,7 @@
             "campaign": "Kampanya:",
             "remaining": "{time} kaldı",
             "drop_progress": "İlerleme:",
-            "campaign_progress": "İlerleme:",
+            "campaign_progress": "İlerleme:"
         },
         "channels": {
             "name": "Kanallar",
@@ -104,8 +97,8 @@
                 "channel": "Kanal",
                 "status": "Durum",
                 "game": "Oyun",
-                "viewers": "İzleyici",
-            },
+                "viewers": "İzleyici"
+            }
         },
         "inventory": {
             "filter": {
@@ -116,7 +109,7 @@
                 "expired": "Süresi Doldu",
                 "excluded": "Hariç Tutulan",
                 "finished": "Tamamlandı",
-                "refresh": "Yenile",
+                "refresh": "Yenile"
             },
             "status": {
                 "linked": "Bağlı ✔",
@@ -125,7 +118,7 @@
                 "upcoming": "Yaklaşan ⏳",
                 "expired": "Süresi Doldu ❌",
                 "claimed": "Alındı ✔",
-                "ready_to_claim": "Alınmaya hazır ⏳",
+                "ready_to_claim": "Alınmaya hazır ⏳"
             },
             "starts": "Başlangıç: {time}",
             "ends": "Bitiş: {time}",
@@ -133,7 +126,7 @@
             "all_channels": "Tümü",
             "and_more": "ve {amount} tane daha...",
             "percent_progress": "{minutes} dakikanın {percent} kadarı",
-            "minutes_progress": "{minutes} dakika",
+            "minutes_progress": "{minutes} dakika"
         },
         "settings": {
             "general": {
@@ -143,67 +136,36 @@
                 "tray_notifications": "Sistem tepsisi bildirimleri: ",
                 "dark_mode": "Karanlık mod: ",
                 "priority_mode": "Öncelik modu: ",
-                "proxy": "Proxy (yeniden başlatma gerektirir):",
+                "proxy": "Proxy (yeniden başlatma gerektirir):"
             },
             "advanced": {
                 "name": "Gelişmiş",
                 "warning": "Uyarı!",
-                "warning_text": (
-                    "Bu seçenekler uygulamanın hatalı çalışmasına neden olabilir.\n"
-                    "Eğer herhangi bir sorun yaşıyorsanız, "
-                    "bu seçeneklerin tümünün devre dışı olduğundan emin olun."
-                ),
+                "warning_text": "Bu seçenekler uygulamanın hatalı çalışmasına neden olabilir.\nEğer herhangi bir sorun yaşıyorsanız, bu seçeneklerin tümünün devre dışı olduğundan emin olun.",
                 "enable_badges_emotes": "Rozetler ve ifadeler için kısmi desteği etkinleştir: ",
-                "available_drops_check": "Ekstra kullanılabilir drop kontrolünü etkinleştir: ",
+                "available_drops_check": "Ekstra kullanılabilir drop kontrolünü etkinleştir: "
             },
             "priority_modes": {
                 "priority_only": "Sadece öncelik listesi",
                 "ending_soonest": "En erken biten",
-                "low_availability": "Önce düşük bulunabilirlik (az bulunanlar)",
+                "low_availability": "Önce düşük bulunabilirlik (az bulunanlar)"
             },
             "game_name": "Oyun adı",
             "priority": "Öncelik",
             "exclude": "Hariç Tut",
             "reload": "Yenile",
-            "reload_text": "Çoğu değişikliğin hemen etkili olması için uygulamanın yenilenmesi gerekir: ",
+            "reload_text": "Çoğu değişikliğin hemen etkili olması için uygulamanın yenilenmesi gerekir: "
         },
         "help": {
             "links": {
                 "name": "Faydalı Bağlantılar",
                 "inventory": "Twitch envanterini gör",
-                "campaigns": "Tüm kampanyaları gör ve hesap bağlantılarını yönet",
+                "campaigns": "Tüm kampanyaları gör ve hesap bağlantılarını yönet"
             },
             "how_it_works": "Nasıl Çalışır",
-            "how_it_works_text": (
-                "Her birkaç saniyede bir, uygulama yayın meta verilerini getirerek belirli bir yayını "
-                "izliyormuş gibi davranır - bu, dropların ilerlemesi için yeterlidir. "
-                "Bunun, gerçek bir video ve ses yayını indirme ihtiyacını tamamen "
-                "ortadan kaldırdığını unutmayın. "
-                "Kanalların durumunu (ÇEVRİMİÇİ veya ÇEVRİMDIŞI) güncel tutmak için, "
-                "açılan veya kapanan yayınlar hakkında etkinlikler alan veya "
-                "mevcut izleyici sayısıyla ilgili güncellemeleri bildiren bir websocket bağlantısı kurulur."
-            ),
+            "how_it_works_text": "Her birkaç saniyede bir, uygulama yayın meta verilerini getirerek belirli bir yayını izliyormuş gibi davranır - bu, dropların ilerlemesi için yeterlidir. Bunun, gerçek bir video ve ses yayını indirme ihtiyacını tamamen ortadan kaldırdığını unutmayın. Kanalların durumunu (ÇEVRİMİÇİ veya ÇEVRİMDIŞI) güncel tutmak için, açılan veya kapanan yayınlar hakkında etkinlikler alan veya mevcut izleyici sayısıyla ilgili güncellemeleri bildiren bir websocket bağlantısı kurulur.",
             "getting_started": "Başlarken",
-            "getting_started_text": (
-                "1. Uygulamaya giriş yapın.\n"
-                "2. Twitch hesabınızın drop kasmak (mining) istediğiniz tüm kampanyalara "
-                "bağlı olduğundan emin olun.\n"
-                "3. Mümkün olan her şeyden drop kazanmakla ilgileniyorsanız, "
-                "Öncelik Modunu \"Sadece öncelik listesi\" dışında bir seçeneğe değiştirin "
-                "ve \"Yenile\" butonuna basın.\n"
-                "4. Öncelikle belirli oyunları kasmak istiyorsanız, seçtiğiniz oyunların "
-                "sıralı bir listesini oluşturmak için \"Öncelik\" listesini kullanın. "
-                "Listenin başındaki oyunlar, daha alt sıralardakilerden önce "
-                "kasılmaya çalışılacaktır.\n"
-                "5. Öncelik listesinde olmayan oyunların kasılmasını önlemek için "
-                "\"Öncelik modu\"nu \"Sadece öncelik listesi\" olarak seçili bırakın. "
-                "Ya da bırakmayın - tamamen size kalmış.\n"
-                "6. Uygulamaya hangi oyunların asla kasılmaması gerektiğini söylemek için "
-                "\"Hariç Tut\" listesini kullanın.\n"
-                "7. İki listeden birinin içeriğini değiştirmek veya "
-                "\"Öncelik modu\"nu değiştirmek, değişikliklerin etkili olması için "
-                "\"Yenile\"ye basmanızı gerektirir."
-            ),
-        },
-    },
+            "getting_started_text": "1. Uygulamaya giriş yapın.\n2. Twitch hesabınızın drop kasmak (mining) istediğiniz tüm kampanyalara bağlı olduğundan emin olun.\n3. Mümkün olan her şeyden drop kazanmakla ilgileniyorsanız, Öncelik Modunu \"Sadece öncelik listesi\" dışında bir seçeneğe değiştirin ve \"Yenile\" butonuna basın.\n4. Öncelikle belirli oyunları kasmak istiyorsanız, seçtiğiniz oyunların sıralı bir listesini oluşturmak için \"Öncelik\" listesini kullanın. Listenin başındaki oyunlar, daha alt sıralardakilerden önce kasılmaya çalışılacaktır.\n5. Öncelik listesinde olmayan oyunların kasılmasını önlemek için \"Öncelik modu\"nu \"Sadece öncelik listesi\" olarak seçili bırakın. Ya da bırakmayın - tamamen size kalmış.\n6. Uygulamaya hangi oyunların asla kasılmaması gerektiğini söylemek için \"Hariç Tut\" listesini kullanın.\n7. İki listeden birinin içeriğini değiştirmek veya \"Öncelik modu\"nu değiştirmek, değişikliklerin etkili olması için \"Yenile\"ye basmanızı gerektirir."
+        }
+    }
 }
