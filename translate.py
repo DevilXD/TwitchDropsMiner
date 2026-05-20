@@ -162,6 +162,7 @@ class GUISettingsGeneral(TypedDict):
     tray: str
     tray_notifications: str
     dark_mode: str
+    auto_claim: str
     priority_mode: str
     proxy: str
 
@@ -372,6 +373,7 @@ default_translation: Translation = {
                 "tray": "Autostart into tray: ",
                 "tray_notifications": "Tray notifications: ",
                 "dark_mode": "Dark mode: ",
+                "auto_claim": "Auto-claim drops: ",
                 "priority_mode": "Priority mode: ",
                 "proxy": "Proxy (requires restart):",
             },

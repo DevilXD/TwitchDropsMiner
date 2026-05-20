@@ -1561,6 +1561,7 @@ class _SettingsVars(TypedDict):
     proxy: StringVar
     autostart: IntVar
     dark_mode: IntVar
+    auto_claim: IntVar
     language: StringVar
     priority_mode: StringVar
     tray_notifications: IntVar
@@ -1597,6 +1598,7 @@ class SettingsPanel:
             "proxy": StringVar(master, str(self._settings.proxy)),
             "tray": IntVar(master, self._settings.autostart_tray),
             "dark_mode": IntVar(master, int(self._settings.dark_mode)),
+            "auto_claim": IntVar(master, int(self._settings.auto_claim)),
             "priority_mode": StringVar(master, self.PRIORITY_MODES[priority_mode]),
             "tray_notifications": IntVar(master, self._settings.tray_notifications),
             "enable_badges_emotes": IntVar(
@@ -1671,6 +1673,18 @@ class SettingsPanel:
             checkboxes_frame,
             variable=self._vars["dark_mode"],
             command=self.update_dark_mode,
+        ).grid(column=1, row=irow, sticky="w")
+        ttk.Label(
+            checkboxes_frame, text=_("gui", "settings", "general", "auto_claim")
+        ).grid(column=0, row=(irow := irow + 1), sticky="e")
+        ttk.Checkbutton(
+            checkboxes_frame,
+            variable=self._vars["auto_claim"],
+            command=lambda: setattr(
+                self._settings,
+                "auto_claim",
+                bool(self._vars["auto_claim"].get()),
+            ),
         ).grid(column=1, row=irow, sticky="w")
         ttk.Label(
             checkboxes_frame, text=_("gui", "settings", "general", "priority_mode")

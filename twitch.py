@@ -645,7 +645,7 @@ class Twitch:
                 for campaign in self.inventory:
                     if not campaign.upcoming:
                         for drop in campaign.drops:
-                            if drop.can_claim:
+                            if drop.can_claim and self.settings.auto_claim:
                                 await drop.claim()
                 # figure out which games we want
                 self.wanted_games.clear()
@@ -1166,7 +1166,8 @@ class Twitch:
                 return
             drop.update_claim(message["data"]["drop_instance_id"])
             campaign = drop.campaign
-            await drop.claim()
+            if self.settings.auto_claim:
+                await drop.claim()
             drop.display()
             # About 4-20s after claiming the drop, next drop can be started
             # by re-sending the watch payload. We can test for it by fetching the current drop
