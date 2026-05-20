@@ -1680,11 +1680,7 @@ class SettingsPanel:
         ttk.Checkbutton(
             checkboxes_frame,
             variable=self._vars["auto_claim"],
-            command=lambda: setattr(
-                self._settings,
-                "auto_claim",
-                bool(self._vars["auto_claim"].get()),
-            ),
+            command=self.update_auto_claim,
         ).grid(column=1, row=irow, sticky="w")
         ttk.Label(
             checkboxes_frame, text=_("gui", "settings", "general", "priority_mode")
@@ -1866,6 +1862,9 @@ class SettingsPanel:
     def update_dark_mode(self) -> None:
         self._settings.dark_mode = bool(self._vars["dark_mode"].get())
         self._manager.apply_theme(self._settings.dark_mode)
+
+    def update_auto_claim(self) -> None:
+        self._settings.auto_claim = bool(self._vars["auto_claim"].get())
 
     def _get_self_path(self) -> str:
         # NOTE: we need double quotes in case the path contains spaces
