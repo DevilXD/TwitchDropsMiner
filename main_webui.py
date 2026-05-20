@@ -13,6 +13,7 @@ from multiprocessing import freeze_support
 
 if __name__ == "__main__":
     freeze_support()
+    import os
     import sys
     import signal
     import asyncio
@@ -226,9 +227,17 @@ if __name__ == "__main__":
         if not success:
             sys.exit(3)
 
-        # Get host/port from settings object (uses __getattr__)
-        host = getattr(settings, "webui_host", "0.0.0.0")
-        port = getattr(settings, "webui_port", 5800)
+        host = os.environ.get("WEBUI_HOST", "0.0.0.0")
+        port = os.environ.get("WEBUI_PORT", "5800")
+        try:
+            port = int(port)
+            if not (1 <= port <= 65535):
+                raise ValueError
+        except ValueError:
+            print(
+                f"ERROR: WEBUI_PORT must be an integer between 1 and 65535, got: {port}"
+            )
+            sys.exit(1)
 
         try:
             ui.run(
