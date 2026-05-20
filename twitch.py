@@ -1169,7 +1169,7 @@ class Twitch:
             if self.settings.auto_claim:
                 await drop.claim()
             drop.display()
-            # About 4-20s after claiming the drop, next drop can be started
+            # About 4-20s after a drop claim is processed, the next drop can be started
             # by re-sending the watch payload. We can test for it by fetching the current drop
             # via GQL, and then comparing drop IDs.
             await asyncio.sleep(4)
