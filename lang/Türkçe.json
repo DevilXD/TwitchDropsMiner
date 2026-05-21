@@ -7,7 +7,7 @@
         "goes_offline": "{channel} ÇEVRİMDIŞI oldu, geçiş yapılıyor...",
         "claimed_drop": "Alınan drop: {drop}",
         "no_channel": "İzlenecek uygun kanal yok. ÇEVRİMİÇİ bir kanal bekleniyor...",
-        "no_campaign": "Drop kasılacak aktif kampanya yok. Aktif bir kampanya bekleniyor..."
+        "no_campaign": "Drop kazılacak aktif kampanya yok. Aktif bir kampanya bekleniyor..."
     },
     "login": {
         "unexpected_content": "Beklenmeyen içerik türü döndürüldü, genellikle bir yönlendirmeden kaynaklanır. İnternet erişimi için giriş yapmanız gerekiyor mu?",
@@ -165,7 +165,7 @@
             "how_it_works": "Nasıl Çalışır",
             "how_it_works_text": "Her birkaç saniyede bir, uygulama yayın meta verilerini getirerek belirli bir yayını izliyormuş gibi davranır - bu, dropların ilerlemesi için yeterlidir. Bunun, gerçek bir video ve ses yayını indirme ihtiyacını tamamen ortadan kaldırdığını unutmayın. Kanalların durumunu (ÇEVRİMİÇİ veya ÇEVRİMDIŞI) güncel tutmak için, açılan veya kapanan yayınlar hakkında etkinlikler alan veya mevcut izleyici sayısıyla ilgili güncellemeleri bildiren bir websocket bağlantısı kurulur.",
             "getting_started": "Başlarken",
-            "getting_started_text": "1. Uygulamaya giriş yapın.\n2. Twitch hesabınızın drop kasmak (mining) istediğiniz tüm kampanyalara bağlı olduğundan emin olun.\n3. Mümkün olan her şeyden drop kazanmakla ilgileniyorsanız, Öncelik Modunu \"Sadece öncelik listesi\" dışında bir seçeneğe değiştirin ve \"Yenile\" butonuna basın.\n4. Öncelikle belirli oyunları kasmak istiyorsanız, seçtiğiniz oyunların sıralı bir listesini oluşturmak için \"Öncelik\" listesini kullanın. Listenin başındaki oyunlar, daha alt sıralardakilerden önce kasılmaya çalışılacaktır.\n5. Öncelik listesinde olmayan oyunların kasılmasını önlemek için \"Öncelik modu\"nu \"Sadece öncelik listesi\" olarak seçili bırakın. Ya da bırakmayın - tamamen size kalmış.\n6. Uygulamaya hangi oyunların asla kasılmaması gerektiğini söylemek için \"Hariç Tut\" listesini kullanın.\n7. İki listeden birinin içeriğini değiştirmek veya \"Öncelik modu\"nu değiştirmek, değişikliklerin etkili olması için \"Yenile\"ye basmanızı gerektirir."
+            "getting_started_text": "1. Uygulamaya giriş yapın.\n2. Twitch hesabınızın drop kazmak (mining) istediğiniz tüm kampanyalara bağlı olduğundan emin olun.\n3. Mümkün olan her şeyden drop kazanmakla ilgileniyorsanız, Öncelik Modunu \"Sadece öncelik listesi\" dışında bir seçeneğe değiştirin ve \"Yenile\" butonuna basın.\n4. Öncelikle belirli oyunları kazmak istiyorsanız, seçtiğiniz oyunların sıralı bir listesini oluşturmak için \"Öncelik\" listesini kullanın. Listenin başındaki oyunlar, daha alt sıralardakilerden önce kazılmaya çalışılacaktır.\n5. Öncelik listesinde olmayan oyunların kazılmasını önlemek için \"Öncelik modu\"nu \"Sadece öncelik listesi\" olarak seçili bırakın. Ya da bırakmayın - tamamen size kalmış.\n6. Uygulamaya hangi oyunların asla kazılmaması gerektiğini söylemek için \"Hariç Tut\" listesini kullanın.\n7. İki listeden birinin içeriğini değiştirmek veya \"Öncelik modu\"nu değiştirmek, değişikliklerin etkili olması için \"Yenile\"ye basmanızı gerektirir."
         }
     }
 }
