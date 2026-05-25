@@ -21,6 +21,13 @@ class ConsoleSection:
             for line in self._console_log:
                 log.push(line)
             self._log_instances.append(log)
+            ui.context.client.on_delete(
+                lambda: (
+                    self._log_instances.remove(log)
+                    if log in self._log_instances
+                    else None
+                )
+            )
 
     def push(self, lines: list[str]) -> None:
         self._console_log.extend(lines)
