@@ -9,6 +9,7 @@ __pycache__
 /*.tmp
 /Twitch Drops Miner
 # Dev files
+*.new
 /env
 /cache
 /*.jar
