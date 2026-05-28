@@ -124,6 +124,11 @@ if __name__ == "__main__":
         sys.exit(1)
     from pathlib import Path
 
+    # Initialize authentication if enabled
+    from webui.auth import AuthManager
+
+    AuthManager()
+
     # Global state for the Twitch client
     twitch_client: Twitch | None = None
     exit_status = 0

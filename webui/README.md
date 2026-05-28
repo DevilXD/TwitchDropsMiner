@@ -50,7 +50,7 @@ python main.py
 
 ## Configuration
 
-The WebUI host and port are configured via environment variables:
+The WebUI host, port, and authentication are configured via environment variables:
 
 - **WEBUI_HOST**: Network interface to bind to (default: `0.0.0.0`)
   - `0.0.0.0` - Listen on all interfaces (accessible from other devices)
@@ -58,8 +58,12 @@ The WebUI host and port are configured via environment variables:
 
 - **WEBUI_PORT**: Port to serve on, must be an integer between 1 and 65535 (default: `5800`)
 
+- **WEBUI_AUTH**: Enable login authentication (default: `0`)
+  - `1` - Require username/password to access the WebUI
+  - `0` - No authentication (auth system is completely skipped)
+
 ```bash
-WEBUI_HOST=127.0.0.1 WEBUI_PORT=8080 python main_webui.py
+WEBUI_HOST=127.0.0.1 WEBUI_PORT=8080 WEBUI_AUTH=1 python main_webui.py
 ```
 
 ## Features
@@ -85,8 +89,21 @@ The WebUI provides all the functionality of the traditional GUI:
 
 - By default, the WebUI listens on all interfaces (`0.0.0.0`), making it accessible from other devices
 - Set `WEBUI_HOST=127.0.0.1` for local-only access
-- No authentication is built-in - anyone on your network can access the interface
 - Consider firewall rules or a reverse proxy if exposing beyond your local network
+
+### Authentication
+
+When enabled, the WebUI requires a login before accessing the dashboard:
+
+- **First visit** (no users exist): You'll be prompted to register an admin account with a username, password, and confirmation
+- **Subsequent visits**: Sign in with the registered username and password
+- Credentials are stored hashed (argon2) in `config/webui_auth.db`
+- A random JWT signing secret is auto-generated and stored in the same database
+- Login attempts are rate-limited to 5 per minute per IP address
+- A logout button appears in the header bar when auth is enabled
+- Sessions last 30 days via an httponly cookie
+
+Authentication is disabled by default (`WEBUI_AUTH=0`). The entire auth system is skipped — no middleware, no login page, no database is created.
 
 ## Troubleshooting
 
