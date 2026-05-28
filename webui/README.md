@@ -60,7 +60,7 @@ The WebUI host, port, and authentication are configured via environment variable
 
 - **WEBUI_AUTH**: Enable login authentication (default: `0`)
   - `1` - Require username/password to access the WebUI
-  - `0` - No authentication (auth system is completely skipped)
+  - `0` - No authentication (auth system is completely disabled)
 
 ```bash
 WEBUI_HOST=127.0.0.1 WEBUI_PORT=8080 WEBUI_AUTH=1 python main_webui.py
