@@ -18,10 +18,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{env.PYTHON_VERSION}}
 
@@ -40,6 +40,30 @@ jobs:
             echo -e "\nFailed to validate the following language file(s): ${failed[@]}"
             exit 1
           fi
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs:
+      - validate
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{env.PYTHON_VERSION}}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install -r requirements-nicegui.txt
+          python -m pip install pytest
+
+      - name: Run tests
+        run: |
+          python -m pytest tests/ -x
 
   windows:
     if: false
@@ -314,7 +338,7 @@ jobs:
             runner: ubuntu-24.04-arm
     runs-on: ${{matrix.runner}}
     needs:
-      - validate
+      - test
 
     steps:
       - name: Checkout code
@@ -366,7 +390,7 @@ jobs:
             runner: ubuntu-24.04-arm
     runs-on: ${{matrix.runner}}
     needs:
-      - validate
+      - test
 
     steps:
       - name: Checkout code
