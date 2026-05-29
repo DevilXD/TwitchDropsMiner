@@ -70,7 +70,7 @@ The WebUI host, port, and authentication are configured via environment variable
   - `web-privkey.pem` — Web server's private key
   - `web-fullchain.pem` — Web server's certificate, bundled with any root and intermediate certificates
 
-  If either file is missing, a self-signed certificate is automatically generated and written to those paths. Self-signed certs include `localhost` and `127.0.0.1` as Subject Alternative Names, plus the container hostname and its resolved IP when running in Docker with `--hostname`.
+  If either file is missing, a self-signed certificate is automatically generated and written to those paths. Self-signed certs include `localhost` and `127.0.0.1` as Subject Alternative Names, plus the container hostname and its resolved IP when running in Docker with `--hostname`. Auto-generation requires `openssl` to be installed.
 
 ```bash
 WEBUI_HOST=127.0.0.1 WEBUI_PORT=8080 WEBUI_AUTH=1 SECURE_CONNECTION=1 python main_webui.py
