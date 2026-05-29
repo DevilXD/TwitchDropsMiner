@@ -5,9 +5,15 @@ ARG ARCH=x86_64
 RUN apk add --no-cache \
     build-base \
     python3-dev \
-    'patchelf<0.18.0' \
     libffi-dev \
-    7zip
+    7zip \
+    cmake && \
+    wget -qO- https://github.com/NixOS/patchelf/releases/download/0.17.2/patchelf-0.17.2.tar.gz | tar xz && \
+    cd patchelf-0.17.2 && \
+    cmake -B build -DCMAKE_INSTALL_PREFIX=/usr/local && \
+    cmake --build build --target install -j$(nproc) && \
+    cd .. && rm -rf patchelf-0.17.2 && \
+    apk del cmake
 
 WORKDIR /app
 COPY . .
