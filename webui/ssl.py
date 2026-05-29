@@ -1,9 +1,8 @@
 import ipaddress
 import os
 import socket
+import subprocess
 from pathlib import Path
-
-import trustme
 
 
 def get_ssl_kwargs(cert_dir: Path) -> dict[str, str]:
@@ -18,17 +17,20 @@ def get_ssl_kwargs(cert_dir: Path) -> dict[str, str]:
 
 def _generate_self_signed(keyfile: Path, certfile: Path, cert_dir: Path) -> None:
     cert_dir.mkdir(parents=True, exist_ok=True)
-    san = ["localhost", "127.0.0.1"]
+    san_entries = ["DNS:localhost", "IP:127.0.0.1"]
     hostname = socket.gethostname()
-    if hostname not in san:
-        san.append(hostname)
+    if hostname not in ("localhost", "127.0.0.1"):
+        san_entries.append(f"DNS:{hostname}")
         try:
             local_ip = ipaddress.ip_address(socket.gethostbyname(hostname))
-            if local_ip not in san:
-                san.append(local_ip)
+            if local_ip != ipaddress.ip_address("127.0.0.1"):
+                san_entries.append(f"IP:{local_ip}")
         except Exception:
             pass
-    ca = trustme.CA()
-    cert = ca.issue_cert(*san)
-    cert.private_key_pem.write_to_path(keyfile)
-    cert.cert_chain_pems[0].write_to_path(certfile)
+    cmd = (
+        f"openssl req -x509 -newkey rsa:2048 -nodes -days 3650"
+        f" -keyout {keyfile} -out {certfile}"
+        f' -subj "/CN=TwitchDropsMiner"'
+        f' -addext "subjectAltName={",".join(san_entries)}"'
+    )
+    subprocess.run(cmd, shell=True, check=True)
