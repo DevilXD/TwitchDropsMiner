@@ -1,0 +1,43 @@
+FROM python:3.10-alpine AS builder
+
+ARG ARCH=x86_64
+
+RUN apk add --no-cache \
+    build-base \
+    python3-dev \
+    patchelf \
+    libffi-dev \
+    7zip
+
+WORKDIR /app
+COPY . .
+
+RUN python3 -m venv env && \
+    . env/bin/activate && \
+    pip install wheel && \
+    pip install --no-cache-dir -r requirements-nicegui.txt && \
+    pip install nuitka
+
+# NOTE: --nofollow-import-to=gui is required because main_webui.py replaces
+# the gui module with a stub at runtime (sys.modules["gui"] = stub).
+# Nuitka would otherwise try to compile gui.py, which imports tkinter.
+# --onefile embeds all data files in a single binary; at runtime it extracts
+# to a temp dir and sets sys._MEIPASS so _resource_path in constants.py works.
+RUN . env/bin/activate && \
+    python -m nuitka \
+    --onefile \
+    --include-package=nicegui \
+    --include-package-data=nicegui \
+    --include-data-dir=icons=icons \
+    --include-data-dir=lang=lang \
+    --nofollow-import-to=gui \
+    --assume-yes-for-downloads \
+    --show-progress \
+    --output-filename="Twitch Drops Miner (by DevilXD)" \
+    main_webui.py
+
+RUN folder='Twitch Drops Miner' && \
+    mkdir "${folder}" && \
+    cp "Twitch Drops Miner (by DevilXD)" "${folder}/" && \
+    cp manual.txt "${folder}/" && \
+    7z a "Twitch.Drops.Miner.Linux.musl.Nuitka-nicegui-${ARCH}.zip" "${folder}"
