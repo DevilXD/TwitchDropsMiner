@@ -6,14 +6,12 @@ RUN apk add --no-cache \
     build-base \
     python3-dev \
     libffi-dev \
-    7zip \
-    cmake && \
+    7zip && \
     wget -qO- https://github.com/NixOS/patchelf/releases/download/0.17.2/patchelf-0.17.2.tar.gz | tar xz && \
     cd patchelf-0.17.2 && \
-    cmake -B build -DCMAKE_INSTALL_PREFIX=/usr/local && \
-    cmake --build build --target install -j$(nproc) && \
-    cd .. && rm -rf patchelf-0.17.2 && \
-    apk del cmake
+    ./configure --prefix=/usr/local && \
+    make -j$(nproc) install && \
+    cd .. && rm -rf patchelf-0.17.2
 
 WORKDIR /app
 COPY . .
