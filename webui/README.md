@@ -35,8 +35,8 @@ See `python main_webui.py --help` for available command-line options (e.g. `--st
 ### Accessing the Interface
 
 Once started, open your web browser and navigate to:
-- **Default**: `http://localhost:5800`
-- **Custom**: Set via the `WEBUI_HOST` and `WEBUI_PORT` environment variables
+- **Default**: `http://localhost:5800` (or `https://localhost:5800` with `SECURE_CONNECTION=1`)
+- **Custom**: Set via the `WEBUI_HOST`, `WEBUI_PORT`, and `SECURE_CONNECTION` environment variables
 
 The WebUI is accessible from any device on your network. Use your machine's IP address to access remotely (e.g., `http://192.168.1.100:5800`).
 
@@ -62,8 +62,18 @@ The WebUI host, port, and authentication are configured via environment variable
   - `1` - Require username/password to access the WebUI
   - `0` - No authentication (auth system is completely disabled)
 
+- **SECURE_CONNECTION**: Enable HTTPS (default: `0`)
+  - `1` - Serve the WebUI over HTTPS using TLS certificates
+  - `0` - Serve the WebUI over plain HTTP
+
+  When `1`, certificates are read from `config/certs/`:
+  - `web-privkey.pem` — Web server's private key
+  - `web-fullchain.pem` — Web server's certificate, bundled with any root and intermediate certificates
+
+  If either file is missing, a self-signed certificate is automatically generated and written to those paths. Self-signed certs include `localhost` and `127.0.0.1` as Subject Alternative Names, plus the container hostname and its resolved IP when running in Docker with `--hostname`.
+
 ```bash
-WEBUI_HOST=127.0.0.1 WEBUI_PORT=8080 WEBUI_AUTH=1 python main_webui.py
+WEBUI_HOST=127.0.0.1 WEBUI_PORT=8080 WEBUI_AUTH=1 SECURE_CONNECTION=1 python main_webui.py
 ```
 
 ## Features
