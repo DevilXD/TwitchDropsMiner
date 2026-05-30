@@ -152,6 +152,11 @@ if UI_BACKEND == "nicegui":
         "nicegui/elements/sortable/",
         "nicegui/elements/xterm/",
     ]
+    excluded_nicegui_data_files = {
+        "nicegui/static/sass.dart.js",
+        "nicegui/static/quasar.umd.js",
+        "nicegui/static/vue.esm-browser.js",
+    }
     # a.datas entries are (dest_path, source_path, typecode) tuples.
     # Normalise separators so the prefix match works on Windows too.
     a.datas = [
@@ -161,6 +166,8 @@ if UI_BACKEND == "nicegui":
             d[0].replace("\\", "/").startswith(p)
             for p in excluded_nicegui_data_prefixes
         )
+        and d[0].replace("\\", "/") not in excluded_nicegui_data_files
+        and not d[0].endswith(".map")
     ]
 if one_dir:
     exe_args: PYZTypeEXE = tuple()
