@@ -419,7 +419,7 @@ class AwaitableValue(Generic[_T]):
 
 
 class Game:
-    SPECIAL_EVENTS_GAME_ID: int = 509663
+    SPECIAL_GAME_IDS: set[int] = {509663, 509672}
 
     def __init__(self, data: JsonType):
         self.id: int = int(data["id"])
@@ -454,5 +454,5 @@ class Game:
         slug_text = re.sub(r'-{2,}', '-', slug_text.strip('-'))
         return slug_text
 
-    def is_special_events(self) -> bool:
-        return self.id == self.SPECIAL_EVENTS_GAME_ID
+    def is_special(self) -> bool:
+        return self.id in self.SPECIAL_GAME_IDS
