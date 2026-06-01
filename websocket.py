@@ -249,7 +249,7 @@ class Websocket:
         while True:
             try:
                 raw_message: aiohttp.WSMessage = await ws.receive(timeout=timeout)
-            except aiohttp.ClientConnectionResetError:
+            except aiohttp.ClientConnectionError:
                 raise WebsocketClosed(received=False)
             ws_logger.debug(f"Websocket[{self._idx}] received: {raw_message}")
             if raw_message.type is WSMsgType.TEXT:
@@ -328,7 +328,7 @@ class Websocket:
             message["nonce"] = create_nonce(CHARS_ASCII, 30)
         try:
             await ws.send_json(message, dumps=json_minify)
-        except aiohttp.ClientConnectionResetError:
+        except aiohttp.ClientConnectionError:
             raise WebsocketClosed(received=False)
         ws_logger.debug(f"Websocket[{self._idx}] sent: {message}")
 
