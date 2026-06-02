@@ -2,11 +2,11 @@
     "english_name": "Dutch",
     "status": {
         "terminated": "\nToepassing gestopt.\nSLuit het venster om de toepassing af te sluiten",
-        "watching": "{channel} wordt gekeken",
+        "watching": "{channel} wordt bekeken",
         "goes_online": "{channel} is ONLINE gegaan, wijzig...",
         "goes_offline": "{channel} is OFFLINE gegaan, wijzig...",
         "claimed_drop": "Drop verkregen: {drop}",
-        "no_channel": "Geen deelnemende kanalen online. Wachten op steamers...",
+        "no_channel": "Geen deelnemende kanalen online. Wachten op streamers...",
         "no_campaign": "Geen actieve campagnes beschikbaar. Wachten op nieuwe campagne..."
     },
     "login": {
@@ -53,12 +53,12 @@
             "notification_title": "Drop verkregen",
             "minimize": "Minimaliseren naar taakbalk",
             "show": "Weergeven",
-            "quit": "Verlaten"
+            "quit": "Sluiten"
         },
         "login": {
             "name": "Login",
             "labels": "Status:\nGebruiker ID:",
-            "logged_in": "Geregistreerd",
+            "logged_in": "Ingelogd",
             "logged_out": "Uitgelogd",
             "logging_in": "Aanmelden...",
             "required": "Aanmelden vereist",
@@ -108,7 +108,7 @@
                 "upcoming": "Verwacht",
                 "expired": "Verlopen",
                 "excluded": "Uitgesloten",
-                "finished": "Beëindigd",
+                "finished": "Voltooid",
                 "refresh": "Vernieuwen"
             },
             "status": {
@@ -124,7 +124,7 @@
             "ends": "Eindigt: {time}",
             "allowed_channels": "Toegestane kanalen:",
             "all_channels": "Alle",
-            "and_more": "en {amount} verdere...",
+            "and_more": "en {amount} Andere...",
             "percent_progress": "{percent} van {minutes} Minuten",
             "minutes_progress": "{minutes} Minuten"
         },
@@ -132,7 +132,7 @@
             "general": {
                 "name": "Algemeen",
                 "autostart": "Autostart: ",
-                "tray": "Automatisch starten in het taakbalk: ",
+                "tray": "Automatisch starten in de taakbalk: ",
                 "priority_only": "Alleen prioriteit: ",
                 "dark_mode": "Donkere modus: ",
                 "proxy": "Proxy (Vereist opnieuw opstarten):"
@@ -141,7 +141,7 @@
             "priority": "Prioriteit",
             "exclude": "Uitsluiten",
             "reload": "Herladen",
-            "reload_text": "Voor de meeste wijzigingen is een herlaadbeurt vereist om onmiddellijk van kracht te worden: "
+            "reload_text": "Voor de meeste wijzigingen is een herlaadbeurt vereist om onmiddellijk van kracht te zijn: "
         },
         "help": {
             "links": {
@@ -152,7 +152,7 @@
             "how_it_works": "Dit is hoe het werkt",
             "how_it_works_text": "Elke ~60 seconden verzendt de applicatie een \"minuut gekeken\" gebeurtenis naar het kanaal waar deze momenteel naar kijkt.\nDit is voldoende om voortgang te boeken voor drops. Opmerking: op deze manier is het niet nodig om de stream te downloaden en wordt er bandbreedte bespaard. \nOm de online of offline status van de kanalen up-to-date te houden, wordt er een websocket verbinding opgezet\ndie de kanalen controleert op hun status.",
             "getting_started": "Eerste stappen",
-            "getting_started_text": "• Meld je aan bij de applicatie.\n• Zorg ervoor dat het Twitch-account is gekoppeld aan alle campagnes waarin je geïnteresseerd bent.\n• ls je alle drops wilt verwerken, verwijder je het vinkje bij \"Alleen prioriteit\" en druk je op \"Herladen\" .\n• Als je alleen bepaalde games wilt overwegen, gebruik dan de lijst \"Prioriteit\" om de keuze per game te verfijnen.\n• De lijst geeft prioriteit van boven naar beneden.\n• De optie \"Alleen prioriteit\" verhindert dat games die niet op de prioriteitenlijst staan, worden verwerkt.\n• Met de lijst \"Uitsluiten\" is het mogelijk om games te filteren die nooit in overweging mogen worden genomen.\n• Als lijsten of opties zijn aangepast, moet je op \"Herladen\" drukken zodat de wijzigingen van kracht worden."
+            "getting_started_text": "• Meld je aan bij de applicatie.\n• Zorg ervoor dat het Twitch-account is gekoppeld aan alle campagnes waarin je geïnteresseerd bent.\n• Als je alle drops wilt verwerken, verwijder je het vinkje bij \"Alleen prioriteit\" en druk je op \"Herladen\" .\n• Als je alleen bepaalde games wilt overwegen, gebruik dan de lijst \"Prioriteit\" om de keuze per game te verfijnen.\n• De lijst geeft prioriteit van boven naar beneden.\n• De optie \"Alleen prioriteit\" verhindert dat games die niet op de prioriteitenlijst staan, worden verwerkt.\n• Met de lijst \"Uitsluiten\" is het mogelijk om games te filteren die nooit in overweging mogen worden genomen.\n• Als lijsten of opties zijn aangepast, moet je op \"Herladen\" drukken zodat de wijzigingen van kracht worden."
         }
     }
 }
