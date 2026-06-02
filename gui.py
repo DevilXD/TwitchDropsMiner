@@ -921,9 +921,11 @@ class ChannelList:
             column_settings: dict[str, tuple[str, tk._Anchor, int, int]] = {}
             for s_cid in columns:
                 s_column = table.column(s_cid)
-                assert s_column is not None
+                if s_column is None:
+                    raise RuntimeError(f"Column {s_cid} not found")
                 s_heading = table.heading(s_cid)
-                assert s_heading is not None
+                if s_heading is None:
+                    raise RuntimeError(f"Heading for column {s_cid} not found")
                 column_settings[s_cid] = (
                     s_heading["text"], s_heading["anchor"], s_column["width"], s_column["minwidth"]
                 )
@@ -940,7 +942,8 @@ class ChannelList:
             else:
                 width = max((self._measure(template) for template in width_template), default=20)
             self._const_width.add(cid)
-        assert width is not None
+        else:
+            raise RuntimeError(f"width_template must not be None for column {cid}")
         table.heading(cid, text=name, anchor=anchor)
         table.column(cid, minwidth=width, width=width, stretch=False)
 
@@ -2805,7 +2808,8 @@ if __name__ == "__main__":
         mock.gui = gui
         mock.close = gui.stop
         gui.start()
-        assert gui._poll_task is not None
+        if gui._poll_task is None:
+            raise RuntimeError("GUI poll task not started")
         gui._poll_task.add_done_callback(lambda t: exit_event.set())
         # Login form
         gui.login.update("Login required", None)

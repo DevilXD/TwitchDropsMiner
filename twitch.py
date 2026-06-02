@@ -359,7 +359,8 @@ class _AuthState:
                 "GET", client_info.CLIENT_URL, headers=self.headers()
             ) as response:
                 page_html = await response.text("utf8")
-                assert page_html is not None
+                if page_html is None:
+                    raise RuntimeError("Failed to fetch Twitch page")
             #     match = re.search(r'twilightBuildID="([-a-z0-9]+)"', page_html)
             # if match is None:
             #     raise MinerException("Unable to extract client_version")
@@ -390,7 +391,8 @@ class _AuthState:
                         if response.status == 401:
                             # the access token we have is invalid - clear the cookie and reauth
                             logger.info("Restored session is invalid")
-                            assert client_info.CLIENT_URL.host is not None
+                            if client_info.CLIENT_URL.host is None:
+                                raise RuntimeError("CLIENT_URL host is not set")
                             jar.clear_domain(client_info.CLIENT_URL.host)
                             continue
                         elif response.status == 200:
@@ -1190,7 +1192,8 @@ class Twitch:
             else:
                 self.change_state(State.INVENTORY_FETCH)
             return
-        assert msg_type == "drop-progress"
+        if msg_type != "drop-progress":
+            raise RuntimeError(f"Unexpected message type: {msg_type}")
         if drop is not None:
             drop_text = (
                 f"{drop.name} ({drop.campaign.game}, "
@@ -1249,7 +1252,8 @@ class Twitch:
                 response = await self.gui.coro_unless_closed(
                     session.request(method, url, **kwargs)
                 )
-                assert response is not None
+                if response is None:
+                    raise RuntimeError("Request returned no response")
                 logger.debug(f"Response: {response.status}: {response}")
                 if response.status < 500:
                     # pre-read the response to avoid getting errors outside of the context manager

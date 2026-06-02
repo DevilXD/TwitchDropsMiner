@@ -245,7 +245,8 @@ class Websocket:
         Note that there's no return value - this modifies `messages` in-place.
         """
         ws = self._ws.get_with_default(None)
-        assert ws is not None
+        if ws is None:
+            raise RuntimeError("WebSocket not connected")
         while True:
             try:
                 raw_message: aiohttp.WSMessage = await ws.receive(timeout=timeout)
