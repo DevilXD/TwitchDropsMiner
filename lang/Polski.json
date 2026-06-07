@@ -140,7 +140,7 @@
             },
             "advanced": {
                 "name": "Zaawansowane",
-				"warning": "Ostrzeżenie!",
+                "warning": "Ostrzeżenie!",
                 "warning_text": "Te opcje mogą powodować nieprawidłowe działanie aplikacji.\nW przypadku problemów upewnij się, że wszystkie te opcje są wyłączone.",
                 "enable_badges_emotes": "Włącz częściową obsługę odznak i emotek: ",
                 "available_drops_check": "Włącz dodatkowe sprawdzanie dostępnych dropów: "
