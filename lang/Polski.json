@@ -91,7 +91,7 @@
             "name": "Kanały",
             "switch": "Zmień",
             "online": "ONLINE ✔",
-            "pending": "OCZEKIWANIE ⏳",
+            "pending": "W TOKU ⏳",
             "offline": "OFFLINE ❌",
             "headings": {
                 "channel": "Kanał",
@@ -112,8 +112,8 @@
                 "refresh": "Odśwież"
             },
             "status": {
-                "linked": "Powiązane ✔",
-                "not_linked": "Niepowiązane ❌",
+                "linked": "Połączono ✔",
+                "not_linked": "Nie połączono ❌",
                 "active": "Aktywna ✔",
                 "upcoming": "Nadchodząca ⏳",
                 "expired": "Wygasła ❌",
