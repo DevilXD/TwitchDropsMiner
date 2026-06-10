@@ -120,7 +120,7 @@ if __name__ == "__main__":
         await client.gui.wait_until_closed()
         client.save(force=True)
         client.gui.stop()
-        client.gui.close_window()
+        await client.gui.close_window_async()
         sys.exit(exit_status)
 
     try:

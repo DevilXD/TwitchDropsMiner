@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from time import time
 from collections import deque
 from datetime import datetime
 from typing import Any, TYPE_CHECKING
@@ -11,6 +12,7 @@ from aiohttp import web
 
 from exceptions import ExitRequest
 from utils import _T
+from constants import State, WS_TOPICS_LIMIT, OUTPUT_FORMATTER
 
 if TYPE_CHECKING:
     from collections import abc
@@ -56,6 +58,7 @@ class WebLoginForm:
         self._user_id: int | None = None
         self._code: str | None = None
         self._code_url: str | None = None
+        self._awaiting_input: bool = False
         self._login_event: asyncio.Event = asyncio.Event()
         self._login_data: dict[str, str] | None = None
 
@@ -65,7 +68,7 @@ class WebLoginForm:
             "user_id": self._user_id,
             "code": self._code,
             "code_url": self._code_url,
-            "waiting_for_input": self._login_event.is_set() is False and self._code is None,
+            "waiting_for_input": self._awaiting_input and self._code is None,
         }
 
     def clear(self, login: bool = False, password: bool = False, token: bool = False) -> None:
@@ -84,33 +87,39 @@ class WebLoginForm:
         self._status = "Login required"
         self._code = None
         self._code_url = None
+        self._awaiting_input = True
         self._manager.print("Login required. Please enter your Twitch credentials in the web interface.")
         self._manager._broadcast({"type": "login_state", **self._state()})
 
-        while True:
-            self._login_event.clear()
-            self._login_data = None
-            await self._manager.coro_unless_closed(self._login_event.wait())
-            data = self._login_data or {}
-            username = data.get("username", "").strip()
-            password = data.get("password", "")
-            token = data.get("token", "").strip()
+        try:
+            while True:
+                self._login_event.clear()
+                self._login_data = None
+                await self._manager.coro_unless_closed(self._login_event.wait())
+                data = self._login_data or {}
+                username = data.get("username", "").strip()
+                password = data.get("password", "")
+                token = data.get("token", "").strip()
 
-            if not (3 <= len(username) <= 25):
-                self._manager._broadcast({"type": "login_error", "message": "Username must be 3-25 characters"})
-                continue
-            if len(password) < 8:
-                self._manager._broadcast({"type": "login_error", "message": "Password must be at least 8 characters"})
-                continue
-            if token and len(token) < 6:
-                self._manager._broadcast({"type": "login_error", "message": "2FA token must be at least 6 characters"})
-                continue
-            return LoginData(username=username, password=password, token=token)
+                if not (3 <= len(username) <= 25):
+                    self._manager._broadcast({"type": "login_error", "message": "Username must be 3-25 characters"})
+                    continue
+                if len(password) < 8:
+                    self._manager._broadcast({"type": "login_error", "message": "Password must be at least 8 characters"})
+                    continue
+                if token and len(token) < 6:
+                    self._manager._broadcast({"type": "login_error", "message": "2FA token must be at least 6 characters"})
+                    continue
+                return LoginData(username=username, password=password, token=token)
+        finally:
+            self._awaiting_input = False
+            self._manager._broadcast({"type": "login_state", **self._state()})
 
     async def ask_enter_code(self, page_url: URL, user_code: str) -> None:
         self._status = "Device activation required"
         self._code = user_code
         self._code_url = str(page_url)
+        self._awaiting_input = False
         self._manager.print(
             f"Device activation required. Go to {page_url} and enter code: {user_code}"
         )
@@ -123,6 +132,7 @@ class WebLoginForm:
         self._user_id = user_id
         self._code = None
         self._code_url = None
+        self._awaiting_input = False
         self._manager._broadcast({"type": "login_state", **self._state()})
 
     def submit(self, data: dict[str, str]) -> None:
@@ -246,29 +256,22 @@ class WebChannelList:
 
 
 class WebCampaignProgress:
-    ALMOST_DONE_SECONDS = 60
+    # If no progress update has arrived for this long, consider Twitch's
+    # progress reporting stalled (a real update should arrive every ~60s).
+    STALE_SECONDS = 45
 
     def __init__(self, manager: GUIManager):
         self._manager = manager
         self._drop: TimedDrop | None = None
-        self._last_update: float = 0.0
+        self._last_progress: float = 0.0
         self._timer_task: asyncio.Task[None] | None = None
 
-    def display(
-        self, drop: TimedDrop | None, *, countdown: bool = True, subone: bool = False
-    ) -> None:
-        import time as _time
-        self._drop = drop
-        self._last_update = _time.time()
-        if drop is None:
-            self._manager._broadcast({"type": "drop", "drop": None})
-            return
+    def _drop_data(self, drop: TimedDrop, *, subone: bool = False) -> dict[str, Any]:
         campaign = drop.campaign
         remaining_minutes = drop.remaining_minutes
         if subone and remaining_minutes > 0:
             remaining_minutes -= 1
-
-        drop_data = {
+        return {
             "id": drop.id,
             "name": drop.name,
             "rewards": drop.rewards_text(),
@@ -287,9 +290,22 @@ class WebCampaignProgress:
                 "progress": campaign.progress,
                 "ends_at": campaign.ends_at.isoformat(),
             },
-            "countdown": countdown,
         }
-        self._manager._broadcast({"type": "drop", "drop": drop_data})
+
+    def current_state(self) -> dict[str, Any] | None:
+        if self._drop is None:
+            return None
+        return self._drop_data(self._drop)
+
+    def display(
+        self, drop: TimedDrop | None, *, countdown: bool = True, subone: bool = False
+    ) -> None:
+        self._drop = drop
+        self._last_progress = time()
+        if drop is None:
+            self._manager._broadcast({"type": "drop", "drop": None})
+            return
+        self._manager._broadcast({"type": "drop", "drop": self._drop_data(drop, subone=subone)})
         if countdown and self._timer_task is None:
             self.start_timer()
 
@@ -303,13 +319,15 @@ class WebCampaignProgress:
             self._timer_task = None
 
     async def _timer_loop(self) -> None:
+        # periodic re-broadcast so freshly connected clients stay in sync;
+        # intentionally does NOT touch _last_progress, which tracks real updates
         try:
-            while True:
+            while self._drop is not None:
                 await asyncio.sleep(30)
                 if self._drop is not None:
-                    self.display(self._drop)
-                else:
-                    break
+                    self._manager._broadcast(
+                        {"type": "drop", "drop": self._drop_data(self._drop)}
+                    )
         except asyncio.CancelledError:
             pass
         finally:
@@ -317,10 +335,9 @@ class WebCampaignProgress:
 
     def minute_almost_done(self) -> bool:
         if self._drop is None:
-            return False
-        import time
-        elapsed = time.time() - self._last_update
-        return elapsed > 60 - self.ALMOST_DONE_SECONDS
+            # no drop tracked - report stalled so the watch loop runs its fallbacks
+            return True
+        return time() - self._last_progress >= self.STALE_SECONDS
 
 
 class WebConsoleOutput:
@@ -406,11 +423,45 @@ class WebSettingsPanel:
 
 
 class WebWebsocketStatus:
+    """
+    Mirrors gui.WebsocketStatus: websocket.py calls
+    update(idx, status=..., topics=...) and remove(idx).
+    """
+
     def __init__(self, manager: GUIManager):
         self._manager = manager
+        self._items: dict[int, dict[str, Any]] = {}
 
-    def update(self) -> None:
-        pass
+    def update(self, idx: int, status: str | None = None, topics: int | None = None) -> None:
+        if status is None and topics is None:
+            raise TypeError("You need to provide at least one of: status, topics")
+        entry = self._items.get(idx)
+        if entry is None:
+            entry = self._items[idx] = {"status": "Disconnected", "topics": 0}
+        if status is not None:
+            entry["status"] = status
+        if topics is not None:
+            entry["topics"] = topics
+        self._broadcast()
+
+    def remove(self, idx: int) -> None:
+        if idx in self._items:
+            del self._items[idx]
+            self._broadcast()
+
+    def state(self) -> list[dict[str, Any]]:
+        return [
+            {
+                "id": idx + 1,
+                "status": entry["status"],
+                "topics": entry["topics"],
+                "limit": WS_TOPICS_LIMIT,
+            }
+            for idx, entry in sorted(self._items.items())
+        ]
+
+    def _broadcast(self) -> None:
+        self._manager._broadcast({"type": "websockets", "websockets": self.state()})
 
 
 class GUIManager:
@@ -437,7 +488,6 @@ class GUIManager:
 
         # Register logging handler
         self._handler = _WebOutputHandler(self)
-        from constants import OUTPUT_FORMATTER
         self._handler.setFormatter(OUTPUT_FORMATTER)
         logging.getLogger("TwitchDrops").addHandler(self._handler)
 
@@ -464,6 +514,8 @@ class GUIManager:
             "campaigns": self.inv._campaigns,
             "available_games": self.settings._available_games,
             "settings": self._settings_state(),
+            "websockets": self.websockets.state(),
+            "drop": self.progress.current_state(),
             "log": list(self._log_messages),
         }
 
@@ -534,7 +586,7 @@ class GUIManager:
         except Exception:
             return web.json_response({"error": "Invalid JSON"}, status=400)
         self.channels.set_selection(channel_id)
-        self._twitch.change_state(__import__("constants").State.CHANNEL_SWITCH)
+        self._twitch.change_state(State.CHANNEL_SWITCH)
         return web.json_response({"ok": True})
 
     async def _handle_settings(self, request: web.Request) -> web.Response:
@@ -652,11 +704,19 @@ class GUIManager:
         return web.json_response({"ok": True})
 
     async def _handle_reload(self, request: web.Request) -> web.Response:
-        from exceptions import ReloadRequest
-        self._twitch.change_state(__import__("constants").State.INVENTORY_FETCH)
+        self._twitch.change_state(State.INVENTORY_FETCH)
         return web.json_response({"ok": True})
 
     async def _start_server(self) -> None:
+        try:
+            await self._start_server_inner()
+        except OSError as exc:
+            # most likely the port is already in use
+            logger.error(f"Failed to start the web server on port {WEB_PORT}: {exc}")
+            self.print(f"FATAL: Cannot start web server on port {WEB_PORT}: {exc}")
+            self.close()
+
+    async def _start_server_inner(self) -> None:
         self._app = web.Application()
         self._app.router.add_get("/", self._handle_index)
         self._app.router.add_get("/api/events", self._handle_sse)
@@ -732,7 +792,11 @@ class GUIManager:
 
     def close_window(self) -> None:
         logging.getLogger("TwitchDrops").removeHandler(self._handler)
-        asyncio.create_task(self._stop_server())
+
+    async def close_window_async(self) -> None:
+        """Cleanly shut the web server down. Preferred over close_window."""
+        self.close_window()
+        await self._stop_server()
 
     def save(self, *, force: bool = False) -> None:
         pass

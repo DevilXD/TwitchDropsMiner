@@ -355,6 +355,14 @@
         <div class="no-drop">No active drop</div>
       </div>
     </div>
+
+    <!-- Websocket connections -->
+    <div class="panel" id="ws-panel">
+      <div class="panel-hdr">🔌 Connections</div>
+      <div class="panel-body" id="ws-body">
+        <div class="no-drop" style="padding:8px 0;">No connections</div>
+      </div>
+    </div>
   </div>
 
   <!-- RIGHT COLUMN -->
@@ -521,6 +529,7 @@ function handleEvent(d) {
     case 'campaigns':       state.campaigns = d.campaigns; renderInventory(); break;
     case 'available_games': state.available_games = d.games; updateGameSelectors(); break;
     case 'settings':        applySettings(d.settings); break;
+    case 'websockets':      renderWebsockets(d.websockets); break;
     case 'notification':    toast(d.title || 'Notification', d.message, 'success'); break;
   }
   updateStats();
@@ -537,6 +546,8 @@ function handleInit(d) {
   state.available_games = d.available_games || [];
   applySettings(d.settings || {});
   updateGameSelectors();
+  updateDrop(d.drop || null);
+  renderWebsockets(d.websockets || []);
   renderChannels(); renderInventory(); updateWatchingBar();
   const con = document.getElementById('console'); con.innerHTML = '';
   for (const m of (d.log || [])) appendLog(m);
@@ -657,6 +668,23 @@ function updateDrop(drop) {
       <div class="progress-bar"><div class="progress-fill teal" style="width:${cp}%"></div></div>
     </div>
     <div class="drop-eta">⏱ ~${drop.remaining_minutes} min until drop completes</div>`;
+}
+
+// ── Websocket connections ──────────────────────────────────────────────
+function renderWebsockets(list) {
+  const body = document.getElementById('ws-body');
+  if (!list || !list.length) {
+    body.innerHTML = '<div class="no-drop" style="padding:8px 0;">No connections</div>';
+    return;
+  }
+  body.innerHTML = list.map(w => {
+    const connected = /^connected$/i.test(w.status.trim());
+    return `<div style="display:flex;align-items:center;gap:9px;padding:4px 0;font-size:.8rem;">
+      <span class="dot ${connected ? 'online' : 'pending'}"></span>
+      <span style="flex:1;">#${w.id} · ${esc(w.status)}</span>
+      <span style="color:var(--text-dim);font-size:.74rem;">${w.topics}/${w.limit} topics</span>
+    </div>`;
+  }).join('');
 }
 
 // ── Inventory ──────────────────────────────────────────────────────────
