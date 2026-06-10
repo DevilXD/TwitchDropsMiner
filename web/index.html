@@ -6,219 +6,353 @@
 <title>Twitch Drops Miner</title>
 <style>
   :root {
-    --bg: #1a1a2e;
-    --panel: #16213e;
-    --card: #0f3460;
+    --bg: #0e0e13;
+    --bg-grad: radial-gradient(1200px 600px at 80% -10%, rgba(145,70,255,.18), transparent 60%),
+               radial-gradient(900px 500px at -10% 110%, rgba(0,181,173,.10), transparent 60%);
+    --panel: #17171f;
+    --panel-2: #1d1d28;
+    --card: #222230;
     --accent: #9146ff;
-    --accent2: #00b5ad;
-    --text: #e0e0e0;
-    --text-dim: #a0a0b0;
-    --online: #4caf50;
-    --offline: #f44336;
-    --pending: #ff9800;
-    --border: #2a2a4a;
-    --input-bg: #0d0d1e;
+    --accent-soft: rgba(145,70,255,.16);
+    --accent2: #2dd4bf;
+    --text: #ececf1;
+    --text-dim: #9a9aad;
+    --online: #3fb950;
+    --offline: #f85149;
+    --pending: #d29922;
+    --border: #2b2b3b;
+    --input-bg: #101018;
+    --radius: 14px;
+    --shadow: 0 8px 28px rgba(0,0,0,.35);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-  header { background: var(--panel); border-bottom: 2px solid var(--accent); padding: 12px 20px; display: flex; align-items: center; gap: 12px; }
-  header h1 { font-size: 1.3rem; color: var(--accent); }
-  #icon-badge { width: 12px; height: 12px; border-radius: 50%; background: #555; display: inline-block; }
-  #icon-badge.active { background: var(--online); box-shadow: 0 0 6px var(--online); }
-  #icon-badge.idle { background: var(--pending); }
-  #icon-badge.maint { background: var(--accent2); }
-  #icon-badge.error { background: var(--offline); box-shadow: 0 0 6px var(--offline); }
-  #status-text { font-size: 0.85rem; color: var(--text-dim); flex: 1; }
-  .btn { background: var(--accent); color: #fff; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; transition: opacity .2s; }
-  .btn:hover { opacity: .85; }
-  .btn.danger { background: var(--offline); }
-  .btn.secondary { background: var(--card); border: 1px solid var(--border); }
-  .layout { display: grid; grid-template-columns: 340px 1fr; grid-template-rows: auto; gap: 12px; padding: 12px; min-height: calc(100vh - 56px); }
-  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
-  .col { display: flex; flex-direction: column; gap: 12px; }
-  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-  .panel-hdr { background: var(--card); padding: 8px 12px; font-size: 0.8rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: .5px; display: flex; justify-content: space-between; align-items: center; }
-  .panel-body { padding: 12px; }
+  html { scrollbar-color: var(--border) transparent; }
+  body {
+    font-family: -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg); background-image: var(--bg-grad);
+    background-attachment: fixed;
+    color: var(--text); min-height: 100vh;
+  }
+  ::selection { background: var(--accent-soft); }
 
-  /* Login */
-  #login-panel .panel-body { display: flex; flex-direction: column; gap: 8px; }
-  #login-status { font-size: 0.85rem; color: var(--text-dim); }
-  #login-code-box { display: none; background: var(--input-bg); border: 1px solid var(--accent); border-radius: 6px; padding: 10px; text-align: center; }
-  #login-code-box .code { font-size: 2rem; font-weight: bold; letter-spacing: 4px; color: var(--accent); }
-  #login-code-box a { color: var(--accent2); font-size: 0.8rem; display: block; margin-top: 4px; word-break: break-all; }
-  #login-form { display: none; flex-direction: column; gap: 6px; }
-  input[type=text], input[type=password] { background: var(--input-bg); border: 1px solid var(--border); color: var(--text); padding: 7px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%; }
-  input:focus { outline: none; border-color: var(--accent); }
-  #login-error { color: var(--offline); font-size: 0.8rem; display: none; }
-  #user-info { font-size: 0.8rem; color: var(--text-dim); }
+  /* ── Header ─────────────────────────────────────────── */
+  header {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(23,23,31,.85); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 22px; display: flex; align-items: center; gap: 14px;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-mark {
+    width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center;
+    background: linear-gradient(135deg, #9146ff, #5c16c5);
+    font-size: 1.05rem; box-shadow: 0 4px 14px rgba(145,70,255,.4);
+  }
+  .logo h1 { font-size: 1.05rem; font-weight: 700; letter-spacing: .2px; }
+  .logo small { display: block; font-size: .68rem; color: var(--text-dim); font-weight: 400; }
+  #status-pill {
+    display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 999px; padding: 7px 16px; font-size: .82rem; color: var(--text-dim);
+  }
+  #status-pill span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #icon-badge { width: 9px; height: 9px; border-radius: 50%; background: #555; flex-shrink: 0; transition: all .3s; }
+  #icon-badge.active { background: var(--online); box-shadow: 0 0 8px var(--online); }
+  #icon-badge.idle   { background: var(--pending); box-shadow: 0 0 8px var(--pending); }
+  #icon-badge.maint  { background: var(--accent2); box-shadow: 0 0 8px var(--accent2); }
+  #icon-badge.error  { background: var(--offline); box-shadow: 0 0 8px var(--offline); }
+  .conn-indicator { width: 9px; height: 9px; border-radius: 50%; background: var(--offline); transition: all .3s; }
+  .conn-indicator.connected { background: var(--online); box-shadow: 0 0 6px var(--online); }
 
-  /* Drop progress */
-  #drop-panel .panel-body { padding: 10px 12px; }
-  .no-drop { color: var(--text-dim); font-size: 0.85rem; text-align: center; padding: 16px 0; }
-  .progress-section { margin-bottom: 10px; }
-  .progress-label { font-size: 0.75rem; color: var(--text-dim); margin-bottom: 3px; display: flex; justify-content: space-between; }
-  .progress-bar { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
-  .progress-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width .5s ease; }
-  .drop-name { font-size: 0.9rem; font-weight: 600; margin-bottom: 6px; }
-  .drop-rewards { font-size: 0.8rem; color: var(--accent2); margin-bottom: 8px; }
-  .drop-meta { font-size: 0.75rem; color: var(--text-dim); }
+  /* ── Buttons / inputs ───────────────────────────────── */
+  .btn {
+    background: linear-gradient(135deg, #9146ff, #7c2ae8); color: #fff; border: none;
+    padding: 8px 18px; border-radius: 9px; cursor: pointer; font-size: .84rem; font-weight: 600;
+    transition: transform .12s, box-shadow .2s, opacity .2s;
+    box-shadow: 0 2px 10px rgba(145,70,255,.3);
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(145,70,255,.45); }
+  .btn:active { transform: translateY(0); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
+  .btn.danger { background: linear-gradient(135deg, #f85149, #d62b22); box-shadow: 0 2px 10px rgba(248,81,73,.25); }
+  .btn.danger:hover { box-shadow: 0 4px 16px rgba(248,81,73,.4); }
+  .btn.ghost { background: var(--panel-2); border: 1px solid var(--border); box-shadow: none; color: var(--text); }
+  .btn.ghost:hover { border-color: var(--accent); box-shadow: none; }
+  .btn.sm { padding: 5px 12px; font-size: .76rem; border-radius: 7px; }
+  input[type=text], input[type=password], select {
+    background: var(--input-bg); border: 1px solid var(--border); color: var(--text);
+    padding: 9px 12px; border-radius: 9px; font-size: .85rem; width: 100%;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
 
-  /* Channel list */
-  #channels-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
-  #channels-table th { color: var(--accent); text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--border); font-weight: 600; font-size: 0.75rem; }
-  #channels-table td { padding: 4px 6px; border-bottom: 1px solid var(--border); vertical-align: middle; }
-  #channels-table tr:hover td { background: rgba(145,70,255,.08); cursor: pointer; }
-  #channels-table tr.watching td { background: rgba(145,70,255,.18); }
-  #channels-table tr.selected td { background: rgba(0,181,173,.12); outline: 1px solid var(--accent2); }
-  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-  .dot.online { background: var(--online); }
-  .dot.offline { background: var(--offline); }
-  .dot.pending { background: var(--pending); }
-  .ch-actions { display: flex; gap: 6px; margin-bottom: 8px; }
+  /* ── Layout ─────────────────────────────────────────── */
+  .stats-row {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px; padding: 16px 22px 0;
+  }
+  .stat {
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 13px 16px; display: flex; align-items: center; gap: 12px;
+  }
+  .stat-ico { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; font-size: 1.1rem; background: var(--accent-soft); }
+  .stat-val { font-size: 1.25rem; font-weight: 700; line-height: 1.1; }
+  .stat-lbl { font-size: .7rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: .6px; }
 
-  /* Inventory */
-  .campaign-card { background: var(--card); border-radius: 6px; padding: 10px; margin-bottom: 8px; }
-  .campaign-hdr { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 8px; }
-  .campaign-img { width: 40px; height: 54px; border-radius: 3px; object-fit: cover; }
-  .campaign-info { flex: 1; min-width: 0; }
-  .campaign-game { font-size: 0.75rem; color: var(--accent2); }
-  .campaign-name { font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .campaign-drops { font-size: 0.75rem; color: var(--text-dim); }
-  .badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 0.7rem; font-weight: 600; }
-  .badge.active { background: rgba(76,175,80,.25); color: var(--online); }
-  .badge.upcoming { background: rgba(255,152,0,.2); color: var(--pending); }
-  .badge.not-linked { background: rgba(244,67,54,.2); color: var(--offline); }
-  .drop-item { padding: 6px 0; border-top: 1px solid var(--border); }
-  .drop-item-name { font-size: 0.8rem; }
-  .drop-item-claimed { color: var(--online); font-size: 0.75rem; }
+  .layout {
+    display: grid; grid-template-columns: 360px 1fr; gap: 16px;
+    padding: 16px 22px 28px; align-items: start;
+  }
+  @media (max-width: 980px) { .layout { grid-template-columns: 1fr; } }
+  .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 
-  /* Settings */
-  .settings-group { margin-bottom: 12px; }
-  .settings-group label { font-size: 0.8rem; color: var(--text-dim); display: block; margin-bottom: 4px; }
-  .settings-group select, .settings-group input[type=text] { width: 100%; }
-  .settings-group select { background: var(--input-bg); border: 1px solid var(--border); color: var(--text); padding: 6px; border-radius: 4px; font-size: 0.85rem; }
-  .toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
-  .toggle-row label { font-size: 0.85rem; }
-  input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); }
-  .priority-list { background: var(--input-bg); border: 1px solid var(--border); border-radius: 4px; min-height: 60px; padding: 4px; }
-  .priority-item { display: flex; justify-content: space-between; align-items: center; padding: 2px 4px; border-radius: 3px; font-size: 0.8rem; }
-  .priority-item:hover { background: var(--border); }
-  .priority-item button { background: none; border: none; color: var(--offline); cursor: pointer; padding: 0 4px; font-size: 1rem; }
-  .add-priority { display: flex; gap: 6px; margin-top: 6px; }
-  .add-priority select { flex: 1; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    overflow: hidden; box-shadow: var(--shadow);
+  }
+  .panel-hdr {
+    padding: 12px 16px; font-size: .76rem; font-weight: 700; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: .8px; display: flex; justify-content: space-between;
+    align-items: center; border-bottom: 1px solid var(--border); background: var(--panel-2);
+  }
+  .panel-body { padding: 16px; }
 
-  /* Console */
-  #console { background: var(--input-bg); border: 1px solid var(--border); border-radius: 4px; height: 280px; overflow-y: auto; padding: 8px; font-family: monospace; font-size: 0.75rem; }
-  .log-entry { line-height: 1.5; color: var(--text-dim); border-bottom: 1px solid rgba(255,255,255,.04); padding: 1px 0; }
-  .log-entry:last-child { border-bottom: none; }
+  /* ── Login ──────────────────────────────────────────── */
+  #login-panel .panel-body { display: flex; flex-direction: column; gap: 10px; }
+  #login-status { font-size: .88rem; font-weight: 600; }
+  #user-info { font-size: .78rem; color: var(--text-dim); }
+  #login-code-box {
+    display: none; background: var(--input-bg); border: 1px dashed var(--accent);
+    border-radius: 12px; padding: 16px; text-align: center;
+  }
+  #login-code-box .hint { font-size: .8rem; color: var(--text-dim); }
+  #login-code-box .code {
+    font-size: 2.1rem; font-weight: 800; letter-spacing: 7px; color: var(--accent);
+    margin: 8px 0 4px; font-family: ui-monospace, monospace;
+  }
+  #login-code-box a { color: var(--accent2); font-size: .78rem; word-break: break-all; }
+  #login-form { display: none; flex-direction: column; gap: 8px; }
+  #login-error { color: var(--offline); font-size: .8rem; display: none; }
 
-  /* Tabs */
-  .tabs { display: flex; gap: 2px; background: var(--panel); border-bottom: 1px solid var(--border); padding: 0 12px; }
-  .tab { padding: 8px 16px; cursor: pointer; font-size: 0.85rem; color: var(--text-dim); border-bottom: 2px solid transparent; transition: all .2s; }
-  .tab:hover { color: var(--text); }
-  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  /* ── Drop progress ──────────────────────────────────── */
+  .no-drop { color: var(--text-dim); font-size: .85rem; text-align: center; padding: 24px 0; }
+  .progress-label { font-size: .76rem; color: var(--text-dim); margin-bottom: 5px; display: flex; justify-content: space-between; gap: 8px; }
+  .progress-bar { height: 9px; background: var(--input-bg); border-radius: 99px; overflow: hidden; }
+  .progress-fill {
+    height: 100%; border-radius: 99px; transition: width .6s cubic-bezier(.4,0,.2,1);
+    background: linear-gradient(90deg, #7c2ae8, #9146ff);
+  }
+  .progress-fill.teal { background: linear-gradient(90deg, #0d9488, #2dd4bf); }
+  .drop-hero { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+  .drop-hero img { width: 52px; height: 70px; object-fit: cover; border-radius: 8px; }
+  .drop-hero .game { font-size: .74rem; color: var(--accent2); font-weight: 600; }
+  .drop-hero .rewards { font-size: .95rem; font-weight: 700; }
+  .drop-hero .sub { font-size: .76rem; color: var(--text-dim); margin-top: 2px; }
+  .progress-section { margin-bottom: 12px; }
+  .drop-eta { font-size: .76rem; color: var(--text-dim); display: flex; align-items: center; gap: 6px; }
+
+  /* ── Tabs ───────────────────────────────────────────── */
+  .tabs {
+    display: flex; gap: 6px; background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 6px;
+  }
+  .tab {
+    padding: 9px 18px; cursor: pointer; font-size: .84rem; font-weight: 600; color: var(--text-dim);
+    border-radius: 9px; transition: all .2s; user-select: none; display: flex; align-items: center; gap: 7px;
+  }
+  .tab:hover { color: var(--text); background: var(--panel-2); }
+  .tab.active { color: #fff; background: linear-gradient(135deg, #9146ff, #7c2ae8); box-shadow: 0 2px 10px rgba(145,70,255,.3); }
+  .tab .cnt {
+    background: rgba(255,255,255,.14); border-radius: 99px; font-size: .68rem;
+    padding: 1px 7px; font-weight: 700;
+  }
+  .tab:not(.active) .cnt { background: var(--card); }
   .tab-content { display: none; }
   .tab-content.active { display: block; }
 
-  /* Notification */
-  #notif { position: fixed; bottom: 20px; right: 20px; max-width: 320px; background: var(--card); border: 1px solid var(--accent); border-radius: 8px; padding: 12px 16px; transform: translateY(100px); opacity: 0; transition: all .3s; pointer-events: none; }
-  #notif.show { transform: translateY(0); opacity: 1; }
-  #notif-title { font-size: 0.75rem; color: var(--accent); font-weight: 600; }
-  #notif-msg { font-size: 0.85rem; margin-top: 3px; }
+  /* ── Channels ───────────────────────────────────────── */
+  #watching-bar {
+    display: none; align-items: center; gap: 10px;
+    background: var(--accent-soft); border: 1px solid var(--accent);
+    border-radius: 10px; padding: 10px 14px; font-size: .86rem; margin-bottom: 12px;
+  }
+  #watching-bar .pulse {
+    width: 9px; height: 9px; border-radius: 50%; background: var(--online);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1; box-shadow:0 0 0 0 rgba(63,185,80,.5)} 50%{opacity:.7; box-shadow:0 0 0 6px rgba(63,185,80,0)} }
+  .ch-toolbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .ch-toolbar input { flex: 1; min-width: 160px; }
+  #channels-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+  #channels-table th {
+    color: var(--text-dim); text-align: left; padding: 8px 10px; font-weight: 600;
+    font-size: .7rem; text-transform: uppercase; letter-spacing: .6px;
+    border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--panel);
+  }
+  #channels-table td { padding: 8px 10px; border-bottom: 1px solid rgba(43,43,59,.5); vertical-align: middle; }
+  #channels-table tbody tr { transition: background .15s; cursor: pointer; }
+  #channels-table tbody tr:hover td { background: var(--panel-2); }
+  #channels-table tr.watching td { background: var(--accent-soft); }
+  #channels-table tr.watching td:first-child { border-left: 3px solid var(--accent); }
+  #channels-table tr.selected td { background: rgba(45,212,191,.1); }
+  .ch-name { font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+  .dot.online { background: var(--online); box-shadow: 0 0 6px rgba(63,185,80,.6); }
+  .dot.offline { background: #444; }
+  .dot.pending { background: var(--pending); }
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: .7rem; font-weight: 600; }
+  .pill.ok { background: rgba(63,185,80,.15); color: var(--online); }
+  .pill.no { background: rgba(255,255,255,.05); color: var(--text-dim); }
+  .empty-msg { text-align: center; padding: 36px 0; color: var(--text-dim); font-size: .86rem; }
+  .empty-msg .big { font-size: 2rem; margin-bottom: 8px; opacity: .5; }
 
-  .conn-indicator { width: 8px; height: 8px; border-radius: 50%; background: var(--offline); display: inline-block; }
-  .conn-indicator.connected { background: var(--online); box-shadow: 0 0 5px var(--online); }
+  /* ── Inventory ──────────────────────────────────────── */
+  .inv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
+  .campaign-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 14px; transition: border-color .2s, transform .15s;
+  }
+  .campaign-card:hover { border-color: #3d3d52; transform: translateY(-2px); }
+  .campaign-hdr { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 10px; }
+  .campaign-img { width: 48px; height: 64px; border-radius: 7px; object-fit: cover; background: var(--input-bg); }
+  .campaign-info { flex: 1; min-width: 0; }
+  .campaign-game { font-size: .73rem; color: var(--accent2); font-weight: 700; }
+  .campaign-name { font-size: .87rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 1px 0 5px; }
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: .68rem; font-weight: 700; margin-right: 4px; }
+  .badge.active { background: rgba(63,185,80,.15); color: var(--online); }
+  .badge.upcoming { background: rgba(210,153,34,.15); color: var(--pending); }
+  .badge.not-linked { background: rgba(248,81,73,.13); color: var(--offline); }
+  .campaign-drops-cnt { font-size: .73rem; color: var(--text-dim); }
+  .drop-item { padding: 8px 0 2px; border-top: 1px solid rgba(43,43,59,.6); margin-top: 8px; }
+  .drop-item-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .drop-item-name { font-size: .79rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .drop-item-claimed { color: var(--online); font-size: .73rem; font-weight: 600; white-space: nowrap; }
+  .drop-item-min { font-size: .72rem; color: var(--text-dim); white-space: nowrap; }
+  .link-warn { font-size: .73rem; margin-top: 6px; }
+  .link-warn a { color: var(--accent2); }
 
-  #watching-bar { display: none; background: rgba(145,70,255,.12); border: 1px solid var(--accent); border-radius: 6px; padding: 8px 12px; font-size: 0.85rem; margin-bottom: 4px; }
+  /* ── Settings ───────────────────────────────────────── */
+  .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px) { .settings-grid { grid-template-columns: 1fr; } }
+  .settings-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .settings-card h3 { font-size: .8rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: .7px; margin-bottom: 12px; }
+  .settings-group { margin-bottom: 14px; }
+  .settings-group:last-child { margin-bottom: 0; }
+  .settings-group > label { font-size: .78rem; color: var(--text-dim); display: block; margin-bottom: 6px; font-weight: 600; }
+  .toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; }
+  .toggle-row label { font-size: .85rem; cursor: pointer; }
+  .toggle-row small { display: block; color: var(--text-dim); font-size: .72rem; margin-top: 1px; }
+  .priority-list { background: var(--input-bg); border: 1px solid var(--border); border-radius: 9px; min-height: 52px; padding: 5px; }
+  .priority-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 9px; border-radius: 7px; font-size: .82rem; transition: background .15s;
+  }
+  .priority-item:hover { background: var(--card); }
+  .priority-item .num { color: var(--accent); font-weight: 700; font-size: .72rem; width: 20px; }
+  .priority-item .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .priority-item .ops button {
+    background: none; border: none; color: var(--text-dim); cursor: pointer;
+    padding: 2px 5px; font-size: .92rem; border-radius: 5px; transition: all .15s;
+  }
+  .priority-item .ops button:hover { color: var(--text); background: var(--panel-2); }
+  .priority-item .ops button.rm:hover { color: var(--offline); }
+  .add-priority { display: flex; gap: 8px; margin-top: 8px; }
+  .add-priority select { flex: 1; }
+  .none-msg { color: var(--text-dim); font-size: .78rem; padding: 9px; text-align: center; }
+
+  /* ── Import / export ────────────────────────────────── */
+  #dropzone {
+    border: 2px dashed var(--border); border-radius: 12px; padding: 22px 16px;
+    text-align: center; cursor: pointer; transition: all .2s; background: var(--input-bg);
+  }
+  #dropzone:hover, #dropzone.dragover { border-color: var(--accent); background: var(--accent-soft); }
+  #dropzone .dz-ico { font-size: 1.6rem; margin-bottom: 6px; }
+  #dropzone .dz-main { font-size: .85rem; font-weight: 600; }
+  #dropzone .dz-sub { font-size: .73rem; color: var(--text-dim); margin-top: 3px; }
+  #import-result { font-size: .76rem; margin-top: 10px; display: none; padding: 9px 12px; border-radius: 8px; }
+  #import-result.ok { display: block; background: rgba(63,185,80,.12); color: var(--online); }
+  #import-result.err { display: block; background: rgba(248,81,73,.12); color: var(--offline); }
+
+  /* ── Console ────────────────────────────────────────── */
+  #console {
+    background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px;
+    height: 420px; overflow-y: auto; padding: 12px;
+    font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; font-size: .76rem;
+  }
+  .log-entry { line-height: 1.65; color: var(--text-dim); word-break: break-word; }
+  .log-entry .ts { color: var(--accent); opacity: .7; }
+
+  /* ── Toasts ─────────────────────────────────────────── */
+  #toasts { position: fixed; bottom: 22px; right: 22px; display: flex; flex-direction: column; gap: 10px; z-index: 100; max-width: 340px; }
+  .toast {
+    background: var(--panel-2); border: 1px solid var(--border); border-left: 3px solid var(--accent);
+    border-radius: 10px; padding: 12px 16px; box-shadow: var(--shadow);
+    animation: slideIn .25s ease; font-size: .84rem;
+  }
+  .toast.success { border-left-color: var(--online); }
+  .toast.error { border-left-color: var(--offline); }
+  .toast .t-title { font-size: .72rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: .5px; }
+  .toast .t-msg { margin-top: 3px; white-space: pre-line; }
+  @keyframes slideIn { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .toast.hide { transition: all .3s; transform: translateX(40px); opacity: 0; }
 </style>
 </head>
 <body>
+
 <header>
-  <span id="icon-badge" class="pickaxe"></span>
-  <h1>⛏ Twitch Drops Miner</h1>
-  <span id="status-text">Connecting...</span>
-  <span id="conn-indicator" class="conn-indicator" title="SSE connection"></span>
-  <button class="btn danger" onclick="requestClose()">Stop</button>
+  <div class="logo">
+    <div class="logo-mark">⛏️</div>
+    <div>
+      <h1>Twitch Drops Miner</h1>
+      <small>web edition</small>
+    </div>
+  </div>
+  <div id="status-pill">
+    <span id="icon-badge"></span>
+    <span id="status-text">Connecting…</span>
+  </div>
+  <span id="conn-indicator" class="conn-indicator" title="Live connection"></span>
+  <button class="btn ghost sm" onclick="reloadInventory()">⟳ Reload</button>
+  <button class="btn danger sm" onclick="requestClose()">⏻ Stop</button>
 </header>
+
+<div class="stats-row">
+  <div class="stat"><div class="stat-ico">📺</div><div><div class="stat-val" id="stat-channels">0</div><div class="stat-lbl">Channels</div></div></div>
+  <div class="stat"><div class="stat-ico">🟢</div><div><div class="stat-val" id="stat-online">0</div><div class="stat-lbl">Online</div></div></div>
+  <div class="stat"><div class="stat-ico">🎁</div><div><div class="stat-val" id="stat-campaigns">0</div><div class="stat-lbl">Campaigns</div></div></div>
+  <div class="stat"><div class="stat-ico">✅</div><div><div class="stat-val" id="stat-claimed">0</div><div class="stat-lbl">Drops claimed</div></div></div>
+</div>
 
 <div class="layout">
   <!-- LEFT COLUMN -->
-  <div class="col" id="left-col">
+  <div class="col">
     <!-- Login -->
     <div class="panel" id="login-panel">
-      <div class="panel-hdr">Login</div>
+      <div class="panel-hdr">👤 Account</div>
       <div class="panel-body">
-        <div id="login-status">Checking...</div>
+        <div id="login-status">Checking…</div>
         <div id="user-info"></div>
         <div id="login-code-box">
-          <div>Go to <a id="code-link" href="#" target="_blank" rel="noopener"></a> and enter:</div>
+          <div class="hint">Open the link below and enter this code:</div>
           <div class="code" id="code-value"></div>
+          <a id="code-link" href="#" target="_blank" rel="noopener"></a>
         </div>
         <div id="login-form">
           <input type="text" id="username-in" placeholder="Twitch username" autocomplete="username">
           <input type="password" id="password-in" placeholder="Password" autocomplete="current-password">
           <input type="text" id="token-in" placeholder="2FA code (if required)" autocomplete="one-time-code">
           <div id="login-error"></div>
-          <button class="btn" onclick="submitLogin()">Login</button>
+          <button class="btn" onclick="submitLogin()">Sign in</button>
         </div>
       </div>
     </div>
 
     <!-- Drop Progress -->
     <div class="panel" id="drop-panel">
-      <div class="panel-hdr">Current Drop</div>
+      <div class="panel-hdr">⏳ Mining now</div>
       <div class="panel-body" id="drop-body">
         <div class="no-drop">No active drop</div>
-      </div>
-    </div>
-
-    <!-- Settings -->
-    <div class="panel" id="settings-panel">
-      <div class="panel-hdr">Settings <button class="btn secondary" style="font-size:.7rem;padding:3px 8px;" onclick="saveSettings()">Save</button></div>
-      <div class="panel-body">
-        <div class="settings-group">
-          <label>Priority Mode</label>
-          <select id="priority-mode-sel">
-            <option value="PRIORITY_ONLY">Priority Only</option>
-            <option value="ENDING_SOONEST">Ending Soonest</option>
-            <option value="LOW_AVBL_FIRST">Lowest Availability First</option>
-          </select>
-        </div>
-        <div class="settings-group">
-          <label>Game Priority List</label>
-          <div class="priority-list" id="priority-list"></div>
-          <div class="add-priority">
-            <select id="add-game-sel"><option value="">-- Add game --</option></select>
-            <button class="btn secondary" onclick="addPriorityGame()">Add</button>
-          </div>
-        </div>
-        <div class="settings-group">
-          <label>Excluded Games</label>
-          <div class="priority-list" id="exclude-list"></div>
-          <div class="add-priority">
-            <select id="add-exclude-sel"><option value="">-- Exclude game --</option></select>
-            <button class="btn secondary" onclick="addExcludeGame()">Add</button>
-          </div>
-        </div>
-        <div class="toggle-row">
-          <label>Badges &amp; Emotes</label>
-          <input type="checkbox" id="badges-emotes-chk">
-        </div>
-        <div class="toggle-row">
-          <label>Check Available Drops</label>
-          <input type="checkbox" id="avail-drops-chk">
-        </div>
-        <div class="settings-group" style="margin-top:8px;">
-          <label>Connection Quality (1-6)</label>
-          <input type="text" id="conn-quality-in" placeholder="1">
-        </div>
-        <div class="settings-group">
-          <label>Proxy URL (leave blank for none)</label>
-          <input type="text" id="proxy-in" placeholder="http://...">
-        </div>
-        <div style="margin-top:8px;display:flex;gap:8px;">
-          <button class="btn secondary" onclick="reloadInventory()">Reload Inventory</button>
-        </div>
       </div>
     </div>
   </div>
@@ -226,86 +360,142 @@
   <!-- RIGHT COLUMN -->
   <div class="col">
     <div class="tabs" id="main-tabs">
-      <div class="tab active" onclick="switchTab('channels')">Channels</div>
-      <div class="tab" onclick="switchTab('inventory')">Inventory</div>
-      <div class="tab" onclick="switchTab('console')">Console</div>
+      <div class="tab active" data-tab="channels" onclick="switchTab('channels')">📺 Channels <span class="cnt" id="tab-cnt-channels">0</span></div>
+      <div class="tab" data-tab="inventory" onclick="switchTab('inventory')">🎁 Inventory <span class="cnt" id="tab-cnt-inventory">0</span></div>
+      <div class="tab" data-tab="settings" onclick="switchTab('settings')">⚙️ Settings</div>
+      <div class="tab" data-tab="console" onclick="switchTab('console')">🖥 Console</div>
     </div>
 
     <!-- Channels tab -->
     <div class="tab-content active panel" id="tab-channels">
       <div class="panel-body">
-        <div id="watching-bar"></div>
-        <div class="ch-actions">
-          <button class="btn secondary" id="switch-btn" disabled onclick="switchToSelected()">Watch Selected</button>
-          <button class="btn secondary" onclick="clearSelection()">Clear Selection</button>
+        <div id="watching-bar"><span class="pulse"></span><span id="watching-text"></span></div>
+        <div class="ch-toolbar">
+          <input type="text" id="ch-search" placeholder="🔍 Filter channels or games…" oninput="renderChannels()">
+          <button class="btn sm" id="switch-btn" disabled onclick="switchToSelected()">▶ Watch selected</button>
+          <button class="btn ghost sm" onclick="clearSelection()">Clear</button>
         </div>
-        <div style="overflow-x:auto;">
+        <div style="overflow-x:auto; max-height: 560px; overflow-y:auto;">
           <table id="channels-table">
             <thead>
-              <tr>
-                <th>Channel</th>
-                <th>Status</th>
-                <th>Game</th>
-                <th>🎁</th>
-                <th>Viewers</th>
-                <th>📋</th>
-              </tr>
+              <tr><th>Channel</th><th>Game</th><th>Drops</th><th>Viewers</th><th>ACL</th></tr>
             </thead>
             <tbody id="ch-tbody"></tbody>
           </table>
         </div>
-        <div id="no-channels" style="text-align:center;padding:20px;color:var(--text-dim);font-size:.85rem;">No channels tracked yet</div>
+        <div id="no-channels" class="empty-msg"><div class="big">📡</div>No channels tracked yet — they appear once campaigns load</div>
       </div>
     </div>
 
     <!-- Inventory tab -->
     <div class="tab-content panel" id="tab-inventory">
-      <div class="panel-body" id="inv-body">
-        <div class="no-drop">No campaigns loaded</div>
+      <div class="panel-body">
+        <div id="inv-body" class="inv-grid"></div>
+        <div id="no-campaigns" class="empty-msg"><div class="big">🎁</div>No campaigns loaded yet</div>
+      </div>
+    </div>
+
+    <!-- Settings tab -->
+    <div class="tab-content panel" id="tab-settings">
+      <div class="panel-body">
+        <div class="settings-grid">
+
+          <div class="settings-card">
+            <h3>🎯 Game priority</h3>
+            <div class="settings-group">
+              <label>Priority mode</label>
+              <select id="priority-mode-sel">
+                <option value="PRIORITY_ONLY">Priority list only</option>
+                <option value="ENDING_SOONEST">Ending soonest first</option>
+                <option value="LOW_AVBL_FIRST">Lowest availability first</option>
+              </select>
+            </div>
+            <div class="settings-group">
+              <label>Priority list (top = highest)</label>
+              <div class="priority-list" id="priority-list"></div>
+              <div class="add-priority">
+                <select id="add-game-sel"><option value="">Add a game…</option></select>
+                <button class="btn ghost sm" onclick="addPriorityGame()">＋ Add</button>
+              </div>
+            </div>
+            <div class="settings-group">
+              <label>Excluded games</label>
+              <div class="priority-list" id="exclude-list"></div>
+              <div class="add-priority">
+                <select id="add-exclude-sel"><option value="">Exclude a game…</option></select>
+                <button class="btn ghost sm" onclick="addExcludeGame()">＋ Add</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-card">
+            <h3>🔧 Options</h3>
+            <div class="toggle-row">
+              <label for="badges-emotes-chk">Badges &amp; emotes<small>Also mine badge/emote-only campaigns</small></label>
+              <input type="checkbox" id="badges-emotes-chk">
+            </div>
+            <div class="toggle-row">
+              <label for="avail-drops-chk">Check available drops<small>Verify drops are actually obtainable per channel</small></label>
+              <input type="checkbox" id="avail-drops-chk">
+            </div>
+            <div class="settings-group" style="margin-top:10px;">
+              <label>Connection quality (1 = fast, 6 = slow network)</label>
+              <select id="conn-quality-in">
+                <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
+              </select>
+            </div>
+            <div class="settings-group">
+              <label>Proxy URL (optional)</label>
+              <input type="text" id="proxy-in" placeholder="http://host:port">
+            </div>
+            <button class="btn" style="width:100%;margin-top:6px;" onclick="saveSettings()">💾 Save settings</button>
+          </div>
+
+          <div class="settings-card" style="grid-column: 1 / -1;">
+            <h3>📁 Import / export configuration</h3>
+            <div id="dropzone" onclick="document.getElementById('file-in').click()">
+              <div class="dz-ico">📤</div>
+              <div class="dz-main">Drop your <b>settings.json</b> here, or click to browse</div>
+              <div class="dz-sub">Imports your priority list, excluded games and all other options from an existing file</div>
+            </div>
+            <input type="file" id="file-in" accept=".json,application/json" style="display:none" onchange="onFilePicked(this.files)">
+            <div id="import-result"></div>
+            <div style="margin-top:12px; display:flex; gap:8px;">
+              <a class="btn ghost sm" href="/api/settings/export" download="settings.json" style="text-decoration:none;">⬇ Export current settings</a>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
 
     <!-- Console tab -->
     <div class="tab-content panel" id="tab-console">
-      <div class="panel-body" style="padding:8px;">
+      <div class="panel-body">
         <div id="console"></div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Notification popup -->
-<div id="notif">
-  <div id="notif-title"></div>
-  <div id="notif-msg"></div>
-</div>
+<div id="toasts"></div>
 
 <script>
 // ── State ──────────────────────────────────────────────────────────────
 const state = {
-  channels: {},
-  watching_id: null,
-  selected_id: null,
-  campaigns: [],
-  settings: {},
-  available_games: [],
-  login: {},
-  log: [],
+  channels: {}, watching_id: null, selected_id: null,
+  campaigns: [], settings: {}, available_games: [], login: {},
 };
 
 // ── SSE ────────────────────────────────────────────────────────────────
-let evtSource = null;
-let reconnectDelay = 1000;
-
+let evtSource = null, reconnectDelay = 1000;
 function connect() {
   evtSource = new EventSource('/api/events');
   evtSource.onopen = () => {
     document.getElementById('conn-indicator').classList.add('connected');
     reconnectDelay = 1000;
   };
-  evtSource.onmessage = (e) => {
-    try { handleEvent(JSON.parse(e.data)); } catch(err) { console.error(err); }
-  };
+  evtSource.onmessage = (e) => { try { handleEvent(JSON.parse(e.data)); } catch(err) { console.error(err); } };
   evtSource.onerror = () => {
     document.getElementById('conn-indicator').classList.remove('connected');
     evtSource.close();
@@ -314,255 +504,197 @@ function connect() {
   };
 }
 
-// ── Event Handlers ─────────────────────────────────────────────────────
-function handleEvent(data) {
-  switch (data.type) {
-    case 'init':        handleInit(data); break;
-    case 'status':      updateStatus(data.text); break;
-    case 'icon':        updateIcon(data.name); break;
-    case 'log':         appendLog(data.message); break;
-    case 'login_state': updateLogin(data); break;
-    case 'login_error': showLoginError(data.message); break;
-    case 'channel_add': addChannel(data.channel); break;
-    case 'channel_update': updateChannel(data.channel); break;
-    case 'channel_remove': removeChannel(data.id); break;
-    case 'channels_clear': clearChannels(); break;
-    case 'watching':    updateWatching(data.channel_id); break;
-    case 'drop':        updateDrop(data.drop); break;
-    case 'campaigns':   updateCampaigns(data.campaigns); break;
-    case 'available_games': updateAvailableGames(data.games); break;
-    case 'settings':    applySettings(data.settings); break;
-    case 'notification': showNotification(data.title, data.message); break;
+function handleEvent(d) {
+  switch (d.type) {
+    case 'init':            handleInit(d); break;
+    case 'status':          setText('status-text', d.text); break;
+    case 'icon':            updateIcon(d.name); break;
+    case 'log':             appendLog(d.message); break;
+    case 'login_state':     updateLogin(d); break;
+    case 'login_error':     showLoginError(d.message); break;
+    case 'channel_add':
+    case 'channel_update':  state.channels[d.channel.id] = d.channel; renderChannels(); break;
+    case 'channel_remove':  delete state.channels[d.id]; if (state.selected_id===d.id) state.selected_id=null; renderChannels(); break;
+    case 'channels_clear':  state.channels={}; state.watching_id=null; state.selected_id=null; renderChannels(); updateWatchingBar(); break;
+    case 'watching':        state.watching_id = d.channel_id; updateWatchingBar(); renderChannels(); break;
+    case 'drop':            updateDrop(d.drop); break;
+    case 'campaigns':       state.campaigns = d.campaigns; renderInventory(); break;
+    case 'available_games': state.available_games = d.games; updateGameSelectors(); break;
+    case 'settings':        applySettings(d.settings); break;
+    case 'notification':    toast(d.title || 'Notification', d.message, 'success'); break;
   }
+  updateStats();
 }
 
-function handleInit(data) {
-  updateStatus(data.status);
-  updateIcon(data.icon);
-  updateLogin(data.login);
-  clearChannels();
-  for (const ch of (data.channels || [])) addChannel(ch);
-  updateWatching(data.watching_channel_id);
-  updateCampaigns(data.campaigns || []);
-  updateAvailableGames(data.available_games || []);
-  applySettings(data.settings || {});
-  for (const msg of (data.log || [])) appendLog(msg);
+function handleInit(d) {
+  setText('status-text', d.status || 'Idle');
+  updateIcon(d.icon);
+  updateLogin(d.login || {});
+  state.channels = {};
+  for (const ch of (d.channels || [])) state.channels[ch.id] = ch;
+  state.watching_id = d.watching_channel_id;
+  state.campaigns = d.campaigns || [];
+  state.available_games = d.available_games || [];
+  applySettings(d.settings || {});
+  updateGameSelectors();
+  renderChannels(); renderInventory(); updateWatchingBar();
+  const con = document.getElementById('console'); con.innerHTML = '';
+  for (const m of (d.log || [])) appendLog(m);
 }
 
-// ── UI Updates ─────────────────────────────────────────────────────────
-function updateStatus(text) {
-  document.getElementById('status-text').textContent = text;
+// ── Stats ──────────────────────────────────────────────────────────────
+function updateStats() {
+  const chs = Object.values(state.channels);
+  setText('stat-channels', chs.length);
+  setText('stat-online', chs.filter(c => c.online).length);
+  setText('stat-campaigns', state.campaigns.length);
+  setText('stat-claimed', state.campaigns.reduce((a,c) => a + (c.claimed_drops||0), 0));
+  setText('tab-cnt-channels', chs.length);
+  setText('tab-cnt-inventory', state.campaigns.length);
 }
 
-function updateIcon(name) {
-  const el = document.getElementById('icon-badge');
-  el.className = '';
-  el.classList.add(name);
-}
+// ── Header / login ─────────────────────────────────────────────────────
+function updateIcon(name) { const el = document.getElementById('icon-badge'); el.className = ''; if (name) el.classList.add(name); }
 
-function updateLogin(data) {
-  state.login = data;
-  const statusEl = document.getElementById('login-status');
-  const userEl = document.getElementById('user-info');
+function updateLogin(d) {
+  state.login = d;
+  setText('login-status', d.status || '');
+  setText('user-info', d.user_id ? `User ID: ${d.user_id}` : '');
   const codeBox = document.getElementById('login-code-box');
-  const loginForm = document.getElementById('login-form');
-
-  statusEl.textContent = data.status || '';
-  userEl.textContent = data.user_id ? `User ID: ${data.user_id}` : '';
-
-  if (data.code) {
-    codeBox.style.display = 'block';
-    loginForm.style.display = 'none';
-    document.getElementById('code-value').textContent = data.code;
+  const form = document.getElementById('login-form');
+  if (d.code) {
+    codeBox.style.display = 'block'; form.style.display = 'none';
+    setText('code-value', d.code);
     const link = document.getElementById('code-link');
-    link.href = data.code_url || '#';
-    link.textContent = data.code_url || '';
-  } else if (data.waiting_for_input) {
-    codeBox.style.display = 'none';
-    loginForm.style.display = 'flex';
+    link.href = d.code_url || '#'; link.textContent = d.code_url || '';
+  } else if (d.waiting_for_input) {
+    codeBox.style.display = 'none'; form.style.display = 'flex';
   } else {
-    codeBox.style.display = 'none';
-    loginForm.style.display = 'none';
+    codeBox.style.display = 'none'; form.style.display = 'none';
   }
 }
 
 function showLoginError(msg) {
   const el = document.getElementById('login-error');
-  el.textContent = msg;
-  el.style.display = 'block';
-  setTimeout(() => { el.style.display = 'none'; }, 4000);
+  el.textContent = msg; el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 4500);
+}
+
+async function submitLogin() {
+  await api('/api/login', {
+    username: val('username-in').trim(),
+    password: val('password-in'),
+    token: val('token-in').trim(),
+  });
 }
 
 // ── Channels ───────────────────────────────────────────────────────────
-function addChannel(ch) {
-  state.channels[ch.id] = ch;
-  renderChannels();
-}
-
-function updateChannel(ch) {
-  state.channels[ch.id] = ch;
-  renderChannels();
-}
-
-function removeChannel(id) {
-  delete state.channels[id];
-  if (state.selected_id === id) state.selected_id = null;
-  renderChannels();
-}
-
-function clearChannels() {
-  state.channels = {};
-  state.watching_id = null;
-  state.selected_id = null;
-  renderChannels();
-}
-
-function updateWatching(id) {
-  state.watching_id = id;
+function updateWatchingBar() {
   const bar = document.getElementById('watching-bar');
+  const id = state.watching_id;
   if (id && state.channels[id]) {
-    bar.style.display = 'block';
-    bar.textContent = `Watching: ${state.channels[id].name}`;
-  } else {
-    bar.style.display = 'none';
-  }
-  renderChannels();
+    bar.style.display = 'flex';
+    const ch = state.channels[id];
+    setText('watching-text', `Watching ${ch.name}${ch.game ? ' — ' + ch.game : ''}`);
+  } else bar.style.display = 'none';
 }
 
 function statusDot(ch) {
   if (ch.online) return '<span class="dot online" title="Online"></span>';
-  if (ch.pending_online) return '<span class="dot pending" title="Pending"></span>';
+  if (ch.pending_online) return '<span class="dot pending" title="Going online"></span>';
   return '<span class="dot offline" title="Offline"></span>';
 }
 
 function renderChannels() {
   const tbody = document.getElementById('ch-tbody');
   const noEl = document.getElementById('no-channels');
-  const chs = Object.values(state.channels);
-  if (!chs.length) {
-    tbody.innerHTML = '';
-    noEl.style.display = 'block';
-    document.getElementById('switch-btn').disabled = true;
-    return;
-  }
-  noEl.style.display = 'none';
-  tbody.innerHTML = chs.map(ch => {
-    const watching = ch.id === state.watching_id;
-    const selected = ch.id === state.selected_id;
-    return `<tr class="${watching ? 'watching' : ''} ${selected ? 'selected' : ''}"
-      onclick="selectChannel('${ch.id}')">
-      <td>${esc(ch.name)}</td>
-      <td>${statusDot(ch)}</td>
+  const filter = val('ch-search').toLowerCase();
+  let chs = Object.values(state.channels);
+  if (filter) chs = chs.filter(c => c.name.toLowerCase().includes(filter) || (c.game||'').toLowerCase().includes(filter));
+  // online first, then viewers desc
+  chs.sort((a,b) => (b.online - a.online) || ((b.viewers||0) - (a.viewers||0)));
+  noEl.style.display = chs.length ? 'none' : 'block';
+  tbody.innerHTML = chs.map(ch => `
+    <tr class="${ch.id===state.watching_id?'watching':''} ${ch.id===state.selected_id?'selected':''}" onclick="selectChannel('${ch.id}')">
+      <td><span class="ch-name">${statusDot(ch)}${esc(ch.name)}</span></td>
       <td>${esc(ch.game)}</td>
-      <td>${ch.drops_enabled ? '✔' : '❌'}</td>
-      <td>${ch.viewers !== null ? ch.viewers.toLocaleString() : ''}</td>
-      <td>${ch.acl_based ? '✔' : '❌'}</td>
-    </tr>`;
-  }).join('');
+      <td>${ch.drops_enabled ? '<span class="pill ok">drops</span>' : '<span class="pill no">—</span>'}</td>
+      <td>${ch.viewers != null ? ch.viewers.toLocaleString() : ''}</td>
+      <td>${ch.acl_based ? '<span class="pill ok">ACL</span>' : ''}</td>
+    </tr>`).join('');
+  document.getElementById('switch-btn').disabled = !state.selected_id;
+  updateStats();
 }
 
-function selectChannel(id) {
-  state.selected_id = id;
-  document.getElementById('switch-btn').disabled = false;
-  renderChannels();
-}
-
-function clearSelection() {
-  state.selected_id = null;
-  document.getElementById('switch-btn').disabled = true;
-  renderChannels();
-}
-
+function selectChannel(id) { state.selected_id = id; renderChannels(); }
+function clearSelection() { state.selected_id = null; renderChannels(); }
 async function switchToSelected() {
   if (!state.selected_id) return;
   await api('/api/channels/select', { channel_id: state.selected_id });
+  toast('Channel', 'Switch requested', 'success');
 }
 
 // ── Drop ───────────────────────────────────────────────────────────────
 function updateDrop(drop) {
   const body = document.getElementById('drop-body');
-  if (!drop) {
-    body.innerHTML = '<div class="no-drop">No active drop</div>';
-    return;
-  }
-  const dp = Math.round(drop.progress * 100);
-  const cp = Math.round(drop.campaign.progress * 100);
+  if (!drop) { body.innerHTML = '<div class="no-drop">No active drop</div>'; return; }
+  const dp = Math.round(drop.progress * 100), cp = Math.round(drop.campaign.progress * 100);
   body.innerHTML = `
-    <div class="drop-name">${esc(drop.rewards)}</div>
-    <div class="drop-meta">${esc(drop.name)}</div>
-    <div class="progress-section" style="margin-top:8px;">
-      <div class="progress-label">
-        <span>Drop: ${drop.current_minutes}/${drop.required_minutes} min</span>
-        <span>${dp}%</span>
+    <div class="drop-hero">
+      <img src="${esc(drop.campaign.image_url)}" alt="" onerror="this.style.display='none'">
+      <div style="min-width:0;">
+        <div class="game">${esc(drop.campaign.game)}</div>
+        <div class="rewards">${esc(drop.rewards || drop.name)}</div>
+        <div class="sub">${esc(drop.campaign.name)}</div>
       </div>
+    </div>
+    <div class="progress-section">
+      <div class="progress-label"><span>Drop · ${drop.current_minutes}/${drop.required_minutes} min</span><span>${dp}%</span></div>
       <div class="progress-bar"><div class="progress-fill" style="width:${dp}%"></div></div>
     </div>
     <div class="progress-section">
-      <div class="progress-label">
-        <span>Campaign: ${esc(drop.campaign.game)}</span>
-        <span>${cp}% (${drop.campaign.claimed_drops}/${drop.campaign.total_drops} drops)</span>
-      </div>
-      <div class="progress-bar"><div class="progress-fill" style="width:${cp}%;background:var(--accent2)"></div></div>
+      <div class="progress-label"><span>Campaign · ${drop.campaign.claimed_drops}/${drop.campaign.total_drops} drops</span><span>${cp}%</span></div>
+      <div class="progress-bar"><div class="progress-fill teal" style="width:${cp}%"></div></div>
     </div>
-    <div class="drop-meta" style="margin-top:4px;">Remaining: ~${drop.remaining_minutes} min</div>`;
+    <div class="drop-eta">⏱ ~${drop.remaining_minutes} min until drop completes</div>`;
 }
 
 // ── Inventory ──────────────────────────────────────────────────────────
-function updateCampaigns(campaigns) {
-  state.campaigns = campaigns;
-  renderInventory();
-}
-
 function renderInventory() {
   const body = document.getElementById('inv-body');
-  if (!state.campaigns.length) {
-    body.innerHTML = '<div class="no-drop">No campaigns loaded</div>';
-    return;
-  }
+  const noEl = document.getElementById('no-campaigns');
+  noEl.style.display = state.campaigns.length ? 'none' : 'block';
   body.innerHTML = state.campaigns.map(c => {
     const prog = Math.round(c.progress * 100);
-    const badge = c.active ? 'active' : c.upcoming ? 'upcoming' : '';
-    const linkedBadge = !c.linked ? `<span class="badge not-linked">Not Linked</span>` : '';
-    const dropsHtml = c.drops.map(d => `
+    const badge = c.active ? '<span class="badge active">Active</span>' : c.upcoming ? '<span class="badge upcoming">Upcoming</span>' : '';
+    const linked = !c.linked ? '<span class="badge not-linked">Not linked</span>' : '';
+    const linkWarn = !c.linked && c.link_url ? `<div class="link-warn">⚠ <a href="${esc(c.link_url)}" target="_blank" rel="noopener">Link your account</a> to earn these drops</div>` : '';
+    const drops = c.drops.map(d => `
       <div class="drop-item">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span class="drop-item-name">${esc(d.rewards || d.name)}</span>
-          ${d.is_claimed ? '<span class="drop-item-claimed">✔ Claimed</span>' : `<span style="font-size:.75rem;color:var(--text-dim);">${d.current_minutes}/${d.required_minutes} min</span>`}
+        <div class="drop-item-row">
+          <span class="drop-item-name" title="${esc(d.rewards || d.name)}">${esc(d.rewards || d.name)}</span>
+          ${d.is_claimed
+            ? '<span class="drop-item-claimed">✔ Claimed</span>'
+            : `<span class="drop-item-min">${d.current_minutes}/${d.required_minutes} min</span>`}
         </div>
-        ${!d.is_claimed ? `<div class="progress-bar" style="margin-top:3px;height:4px;"><div class="progress-fill" style="width:${Math.round(d.progress*100)}%"></div></div>` : ''}
+        ${!d.is_claimed ? `<div class="progress-bar" style="margin-top:5px;height:5px;"><div class="progress-fill" style="width:${Math.round(d.progress*100)}%"></div></div>` : ''}
       </div>`).join('');
     return `<div class="campaign-card">
       <div class="campaign-hdr">
-        <img class="campaign-img" src="${esc(c.image_url)}" alt="" onerror="this.style.display='none'">
+        <img class="campaign-img" src="${esc(c.image_url)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
         <div class="campaign-info">
           <div class="campaign-game">${esc(c.game)}</div>
-          <div class="campaign-name">${esc(c.name)}</div>
-          <div style="margin-top:3px;">${badge ? `<span class="badge ${badge}">${badge}</span>` : ''} ${linkedBadge}</div>
-          <div class="campaign-drops">${c.claimed_drops}/${c.total_drops} drops claimed</div>
+          <div class="campaign-name" title="${esc(c.name)}">${esc(c.name)}</div>
+          <div>${badge}${linked}</div>
+          <div class="campaign-drops-cnt">${c.claimed_drops}/${c.total_drops} claimed · ends ${fmtDate(c.ends_at)}</div>
         </div>
       </div>
-      <div class="progress-label"><span>Campaign Progress</span><span>${prog}%</span></div>
+      <div class="progress-label"><span>Progress</span><span>${prog}%</span></div>
       <div class="progress-bar"><div class="progress-fill" style="width:${prog}%"></div></div>
-      ${dropsHtml}
+      ${drops}${linkWarn}
     </div>`;
   }).join('');
-}
-
-// ── Available games ────────────────────────────────────────────────────
-function updateAvailableGames(games) {
-  state.available_games = games;
-  updateGameSelectors();
-}
-
-function updateGameSelectors() {
-  const games = state.available_games;
-  ['add-game-sel', 'add-exclude-sel'].forEach(id => {
-    const sel = document.getElementById(id);
-    const cur = sel.value;
-    sel.innerHTML = '<option value="">-- Select --</option>' +
-      games.map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
-    if (cur) sel.value = cur;
-  });
+  updateStats();
 }
 
 // ── Settings ───────────────────────────────────────────────────────────
@@ -571,156 +703,176 @@ function applySettings(s) {
   if (s.priority_mode) document.getElementById('priority-mode-sel').value = s.priority_mode;
   if (s.enable_badges_emotes !== undefined) document.getElementById('badges-emotes-chk').checked = s.enable_badges_emotes;
   if (s.available_drops_check !== undefined) document.getElementById('avail-drops-chk').checked = s.available_drops_check;
-  if (s.connection_quality !== undefined) document.getElementById('conn-quality-in').value = s.connection_quality;
+  if (s.connection_quality !== undefined) document.getElementById('conn-quality-in').value = String(s.connection_quality);
   if (s.proxy !== undefined) document.getElementById('proxy-in').value = s.proxy;
-  renderPriorityList();
-  renderExcludeList();
+  renderPriorityList(); renderExcludeList();
 }
 
 function renderPriorityList() {
   const list = document.getElementById('priority-list');
-  const priority = (state.settings.priority || []);
-  list.innerHTML = priority.length ? priority.map((g, i) =>
-    `<div class="priority-item"><span>${esc(g)}</span><div>
-      ${i > 0 ? `<button title="Move up" onclick="movePriority(${i},-1)">↑</button>` : ''}
-      ${i < priority.length-1 ? `<button title="Move down" onclick="movePriority(${i},1)">↓</button>` : ''}
-      <button title="Remove" onclick="removePriority(${i})">×</button>
-    </div></div>`).join('') : '<div style="color:var(--text-dim);font-size:.8rem;padding:4px;">None</div>';
+  const p = state.settings.priority || [];
+  list.innerHTML = p.length ? p.map((g, i) => `
+    <div class="priority-item">
+      <span class="num">${i+1}</span><span class="nm" title="${esc(g)}">${esc(g)}</span>
+      <span class="ops">
+        ${i > 0 ? `<button title="Move up" onclick="movePriority(${i},-1)">▲</button>` : ''}
+        ${i < p.length-1 ? `<button title="Move down" onclick="movePriority(${i},1)">▼</button>` : ''}
+        <button class="rm" title="Remove" onclick="removePriority(${i})">✕</button>
+      </span>
+    </div>`).join('') : '<div class="none-msg">No priority games — add some below</div>';
 }
 
 function renderExcludeList() {
   const list = document.getElementById('exclude-list');
-  const exclude = (state.settings.exclude || []);
-  list.innerHTML = exclude.length ? exclude.map((g, i) =>
-    `<div class="priority-item"><span>${esc(g)}</span><button title="Remove" onclick="removeExclude(${i})">×</button></div>`).join('') :
-    '<div style="color:var(--text-dim);font-size:.8rem;padding:4px;">None</div>';
+  const e = state.settings.exclude || [];
+  list.innerHTML = e.length ? e.map((g, i) => `
+    <div class="priority-item">
+      <span class="nm" title="${esc(g)}">${esc(g)}</span>
+      <span class="ops"><button class="rm" title="Remove" onclick="removeExclude(${i})">✕</button></span>
+    </div>`).join('') : '<div class="none-msg">No excluded games</div>';
+}
+
+function updateGameSelectors() {
+  for (const id of ['add-game-sel', 'add-exclude-sel']) {
+    const sel = document.getElementById(id);
+    const cur = sel.value;
+    const ph = id === 'add-game-sel' ? 'Add a game…' : 'Exclude a game…';
+    sel.innerHTML = `<option value="">${ph}</option>` +
+      state.available_games.map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
+    if (cur) sel.value = cur;
+  }
 }
 
 function addPriorityGame() {
   const sel = document.getElementById('add-game-sel');
-  const game = sel.value;
-  if (!game) return;
-  const list = state.settings.priority || [];
-  if (!list.includes(game)) { list.push(game); state.settings.priority = list; }
-  renderPriorityList();
-  sel.value = '';
+  if (!sel.value) return;
+  state.settings.priority = state.settings.priority || [];
+  if (!state.settings.priority.includes(sel.value)) state.settings.priority.push(sel.value);
+  sel.value = ''; renderPriorityList();
 }
-
-function removePriority(idx) {
-  state.settings.priority.splice(idx, 1);
-  renderPriorityList();
+function removePriority(i) { state.settings.priority.splice(i, 1); renderPriorityList(); }
+function movePriority(i, dir) {
+  const l = state.settings.priority, j = i + dir;
+  if (j < 0 || j >= l.length) return;
+  [l[i], l[j]] = [l[j], l[i]]; renderPriorityList();
 }
-
-function movePriority(idx, dir) {
-  const list = state.settings.priority;
-  const newIdx = idx + dir;
-  if (newIdx < 0 || newIdx >= list.length) return;
-  [list[idx], list[newIdx]] = [list[newIdx], list[idx]];
-  renderPriorityList();
-}
-
 function addExcludeGame() {
   const sel = document.getElementById('add-exclude-sel');
-  const game = sel.value;
-  if (!game) return;
-  const list = state.settings.exclude || [];
-  if (!list.includes(game)) { list.push(game); state.settings.exclude = list; }
-  renderExcludeList();
-  sel.value = '';
+  if (!sel.value) return;
+  state.settings.exclude = state.settings.exclude || [];
+  if (!state.settings.exclude.includes(sel.value)) state.settings.exclude.push(sel.value);
+  sel.value = ''; renderExcludeList();
 }
-
-function removeExclude(idx) {
-  state.settings.exclude.splice(idx, 1);
-  renderExcludeList();
-}
+function removeExclude(i) { state.settings.exclude.splice(i, 1); renderExcludeList(); }
 
 async function saveSettings() {
-  const s = state.settings;
-  await api('/api/settings', {
-    priority: s.priority || [],
-    exclude: s.exclude || [],
-    priority_mode: document.getElementById('priority-mode-sel').value,
+  const res = await api('/api/settings', {
+    priority: state.settings.priority || [],
+    exclude: state.settings.exclude || [],
+    priority_mode: val('priority-mode-sel'),
     enable_badges_emotes: document.getElementById('badges-emotes-chk').checked,
     available_drops_check: document.getElementById('avail-drops-chk').checked,
-    connection_quality: parseInt(document.getElementById('conn-quality-in').value) || 1,
-    proxy: document.getElementById('proxy-in').value.trim(),
+    connection_quality: parseInt(val('conn-quality-in')) || 1,
+    proxy: val('proxy-in').trim(),
   });
-  showNotification('Settings', 'Settings saved');
+  if (res && res.ok) toast('Settings', 'Saved successfully — takes effect on next reload', 'success');
+  else toast('Settings', 'Failed to save', 'error');
+}
+
+// ── Import / export ────────────────────────────────────────────────────
+const dz = document.getElementById('dropzone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('dragover');
+  if (e.dataTransfer.files.length) importFile(e.dataTransfer.files[0]);
+});
+function onFilePicked(files) { if (files.length) importFile(files[0]); }
+
+async function importFile(file) {
+  const resEl = document.getElementById('import-result');
+  resEl.className = ''; resEl.style.display = 'none';
+  try {
+    const text = await file.text();
+    JSON.parse(text); // validate client-side first for a friendlier error
+    const resp = await fetch('/api/settings/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: text,
+    });
+    const data = await resp.json();
+    if (resp.ok && data.ok) {
+      resEl.className = 'ok';
+      resEl.textContent = `✔ Imported: ${data.imported.join(', ') || 'nothing new'}`
+        + (data.skipped.length ? ` · Skipped: ${data.skipped.join(', ')}` : '');
+      toast('Import', 'Settings imported successfully', 'success');
+    } else {
+      resEl.className = 'err';
+      resEl.textContent = `✕ ${data.error || 'Import failed'}`;
+      toast('Import', data.error || 'Import failed', 'error');
+    }
+  } catch (e) {
+    resEl.className = 'err';
+    resEl.textContent = '✕ Not a valid JSON file';
+    toast('Import', 'Not a valid JSON file', 'error');
+  }
+  document.getElementById('file-in').value = '';
 }
 
 // ── Console ────────────────────────────────────────────────────────────
-let autoScroll = true;
 function appendLog(msg) {
   const div = document.getElementById('console');
-  const atBottom = div.scrollHeight - div.scrollTop <= div.clientHeight + 30;
+  const atBottom = div.scrollHeight - div.scrollTop <= div.clientHeight + 40;
   const el = document.createElement('div');
   el.className = 'log-entry';
-  el.textContent = msg;
+  const m = msg.match(/^(\d\d:\d\d:\d\d):\s?([\s\S]*)$/);
+  if (m) {
+    const ts = document.createElement('span'); ts.className = 'ts'; ts.textContent = m[1] + '  ';
+    el.appendChild(ts); el.appendChild(document.createTextNode(m[2]));
+  } else el.textContent = msg;
   div.appendChild(el);
-  if (div.children.length > 1000) div.removeChild(div.firstChild);
+  while (div.children.length > 1000) div.removeChild(div.firstChild);
   if (atBottom) div.scrollTop = div.scrollHeight;
 }
 
-// ── Login ──────────────────────────────────────────────────────────────
-async function submitLogin() {
-  const username = document.getElementById('username-in').value.trim();
-  const password = document.getElementById('password-in').value;
-  const token = document.getElementById('token-in').value.trim();
-  document.getElementById('login-error').style.display = 'none';
-  await api('/api/login', { username, password, token });
-}
-
-// ── Misc ───────────────────────────────────────────────────────────────
-async function requestClose() {
-  if (confirm('Stop the miner?')) await api('/api/close', {});
-}
-
-async function reloadInventory() {
-  await api('/api/reload', {});
-}
+// ── Misc actions ───────────────────────────────────────────────────────
+async function requestClose() { if (confirm('Stop the miner?')) await api('/api/close', {}); }
+async function reloadInventory() { await api('/api/reload', {}); toast('Miner', 'Inventory reload requested', 'success'); }
 
 async function api(path, body) {
   try {
-    const res = await fetch(path, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
+    const res = await fetch(path, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
     return await res.json();
-  } catch(e) {
-    console.error(e);
-  }
+  } catch(e) { console.error(e); toast('Error', 'Request failed — is the miner running?', 'error'); }
 }
 
-// ── Tabs ───────────────────────────────────────────────────────────────
+// ── Tabs / toasts / utils ──────────────────────────────────────────────
 function switchTab(name) {
-  document.querySelectorAll('.tab').forEach((t, i) => {
-    const names = ['channels', 'inventory', 'console'];
-    t.classList.toggle('active', names[i] === name);
-  });
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
 }
 
-// ── Notifications ──────────────────────────────────────────────────────
-let notifTimer;
-function showNotification(title, msg) {
-  const el = document.getElementById('notif');
-  document.getElementById('notif-title').textContent = title;
-  document.getElementById('notif-msg').textContent = msg;
-  el.classList.add('show');
-  clearTimeout(notifTimer);
-  notifTimer = setTimeout(() => el.classList.remove('show'), 5000);
+function toast(title, msg, kind) {
+  const wrap = document.getElementById('toasts');
+  const el = document.createElement('div');
+  el.className = `toast ${kind || ''}`;
+  el.innerHTML = `<div class="t-title">${esc(title)}</div><div class="t-msg">${esc(msg)}</div>`;
+  wrap.appendChild(el);
+  setTimeout(() => { el.classList.add('hide'); setTimeout(() => el.remove(), 350); }, 5000);
 }
 
-// ── Utils ──────────────────────────────────────────────────────────────
-function esc(str) {
-  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function val(id) { return document.getElementById(id).value; }
+function setText(id, t) { document.getElementById(id).textContent = t; }
+function fmtDate(iso) {
+  try { return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); }
+  catch { return ''; }
 }
 
-// ── Init ───────────────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && document.getElementById('login-form').style.display === 'flex') submitLogin();
+  if (e.key === 'Enter' && document.getElementById('login-form').style.display === 'flex'
+      && ['username-in','password-in','token-in'].includes(document.activeElement?.id)) submitLogin();
 });
 
 connect();

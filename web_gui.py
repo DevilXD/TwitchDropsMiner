@@ -27,6 +27,19 @@ WEB_PORT = 5001
 MAX_LOG_MESSAGES = 500
 
 
+def _coerce_priority_mode(value: Any):
+    """Accept a PriorityMode, its int value, or its name string."""
+    from constants import PriorityMode
+    if isinstance(value, PriorityMode):
+        return value
+    try:
+        if isinstance(value, str) and value in PriorityMode.__members__:
+            return PriorityMode[value]
+        return PriorityMode(int(value))
+    except (ValueError, TypeError, KeyError):
+        return None
+
+
 class _WebOutputHandler(logging.Handler):
     def __init__(self, manager: GUIManager):
         super().__init__()
@@ -459,7 +472,7 @@ class GUIManager:
         return {
             "priority": list(s.priority),
             "exclude": list(s.exclude),
-            "priority_mode": s.priority_mode.value,
+            "priority_mode": s.priority_mode.name,
             "enable_badges_emotes": s.enable_badges_emotes,
             "available_drops_check": s.available_drops_check,
             "connection_quality": s.connection_quality,
@@ -525,7 +538,6 @@ class GUIManager:
         return web.json_response({"ok": True})
 
     async def _handle_settings(self, request: web.Request) -> web.Response:
-        from constants import PriorityMode
         from yarl import URL as YarlURL
         try:
             data = await request.json()
@@ -537,10 +549,9 @@ class GUIManager:
         if "exclude" in data:
             s.exclude = set(data["exclude"])
         if "priority_mode" in data:
-            try:
-                s.priority_mode = PriorityMode(data["priority_mode"])
-            except ValueError:
-                pass
+            mode = _coerce_priority_mode(data["priority_mode"])
+            if mode is not None:
+                s.priority_mode = mode
         if "enable_badges_emotes" in data:
             s.enable_badges_emotes = bool(data["enable_badges_emotes"])
         if "available_drops_check" in data:
@@ -553,6 +564,88 @@ class GUIManager:
         s.save(force=True)
         self._broadcast({"type": "settings", "settings": self._settings_state()})
         return web.json_response({"ok": True})
+
+    async def _handle_settings_import(self, request: web.Request) -> web.Response:
+        """
+        Accepts an uploaded settings.json file (the same format this app saves),
+        merges it into the current settings, saves and broadcasts the result.
+        Handles both the app's typed serialization format ("__type" wrappers)
+        and plain JSON with simple values.
+        """
+        from settings import default_settings
+        from yarl import URL as YarlURL
+        from utils import _deserialize, _remove_missing
+
+        try:
+            if request.content_type and request.content_type.startswith("multipart/"):
+                reader = await request.multipart()
+                raw: str = ""
+                async for field in reader:  # type: ignore[union-attr]
+                    if field.name == "file":
+                        raw = (await field.read(decode=True)).decode("utf8")
+                        break
+                if not raw:
+                    return web.json_response({"error": "No file uploaded"}, status=400)
+            else:
+                raw = await request.text()
+            data = json.loads(raw, object_hook=_deserialize)
+            if not isinstance(data, dict):
+                raise ValueError("Settings file must contain a JSON object")
+            data = _remove_missing(data)
+        except Exception as exc:
+            return web.json_response({"error": f"Invalid settings file: {exc}"}, status=400)
+
+        # coerce plain JSON values into the proper types
+        coercers: dict[str, Any] = {
+            "priority": lambda v: [str(x) for x in v] if isinstance(v, list) else None,
+            "exclude": lambda v: set(str(x) for x in v) if isinstance(v, (list, set)) else None,
+            "priority_mode": _coerce_priority_mode,
+            "proxy": lambda v: v if isinstance(v, YarlURL) else YarlURL(str(v or "")),
+            "connection_quality": lambda v: max(1, min(6, int(v))),
+            "language": lambda v: str(v),
+            "dark_mode": lambda v: bool(v),
+            "autostart_tray": lambda v: bool(v),
+            "tray_notifications": lambda v: bool(v),
+            "enable_badges_emotes": lambda v: bool(v),
+            "available_drops_check": lambda v: bool(v),
+        }
+        s = self._twitch.settings
+        imported: list[str] = []
+        skipped: list[str] = []
+        for key, value in data.items():
+            if key not in default_settings:
+                skipped.append(key)
+                continue
+            coerce = coercers.get(key)
+            if coerce is not None:
+                try:
+                    value = coerce(value)
+                except (ValueError, TypeError):
+                    skipped.append(key)
+                    continue
+                if value is None:
+                    skipped.append(key)
+                    continue
+            try:
+                setattr(s, key, value)
+                imported.append(key)
+            except TypeError:
+                skipped.append(key)
+        s.save(force=True)
+        self._broadcast({"type": "settings", "settings": self._settings_state()})
+        self.print(f"Settings imported from uploaded file: {', '.join(imported) or 'nothing'}")
+        return web.json_response({"ok": True, "imported": imported, "skipped": skipped})
+
+    async def _handle_settings_export(self, request: web.Request) -> web.Response:
+        from utils import _serialize
+        body = json.dumps(
+            self._twitch.settings._settings, default=_serialize, indent=4, sort_keys=True
+        )
+        return web.Response(
+            text=body,
+            content_type="application/json",
+            headers={"Content-Disposition": 'attachment; filename="settings.json"'},
+        )
 
     async def _handle_close(self, request: web.Request) -> web.Response:
         self.close()
@@ -571,6 +664,8 @@ class GUIManager:
         self._app.router.add_post("/api/login", self._handle_login)
         self._app.router.add_post("/api/channels/select", self._handle_select_channel)
         self._app.router.add_post("/api/settings", self._handle_settings)
+        self._app.router.add_post("/api/settings/import", self._handle_settings_import)
+        self._app.router.add_get("/api/settings/export", self._handle_settings_export)
         self._app.router.add_post("/api/close", self._handle_close)
         self._app.router.add_post("/api/reload", self._handle_reload)
 
