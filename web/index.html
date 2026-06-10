@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Twitch Drops Miner</title>
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --panel: #16213e;
+    --card: #0f3460;
+    --accent: #9146ff;
+    --accent2: #00b5ad;
+    --text: #e0e0e0;
+    --text-dim: #a0a0b0;
+    --online: #4caf50;
+    --offline: #f44336;
+    --pending: #ff9800;
+    --border: #2a2a4a;
+    --input-bg: #0d0d1e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  header { background: var(--panel); border-bottom: 2px solid var(--accent); padding: 12px 20px; display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 1.3rem; color: var(--accent); }
+  #icon-badge { width: 12px; height: 12px; border-radius: 50%; background: #555; display: inline-block; }
+  #icon-badge.active { background: var(--online); box-shadow: 0 0 6px var(--online); }
+  #icon-badge.idle { background: var(--pending); }
+  #icon-badge.maint { background: var(--accent2); }
+  #icon-badge.error { background: var(--offline); box-shadow: 0 0 6px var(--offline); }
+  #status-text { font-size: 0.85rem; color: var(--text-dim); flex: 1; }
+  .btn { background: var(--accent); color: #fff; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; transition: opacity .2s; }
+  .btn:hover { opacity: .85; }
+  .btn.danger { background: var(--offline); }
+  .btn.secondary { background: var(--card); border: 1px solid var(--border); }
+  .layout { display: grid; grid-template-columns: 340px 1fr; grid-template-rows: auto; gap: 12px; padding: 12px; min-height: calc(100vh - 56px); }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+  .col { display: flex; flex-direction: column; gap: 12px; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .panel-hdr { background: var(--card); padding: 8px 12px; font-size: 0.8rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: .5px; display: flex; justify-content: space-between; align-items: center; }
+  .panel-body { padding: 12px; }
+
+  /* Login */
+  #login-panel .panel-body { display: flex; flex-direction: column; gap: 8px; }
+  #login-status { font-size: 0.85rem; color: var(--text-dim); }
+  #login-code-box { display: none; background: var(--input-bg); border: 1px solid var(--accent); border-radius: 6px; padding: 10px; text-align: center; }
+  #login-code-box .code { font-size: 2rem; font-weight: bold; letter-spacing: 4px; color: var(--accent); }
+  #login-code-box a { color: var(--accent2); font-size: 0.8rem; display: block; margin-top: 4px; word-break: break-all; }
+  #login-form { display: none; flex-direction: column; gap: 6px; }
+  input[type=text], input[type=password] { background: var(--input-bg); border: 1px solid var(--border); color: var(--text); padding: 7px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%; }
+  input:focus { outline: none; border-color: var(--accent); }
+  #login-error { color: var(--offline); font-size: 0.8rem; display: none; }
+  #user-info { font-size: 0.8rem; color: var(--text-dim); }
+
+  /* Drop progress */
+  #drop-panel .panel-body { padding: 10px 12px; }
+  .no-drop { color: var(--text-dim); font-size: 0.85rem; text-align: center; padding: 16px 0; }
+  .progress-section { margin-bottom: 10px; }
+  .progress-label { font-size: 0.75rem; color: var(--text-dim); margin-bottom: 3px; display: flex; justify-content: space-between; }
+  .progress-bar { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width .5s ease; }
+  .drop-name { font-size: 0.9rem; font-weight: 600; margin-bottom: 6px; }
+  .drop-rewards { font-size: 0.8rem; color: var(--accent2); margin-bottom: 8px; }
+  .drop-meta { font-size: 0.75rem; color: var(--text-dim); }
+
+  /* Channel list */
+  #channels-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  #channels-table th { color: var(--accent); text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--border); font-weight: 600; font-size: 0.75rem; }
+  #channels-table td { padding: 4px 6px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  #channels-table tr:hover td { background: rgba(145,70,255,.08); cursor: pointer; }
+  #channels-table tr.watching td { background: rgba(145,70,255,.18); }
+  #channels-table tr.selected td { background: rgba(0,181,173,.12); outline: 1px solid var(--accent2); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .dot.online { background: var(--online); }
+  .dot.offline { background: var(--offline); }
+  .dot.pending { background: var(--pending); }
+  .ch-actions { display: flex; gap: 6px; margin-bottom: 8px; }
+
+  /* Inventory */
+  .campaign-card { background: var(--card); border-radius: 6px; padding: 10px; margin-bottom: 8px; }
+  .campaign-hdr { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 8px; }
+  .campaign-img { width: 40px; height: 54px; border-radius: 3px; object-fit: cover; }
+  .campaign-info { flex: 1; min-width: 0; }
+  .campaign-game { font-size: 0.75rem; color: var(--accent2); }
+  .campaign-name { font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .campaign-drops { font-size: 0.75rem; color: var(--text-dim); }
+  .badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 0.7rem; font-weight: 600; }
+  .badge.active { background: rgba(76,175,80,.25); color: var(--online); }
+  .badge.upcoming { background: rgba(255,152,0,.2); color: var(--pending); }
+  .badge.not-linked { background: rgba(244,67,54,.2); color: var(--offline); }
+  .drop-item { padding: 6px 0; border-top: 1px solid var(--border); }
+  .drop-item-name { font-size: 0.8rem; }
+  .drop-item-claimed { color: var(--online); font-size: 0.75rem; }
+
+  /* Settings */
+  .settings-group { margin-bottom: 12px; }
+  .settings-group label { font-size: 0.8rem; color: var(--text-dim); display: block; margin-bottom: 4px; }
+  .settings-group select, .settings-group input[type=text] { width: 100%; }
+  .settings-group select { background: var(--input-bg); border: 1px solid var(--border); color: var(--text); padding: 6px; border-radius: 4px; font-size: 0.85rem; }
+  .toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
+  .toggle-row label { font-size: 0.85rem; }
+  input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); }
+  .priority-list { background: var(--input-bg); border: 1px solid var(--border); border-radius: 4px; min-height: 60px; padding: 4px; }
+  .priority-item { display: flex; justify-content: space-between; align-items: center; padding: 2px 4px; border-radius: 3px; font-size: 0.8rem; }
+  .priority-item:hover { background: var(--border); }
+  .priority-item button { background: none; border: none; color: var(--offline); cursor: pointer; padding: 0 4px; font-size: 1rem; }
+  .add-priority { display: flex; gap: 6px; margin-top: 6px; }
+  .add-priority select { flex: 1; }
+
+  /* Console */
+  #console { background: var(--input-bg); border: 1px solid var(--border); border-radius: 4px; height: 280px; overflow-y: auto; padding: 8px; font-family: monospace; font-size: 0.75rem; }
+  .log-entry { line-height: 1.5; color: var(--text-dim); border-bottom: 1px solid rgba(255,255,255,.04); padding: 1px 0; }
+  .log-entry:last-child { border-bottom: none; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 2px; background: var(--panel); border-bottom: 1px solid var(--border); padding: 0 12px; }
+  .tab { padding: 8px 16px; cursor: pointer; font-size: 0.85rem; color: var(--text-dim); border-bottom: 2px solid transparent; transition: all .2s; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Notification */
+  #notif { position: fixed; bottom: 20px; right: 20px; max-width: 320px; background: var(--card); border: 1px solid var(--accent); border-radius: 8px; padding: 12px 16px; transform: translateY(100px); opacity: 0; transition: all .3s; pointer-events: none; }
+  #notif.show { transform: translateY(0); opacity: 1; }
+  #notif-title { font-size: 0.75rem; color: var(--accent); font-weight: 600; }
+  #notif-msg { font-size: 0.85rem; margin-top: 3px; }
+
+  .conn-indicator { width: 8px; height: 8px; border-radius: 50%; background: var(--offline); display: inline-block; }
+  .conn-indicator.connected { background: var(--online); box-shadow: 0 0 5px var(--online); }
+
+  #watching-bar { display: none; background: rgba(145,70,255,.12); border: 1px solid var(--accent); border-radius: 6px; padding: 8px 12px; font-size: 0.85rem; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<header>
+  <span id="icon-badge" class="pickaxe"></span>
+  <h1>⛏ Twitch Drops Miner</h1>
+  <span id="status-text">Connecting...</span>
+  <span id="conn-indicator" class="conn-indicator" title="SSE connection"></span>
+  <button class="btn danger" onclick="requestClose()">Stop</button>
+</header>
+
+<div class="layout">
+  <!-- LEFT COLUMN -->
+  <div class="col" id="left-col">
+    <!-- Login -->
+    <div class="panel" id="login-panel">
+      <div class="panel-hdr">Login</div>
+      <div class="panel-body">
+        <div id="login-status">Checking...</div>
+        <div id="user-info"></div>
+        <div id="login-code-box">
+          <div>Go to <a id="code-link" href="#" target="_blank" rel="noopener"></a> and enter:</div>
+          <div class="code" id="code-value"></div>
+        </div>
+        <div id="login-form">
+          <input type="text" id="username-in" placeholder="Twitch username" autocomplete="username">
+          <input type="password" id="password-in" placeholder="Password" autocomplete="current-password">
+          <input type="text" id="token-in" placeholder="2FA code (if required)" autocomplete="one-time-code">
+          <div id="login-error"></div>
+          <button class="btn" onclick="submitLogin()">Login</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Drop Progress -->
+    <div class="panel" id="drop-panel">
+      <div class="panel-hdr">Current Drop</div>
+      <div class="panel-body" id="drop-body">
+        <div class="no-drop">No active drop</div>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="panel" id="settings-panel">
+      <div class="panel-hdr">Settings <button class="btn secondary" style="font-size:.7rem;padding:3px 8px;" onclick="saveSettings()">Save</button></div>
+      <div class="panel-body">
+        <div class="settings-group">
+          <label>Priority Mode</label>
+          <select id="priority-mode-sel">
+            <option value="PRIORITY_ONLY">Priority Only</option>
+            <option value="ENDING_SOONEST">Ending Soonest</option>
+            <option value="LOW_AVBL_FIRST">Lowest Availability First</option>
+          </select>
+        </div>
+        <div class="settings-group">
+          <label>Game Priority List</label>
+          <div class="priority-list" id="priority-list"></div>
+          <div class="add-priority">
+            <select id="add-game-sel"><option value="">-- Add game --</option></select>
+            <button class="btn secondary" onclick="addPriorityGame()">Add</button>
+          </div>
+        </div>
+        <div class="settings-group">
+          <label>Excluded Games</label>
+          <div class="priority-list" id="exclude-list"></div>
+          <div class="add-priority">
+            <select id="add-exclude-sel"><option value="">-- Exclude game --</option></select>
+            <button class="btn secondary" onclick="addExcludeGame()">Add</button>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <label>Badges &amp; Emotes</label>
+          <input type="checkbox" id="badges-emotes-chk">
+        </div>
+        <div class="toggle-row">
+          <label>Check Available Drops</label>
+          <input type="checkbox" id="avail-drops-chk">
+        </div>
+        <div class="settings-group" style="margin-top:8px;">
+          <label>Connection Quality (1-6)</label>
+          <input type="text" id="conn-quality-in" placeholder="1">
+        </div>
+        <div class="settings-group">
+          <label>Proxy URL (leave blank for none)</label>
+          <input type="text" id="proxy-in" placeholder="http://...">
+        </div>
+        <div style="margin-top:8px;display:flex;gap:8px;">
+          <button class="btn secondary" onclick="reloadInventory()">Reload Inventory</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT COLUMN -->
+  <div class="col">
+    <div class="tabs" id="main-tabs">
+      <div class="tab active" onclick="switchTab('channels')">Channels</div>
+      <div class="tab" onclick="switchTab('inventory')">Inventory</div>
+      <div class="tab" onclick="switchTab('console')">Console</div>
+    </div>
+
+    <!-- Channels tab -->
+    <div class="tab-content active panel" id="tab-channels">
+      <div class="panel-body">
+        <div id="watching-bar"></div>
+        <div class="ch-actions">
+          <button class="btn secondary" id="switch-btn" disabled onclick="switchToSelected()">Watch Selected</button>
+          <button class="btn secondary" onclick="clearSelection()">Clear Selection</button>
+        </div>
+        <div style="overflow-x:auto;">
+          <table id="channels-table">
+            <thead>
+              <tr>
+                <th>Channel</th>
+                <th>Status</th>
+                <th>Game</th>
+                <th>🎁</th>
+                <th>Viewers</th>
+                <th>📋</th>
+              </tr>
+            </thead>
+            <tbody id="ch-tbody"></tbody>
+          </table>
+        </div>
+        <div id="no-channels" style="text-align:center;padding:20px;color:var(--text-dim);font-size:.85rem;">No channels tracked yet</div>
+      </div>
+    </div>
+
+    <!-- Inventory tab -->
+    <div class="tab-content panel" id="tab-inventory">
+      <div class="panel-body" id="inv-body">
+        <div class="no-drop">No campaigns loaded</div>
+      </div>
+    </div>
+
+    <!-- Console tab -->
+    <div class="tab-content panel" id="tab-console">
+      <div class="panel-body" style="padding:8px;">
+        <div id="console"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Notification popup -->
+<div id="notif">
+  <div id="notif-title"></div>
+  <div id="notif-msg"></div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────
+const state = {
+  channels: {},
+  watching_id: null,
+  selected_id: null,
+  campaigns: [],
+  settings: {},
+  available_games: [],
+  login: {},
+  log: [],
+};
+
+// ── SSE ────────────────────────────────────────────────────────────────
+let evtSource = null;
+let reconnectDelay = 1000;
+
+function connect() {
+  evtSource = new EventSource('/api/events');
+  evtSource.onopen = () => {
+    document.getElementById('conn-indicator').classList.add('connected');
+    reconnectDelay = 1000;
+  };
+  evtSource.onmessage = (e) => {
+    try { handleEvent(JSON.parse(e.data)); } catch(err) { console.error(err); }
+  };
+  evtSource.onerror = () => {
+    document.getElementById('conn-indicator').classList.remove('connected');
+    evtSource.close();
+    setTimeout(connect, reconnectDelay);
+    reconnectDelay = Math.min(reconnectDelay * 2, 15000);
+  };
+}
+
+// ── Event Handlers ─────────────────────────────────────────────────────
+function handleEvent(data) {
+  switch (data.type) {
+    case 'init':        handleInit(data); break;
+    case 'status':      updateStatus(data.text); break;
+    case 'icon':        updateIcon(data.name); break;
+    case 'log':         appendLog(data.message); break;
+    case 'login_state': updateLogin(data); break;
+    case 'login_error': showLoginError(data.message); break;
+    case 'channel_add': addChannel(data.channel); break;
+    case 'channel_update': updateChannel(data.channel); break;
+    case 'channel_remove': removeChannel(data.id); break;
+    case 'channels_clear': clearChannels(); break;
+    case 'watching':    updateWatching(data.channel_id); break;
+    case 'drop':        updateDrop(data.drop); break;
+    case 'campaigns':   updateCampaigns(data.campaigns); break;
+    case 'available_games': updateAvailableGames(data.games); break;
+    case 'settings':    applySettings(data.settings); break;
+    case 'notification': showNotification(data.title, data.message); break;
+  }
+}
+
+function handleInit(data) {
+  updateStatus(data.status);
+  updateIcon(data.icon);
+  updateLogin(data.login);
+  clearChannels();
+  for (const ch of (data.channels || [])) addChannel(ch);
+  updateWatching(data.watching_channel_id);
+  updateCampaigns(data.campaigns || []);
+  updateAvailableGames(data.available_games || []);
+  applySettings(data.settings || {});
+  for (const msg of (data.log || [])) appendLog(msg);
+}
+
+// ── UI Updates ─────────────────────────────────────────────────────────
+function updateStatus(text) {
+  document.getElementById('status-text').textContent = text;
+}
+
+function updateIcon(name) {
+  const el = document.getElementById('icon-badge');
+  el.className = '';
+  el.classList.add(name);
+}
+
+function updateLogin(data) {
+  state.login = data;
+  const statusEl = document.getElementById('login-status');
+  const userEl = document.getElementById('user-info');
+  const codeBox = document.getElementById('login-code-box');
+  const loginForm = document.getElementById('login-form');
+
+  statusEl.textContent = data.status || '';
+  userEl.textContent = data.user_id ? `User ID: ${data.user_id}` : '';
+
+  if (data.code) {
+    codeBox.style.display = 'block';
+    loginForm.style.display = 'none';
+    document.getElementById('code-value').textContent = data.code;
+    const link = document.getElementById('code-link');
+    link.href = data.code_url || '#';
+    link.textContent = data.code_url || '';
+  } else if (data.waiting_for_input) {
+    codeBox.style.display = 'none';
+    loginForm.style.display = 'flex';
+  } else {
+    codeBox.style.display = 'none';
+    loginForm.style.display = 'none';
+  }
+}
+
+function showLoginError(msg) {
+  const el = document.getElementById('login-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+
+// ── Channels ───────────────────────────────────────────────────────────
+function addChannel(ch) {
+  state.channels[ch.id] = ch;
+  renderChannels();
+}
+
+function updateChannel(ch) {
+  state.channels[ch.id] = ch;
+  renderChannels();
+}
+
+function removeChannel(id) {
+  delete state.channels[id];
+  if (state.selected_id === id) state.selected_id = null;
+  renderChannels();
+}
+
+function clearChannels() {
+  state.channels = {};
+  state.watching_id = null;
+  state.selected_id = null;
+  renderChannels();
+}
+
+function updateWatching(id) {
+  state.watching_id = id;
+  const bar = document.getElementById('watching-bar');
+  if (id && state.channels[id]) {
+    bar.style.display = 'block';
+    bar.textContent = `Watching: ${state.channels[id].name}`;
+  } else {
+    bar.style.display = 'none';
+  }
+  renderChannels();
+}
+
+function statusDot(ch) {
+  if (ch.online) return '<span class="dot online" title="Online"></span>';
+  if (ch.pending_online) return '<span class="dot pending" title="Pending"></span>';
+  return '<span class="dot offline" title="Offline"></span>';
+}
+
+function renderChannels() {
+  const tbody = document.getElementById('ch-tbody');
+  const noEl = document.getElementById('no-channels');
+  const chs = Object.values(state.channels);
+  if (!chs.length) {
+    tbody.innerHTML = '';
+    noEl.style.display = 'block';
+    document.getElementById('switch-btn').disabled = true;
+    return;
+  }
+  noEl.style.display = 'none';
+  tbody.innerHTML = chs.map(ch => {
+    const watching = ch.id === state.watching_id;
+    const selected = ch.id === state.selected_id;
+    return `<tr class="${watching ? 'watching' : ''} ${selected ? 'selected' : ''}"
+      onclick="selectChannel('${ch.id}')">
+      <td>${esc(ch.name)}</td>
+      <td>${statusDot(ch)}</td>
+      <td>${esc(ch.game)}</td>
+      <td>${ch.drops_enabled ? '✔' : '❌'}</td>
+      <td>${ch.viewers !== null ? ch.viewers.toLocaleString() : ''}</td>
+      <td>${ch.acl_based ? '✔' : '❌'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function selectChannel(id) {
+  state.selected_id = id;
+  document.getElementById('switch-btn').disabled = false;
+  renderChannels();
+}
+
+function clearSelection() {
+  state.selected_id = null;
+  document.getElementById('switch-btn').disabled = true;
+  renderChannels();
+}
+
+async function switchToSelected() {
+  if (!state.selected_id) return;
+  await api('/api/channels/select', { channel_id: state.selected_id });
+}
+
+// ── Drop ───────────────────────────────────────────────────────────────
+function updateDrop(drop) {
+  const body = document.getElementById('drop-body');
+  if (!drop) {
+    body.innerHTML = '<div class="no-drop">No active drop</div>';
+    return;
+  }
+  const dp = Math.round(drop.progress * 100);
+  const cp = Math.round(drop.campaign.progress * 100);
+  body.innerHTML = `
+    <div class="drop-name">${esc(drop.rewards)}</div>
+    <div class="drop-meta">${esc(drop.name)}</div>
+    <div class="progress-section" style="margin-top:8px;">
+      <div class="progress-label">
+        <span>Drop: ${drop.current_minutes}/${drop.required_minutes} min</span>
+        <span>${dp}%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${dp}%"></div></div>
+    </div>
+    <div class="progress-section">
+      <div class="progress-label">
+        <span>Campaign: ${esc(drop.campaign.game)}</span>
+        <span>${cp}% (${drop.campaign.claimed_drops}/${drop.campaign.total_drops} drops)</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${cp}%;background:var(--accent2)"></div></div>
+    </div>
+    <div class="drop-meta" style="margin-top:4px;">Remaining: ~${drop.remaining_minutes} min</div>`;
+}
+
+// ── Inventory ──────────────────────────────────────────────────────────
+function updateCampaigns(campaigns) {
+  state.campaigns = campaigns;
+  renderInventory();
+}
+
+function renderInventory() {
+  const body = document.getElementById('inv-body');
+  if (!state.campaigns.length) {
+    body.innerHTML = '<div class="no-drop">No campaigns loaded</div>';
+    return;
+  }
+  body.innerHTML = state.campaigns.map(c => {
+    const prog = Math.round(c.progress * 100);
+    const badge = c.active ? 'active' : c.upcoming ? 'upcoming' : '';
+    const linkedBadge = !c.linked ? `<span class="badge not-linked">Not Linked</span>` : '';
+    const dropsHtml = c.drops.map(d => `
+      <div class="drop-item">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span class="drop-item-name">${esc(d.rewards || d.name)}</span>
+          ${d.is_claimed ? '<span class="drop-item-claimed">✔ Claimed</span>' : `<span style="font-size:.75rem;color:var(--text-dim);">${d.current_minutes}/${d.required_minutes} min</span>`}
+        </div>
+        ${!d.is_claimed ? `<div class="progress-bar" style="margin-top:3px;height:4px;"><div class="progress-fill" style="width:${Math.round(d.progress*100)}%"></div></div>` : ''}
+      </div>`).join('');
+    return `<div class="campaign-card">
+      <div class="campaign-hdr">
+        <img class="campaign-img" src="${esc(c.image_url)}" alt="" onerror="this.style.display='none'">
+        <div class="campaign-info">
+          <div class="campaign-game">${esc(c.game)}</div>
+          <div class="campaign-name">${esc(c.name)}</div>
+          <div style="margin-top:3px;">${badge ? `<span class="badge ${badge}">${badge}</span>` : ''} ${linkedBadge}</div>
+          <div class="campaign-drops">${c.claimed_drops}/${c.total_drops} drops claimed</div>
+        </div>
+      </div>
+      <div class="progress-label"><span>Campaign Progress</span><span>${prog}%</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${prog}%"></div></div>
+      ${dropsHtml}
+    </div>`;
+  }).join('');
+}
+
+// ── Available games ────────────────────────────────────────────────────
+function updateAvailableGames(games) {
+  state.available_games = games;
+  updateGameSelectors();
+}
+
+function updateGameSelectors() {
+  const games = state.available_games;
+  ['add-game-sel', 'add-exclude-sel'].forEach(id => {
+    const sel = document.getElementById(id);
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">-- Select --</option>' +
+      games.map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
+    if (cur) sel.value = cur;
+  });
+}
+
+// ── Settings ───────────────────────────────────────────────────────────
+function applySettings(s) {
+  state.settings = s;
+  if (s.priority_mode) document.getElementById('priority-mode-sel').value = s.priority_mode;
+  if (s.enable_badges_emotes !== undefined) document.getElementById('badges-emotes-chk').checked = s.enable_badges_emotes;
+  if (s.available_drops_check !== undefined) document.getElementById('avail-drops-chk').checked = s.available_drops_check;
+  if (s.connection_quality !== undefined) document.getElementById('conn-quality-in').value = s.connection_quality;
+  if (s.proxy !== undefined) document.getElementById('proxy-in').value = s.proxy;
+  renderPriorityList();
+  renderExcludeList();
+}
+
+function renderPriorityList() {
+  const list = document.getElementById('priority-list');
+  const priority = (state.settings.priority || []);
+  list.innerHTML = priority.length ? priority.map((g, i) =>
+    `<div class="priority-item"><span>${esc(g)}</span><div>
+      ${i > 0 ? `<button title="Move up" onclick="movePriority(${i},-1)">↑</button>` : ''}
+      ${i < priority.length-1 ? `<button title="Move down" onclick="movePriority(${i},1)">↓</button>` : ''}
+      <button title="Remove" onclick="removePriority(${i})">×</button>
+    </div></div>`).join('') : '<div style="color:var(--text-dim);font-size:.8rem;padding:4px;">None</div>';
+}
+
+function renderExcludeList() {
+  const list = document.getElementById('exclude-list');
+  const exclude = (state.settings.exclude || []);
+  list.innerHTML = exclude.length ? exclude.map((g, i) =>
+    `<div class="priority-item"><span>${esc(g)}</span><button title="Remove" onclick="removeExclude(${i})">×</button></div>`).join('') :
+    '<div style="color:var(--text-dim);font-size:.8rem;padding:4px;">None</div>';
+}
+
+function addPriorityGame() {
+  const sel = document.getElementById('add-game-sel');
+  const game = sel.value;
+  if (!game) return;
+  const list = state.settings.priority || [];
+  if (!list.includes(game)) { list.push(game); state.settings.priority = list; }
+  renderPriorityList();
+  sel.value = '';
+}
+
+function removePriority(idx) {
+  state.settings.priority.splice(idx, 1);
+  renderPriorityList();
+}
+
+function movePriority(idx, dir) {
+  const list = state.settings.priority;
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= list.length) return;
+  [list[idx], list[newIdx]] = [list[newIdx], list[idx]];
+  renderPriorityList();
+}
+
+function addExcludeGame() {
+  const sel = document.getElementById('add-exclude-sel');
+  const game = sel.value;
+  if (!game) return;
+  const list = state.settings.exclude || [];
+  if (!list.includes(game)) { list.push(game); state.settings.exclude = list; }
+  renderExcludeList();
+  sel.value = '';
+}
+
+function removeExclude(idx) {
+  state.settings.exclude.splice(idx, 1);
+  renderExcludeList();
+}
+
+async function saveSettings() {
+  const s = state.settings;
+  await api('/api/settings', {
+    priority: s.priority || [],
+    exclude: s.exclude || [],
+    priority_mode: document.getElementById('priority-mode-sel').value,
+    enable_badges_emotes: document.getElementById('badges-emotes-chk').checked,
+    available_drops_check: document.getElementById('avail-drops-chk').checked,
+    connection_quality: parseInt(document.getElementById('conn-quality-in').value) || 1,
+    proxy: document.getElementById('proxy-in').value.trim(),
+  });
+  showNotification('Settings', 'Settings saved');
+}
+
+// ── Console ────────────────────────────────────────────────────────────
+let autoScroll = true;
+function appendLog(msg) {
+  const div = document.getElementById('console');
+  const atBottom = div.scrollHeight - div.scrollTop <= div.clientHeight + 30;
+  const el = document.createElement('div');
+  el.className = 'log-entry';
+  el.textContent = msg;
+  div.appendChild(el);
+  if (div.children.length > 1000) div.removeChild(div.firstChild);
+  if (atBottom) div.scrollTop = div.scrollHeight;
+}
+
+// ── Login ──────────────────────────────────────────────────────────────
+async function submitLogin() {
+  const username = document.getElementById('username-in').value.trim();
+  const password = document.getElementById('password-in').value;
+  const token = document.getElementById('token-in').value.trim();
+  document.getElementById('login-error').style.display = 'none';
+  await api('/api/login', { username, password, token });
+}
+
+// ── Misc ───────────────────────────────────────────────────────────────
+async function requestClose() {
+  if (confirm('Stop the miner?')) await api('/api/close', {});
+}
+
+async function reloadInventory() {
+  await api('/api/reload', {});
+}
+
+async function api(path, body) {
+  try {
+    const res = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return await res.json();
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+// ── Tabs ───────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    const names = ['channels', 'inventory', 'console'];
+    t.classList.toggle('active', names[i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+// ── Notifications ──────────────────────────────────────────────────────
+let notifTimer;
+function showNotification(title, msg) {
+  const el = document.getElementById('notif');
+  document.getElementById('notif-title').textContent = title;
+  document.getElementById('notif-msg').textContent = msg;
+  el.classList.add('show');
+  clearTimeout(notifTimer);
+  notifTimer = setTimeout(() => el.classList.remove('show'), 5000);
+}
+
+// ── Utils ──────────────────────────────────────────────────────────────
+function esc(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Init ───────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('login-form').style.display === 'flex') submitLogin();
+});
+
+connect();
+</script>
+</body>
+</html>
