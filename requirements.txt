@@ -1,8 +1,3 @@
 aiohttp>=3.9,<4.0
-Pillow
-pystray
-PyGObject<3.51; sys_platform == "linux"  # required for better system tray support on Linux
-
-# environment-dependent dependencies
-pywin32; sys_platform == "win32"
+yarl
 truststore

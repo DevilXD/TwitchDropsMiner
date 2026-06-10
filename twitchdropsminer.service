@@ -1,0 +1,18 @@
+[Unit]
+Description=Twitch Drops Miner Web Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/TwitchDropsMiner
+ExecStart=/usr/bin/python3 main.py
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

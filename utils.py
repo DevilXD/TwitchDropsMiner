@@ -11,7 +11,6 @@ import asyncio
 import logging
 import traceback
 import webbrowser
-import tkinter as tk
 from enum import Enum
 from pathlib import Path
 from functools import wraps
@@ -22,8 +21,14 @@ from collections import abc, OrderedDict
 from typing import Any, Literal, Callable, Generic, Mapping, TypeVar, ParamSpec, cast
 
 from yarl import URL
-from PIL.ImageTk import PhotoImage
-from PIL import Image as Image_module
+
+try:
+    import tkinter as tk
+    from PIL.ImageTk import PhotoImage
+    from PIL import Image as Image_module
+    _HAS_TK = True
+except ImportError:
+    _HAS_TK = False
 
 from exceptions import ExitRequest, ReloadRequest
 from constants import IS_PACKAGED, JsonType, PriorityMode
@@ -37,11 +42,12 @@ _JSON_T = TypeVar("_JSON_T", bound=Mapping[Any, Any])
 logger = logging.getLogger("TwitchDrops")
 
 
-def set_root_icon(root: tk.Tk, image_path: Path | str) -> None:
+def set_root_icon(root: Any, image_path: Path | str) -> None:
+    if not _HAS_TK:
+        return
     with Image_module.open(image_path) as image:
         icon_photo = PhotoImage(master=root, image=image)
     root.iconphoto(True, icon_photo)  # type: ignore[arg-type]
-    # keep a reference to the PhotoImage to avoid the ResourceWarning
     root._icon_image = icon_photo  # type: ignore[attr-defined]
 
 
