@@ -352,6 +352,7 @@ class WebInventoryOverview:
     def __init__(self, manager: GUIManager):
         self._manager = manager
         self._campaign_objects: list[DropsCampaign] = []
+        self._claimed_ids: set[str] = set()
 
     @property
     def _campaigns(self) -> list[dict[str, Any]]:
@@ -362,6 +363,22 @@ class WebInventoryOverview:
         self._manager._broadcast({"type": "campaigns", "campaigns": []})
 
     def update_drop(self, drop: TimedDrop) -> None:
+        if drop.is_claimed and drop.id not in self._claimed_ids:
+            self._claimed_ids.add(drop.id)
+            campaign = drop.campaign
+            entry: dict[str, Any] = {
+                "id": drop.id,
+                "name": drop.name,
+                "rewards": drop.rewards_text(),
+                "campaign_name": campaign.name,
+                "game": str(campaign.game),
+                "image_url": drop.benefits[0].image_url if drop.benefits else "",
+                "claimed_at": datetime.utcnow().isoformat() + "Z",
+            }
+            self._manager._drop_history.insert(0, entry)
+            if len(self._manager._drop_history) > 200:
+                self._manager._drop_history.pop()
+            self._manager._broadcast({"type": "drop_claimed", "drop": entry})
         self._broadcast_campaigns()
 
     def _campaign_data(self, campaign: DropsCampaign) -> dict[str, Any]:
@@ -475,6 +492,8 @@ class GUIManager:
         self._site: web.TCPSite | None = None
         self._poll_task: asyncio.Task[None] | None = None
 
+        self._drop_history: list[dict[str, Any]] = []
+
         # Sub-components matching the original GUIManager interface
         self.login = WebLoginForm(self)
         self.status = WebStatusBar(self)
@@ -517,6 +536,7 @@ class GUIManager:
             "websockets": self.websockets.state(),
             "drop": self.progress.current_state(),
             "log": list(self._log_messages),
+            "history": self._drop_history,
         }
 
     def _settings_state(self) -> dict[str, Any]:
@@ -707,6 +727,9 @@ class GUIManager:
         self._twitch.change_state(State.INVENTORY_FETCH)
         return web.json_response({"ok": True})
 
+    async def _handle_history(self, request: web.Request) -> web.Response:
+        return web.json_response({"history": self._drop_history})
+
     async def _start_server(self) -> None:
         try:
             await self._start_server_inner()
@@ -728,6 +751,7 @@ class GUIManager:
         self._app.router.add_get("/api/settings/export", self._handle_settings_export)
         self._app.router.add_post("/api/close", self._handle_close)
         self._app.router.add_post("/api/reload", self._handle_reload)
+        self._app.router.add_get("/api/history", self._handle_history)
 
         self._runner = web.AppRunner(self._app)
         await self._runner.setup()
