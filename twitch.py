@@ -1499,6 +1499,9 @@ class Twitch:
                 switch_triggers.update(campaign.time_triggers)
             self.inventory.append(campaign)
             self._campaigns[campaign.id] = campaign
+        # re-render the "This Week" tab now that inventory (incl. account-link
+        # status) is fresh; it doesn't need the CDN images loaded below
+        self.gui.weekly.refresh()
         # concurrently add the campaigns into the GUI
         # NOTE: this fetches pictures from the CDN, so might be slow without a cache
         status_update(
