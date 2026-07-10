@@ -52,47 +52,22 @@ class Stream:
                     "broadcast_id": str(self.broadcast_id),
                     "channel_id": str(self.channel.id),
                     "channel": self.channel._login,
-                    "hidden": False,
-                    "live": True,
-                    "location": "channel",
-                    "logged_in": True,
-                    "muted": False,
-                    "player": "site",
-                    "user_id": self.channel._twitch._auth_state.user_id,
-                }
-            }
-        ]
-        return {"data": (b64encode(json_minify(payload).encode("utf8"))).decode("utf8")}
-
-    @cached_property
-    def _gql_payload(self) -> GQLQuery:
-        payload = [
-            {
-                "event": "minute-watched",
-                "properties": {
-                    "broadcast_id": str(self.broadcast_id),
-                    "channel_id": str(self.channel.id),
-                    "channel": self.channel._login,
                     "client_time": isonow(),
                     "game": self.game.name if self.game is not None else "",
                     "game_id": str(self.game.id) if self.game is not None else "",
                     "hidden": False,
                     "is_live": True,
                     "live": True,
+                    "location": "channel",
                     "logged_in": True,
                     "minutes_logged": 1,
                     "muted": False,
-                    "user_id": self.channel._twitch._auth_state.user_id,
+                    "player": "site",
+                    "user_id": int(self.channel._twitch._auth_state.user_id),
                 }
             }
         ]
-        return GQLQuery(
-            (
-                "\n mutation SendEvents($input: SendSpadeEventsInput!) "
-                "{\n sendSpadeEvents(input: $input) {\n statusCode\n}\n}\n"
-            ),
-            b64encode(gzip.compress(json_minify(payload).encode("utf8"))).decode("utf8")
-        )
+        return {"data": (b64encode(json_minify(payload).encode("utf8"))).decode("utf8")}
 
     @classmethod
     def from_get_stream(cls, channel: Channel, channel_data: JsonType) -> Stream:
