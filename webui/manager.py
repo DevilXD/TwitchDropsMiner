@@ -54,6 +54,7 @@ from .adapters import (
     WebsocketStatusAdapter,
     SettingsAdapter,
     TabsAdapter,
+    HelpTabAdapter,
 )
 from .handlers import WebUIOutputHandler
 from .html_utils import favicon_js, request_notification_permission_js
@@ -69,6 +70,8 @@ from .components import (
 if TYPE_CHECKING:
     from twitch import Twitch
     from utils import Game
+
+logger = logging.getLogger("TwitchDrops")
 
 
 class WebUIManager:
@@ -108,6 +111,7 @@ class WebUIManager:
         self.websockets = WebsocketStatusAdapter(self)
         self.settings = SettingsAdapter(self)
         self.tabs = TabsAdapter()
+        self.help = HelpTabAdapter(self)
 
         # Panel objects - own all widget references and state for their tab
         self.header_bar: HeaderBar = HeaderBar(self)
@@ -121,7 +125,6 @@ class WebUIManager:
         # Use the same log formatter as gui.py's _TKOutputHandler so messages look identical.
         self._handler = WebUIOutputHandler(self)
         self._handler.setFormatter(OUTPUT_FORMATTER)
-        logger = logging.getLogger("TwitchDrops")
         logger.addHandler(self._handler)
         if (logging_level := logger.getEffectiveLevel()) < logging.ERROR:
             self.print(f"Logging level: {logging.getLevelName(logging_level)}")
@@ -191,6 +194,21 @@ class WebUIManager:
                 with ui.tab_panel("help"):
                     manager.help_panel.build()
 
+    async def _invalidate_token(self) -> None:
+        twitch = self._twitch
+        auth_state = await twitch.get_auth()
+        async with twitch.request(
+            "POST",
+            "https://id.twitch.tv/oauth2/revoke",
+            data={
+                "client_id": twitch._client_type.CLIENT_ID,
+                "token": auth_state.access_token,
+            },
+        ) as response:
+            if response.status != 200:
+                logger.error(f"Failed to invalidate the auth token: {response.status}")
+        auth_state.invalidate(delete_cookies=True)
+
     def set_dark_mode(self, enabled: bool) -> None:
         """Apply dark mode to all connected clients."""
         self._twitch.settings.dark_mode = enabled
@@ -240,7 +258,7 @@ class WebUIManager:
         self._running = False
 
     def close_window(self):
-        logging.getLogger("TwitchDrops").removeHandler(self._handler)
+        logger.removeHandler(self._handler)
         app.shutdown()
 
     def grab_attention(self, *, sound: bool = True):
@@ -278,23 +296,12 @@ class WebUIManager:
         self.main_panel.clear_drop()
 
     def restart(self) -> None:
-        """Restarts the twitch miner backend.
-        _reload_requested races against the next HTTP request in coro_unless_closed(),
-        raising ReloadRequest up through _run() into run(), which calls shutdown()
-        (full teardown) then restarts _run() fresh. state_change(INVENTORY_FETCH)
-        wakes the loop out of IDLE so it reaches an HTTP call where the race fires."""
-        self._reload_requested.set()
-        self._twitch.state_change(State.INVENTORY_FETCH)()
+        self.twitch.change_state(State.RESTART)
 
-    def logout(self) -> None:
-        try:
-            session = self._twitch._session
-            if session is not None:
-                session.cookie_jar.clear()
-            self.channels.clear()
-            self.restart()
-        except Exception as e:
-            self.print(f"Logout error: {e}")
+    async def logout(self) -> None:
+        self.channels.clear()
+        await self._invalidate_token()
+        self.restart()
 
     def display_drop(self, drop, *, countdown: bool = True, subone: bool = False):
         """Display current drop information"""

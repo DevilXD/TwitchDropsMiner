@@ -27,6 +27,7 @@
 #   WebsocketStatusAdapter  → WebsocketStatus    (manages _ws_data)
 #   SettingsAdapter         → SettingsPanel      (no-op stubs)
 #   TabsAdapter             → Notebook (Tabs)    (no-op stubs)
+#   HelpTabAdapter          → HelpTab            (no-op stubs)
 
 from __future__ import annotations
 
@@ -40,6 +41,7 @@ from .login_form import LoginData, LoginFormAdapter
 from .websocket_status import WebsocketStatusAdapter
 from .settings import SettingsAdapter
 from .tabs import TabsAdapter
+from .help_tab import HelpTabAdapter
 
 __all__ = [
     "LoginData",
@@ -53,4 +55,5 @@ __all__ = [
     "WebsocketStatusAdapter",
     "SettingsAdapter",
     "TabsAdapter",
+    "HelpTabAdapter",
 ]

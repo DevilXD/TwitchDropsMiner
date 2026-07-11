@@ -85,7 +85,7 @@ class LoginSection:
     async def _on_btn_click(self) -> None:
         if self._login_state == "logged_in":
             self._btn_enabled = False
-            self._manager.logout()
+            await self._manager.logout()
         else:
             await self._open_login_popup()
 
