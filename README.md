@@ -164,6 +164,7 @@ placed past the period character at the end.
 @roobini-gamer - For the entirety of the French (Français) translation.  
 @Calvineries - For the French (Français) translation revisions.  
 @ThisIsCyreX - For the entirety of the German (Deutsch) translation.  
+@Nagyhoho1234 - For the entirety of the Hungarian (Magyar) translation.  
 @Eriza-Z - For the entirety of the Indonesian translation.  
 @casungo - For the entirety of the Italian (Italiano) translation.  
 @ShimadaNanaki - For the entirety of the Japanese (日本語) translation.  
