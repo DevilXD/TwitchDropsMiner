@@ -1,0 +1,31 @@
+[project]
+name = "twitchdropsminer"
+version = "16.dev"
+description = "Automatically watches Twitch streams to earn time-limited drop campaigns."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "aiohttp>=3.9,<4.0",
+    "truststore",
+    "pywin32; sys_platform == 'win32'",
+]
+
+[dependency-groups]
+tkinter = [
+    "pillow",
+]
+nicegui = [
+    "nicegui>=3.11.1,<4.0.0",
+    "pwdlib[argon2]",
+    "pyjwt",
+    "slowapi",
+]
+build = [
+    "pyinstaller",
+]
+test = [
+    "pytest",
+]
+
+[tool.uv]
+package = false

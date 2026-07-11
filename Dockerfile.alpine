@@ -1,5 +1,5 @@
 # Multi-stage build for Alpine Linux
-FROM python:3.10-alpine AS builder
+FROM astral/uv:python3.10-alpine AS builder
 
 # Build arguments
 ARG ARCH=x86_64
@@ -33,19 +33,11 @@ WORKDIR /app
 # Copy source code
 COPY . .
 
-# Setup venv and install Python dependencies
-RUN python3 -m venv env && \
-    . env/bin/activate && \
-    pip install wheel && \
-    if [ "$UI_BACKEND" = "nicegui" ]; then \
-        pip install --no-cache-dir -r requirements-nicegui.txt; \
-    else \
-        pip install --no-cache-dir -r requirements-tkinter.txt; \
-    fi && \
-    pip install pyinstaller
+# Install Python dependencies
+RUN uv sync --group ${UI_BACKEND} --group build
 
 # Build the application
-RUN . env/bin/activate && UI_BACKEND=${UI_BACKEND} pyinstaller build.spec
+RUN UI_BACKEND=${UI_BACKEND} uv run pyinstaller build.spec
 
 # Show PyInstaller warnings
 RUN cat build/build/warn-build.txt || true

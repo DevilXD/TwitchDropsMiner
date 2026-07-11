@@ -14,11 +14,7 @@ When you start the WebUI:
 
 ## Installation
 
-The WebUI requires the NiceGUI dependencies:
-
-```bash
-pip install -r requirements-nicegui.txt
-```
+[uv](https://docs.astral.sh/uv/) manages the Python environment and dependencies:
 
 ## Usage
 
@@ -27,7 +23,7 @@ pip install -r requirements-nicegui.txt
 Run the dedicated WebUI entry point:
 
 ```bash
-python main_webui.py
+uv run --group nicegui python main_webui.py
 ```
 
 See `python main_webui.py --help` for available command-line options (e.g. `--stdlog`, `-v`).
@@ -45,7 +41,7 @@ The WebUI is accessible from any device on your network. Use your machine's IP a
 To use the traditional desktop GUI, run the original entry point:
 
 ```bash
-python main.py
+uv run --group tkinter python main.py
 ```
 
 ## Configuration
@@ -73,7 +69,7 @@ The WebUI host, port, and authentication are configured via environment variable
   If either file is missing, a self-signed certificate is automatically generated and written to those paths. Self-signed certs include `localhost` and `127.0.0.1` as Subject Alternative Names, plus the container hostname and its resolved IP when running in Docker with `--hostname`. Auto-generation requires `openssl` to be installed.
 
 ```bash
-WEBUI_HOST=127.0.0.1 WEBUI_PORT=8080 WEBUI_AUTH=1 SECURE_CONNECTION=1 python main_webui.py
+WEBUI_HOST=127.0.0.1 WEBUI_PORT=8080 WEBUI_AUTH=1 SECURE_CONNECTION=1 uv run --group nicegui python main_webui.py
 ```
 
 ## Features
@@ -118,8 +114,10 @@ Authentication is disabled by default (`WEBUI_AUTH=0`). The entire auth system i
 ## Troubleshooting
 
 **"NiceGUI is not installed" error**
+
+Ensure you synced the nicegui group:
 ```bash
-pip install nicegui
+uv sync --group nicegui
 ```
 
 **Cannot access from another device**
