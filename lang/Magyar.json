@@ -1,0 +1,171 @@
+{
+    "english_name": "Hungarian",
+    "status": {
+        "terminated": "\nAz alkalmazás leállt.\nA kilépéshez zárd be az ablakot.",
+        "watching": "Most nézve: {channel}",
+        "goes_online": "{channel} ONLINE lett, átváltás...",
+        "goes_offline": "{channel} OFFLINE lett, átváltás...",
+        "claimed_drop": "Átvett drop: {drop}",
+        "no_channel": "Nincs nézhető csatorna. Várakozás egy ONLINE csatornára...",
+        "no_campaign": "Nincs aktív kampány, amelyből dropokat lehetne bányászni. Várakozás aktív kampányra..."
+    },
+    "login": {
+        "unexpected_content": "Váratlan tartalomtípus érkezett, ez általában átirányítás miatt történik. Nem kell esetleg bejelentkezned az internet eléréséhez?",
+        "chrome": {
+            "startup": "A Chrome indítása...",
+            "login_to_complete": "Fejezd be a bejelentkezést kézzel, majd nyomd meg újra a Bejelentkezés gombot.",
+            "no_token": "Nem található hitelesítési token.",
+            "closed_window": "A Chrome ablaka bezárult, mielőtt a bejelentkezés befejeződhetett volna."
+        },
+        "error_code": "Bejelentkezési hibakód: {error_code}",
+        "incorrect_login_pass": "Hibás felhasználónév vagy jelszó.",
+        "incorrect_email_code": "Hibás az e-mailben kapott kód.",
+        "incorrect_twofa_code": "Hibás 2FA kód.",
+        "email_code_required": "E-mailben kapott kód szükséges. Nézd meg a postaládádat.",
+        "twofa_code_required": "2FA kód szükséges."
+    },
+    "error": {
+        "captcha": "A bejelentkezési kísérletet a CAPTCHA elutasította.\nPróbáld újra legalább 12 óra múlva.",
+        "site_down": "A Twitch nem elérhető, újrapróbálkozás {seconds} másodperc múlva...",
+        "no_connection": "Nem sikerült csatlakozni a Twitchhez, újrapróbálkozás {seconds} másodperc múlva... ({url})"
+    },
+    "gui": {
+        "output": "Kimenet",
+        "status": {
+            "name": "Állapot",
+            "idle": "Tétlen",
+            "exiting": "Kilépés...",
+            "terminated": "Leállítva",
+            "cleanup": "Csatornalista tisztítása...",
+            "gathering": "Csatornák gyűjtése...",
+            "switching": "Csatornaváltás...",
+            "fetching_inventory": "Készlet lekérése...",
+            "fetching_campaigns": "Kampányok lekérése...",
+            "adding_campaigns": "Kampányok hozzáadása a készlethez... {counter}"
+        },
+        "tabs": {
+            "main": "Főoldal",
+            "inventory": "Készlet",
+            "settings": "Beállítások",
+            "help": "Súgó"
+        },
+        "tray": {
+            "notification_title": "Kibányászott drop",
+            "minimize": "Kicsinyítés a tálcára",
+            "show": "Megjelenítés",
+            "quit": "Kilépés"
+        },
+        "login": {
+            "name": "Bejelentkezés",
+            "labels": "Állapot:\nFelhasználó-azonosító:",
+            "logged_in": "Bejelentkezve",
+            "logged_out": "Kijelentkezve",
+            "logging_in": "Bejelentkezés...",
+            "required": "Bejelentkezés szükséges",
+            "request": "A folytatáshoz jelentkezz be.",
+            "username": "Felhasználónév",
+            "password": "Jelszó",
+            "twofa_code": "2FA kód (nem kötelező)",
+            "button": "Bejelentkezés"
+        },
+        "websocket": {
+            "name": "Websocket állapota",
+            "websocket": "Websocket #{id}:",
+            "initializing": "Előkészítés...",
+            "connected": "Csatlakozva",
+            "disconnected": "Nincs kapcsolat",
+            "connecting": "Csatlakozás...",
+            "disconnecting": "Kapcsolat bontása...",
+            "reconnecting": "Újracsatlakozás..."
+        },
+        "progress": {
+            "name": "Kampány előrehaladása",
+            "drop": "Drop:",
+            "game": "Játék:",
+            "campaign": "Kampány:",
+            "remaining": "{time} van hátra",
+            "drop_progress": "Előrehaladás:",
+            "campaign_progress": "Előrehaladás:"
+        },
+        "channels": {
+            "name": "Csatornák",
+            "switch": "Váltás",
+            "online": "ONLINE  ✔",
+            "pending": "OFFLINE ⏳",
+            "offline": "OFFLINE ❌",
+            "headings": {
+                "channel": "Csatorna",
+                "status": "Állapot",
+                "game": "Játék",
+                "viewers": "Nézők"
+            }
+        },
+        "inventory": {
+            "filter": {
+                "name": "Szűrő",
+                "show": "Megjelenítés:",
+                "not_linked": "Nem összekapcsolt",
+                "upcoming": "Közelgő",
+                "expired": "Lejárt",
+                "excluded": "Kizárt",
+                "finished": "Befejezett",
+                "refresh": "Frissítés"
+            },
+            "status": {
+                "linked": "Összekapcsolva ✔",
+                "not_linked": "Nincs összekapcsolva ❌",
+                "active": "Aktív ✔",
+                "upcoming": "Közelgő ⏳",
+                "expired": "Lejárt ❌",
+                "claimed": "Átvéve ✔",
+                "ready_to_claim": "Átvehető ⏳"
+            },
+            "starts": "Kezdete: {time}",
+            "ends": "Vége: {time}",
+            "allowed_channels": "Engedélyezett csatornák:",
+            "all_channels": "Mind",
+            "and_more": "és még {amount}...",
+            "percent_progress": "{minutes} percből {percent}",
+            "minutes_progress": "{minutes} perc"
+        },
+        "settings": {
+            "general": {
+                "name": "Általános",
+                "autostart": "Automatikus indítás: ",
+                "tray": "Indítás a tálcára kicsinyítve: ",
+                "tray_notifications": "Tálcaértesítések: ",
+                "dark_mode": "Sötét mód: ",
+                "priority_mode": "Prioritási mód: ",
+                "proxy": "Proxy (újraindítást igényel):"
+            },
+            "advanced": {
+                "name": "Haladó",
+                "warning": "Figyelem!",
+                "warning_text": "Ezek a beállítások a bányászó hibás működését okozhatják.\nHa bármilyen problémát tapasztalsz, győződj meg róla, hogy mindegyik ki van kapcsolva.",
+                "enable_badges_emotes": "Jelvények és emote-ok részleges támogatása: ",
+                "available_drops_check": "Extra ellenőrzés az elérhető dropokhoz: "
+            },
+            "priority_modes": {
+                "priority_only": "Csak a prioritási lista",
+                "ending_soonest": "A leghamarabb véget érő először",
+                "low_availability": "A legkevésbé elérhető először"
+            },
+            "game_name": "Játék neve",
+            "priority": "Prioritás",
+            "exclude": "Kizárás",
+            "reload": "Újratöltés",
+            "reload_text": "A legtöbb módosítás életbe lépéséhez újratöltés szükséges: "
+        },
+        "help": {
+            "links": {
+                "name": "Hasznos hivatkozások",
+                "inventory": "Twitch-készlet megtekintése",
+                "campaigns": "Összes kampány megtekintése és a fiók-összekapcsolások kezelése"
+            },
+            "how_it_works": "Hogyan működik",
+            "how_it_works_text": "Az alkalmazás néhány másodpercenként úgy tesz, mintha nézne egy adott streamet: lekéri a stream metaadatait – ennyi elég a dropok gyűjtéséhez. Így egyáltalán nem kell letölteni a tényleges videó- és hangfolyamot. A csatornák állapotának (ONLINE vagy OFFLINE) naprakészen tartásához websocket-kapcsolat épül ki, amelyen keresztül az alkalmazás értesül a streamek indulásáról és leállásáról, valamint a nézőszám változásairól.",
+            "getting_started": "Első lépések",
+            "getting_started_text": "1. Jelentkezz be az alkalmazásba.\n2. Győződj meg róla, hogy a Twitch-fiókod össze van kapcsolva minden olyan kampánnyal, amelyet bányászni szeretnél.\n3. Ha mindent bányásznál, ami csak lehetséges, állítsd a Prioritási módot bármire a „Csak a prioritási lista” kivételével, majd nyomd meg az „Újratöltés” gombot.\n4. Ha bizonyos játékokat előbb szeretnél bányászni, a „Prioritás” listában állíts össze egy sorrendet a kívánt játékokból. A lista tetején lévő játékokat az alkalmazás előbb próbálja bányászni, mint a lejjebb lévőket.\n5. Hagyd a „Prioritási módot” a „Csak a prioritási lista” beállításon, ha nem szeretnél a listán nem szereplő játékokat bányászni. Vagy mégis – ahogy szeretnéd.\n6. A „Kizárás” listával adhatod meg, mely játékokat ne bányássza soha az alkalmazás.\n7. A listák tartalmának vagy a „Prioritási mód” módosítása után nyomd meg az „Újratöltés” gombot, hogy a változtatások életbe lépjenek."
+        }
+    }
+}

@@ -96,6 +96,17 @@ class _AuthState:
             if hasattr(self, attr):
                 delattr(self, attr)
 
+    def invalidate(self, *, delete_cookies: bool = False) -> None:
+        self._delattrs("access_token", "user_id")
+        self._logged_in.clear()
+        self._twitch.gui.help._invalidate_button.config(state="disabled")
+        if delete_cookies:
+            session = self._twitch._session
+            if session is not None:
+                jar = cast(aiohttp.CookieJar, session.cookie_jar)
+                jar.clear()
+                COOKIES_PATH.unlink(missing_ok=True)
+
     def clear(self) -> None:
         self._delattrs(
             "user_id",
@@ -105,6 +116,7 @@ class _AuthState:
             "client_version",
         )
         self._logged_in.clear()
+        self._twitch.gui.help._invalidate_button.config(state="disabled")
 
     async def _oauth_login(self) -> str:
         login_form: LoginForm = self._twitch.gui.login
@@ -414,10 +426,8 @@ class _AuthState:
             # update our cookie and save it
             jar.update_cookies(cookie, client_info.CLIENT_URL)
             jar.save(COOKIES_PATH)
+        self._twitch.gui.help._invalidate_button.config(state="normal")
         self._logged_in.set()
-
-    def invalidate(self):
-        self._delattrs("access_token")
 
 
 class Twitch:
@@ -866,6 +876,8 @@ class Twitch:
                     self.print(_("status", "no_channel"))
                     self.change_state(State.IDLE)
                 del new_watching, selected_channel, watching_channel
+            elif self._state is State.RESTART:
+                raise ReloadRequest()
             elif self._state is State.EXIT:
                 self.gui.tray.change_icon("pickaxe")
                 self.gui.status.update(_("gui", "status", "exiting"))
