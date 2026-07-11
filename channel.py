@@ -43,7 +43,7 @@ class Stream:
         self.title: str = title
         self._stream_url: URLType | None = None
 
-    @cached_property
+    @property
     def _spade_payload(self) -> JsonType:
         payload = [
             {
@@ -52,10 +52,15 @@ class Stream:
                     "broadcast_id": str(self.broadcast_id),
                     "channel_id": str(self.channel.id),
                     "channel": self.channel._login,
+                    "client_time": isonow(),
+                    "game": self.game.name if self.game is not None else "",
+                    "game_id": str(self.game.id) if self.game is not None else "",
                     "hidden": False,
+                    "is_live": True,
                     "live": True,
                     "location": "channel",
                     "logged_in": True,
+                    "minutes_logged": 1,
                     "muted": False,
                     "player": "site",
                     "user_id": self.channel._twitch._auth_state.user_id,
@@ -491,8 +496,7 @@ class Channel:
         async with self._twitch.request("HEAD", stream_chunk_url) as head_response:
             return head_response.status == 200
 
-    # NOTE: This is currently unused.
-    async def _send_watch_spade(self) -> bool:
+    async def send_watch(self) -> bool:  # send_watch_spade
         if self._stream is None:
             return False
         if self._spade_url is None:
@@ -505,7 +509,9 @@ class Channel:
         except RequestException:
             return False
 
-    async def send_watch(self) -> bool:  # send_watch_gql
+    # NOTE: This is currently unused.
+    # Twitch stopped counting this GQL mutation as watch time; use send_watch (spade) instead.
+    async def _send_watch_gql(self) -> bool:
         if self._stream is None:
             return False
         try:
