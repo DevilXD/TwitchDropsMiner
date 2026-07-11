@@ -296,7 +296,8 @@ class WebUIManager:
         self.main_panel.clear_drop()
 
     def restart(self) -> None:
-        self.twitch.change_state(State.RESTART)
+        self._reload_requested.set()
+        self._twitch.state_change(State.INVENTORY_FETCH)()
 
     async def logout(self) -> None:
         self.channels.clear()
