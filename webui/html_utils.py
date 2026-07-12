@@ -12,8 +12,8 @@ import json
 
 
 def e(text) -> str:
-    """HTML-escape a value for use in element content."""
-    return _html.escape(str(text))
+    """HTML-escape a value for use in element content (quotes not escaped)."""
+    return _html.escape(str(text), quote=False)
 
 
 def ea(text) -> str:
