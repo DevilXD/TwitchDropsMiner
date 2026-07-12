@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING
 
 from nicegui import ui
@@ -20,6 +21,7 @@ class ChannelsSection:
         self._selected_channel_iid = None
         self._channel_rows: list[dict] = []
         self._channel_tables: list[ui.table] = []
+        self._rebuild_scheduled: bool = False
 
     def build(self) -> None:
         with (
@@ -49,7 +51,7 @@ class ChannelsSection:
         if not add and iid not in self._channel_map:
             return
         self._channel_map[iid] = channel
-        self._rebuild()
+        self._schedule_rebuild()
 
     def remove(self, channel: "Channel") -> None:
         iid = channel.iid
@@ -58,15 +60,15 @@ class ChannelsSection:
             self._watching_channel_iid = None
         if self._selected_channel_iid == iid:
             self._selected_channel_iid = None
-        self._rebuild()
+        self._schedule_rebuild()
 
     def set_watching(self, channel: "Channel") -> None:
         self._watching_channel_iid = channel.iid
-        self._rebuild()
+        self._schedule_rebuild()
 
     def clear_watching(self) -> None:
         self._watching_channel_iid = None
-        self._rebuild()
+        self._schedule_rebuild()
 
     def get_selected(self):
         iid = self._selected_channel_iid
@@ -79,12 +81,19 @@ class ChannelsSection:
         for table in self._channel_tables:
             table.selected = []
 
+    def _schedule_rebuild(self) -> None:
+        # Coalesce bursts of display()/remove() calls into a single rebuild.
+        if not self._rebuild_scheduled:
+            self._rebuild_scheduled = True
+            asyncio.get_running_loop().call_soon(self._rebuild)
+
     def _rebuild(self) -> None:
+        self._rebuild_scheduled = False
         self._build_rows()
         selected = [
             r for r in self._channel_rows if r["iid"] == self._selected_channel_iid
         ]
-        for table in self._channel_tables:
+        for table in list(self._channel_tables):
             table.rows = self._channel_rows
             table.selected = selected
             table.update()
