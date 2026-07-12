@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from nicegui import ui
 
 from translate import _
@@ -13,6 +15,8 @@ class ConsoleSection:
         self._console_log_path = CONFIG_PATH / "console.log"
         self._console_log: list[str] = self._load()
         self._log_instances: list[ui.log] = []
+        self._pending: list[str] = []
+        self._flush_scheduled: bool = False
 
     def build(self) -> None:
         with ui.card().props("flat bordered").classes("w-full gap-1"):
@@ -33,13 +37,28 @@ class ConsoleSection:
         self._console_log.extend(lines)
         if len(self._console_log) > 200:
             del self._console_log[:-200]
-        self._save(lines)
+        self._pending.extend(lines)
         for log in list(self._log_instances):
             try:
                 for line in lines:
                     log.push(line)
             except RuntimeError:
                 self._log_instances.remove(log)
+        if not self._flush_scheduled:
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                return
+            self._flush_scheduled = True
+            loop.call_soon(self._flush)
+
+    def _flush(self) -> None:
+        self._flush_scheduled = False
+        if not self._pending:
+            return
+        lines = self._pending
+        self._pending = []
+        self._save(lines)
 
     def _load(self) -> list[str]:
         try:
