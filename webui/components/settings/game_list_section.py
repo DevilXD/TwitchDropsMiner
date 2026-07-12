@@ -83,8 +83,8 @@ class GameListSection(ABC):
                 .props("dense")
                 .on("keydown.enter", lambda: self._add_game(input_el))
             )
-            with ui.button(icon="expand_more").props("dense flat").classes(
-                "p-0 min-h-0"
+            with (
+                ui.button(icon="expand_more").props("dense flat").classes("p-0 min-h-0")
             ):
                 with ui.menu():
                     for name in self._options():
@@ -141,13 +141,18 @@ class GameListSection(ABC):
             )
             ui.label("Add it anyway?").classes("text-xs")
             with ui.row().classes("gap-2 justify-end w-full"):
-                ui.button("Cancel", on_click=dialog.close).props("dense flat").classes(
-                    "text-xs"
-                )
+
+                def _cancel():
+                    dialog.close()
+                    dialog.delete()
 
                 def _confirm():
                     dialog.close()
+                    dialog.delete()
                     on_confirm()
 
+                ui.button("Cancel", on_click=_cancel).props("dense flat").classes(
+                    "text-xs"
+                )
                 ui.button("Add", on_click=_confirm).props("dense").classes("text-xs")
         dialog.open()

@@ -86,7 +86,7 @@ class PrioritySection(GameListSection):
     def _move(self, direction: str) -> None:
         idx = self._selected
         priority = self._settings.priority
-        if idx is None or not priority:
+        if idx is None or not priority or idx < 0 or idx >= len(priority):
             return
         max_idx = len(priority) - 1
         if direction == "top":
