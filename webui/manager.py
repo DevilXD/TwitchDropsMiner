@@ -284,11 +284,11 @@ class WebUIManager:
                 await task
             except asyncio.CancelledError:
                 pass
+        if self._close_requested.is_set():
+            raise ExitRequest()
         if self._reload_requested.is_set():
             self._reload_requested.clear()
             raise ReloadRequest()
-        if self._close_requested.is_set():
-            raise ExitRequest()
         return await next(iter(done))
 
     def clear_drop(self):
