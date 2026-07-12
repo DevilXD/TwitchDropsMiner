@@ -123,6 +123,17 @@ class GeneralSection:
                         ),
                     ).bind_value_from(settings, "available_drops_check")
 
+                with ui.row().classes("items-center gap-2 text-xs"):
+                    ui.label("Mine unlinked games from the Priority List: ").classes(
+                        "flex-1"
+                    )
+                    ui.switch(
+                        value=settings.priority_link_override,
+                        on_change=lambda e: GeneralSection._set_and_save(
+                            settings, "priority_link_override", e.value
+                        ),
+                    ).bind_value_from(settings, "priority_link_override")
+
             with ui.card().props("flat bordered").classes("w-full q-pa-sm"):
                 ui.label(_("gui", "settings", "reload_text")).classes("text-xs")
                 ui.button(

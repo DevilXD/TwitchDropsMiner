@@ -54,6 +54,9 @@ if __name__ == "__main__":
     from webui.auth import AuthManager
     from webui.ssl import get_ssl_kwargs
 
+    # Apply webui-only monkey-patches before constructing Settings/Twitch.
+    import webui.patches  # noqa
+
     warnings.simplefilter("default", ResourceWarning)
 
     if sys.version_info < (3, 10):
