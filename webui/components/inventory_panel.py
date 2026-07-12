@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
@@ -41,6 +42,7 @@ class InventoryPanel(BasePanel):
         self._filter_expired: bool = False
         self._filter_excluded: bool = False
         self._filter_finished: bool = False
+        self._refresh_scheduled: bool = False
 
     # -------------------------------------------------------------------------
     # Public API
@@ -55,10 +57,20 @@ class InventoryPanel(BasePanel):
 
     def add_campaign(self, campaign) -> None:
         """Re-render the campaign list to reflect added campaign."""
-        self._campaign_list_content.refresh()
+        self._schedule_refresh()
 
     def update_drop(self, drop) -> None:
         """Re-render the campaign list to reflect updated drop progress."""
+        self._schedule_refresh()
+
+    def _schedule_refresh(self) -> None:
+        # Coalesce bursts of add_campaign/update_drop calls into one rebuild.
+        if not self._refresh_scheduled:
+            self._refresh_scheduled = True
+            asyncio.get_running_loop().call_soon(self._do_refresh)
+
+    def _do_refresh(self) -> None:
+        self._refresh_scheduled = False
         self._campaign_list_content.refresh()
 
     # -------------------------------------------------------------------------
@@ -161,7 +173,8 @@ class InventoryPanel(BasePanel):
                 self._filter_excluded
                 or (
                     campaign.game.name not in settings.exclude
-                    and not priority_only or campaign.game.name in settings.priority
+                    and not priority_only
+                    or campaign.game.name in settings.priority
                 )
             )
             and (self._filter_finished or not campaign.finished)
