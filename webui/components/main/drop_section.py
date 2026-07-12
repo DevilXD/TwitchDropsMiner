@@ -71,7 +71,7 @@ class DropSection:
             self.clear()
             return
         self._current_drop = drop
-        if countdown:
+        if countdown and drop.remaining_minutes > 0:
             self._countdown_active = True
             self._countdown_start_time = monotonic()
             self._progress_seconds = 60
