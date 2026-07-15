@@ -166,6 +166,10 @@
             "how_it_works_text": "Co kilkanaście sekund aplikacja pobiera metadane strumienia, udając oglądanie streamu - to wystarczy, aby uzyskać postęp dropu. Zauważ, że w ten sposób możesz całkowicie pominąć konieczność pobierania rzeczywistego strumienia wideo i dźwięku. Do utrzymania statusu ONLINE lub OFFLINE kanałów używane jest połączenie WebSocket, które odbiera zdarzenia o zmianie statusu kanałów oraz na bieżąco aktualizuje liczbę widzów.",
             "getting_started": "Pierwsze kroki",
             "getting_started_text": "1. Zaloguj się do aplikacji.\n2. Upewnij się, że Twoje konto Twitch jest połączone ze wszystkimi kampaniami, z których chcesz otrzymywać dropy.\n3. Zmień tryb priorytetu na coś innego niż „Tylko lista priorytetów” i kliknij „Przeładuj”, jeśli chcesz otrzymywać dropy ze wszystkich aktywnych kampanii.\n4. Użyj listy „Priorytety”, aby wybrać uporządkowaną listę gier, z których chcesz otrzymać dropy. Gry znajdujące się wyżej na liście będą miały wyższy priorytet przy zdobywaniu dropów.\n5. Wybierz opcję „Tylko lista priorytetów”, aby wykluczyć gry, które nie znajdują się na liście priorytetowej.\n6. Użyj listy „Wykluczone”, aby wskazać gry, z których przedmioty nigdy nie powinny być zdobywane.\n7. Zmiana zawartości list „Priorytety” i „Wykluczone” oraz opcji „Tryb priorytetu” wymaga kliknięcia „Przeładuj”, aby aplikacja mogła zastosować wprowadzone zmiany."
+        },
+        "invalidate": {
+            "button": "Unieważnij",
+            "text": "Unieważnij token uwierzytelniający (wyloguj się):"
         }
     }
 }
