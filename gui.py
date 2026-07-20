@@ -36,7 +36,7 @@ if sys.platform == "darwin":
 from translate import _
 from cache import ImageCache
 from exceptions import MinerException, ExitRequest
-from utils import resource_path, set_root_icon, webopen, Game, _T
+from utils import resource_path, set_root_icon, webopen, task_wrapper, Game, _T
 from constants import (
     MAX_INT,
     SELF_PATH,
@@ -61,6 +61,7 @@ if TYPE_CHECKING:
     from inventory import DropsCampaign, TimedDrop
 
 
+logger = logging.getLogger("TwitchDrops")
 TK_PADDING = Union[int, Tuple[int, int], Tuple[int, int, int], Tuple[int, int, int, int]]
 DIGITS = ceil(log10(WS_TOPICS_LIMIT))
 
@@ -1645,6 +1646,7 @@ class SettingsPanel:
         ttk.Checkbutton(
             checkboxes_frame, variable=self._vars["autostart"], command=self.update_autostart
         ).grid(column=1, row=irow, sticky="w")
+        self._vars["autostart"].set(self._query_autostart())
         if sys.platform != "darwin":
             ttk.Label(
                 checkboxes_frame, text=_("gui", "settings", "general", "tray")
@@ -1842,8 +1844,6 @@ class SettingsPanel:
             text=_("gui", "settings", "reload"),
             command=self._manager._twitch.state_change(State.INVENTORY_FETCH),
         ).grid(column=1, row=0)
-
-        self._vars["autostart"].set(self._query_autostart())
 
     def clear_selection(self) -> None:
         self._priority_list.selection_clear(0, "end")
@@ -2096,6 +2096,9 @@ class HelpTab:
         # use a frame to center the content within the tab
         center_frame = ttk.Frame(master)
         center_frame.grid(column=0, row=0)
+        # use a frame for the bottom row specifically
+        bottom_frame = ttk.Frame(master)
+        bottom_frame.grid(column=0, row=1, sticky="nsew")
         irow = 0
         # About
         about = ttk.LabelFrame(center_frame, padding=(4, 0, 4, 4), text="About")
@@ -2159,6 +2162,41 @@ class HelpTab:
         ttk.Label(
             getstarted, text=_("gui", "help", "getting_started_text"), wraplength=self.WIDTH
         ).grid(sticky="nsew")
+
+        # Invalidate button
+        invalidate_frame = ttk.Frame(bottom_frame)
+        bottom_frame.columnconfigure(0, weight=1)  # center within the column
+        invalidate_frame.grid(column=0, row=0, sticky="nse")
+        ttk.Label(
+            invalidate_frame, text=_("gui", "help", "invalidate", "text")
+        ).grid(column=0, row=0)
+        self._invalidate_button: ttk.Button = ttk.Button(
+            invalidate_frame,
+            text=_("gui", "help", "invalidate", "button"),
+            command=self.invalidate_token,
+            state="disabled",
+        )
+        self._invalidate_button.grid(column=1, row=0)
+
+    def invalidate_token(self) -> None:
+        # sync to async bridge
+        asyncio.create_task(task_wrapper(self._invalidate_token)())
+
+    async def _invalidate_token(self) -> None:
+        auth_state = await self._twitch.get_auth()
+        async with self._twitch.request(
+            "POST",
+            "https://id.twitch.tv/oauth2/revoke",
+            data={
+                "client_id": self._twitch._client_type.CLIENT_ID,
+                "token": auth_state.access_token,
+            }
+        ) as response:
+            if response.status == 200:
+                auth_state.invalidate(delete_cookies=True)
+            else:
+                logger.error(f"Failed to invalidate the auth token: {response.status}")
+        self._twitch.change_state(State.RESTART)
 
 
 ##########################################

@@ -492,7 +492,7 @@ class DropsCampaign:
                     and (
                         ignore_channel_status
                         or channel.game is not None and channel.game == self.game
-                        or self.game.is_special_events()
+                        or self.game.is_special()
                     )
                 )
             )

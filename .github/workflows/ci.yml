@@ -276,8 +276,11 @@ jobs:
 
       - name: Install appimage-builder
         run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install wheel
+          python3 -m pip install setuptools setuptools_scm
           # TODO: Switch to a stable release if/when a version newer than 1.1.0 is released.
-          python3 -m pip install git+https://github.com/AppImageCrafters/appimage-builder.git@e995e8edcc227d14524cf39f9824c238f9435a22
+          python3 -m pip install git+https://github.com/AppImageCrafters/appimage-builder.git@1a8794d3c89f288fbd82b9accd7c0b74611147d5
 
       - name: Create AppImage
         env:
