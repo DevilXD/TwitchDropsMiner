@@ -2407,15 +2407,25 @@ class GUIManager:
         0.05s gives similar performance and CPU usage.
         Not ideal, but the simplest way to avoid threads, thread safety,
         loop.call_soon_threadsafe, futures and all of that.
+        
+        Uses TKINTER_DONT_WAIT to prevent Tcl/Tk from hanging inside native
+        system calls (e.g. X11/Wayland input contexts) during heavy UI redraws.
         """
-        update = self._root.update
+        do_one_event = self._root.dooneevent
+        # TKINTER_DONT_WAIT (1 << 1) tells Tcl to return immediately 
+        # if no events are ready in the queue.
+        DONT_WAIT = 1 << 1
+
         while True:
             try:
-                update()
+                # Drain pending Tk events non-blockingly
+                while do_one_event(DONT_WAIT):
+                    pass
             except tk.TclError:
-                # root has been destroyed
+                # Root window was destroyed
                 break
             await asyncio.sleep(0.05)
+
         self._poll_task = None
 
     def close(self, *args) -> int:

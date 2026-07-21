@@ -7,6 +7,7 @@ from multiprocessing import freeze_support
 if __name__ == "__main__":
     freeze_support()
     import io
+    import os
     import sys
     import signal
     import asyncio
@@ -39,6 +40,11 @@ if __name__ == "__main__":
 
     if sys.version_info < (3, 10):
         raise RuntimeError("Python 3.10 or higher is required")
+
+    # Suppress X11 Input Method registration on Linux to prevent 
+    # XWayland/Mutter lockups during heavy Tkinter layout updates.
+    if sys.platform.startswith("linux") and "XMODIFIERS" not in os.environ:
+        os.environ["XMODIFIERS"] = "@im=none"
 
     class Parser(argparse.ArgumentParser):
         def __init__(self, *args, **kwargs) -> None:
