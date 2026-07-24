@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import gzip
 import json
 import asyncio
 import logging
@@ -11,14 +12,14 @@ from typing import Any, SupportsInt, cast, TYPE_CHECKING
 import aiohttp
 from yarl import URL
 
-from utils import Game, json_minify
+from utils import Game, json_minify, isonow
 from exceptions import MinerException, RequestException
-from constants import CALL, GQL_OPERATIONS, ONLINE_DELAY, URLType
+from constants import CALL, GQL_QUERIES, ONLINE_DELAY, URLType, GQLQuery
 
 if TYPE_CHECKING:
     from twitch import Twitch
     from gui import ChannelList
-    from constants import JsonType, GQLOperation
+    from constants import JsonType, GQLPersistedQuery
 
 
 logger = logging.getLogger("TwitchDrops")
@@ -43,25 +44,45 @@ class Stream:
         self._stream_url: URLType | None = None
 
     @cached_property
-    def _spade_payload(self) -> JsonType:
-        payload = [
+    def _watch_payload(self) -> list[JsonType]:
+        return [
             {
                 "event": "minute-watched",
                 "properties": {
                     "broadcast_id": str(self.broadcast_id),
                     "channel_id": str(self.channel.id),
                     "channel": self.channel._login,
+                    "client_time": isonow(),
+                    "game": self.game.name if self.game is not None else "",
+                    "game_id": str(self.game.id) if self.game is not None else "",
                     "hidden": False,
+                    "is_live": True,
                     "live": True,
-                    "location": "channel",
                     "logged_in": True,
+                    "minutes_logged": 1,
                     "muted": False,
-                    "player": "site",
                     "user_id": self.channel._twitch._auth_state.user_id,
                 }
             }
         ]
-        return {"data": (b64encode(json_minify(payload).encode("utf8"))).decode("utf8")}
+
+    @cached_property
+    def spade_payload(self) -> JsonType:
+        return {
+            "data": (b64encode(json_minify(self._watch_payload).encode("utf8"))).decode("utf8")
+        }
+
+    @cached_property
+    def gql_payload(self) -> GQLQuery:
+        return GQLQuery(
+            (
+                "\n mutation SendEvents($input: SendSpadeEventsInput!) "
+                "{\n sendSpadeEvents(input: $input) {\n statusCode\n}\n}\n"
+            ),
+            b64encode(
+                gzip.compress(json_minify(self._watch_payload).encode("utf8"))
+            ).decode("utf8")
+        )
 
     @classmethod
     def from_get_stream(cls, channel: Channel, channel_data: JsonType) -> Stream:
@@ -99,7 +120,7 @@ class Stream:
             return self._stream_url
         # get the stream playback access token from GQL
         playback_token_response: JsonType = await self.channel._twitch.gql_request(
-            GQL_OPERATIONS["PlaybackAccessToken"].with_variables({"login": self.channel._login})
+            GQL_QUERIES["PlaybackAccessToken"].with_variables({"login": self.channel._login})
         )
         token_data: JsonType = playback_token_response["data"]["streamPlaybackAccessToken"]
         token_value = token_data["value"]
@@ -203,8 +224,8 @@ class Channel:
         return self.id
 
     @property
-    def stream_gql(self) -> GQLOperation:
-        return GQL_OPERATIONS["GetStreamInfo"].with_variables({"channel": self._login})
+    def stream_gql(self) -> GQLPersistedQuery:
+        return GQL_QUERIES["GetStreamInfo"].with_variables({"channel": self._login})
 
     @property
     def name(self) -> str:
@@ -342,7 +363,7 @@ class Channel:
         if not stream.drops_enabled:
             try:
                 available_drops_campaigns: JsonType = await self._twitch.gql_request(
-                    GQL_OPERATIONS["AvailableDrops"].with_variables({"channelID": str(self.id)})
+                    GQL_QUERIES["AvailableDrops"].with_variables({"channelID": str(self.id)})
                 )
             except MinerException:
                 logger.log(CALL, f"AvailableDrops GQL call failed for channel: {self._login}")
@@ -408,7 +429,7 @@ class Channel:
             self.display()
 
     # NOTE: This is currently unused.
-    async def _send_watch(self) -> bool:
+    async def _send_watch_playlist(self) -> bool:
         """
         This performs a HEAD request on the stream's current playlist,
         to simulate watching the stream.
@@ -467,8 +488,18 @@ class Channel:
             self._spade_url = await self.get_spade_url()
         try:
             async with self._twitch.request(
-                "POST", self._spade_url, data=self._stream._spade_payload
+                "POST", self._spade_url, data=self._stream.spade_payload
             ) as response:
                 return response.status == 204
+        except RequestException:
+            return False
+
+    # NOTE: This is currently unused.
+    async def _send_watch_gql(self) -> bool:
+        if self._stream is None:
+            return False
+        try:
+            watch_response = await self._twitch.gql_request(self._stream.gql_payload)
+            return watch_response["data"]["sendSpadeEvents"]["statusCode"] == 204
         except RequestException:
             return False

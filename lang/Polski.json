@@ -2,18 +2,18 @@
     "english_name": "Polish",
     "status": {
         "terminated": "\nAplikacja została zatrzymana.\nZamknij okno, aby wyjść z aplikacji.",
-        "watching": "Oglądam kanał: {channel}",
-        "goes_online": "Nowy status kanału {channel}: ONLINE, zmieniam...",
-        "goes_offline": "Nowy status kanału {channel}: OFFLINE, zmieniam...",
+        "watching": "Aktualnie oglądany kanał: {channel}",
+        "goes_online": "Kanał {channel} jest teraz ONLINE, przełączam kanał...",
+        "goes_offline": "Kanał {channel} jest teraz OFFLINE, przełączam kanał...",
         "claimed_drop": "Odebrano drop: {drop}",
-        "no_channel": "Brak możliwych kanałów do oglądania. Oczekiwanie na nową kampanię...",
-        "no_campaign": "Brak dostępnych aktywnych kampanii. Oczekiwanie na nową kampanię..."
+        "no_channel": "Brak dostępnych kanałów do oglądania. Czekam na dostępne kanały lub kampanie...",
+        "no_campaign": "Brak dostępnych aktywnych kampanii. Czekam na dostępne kampanie..."
     },
     "login": {
-        "unexpected_content": "Nieoczekiwany błąd zawartości, zwykle z powodu przekierowania.\nUpewnij się że nie jest wymagane dodatkowe logowanie bądź potwierdzenie dostępu do internetu.",
+        "unexpected_content": "Otrzymano nieoczekiwaną zawartość, zwykle z powodu przekierowania.\nUpewnij się, że nie jest wymagane dodatkowe logowanie lub potwierdzenie dostępu do Internetu.",
         "chrome": {
             "startup": "Uruchamianie Chrome...",
-            "login_to_complete": "Naciśnij ponownie zaloguj, aby zakończyć proces ręcznego logowania...",
+            "login_to_complete": "Kliknij przycisk „Zaloguj” ponownie, aby zakończyć proces ręcznego logowania...",
             "no_token": "Nie znaleziono tokena autoryzacyjnego.",
             "closed_window": "Okno przeglądarki Chrome zostało zamknięte przed zakończeniem procesu logowania."
         },
@@ -26,8 +26,8 @@
     },
     "error": {
         "captcha": "Próba logowania została odrzucona przez CAPTCHA.\nProszę spróbować ponownie za co najmniej 12 godzin.",
-        "site_down": "Strona Twitcha nie jest dostępna. Spróbuj ponownie za {seconds} s....",
-        "no_connection": "Nie można połączyć się z Twitchem. Spróbuj ponownie za {seconds} s.... ({url})"
+        "site_down": "Strona Twitcha jest obecnie niedostępna. Ponów próbę za {seconds} s....",
+        "no_connection": "Nie można połączyć się z Twitchem. Ponów próbę za {seconds} s.... ({url})"
     },
     "gui": {
         "output": "Dziennik zdarzeń",
@@ -37,10 +37,10 @@
             "exiting": "Zamykanie...",
             "terminated": "Zatrzymano",
             "cleanup": "Czyszczenie kanałów...",
-            "gathering": "Szukanie kanałów...",
+            "gathering": "Wyszukiwanie kanałów...",
             "switching": "Zmiana kanałów...",
-            "fetching_inventory": "Odświeżanie ekwipunku...",
-            "fetching_campaigns": "Odświeżanie kampanii...",
+            "fetching_inventory": "Pobieranie ekwipunku...",
+            "fetching_campaigns": "Pobieranie kampanii...",
             "adding_campaigns": "Dodawanie kampanii do ekwipunku... {counter}"
         },
         "tabs": {
@@ -138,6 +138,13 @@
                 "priority_mode": "Tryb priorytetu: ",
                 "proxy": "Proxy (wymaga restartu):"
             },
+            "advanced": {
+                "name": "Zaawansowane",
+                "warning": "Ostrzeżenie!",
+                "warning_text": "Te opcje mogą powodować nieprawidłowe działanie aplikacji.\nW przypadku problemów upewnij się, że wszystkie te opcje są wyłączone.",
+                "enable_badges_emotes": "Włącz częściową obsługę odznak i emotek: ",
+                "available_drops_check": "Włącz dodatkowe sprawdzanie dostępnych dropów: "
+            },
             "priority_modes": {
                 "priority_only": "Tylko lista priorytetów",
                 "ending_soonest": "Kończące się najwcześniej",
@@ -156,9 +163,13 @@
                 "campaigns": "Zobacz wszystkie kampanie na Twitchu"
             },
             "how_it_works": "Jak to działa?",
-            "how_it_works_text": "Co kilkanaście sekund aplikacja pobiera metadane strumienia, udając jego oglądanie - to wystarczy, aby uzyskać postęp dropu. Zauważ, że w ten sposób możesz całkowicie pominąć konieczność pobierania rzeczywistego strumienia wideo i dźwięku. Do utrzymania statusu ONLINE lub OFFLINE kanałów używane jest połączenie WebSocket, które odbiera zdarzenia o zmianie statusu kanałów oraz aktualizuje aktualną ilość widzów.",
+            "how_it_works_text": "Co kilkanaście sekund aplikacja pobiera metadane strumienia, udając oglądanie streamu - to wystarczy, aby uzyskać postęp dropu. Zauważ, że w ten sposób możesz całkowicie pominąć konieczność pobierania rzeczywistego strumienia wideo i dźwięku. Do utrzymania statusu ONLINE lub OFFLINE kanałów używane jest połączenie WebSocket, które odbiera zdarzenia o zmianie statusu kanałów oraz na bieżąco aktualizuje liczbę widzów.",
             "getting_started": "Pierwsze kroki",
-            "getting_started_text": "1. Zaloguj się do aplikacji.\n2. Upewnij się, że twoje konto Twitch jest połączone ze wszystkimi kampaniami, z których chcesz dropić.\n3. Zmień tryb priorytetu na coś innego niż „Tylko lista priorytetów” i kliknij „Przeładuj”, jeśli chcesz rozpocząć dropienie ze wszystkich aktywnych kampanii.\n4. Użyj listy „Priorytety”, aby wybrać uporządkowaną listę gier, z których chcesz otrzymać dropy. Gry z górnej części listy będą miały większy priorytet dropienia niż te niżej na liście.\n5. Wybierz opcję „Tylko lista priorytetów”, aby wykluczyć z dropienia gry, które nie są na liście priorytetowej.\n6. Użyj listy „Wykluczone”, aby wskazać aplikacji gry, z których przedmioty nigdy nie powinny być dropione.\n7. Zmiana zawartości list „Priorytety” i „Wykluczone” oraz opcji „Tryb priorytetu” wymaga kliknięcia „Przeładuj”, aby aplikacja mogła zastosować wprowadzone zmiany."
+            "getting_started_text": "1. Zaloguj się do aplikacji.\n2. Upewnij się, że Twoje konto Twitch jest połączone ze wszystkimi kampaniami, z których chcesz otrzymywać dropy.\n3. Zmień tryb priorytetu na coś innego niż „Tylko lista priorytetów” i kliknij „Przeładuj”, jeśli chcesz otrzymywać dropy ze wszystkich aktywnych kampanii.\n4. Użyj listy „Priorytety”, aby wybrać uporządkowaną listę gier, z których chcesz otrzymać dropy. Gry znajdujące się wyżej na liście będą miały wyższy priorytet przy zdobywaniu dropów.\n5. Wybierz opcję „Tylko lista priorytetów”, aby wykluczyć gry, które nie znajdują się na liście priorytetowej.\n6. Użyj listy „Wykluczone”, aby wskazać gry, z których przedmioty nigdy nie powinny być zdobywane.\n7. Zmiana zawartości list „Priorytety” i „Wykluczone” oraz opcji „Tryb priorytetu” wymaga kliknięcia „Przeładuj”, aby aplikacja mogła zastosować wprowadzone zmiany."
+        },
+        "invalidate": {
+            "button": "Unieważnij",
+            "text": "Unieważnij token uwierzytelniający (wyloguj się):"
         }
     }
 }
