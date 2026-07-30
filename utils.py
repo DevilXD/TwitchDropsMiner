@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import os
 import re
+import shutil
 import sys
 import json
 import random
@@ -243,19 +244,35 @@ def merge_json(obj: JsonType, template: Mapping[Any, Any]) -> None:
 
 def json_load(path: Path, defaults: _JSON_T, *, merge: bool = True) -> _JSON_T:
     new_path: Path = path.with_name(f"{path.name}.new")
+    backup_path: Path = path.with_name(f"{path.name}.bak")
     combined: JsonType | None = None
-    # try new file first
-    if new_path.exists():
+    # Prefer the newest temporary file, then the main file, then the backup.
+    # The temporary file can be left behind if the application is interrupted
+    # during a save; the backup protects against a damaged main file.
+    for candidate in (new_path, path, backup_path):
+        if not candidate.exists():
+            continue
         try:
-            with new_path.open('r', encoding="utf8") as file:
-                combined = _remove_missing(json.load(file, object_hook=_deserialize))
-        except json.JSONDecodeError:
-            # remove invalid file
-            new_path.unlink()
-    # try the old file
-    if combined is None and path.exists():
-        with path.open('r', encoding="utf8") as file:
-            combined = _remove_missing(json.load(file, object_hook=_deserialize))
+            with candidate.open('r', encoding="utf8") as file:
+                loaded = json.load(file, object_hook=_deserialize)
+            if not isinstance(loaded, dict):
+                raise TypeError("JSON root must be an object")
+            combined = _remove_missing(loaded)
+            if candidate == new_path:
+                try:
+                    candidate.replace(path)
+                except OSError:
+                    pass
+            elif candidate == backup_path:
+                try:
+                    shutil.copy2(candidate, new_path)
+                    new_path.replace(path)
+                except OSError:
+                    new_path.unlink(missing_ok=True)
+            break
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError, TypeError):
+            if candidate == new_path:
+                candidate.unlink(missing_ok=True)
     # handle defaults and merging
     if combined is None:
         combined = dict(defaults)  # always make a copy of defaults
@@ -266,8 +283,26 @@ def json_load(path: Path, defaults: _JSON_T, *, merge: bool = True) -> _JSON_T:
 
 def json_save(path: Path, contents: Mapping[Any, Any], *, sort: bool = False) -> None:
     new_path: Path = path.with_name(f"{path.name}.new")
+    backup_path: Path = path.with_name(f"{path.name}.bak")
+    backup_tmp_path: Path = backup_path.with_name(f"{backup_path.name}.new")
     with new_path.open('w', encoding="utf8") as file:
         json.dump(contents, file, default=_serialize, sort_keys=sort, indent=4)
+        file.flush()
+        try:
+            os.fsync(file.fileno())
+        except OSError:
+            pass
+    if path.exists():
+        try:
+            shutil.copy2(path, backup_tmp_path)
+            with backup_tmp_path.open('rb') as backup_file:
+                try:
+                    os.fsync(backup_file.fileno())
+                except OSError:
+                    pass
+            backup_tmp_path.replace(backup_path)
+        except OSError:
+            backup_tmp_path.unlink(missing_ok=True)
     new_path.replace(path)
 
 

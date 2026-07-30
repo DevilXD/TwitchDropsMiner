@@ -6,7 +6,6 @@ import json
 import asyncio
 import logging
 from base64 import b64encode
-from functools import cached_property
 from typing import Any, SupportsInt, cast, TYPE_CHECKING
 
 import aiohttp
@@ -43,7 +42,7 @@ class Stream:
         self.title: str = title
         self._stream_url: URLType | None = None
 
-    @cached_property
+    @property
     def _watch_payload(self) -> list[JsonType]:
         return [
             {
@@ -66,13 +65,13 @@ class Stream:
             }
         ]
 
-    @cached_property
+    @property
     def spade_payload(self) -> JsonType:
         return {
             "data": (b64encode(json_minify(self._watch_payload).encode("utf8"))).decode("utf8")
         }
 
-    @cached_property
+    @property
     def gql_payload(self) -> GQLQuery:
         return GQLQuery(
             (
@@ -490,6 +489,10 @@ class Channel:
             async with self._twitch.request(
                 "POST", self._spade_url, data=self._stream.spade_payload
             ) as response:
+                if response.status in (404, 410):
+                    # Spade URLs can change when Twitch deploys a new client.
+                    # Force a fresh extraction on the next watch attempt.
+                    self._spade_url = None
                 return response.status == 204
         except RequestException:
             return False
