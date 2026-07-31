@@ -346,7 +346,7 @@ GQL_QUERIES: dict[str, GQLPersistedQuery] = {
     # returns all in-progress campaigns
     "Inventory": GQLPersistedQuery(
         "Inventory",
-        "d86775d0ef16a63a33ad52e80eaff963b2d5b72fada7c991504a57496e1d8e4b",
+        "8337eb8541b314040b0edde0c09c5c7a2783ba1960aa9edfbf3bac16d0fec404",
         variables={
             "fetchRewardCampaigns": False,
         }
@@ -363,7 +363,7 @@ GQL_QUERIES: dict[str, GQLPersistedQuery] = {
     # returns all available campaigns
     "Campaigns": GQLPersistedQuery(
         "ViewerDropsDashboard",
-        "5a4da2ab3d5b47c9f9ce864e727b2cb346af1e3ea8b897fe8f704a97ff017619",
+        "d9cae7761dafab85908c85e6683cb4201b449e66ac3bb5e894f15ff12aeafaa7",
         variables={
             "fetchRewardCampaigns": False,
         }
