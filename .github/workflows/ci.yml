@@ -422,5 +422,6 @@ jobs:
           token: ${{ github.token }}
           tag: ${{ env.TAG_NAME }}
           name: "Release ${{ env.VERSION }}"
+          generateReleaseNotes: true
           draft: false
           prerelease: false
