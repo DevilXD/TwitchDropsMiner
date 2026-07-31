@@ -256,6 +256,7 @@ class State(Enum):
     CHANNELS_FETCH = auto()
     CHANNELS_CLEANUP = auto()
     CHANNEL_SWITCH = auto()
+    RESTART = auto()
     EXIT = auto()
 
 
@@ -344,7 +345,7 @@ GQL_QUERIES: dict[str, GQLPersistedQuery] = {
     # returns all in-progress campaigns
     "Inventory": GQLPersistedQuery(
         "Inventory",
-        "d86775d0ef16a63a33ad52e80eaff963b2d5b72fada7c991504a57496e1d8e4b",
+        "8337eb8541b314040b0edde0c09c5c7a2783ba1960aa9edfbf3bac16d0fec404",
         variables={
             "fetchRewardCampaigns": False,
         }
@@ -361,7 +362,7 @@ GQL_QUERIES: dict[str, GQLPersistedQuery] = {
     # returns all available campaigns
     "Campaigns": GQLPersistedQuery(
         "ViewerDropsDashboard",
-        "5a4da2ab3d5b47c9f9ce864e727b2cb346af1e3ea8b897fe8f704a97ff017619",
+        "d9cae7761dafab85908c85e6683cb4201b449e66ac3bb5e894f15ff12aeafaa7",
         variables={
             "fetchRewardCampaigns": False,
         }
@@ -399,7 +400,7 @@ GQL_QUERIES: dict[str, GQLPersistedQuery] = {
     # returns live channels for a particular game
     "GameDirectory": GQLPersistedQuery(
         "DirectoryPage_Game",
-        "cb5dc816e139dcb8a118f14b4b677d59abc224a4b016c4bc2bb00a47fe0ddec4",
+        "86bcceb4e8b1a51256ff8eed8bd8aae4acacf80d737efe904f84f3aeadf8cafd",
         variables={
             "limit": 30,  # limit of channels returned
             "slug": ...,  # game slug
