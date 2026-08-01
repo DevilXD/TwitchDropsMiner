@@ -1753,6 +1753,8 @@ class SettingsPanel:
             priority_frame, placeholder=_("gui", "settings", "game_name"), width=30
         )
         self._priority_entry.grid(column=0, row=0, sticky="ew")
+        # update the choices every time the user clicks on the dropdown
+        self._priority_entry.config(postcommand=self.update_priority_choices)
         priority_frame.columnconfigure(0, weight=1)
         ttk.Button(
             priority_frame, text="➕", command=self.priority_add, width=3, style="Large.TButton"
@@ -1815,6 +1817,8 @@ class SettingsPanel:
             exclude_frame, placeholder=_("gui", "settings", "game_name"), width=26
         )
         self._exclude_entry.grid(column=0, row=0, sticky="ew")
+        # update the choices every time the user clicks on the dropdown
+        self._exclude_entry.config(postcommand=self.update_excluded_choices)
         ttk.Button(
             exclude_frame, text="➕", command=self.exclude_add, width=3, style="Large.TButton"
         ).grid(column=1, row=0)
@@ -1958,13 +1962,25 @@ class SettingsPanel:
                 plist_file.unlink(missing_ok=True)
 
     def update_excluded_choices(self) -> None:
+        game_choices: set[str] = self._game_names.difference(self._settings.exclude)
+        # if the exclude combobox has a value, check for names that match the current value and only show those in the dropdown
+        current_exclude_value: str = self._exclude_entry.get().strip()
+        if current_exclude_value:
+            game_choices = {game for game in game_choices if current_exclude_value.lower() in game.lower()}
+        
         self._exclude_entry.config(
-            values=sorted(self._game_names.difference(self._settings.exclude))
+            values=sorted(game_choices)
         )
 
     def update_priority_choices(self) -> None:
+        game_choices: set[str] = self._game_names.difference(self._settings.priority)
+        current_priority_value: str = self._priority_entry.get().strip()
+        # if the priority combobox has a value, check for names that match the current value and only show those in the dropdown
+        if current_priority_value:
+            game_choices = {game for game in game_choices if current_priority_value.lower() in game.lower()}
+
         self._priority_entry.config(
-            values=sorted(self._game_names.difference(self._settings.priority))
+            values=sorted(game_choices)
         )
 
     def set_games(self, games: set[Game]) -> None:
