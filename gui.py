@@ -49,6 +49,7 @@ from constants import (
     OUTPUT_FORMATTER,
     State,
     PriorityMode,
+    TwitchEndpoints,
 )
 if sys.platform == "win32":
     from registry import RegistryKey, ValueType, ValueNotFound
@@ -1560,6 +1561,7 @@ def proxy_validate(entry: PlaceholderEntry, settings: Settings) -> bool:
 class _SettingsVars(TypedDict):
     tray: IntVar
     proxy: StringVar
+    ipv4_only: IntVar
     autostart: IntVar
     dark_mode: IntVar
     language: StringVar
@@ -1596,6 +1598,7 @@ class SettingsPanel:
             "autostart": IntVar(master, 0),
             "language": StringVar(master, _.current),
             "proxy": StringVar(master, str(self._settings.proxy)),
+            "ipv4_only": IntVar(master, int(self._settings.ipv4_only)),
             "tray": IntVar(master, self._settings.autostart_tray),
             "dark_mode": IntVar(master, int(self._settings.dark_mode)),
             "priority_mode": StringVar(master, self.PRIORITY_MODES[priority_mode]),
@@ -1673,6 +1676,16 @@ class SettingsPanel:
             checkboxes_frame,
             variable=self._vars["dark_mode"],
             command=self.update_dark_mode,
+        ).grid(column=1, row=irow, sticky="w")
+        ttk.Label(
+            checkboxes_frame, text="IPv4-only (requires restart)"
+        ).grid(column=0, row=(irow := irow + 1), sticky="e")
+        ttk.Checkbutton(
+            checkboxes_frame,
+            variable=self._vars["ipv4_only"],
+            command=lambda: setattr(
+                self._settings, "ipv4_only", bool(self._vars["ipv4_only"].get())
+            ),
         ).grid(column=1, row=irow, sticky="w")
         ttk.Label(
             checkboxes_frame, text=_("gui", "settings", "general", "priority_mode")
@@ -2187,7 +2200,7 @@ class HelpTab:
         auth_state = await self._twitch.get_auth()
         async with self._twitch.request(
             "POST",
-            "https://id.twitch.tv/oauth2/revoke",
+            TwitchEndpoints.OAUTH_REVOKE,
             data={
                 "client_id": self._twitch._client_type.CLIENT_ID,
                 "token": auth_state.access_token,

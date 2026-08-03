@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 
 class SettingsFile(TypedDict):
     proxy: URL
+    ipv4_only: bool
     language: str
     dark_mode: bool
     exclude: set[str]
@@ -27,6 +28,7 @@ class SettingsFile(TypedDict):
 
 default_settings: SettingsFile = {
     "proxy": URL(),
+    "ipv4_only": False,
     "priority": [],
     "exclude": set(),
     "dark_mode": False,
@@ -51,6 +53,7 @@ class Settings:
     logging_level: int
     # from settings file
     proxy: URL
+    ipv4_only: bool
     language: str
     dark_mode: bool
     exclude: set[str]

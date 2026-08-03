@@ -160,9 +160,25 @@ class ClientInfo:
         return iter((self.CLIENT_URL, self.CLIENT_ID, self.USER_AGENT))
 
 
+class TwitchEndpoints:
+    """Logical Twitch service URLs; never store resolved CDN IP addresses here."""
+
+    WEB = URL("https://www.twitch.tv")
+    MOBILE_WEB = URL("https://m.twitch.tv")
+    ANDROID_WEB = URL("https://android.tv.twitch.tv")
+    OAUTH_DEVICE = URL("https://id.twitch.tv/oauth2/device")
+    OAUTH_TOKEN = URL("https://id.twitch.tv/oauth2/token")
+    OAUTH_VALIDATE = URL("https://id.twitch.tv/oauth2/validate")
+    OAUTH_REVOKE = URL("https://id.twitch.tv/oauth2/revoke")
+    PASSPORT_LOGIN = URL("https://passport.twitch.tv/login")
+    GRAPHQL = URL("https://gql.twitch.tv/gql")
+    PUBSUB = URL("wss://pubsub-edge.twitch.tv/v1")
+    USHER = URL("https://usher.ttvnw.net")
+
+
 class ClientType:
     WEB = ClientInfo(
-        URL("https://www.twitch.tv"),
+        TwitchEndpoints.WEB,
         "kimne78kx3ncx6brgo4mv6wki5h1ko",
         (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -170,7 +186,7 @@ class ClientType:
         ),
     )
     MOBILE_WEB = ClientInfo(
-        URL("https://m.twitch.tv"),
+        TwitchEndpoints.MOBILE_WEB,
         "r8s4dac0uhzifbpu9sjdiwzctle17ff",
         [
             # Chrome versioning is done fully on android only,
@@ -206,7 +222,7 @@ class ClientType:
         ]
     )
     ANDROID_APP = ClientInfo(
-        URL("https://www.twitch.tv"),
+        TwitchEndpoints.WEB,
         "kd1unb4b3q4t58fwlpcbzcbnm76a8fp",
         [
             (
@@ -240,7 +256,7 @@ class ClientType:
         ]
     )
     SMARTBOX = ClientInfo(
-        URL("https://android.tv.twitch.tv"),
+        TwitchEndpoints.ANDROID_WEB,
         "ue6666qo983tsx6so1t0vnawi233wa",
         (
             "Mozilla/5.0 (Linux; Android 7.1; Smart Box C1) AppleWebKit/537.36 "

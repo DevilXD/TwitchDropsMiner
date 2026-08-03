@@ -21,7 +21,9 @@ from utils import (
     format_traceback,
     AwaitableValue,
     ExponentialBackoff,
+    redact_sensitive,
 )
+from constants import TwitchEndpoints
 
 if TYPE_CHECKING:
     from collections import abc
@@ -129,9 +131,10 @@ class Websocket:
                 asyncio.TimeoutError,
                 aiohttp.ClientResponseError,
                 aiohttp.ClientConnectionError,
-            ):
+            ) as exc:
                 ws_logger.info(
-                    f"Websocket[{self._idx}] connection problem (sleep: {round(delay)}s)"
+                    f"Websocket[{self._idx}] connection problem: {type(exc).__name__} "
+                    f"(sleep: {round(delay)}s)"
                 )
                 await asyncio.sleep(delay)
             except RuntimeError:
@@ -151,7 +154,7 @@ class Websocket:
         self._closed.clear()
         # Connect/Reconnect loop
         async for websocket in self._backoff_connect(
-            "wss://pubsub-edge.twitch.tv/v1", maximum=3*60  # 3 minutes maximum backoff time
+            TwitchEndpoints.PUBSUB, maximum=3*60  # 3 minutes maximum backoff time
         ):
             self._ws.set(websocket)
             self._reconnect_requested.clear()
@@ -330,7 +333,9 @@ class Websocket:
             await ws.send_json(message, dumps=json_minify)
         except aiohttp.ClientConnectionError:
             raise WebsocketClosed(received=False)
-        ws_logger.debug(f"Websocket[{self._idx}] sent: {message}")
+        ws_logger.debug(
+            f"Websocket[{self._idx}] sent: {redact_sensitive(message)}"
+        )
 
 
 class WebsocketPool:

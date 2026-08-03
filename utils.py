@@ -100,6 +100,43 @@ def json_minify(data: JsonType | list[JsonType]) -> str:
     return json.dumps(data, separators=(',', ':'))
 
 
+def redact_sensitive(value: Any) -> Any:
+    """Return a logging-safe copy of request data."""
+    sensitive = {
+        "access_token",
+        "auth-token",
+        "auth_token",
+        "authorization",
+        "cookie",
+        "cookies",
+        "password",
+        "refresh_token",
+        "sig",
+        "token",
+    }
+    if isinstance(value, URL):
+        return redact_url(value)
+    if isinstance(value, dict):
+        return {
+            key: "<redacted>" if str(key).lower() in sensitive else redact_sensitive(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, (list, tuple)):
+        return type(value)(redact_sensitive(item) for item in value)
+    return value
+
+
+def redact_url(url: URL | str) -> str:
+    """Return a URL without credentials or signed query parameters."""
+    parsed = URL(url).with_user(None).with_password(None)
+    sensitive = {"access_token", "auth-token", "sig", "token"}
+    query = {
+        key: "<redacted>" if key.lower() in sensitive else value
+        for key, value in parsed.query.items()
+    }
+    return str(parsed.with_query(query))
+
+
 def timestamp(string: str) -> datetime:
     try:
         return datetime.strptime(string, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)

@@ -14,7 +14,7 @@ from yarl import URL
 
 from utils import Game, json_minify, isonow
 from exceptions import MinerException, RequestException
-from constants import CALL, GQL_QUERIES, ONLINE_DELAY, URLType, GQLQuery
+from constants import CALL, GQL_QUERIES, ONLINE_DELAY, URLType, GQLQuery, TwitchEndpoints
 
 if TYPE_CHECKING:
     from twitch import Twitch
@@ -131,7 +131,7 @@ class Stream:
             async with self.channel._twitch.request(
                 "GET",
                 URL(
-                    "https://usher.ttvnw.net/api/channel/hls/"
+                    f"{TwitchEndpoints.USHER}/api/channel/hls/"
                     f"{self.channel._login}.m3u8?sig={token_signature}&token={token_value}"
                 ),
             ) as qualities_response:

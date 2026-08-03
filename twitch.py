@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import asyncio
 import logging
+import socket
 from time import time
 from copy import deepcopy
 from itertools import chain
@@ -39,6 +40,8 @@ from utils import (
     RateLimiter,
     AwaitableValue,
     ExponentialBackoff,
+    redact_sensitive,
+    redact_url,
 )
 from constants import (
     CALL,
@@ -50,6 +53,7 @@ from constants import (
     WATCH_INTERVAL,
     State,
     ClientType,
+    TwitchEndpoints,
     PriorityMode,
     WebsocketTopic,
 )
@@ -127,7 +131,7 @@ class _AuthState:
             "Accept-Language": "en-US",
             "Cache-Control": "no-cache",
             "Client-Id": client_info.CLIENT_ID,
-            "Host": "id.twitch.tv",
+            "Host": TwitchEndpoints.OAUTH_DEVICE.host,
             "Origin": str(client_info.CLIENT_URL),
             "Pragma": "no-cache",
             "Referer": str(client_info.CLIENT_URL),
@@ -142,7 +146,7 @@ class _AuthState:
             try:
                 now = datetime.now(timezone.utc)
                 async with self._twitch.request(
-                    "POST", "https://id.twitch.tv/oauth2/device", headers=headers, data=payload
+                    "POST", TwitchEndpoints.OAUTH_DEVICE, headers=headers, data=payload
                 ) as response:
                     # {
                     #     "device_code": "40 chars [A-Za-z0-9]",
@@ -171,7 +175,7 @@ class _AuthState:
                     await asyncio.sleep(interval)
                     async with self._twitch.request(
                         "POST",
-                        "https://id.twitch.tv/oauth2/token",
+                        TwitchEndpoints.OAUTH_TOKEN,
                         headers=headers,
                         data=payload,
                         invalidate_after=expires_at,
@@ -238,13 +242,13 @@ class _AuthState:
                 "Accept-Language": "en-US",
                 "Client-Id": client_info.CLIENT_ID,
                 "Content-Type": "application/json; charset=UTF-8",
-                "Host": "passport.twitch.tv",
+                "Host": TwitchEndpoints.PASSPORT_LOGIN.host,
                 "User-Agent": client_info.USER_AGENT,
                 "X-Device-Id": self.device_id,
                 # "X-Device-Id": ''.join(random.choices('0123456789abcdef', k=32)),
             }
             async with self._twitch.request(
-                "POST", "https://passport.twitch.tv/login", headers=headers, json=payload
+                "POST", TwitchEndpoints.PASSPORT_LOGIN, headers=headers, json=payload
             ) as response:
                 login_response: JsonType = await response.json(loads=SAFE_LOADS)
 
@@ -396,7 +400,7 @@ class _AuthState:
                     # validate the auth token, by obtaining user_id
                     async with self._twitch.request(
                         "GET",
-                        "https://id.twitch.tv/oauth2/validate",
+                        TwitchEndpoints.OAUTH_VALIDATE,
                         headers={"Authorization": f"OAuth {self.access_token}"}
                     ) as response:
                         if response.status == 401:
@@ -486,11 +490,19 @@ class Twitch:
             total=10*connection_quality,
         )
         # create session, limited to 50 connections at maximum
-        connector = aiohttp.TCPConnector(limit=50)
+        connector = aiohttp.TCPConnector(
+            limit=50,
+            limit_per_host=20,
+            ttl_dns_cache=30,
+            enable_cleanup_closed=True,
+            family=socket.AF_INET if self.settings.ipv4_only else socket.AF_UNSPEC,
+        )
         self._session = aiohttp.ClientSession(
             timeout=timeout,
             connector=connector,
             cookie_jar=cookie_jar,
+            # Honor HTTPS_PROXY/HTTP_PROXY when present; explicit app proxy wins.
+            trust_env=True,
             headers={"User-Agent": self._client_type.USER_AGENT},
         )
         return self._session
@@ -1244,7 +1256,11 @@ class Twitch:
         method = method.upper()
         if self.settings.proxy and "proxy" not in kwargs:
             kwargs["proxy"] = self.settings.proxy
-        logger.debug(f"Request: ({method=}, {url=}, {kwargs=})")
+        endpoint = URL(url).host or str(url)
+        logger.debug(
+            f"Request: (method={method}, url={redact_url(url)}, "
+            f"kwargs={redact_sensitive(kwargs)})"
+        )
         session_timeout = timedelta(seconds=session.timeout.total or 0)
         backoff = ExponentialBackoff(maximum=3*60)
         for delay in backoff:
@@ -1268,18 +1284,29 @@ class Twitch:
                     raw_response = await response.read()  # noqa
                     yield response
                     return
+                logger.warning(
+                    f"{method} request to {endpoint} returned HTTP {response.status} "
+                    f"({redact_url(url)}); retrying in {round(delay)}s"
+                )
                 self.print(_("error", "site_down").format(seconds=round(delay)))
             except aiohttp.ClientConnectorCertificateError:
                 # for a case where SSL verification fails
                 raise
             except (
                 aiohttp.ClientConnectionError, asyncio.TimeoutError, aiohttp.ClientPayloadError
-            ):
+            ) as exc:
                 # connection problems, retry
+                logger.warning(
+                    f"{method} request to {endpoint} connection failure "
+                    f"({redact_url(url)}): "
+                    f"{type(exc).__name__}; retrying in {round(delay)}s"
+                )
                 if backoff.steps > 1:
                     # just so that quick retries that sometimes happen, aren't shown
                     self.print(
-                        _("error", "no_connection").format(seconds=round(delay), url=str(url))
+                        _("error", "no_connection").format(
+                            seconds=round(delay), url=redact_url(url)
+                        )
                     )
             finally:
                 if response is not None:
@@ -1307,7 +1334,7 @@ class Twitch:
                 auth_state = await self.get_auth()
                 async with self.request(
                     "POST",
-                    "https://gql.twitch.tv/gql",
+                    TwitchEndpoints.GRAPHQL,
                     json=ops,
                     headers=auth_state.headers(user_agent=self._client_type.USER_AGENT, gql=True),
                 ) as response:
