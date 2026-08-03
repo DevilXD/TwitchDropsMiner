@@ -1985,8 +1985,6 @@ class SettingsPanel:
 
     def set_games(self, games: set[Game]) -> None:
         self._game_names.update(game.name for game in games)
-        self.update_excluded_choices()
-        self.update_priority_choices()
 
     def priority_add(self) -> None:
         game_name: str = self._priority_entry.get()
@@ -2003,7 +2001,6 @@ class SettingsPanel:
             self._priority_list.see("end")
             self._settings.priority.append(game_name)
             self._settings.alter()
-            self.update_priority_choices()
         else:
             # already there, set the selection on it
             self._priority_list.selection_set(existing_idx)
@@ -2050,7 +2047,6 @@ class SettingsPanel:
         self._priority_list.delete(idx)
         del self._settings.priority[idx]
         self._settings.alter()
-        self.update_priority_choices()
 
     def priority_mode(self, event: tk.Event[ttk.Combobox]) -> None:
         mode_name: str = self._vars["priority_mode"].get()
@@ -2068,7 +2064,6 @@ class SettingsPanel:
         if game_name not in self._settings.exclude:
             self._settings.exclude.add(game_name)
             self._settings.alter()
-            self.update_excluded_choices()
             # insert it alphabetically
             for i, item in enumerate(self._exclude_list.get(0, "end")):
                 if game_name < item:
@@ -2100,7 +2095,6 @@ class SettingsPanel:
             self._exclude_list.delete(idx)
             self._settings.exclude.discard(item)
             self._settings.alter()
-            self.update_excluded_choices()
 
 
 class HelpTab:
