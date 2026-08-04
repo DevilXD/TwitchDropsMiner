@@ -1963,10 +1963,13 @@ class SettingsPanel:
 
     def update_excluded_choices(self) -> None:
         game_choices: set[str] = self._game_names.difference(self._settings.exclude)
-        # if the exclude combobox has a value, check for names that match the current value and only show those in the dropdown
+        # if the exclude combobox has a value, check for names that match the current value
+        # only show those names in the dropdown
         current_exclude_value: str = self._exclude_entry.get().strip()
         if current_exclude_value:
-            game_choices = {game for game in game_choices if current_exclude_value.lower() in game.lower()}
+            game_choices = {
+                game for game in game_choices if current_exclude_value.lower() in game.lower()
+            }
         
         self._exclude_entry.config(
             values=sorted(game_choices)
@@ -1975,9 +1978,12 @@ class SettingsPanel:
     def update_priority_choices(self) -> None:
         game_choices: set[str] = self._game_names.difference(self._settings.priority)
         current_priority_value: str = self._priority_entry.get().strip()
-        # if the priority combobox has a value, check for names that match the current value and only show those in the dropdown
+        # if the priority combobox has a value, check for names that match the current value
+        # only show those names in the dropdown
         if current_priority_value:
-            game_choices = {game for game in game_choices if current_priority_value.lower() in game.lower()}
+            game_choices = {
+                game for game in game_choices if current_priority_value.lower() in game.lower()
+            }
 
         self._priority_entry.config(
             values=sorted(game_choices)
