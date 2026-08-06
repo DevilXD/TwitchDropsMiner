@@ -71,9 +71,14 @@ hiddenimports: list[str] = [
 if sys.platform == "linux":
     # Needed files for better system tray support on Linux via pystray (AppIndicator backend).
     arch: str = platform.machine()
-    libraries_path: Path = Path(f"/usr/lib/{arch}-linux-gnu")
-    if not libraries_path.exists():
-        libraries_path = Path("/usr/lib64")
+    candidate_library_paths: list[Path] = [
+        Path(f"/usr/lib/{arch}-linux-gnu"),  # Debian/Ubuntu multiarch
+        Path("/usr/lib64"),  # Fedora/RHEL
+        Path("/usr/lib"),  # Arch and other single-dir distros
+    ]
+    for libraries_path in candidate_library_paths:
+        if (libraries_path / "libayatana-appindicator3.so.1").exists():
+            break
     datas.append(
         (libraries_path / "girepository-1.0/AyatanaAppIndicator3-0.1.typelib", "gi_typelibs")
     )
