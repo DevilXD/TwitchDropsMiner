@@ -76,10 +76,9 @@ if sys.platform == "linux":
         Path("/usr/lib64"),  # Fedora/RHEL
         Path("/usr/lib"),  # Arch and other single-dir distros
     ]
-    libraries_path: Path = next(
-        (p for p in candidate_library_paths if (p / "libayatana-appindicator3.so.1").exists()),
-        candidate_library_paths[0],
-    )
+    for libraries_path in candidate_library_paths:
+        if (libraries_path / "libayatana-appindicator3.so.1").exists():
+            break
     datas.append(
         (libraries_path / "girepository-1.0/AyatanaAppIndicator3-0.1.typelib", "gi_typelibs")
     )
