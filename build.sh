@@ -25,6 +25,17 @@ if [ ! -f "$dirpath/env/bin/pyinstaller" ]; then
     fi
 fi
 
+if pkill -f "Twitch Drops Miner" 2>/dev/null; then
+    echo "Stopped the running miner instance."
+    # give the OS a moment to release the file lock
+    sleep 2
+fi
+
+if [ -f "$dirpath/dist/Twitch Drops Miner" ]; then
+    rm -f "$dirpath/dist/Twitch Drops Miner"
+    echo "Deleted the old binary."
+fi
+
 # Run PyInstaller with the specified build spec file
 echo
 echo "Building..."
@@ -40,4 +51,7 @@ fi
 echo
 echo "Build completed successfully."
 echo
-[ "$1" != "--nopause" ] && read -p "Press any key to continue..."
+
+echo "Starting the miner..."
+(cd "$dirpath/dist" && nohup "./Twitch Drops Miner" >/dev/null 2>&1 &)
+

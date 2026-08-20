@@ -17,6 +17,8 @@ class StatusMessages(TypedDict):
     goes_online: str
     goes_offline: str
     claimed_drop: str
+    claimed_points: str
+    streak_points: str
     no_channel: str
     no_campaign: str
 
@@ -61,6 +63,7 @@ class GUIStatus(TypedDict):
 class GUITabs(TypedDict):
     main: str
     inventory: str
+    followers: str
     settings: str
     help: str
 
@@ -123,6 +126,24 @@ class GUIChannels(TypedDict):
     headings: GUIChannelHeadings
 
 
+class GUIFollowers(TypedDict):
+    name: str
+    channel: str
+    game: str
+    viewers: str
+    title: str
+    points: str
+    change: str
+    earned: str
+    claimed: str
+    streak: str
+    refresh: str
+    loading: str
+    not_logged_in: str
+    no_live: str
+    last_updated: str
+
+
 class GUIInvFilter(TypedDict):
     name: str
     show: str
@@ -162,6 +183,8 @@ class GUISettingsGeneral(TypedDict):
     tray: str
     tray_notifications: str
     dark_mode: str
+    autoclaim_points: str
+    extend_streaks: str
     priority_mode: str
     proxy: str
 
@@ -215,6 +238,7 @@ class GUIMessages(TypedDict):
     progress: GUIProgress
     channels: GUIChannels
     inventory: GUIInventory
+    followers: GUIFollowers
     settings: GUISettings
     help: GUIHelp
 
@@ -236,6 +260,8 @@ default_translation: Translation = {
         "goes_online": "{channel} goes ONLINE, switching...",
         "goes_offline": "{channel} goes OFFLINE, switching...",
         "claimed_drop": "Claimed drop: {drop}",
+        "claimed_points": "Claimed bonus points: +{points} ({channel})",
+        "streak_points": "Watch streak extended: +{points} ({channel})",
         "no_channel": "No available channels to watch. Waiting for an ONLINE channel...",
         "no_campaign": "No active campaigns to mine drops for. Waiting for an active campaign...",
     },
@@ -283,6 +309,7 @@ default_translation: Translation = {
         "tabs": {
             "main": "Main",
             "inventory": "Inventory",
+            "followers": "Followers",
             "settings": "Settings",
             "help": "Help",
         },
@@ -365,6 +392,23 @@ default_translation: Translation = {
             "percent_progress": "{percent} of {minutes} minutes",
             "minutes_progress": "{minutes} minutes",
         },
+        "followers": {
+            "name": "Followed Live Channels",
+            "channel": "Channel",
+            "game": "Game",
+            "viewers": "Viewers",
+            "title": "Title",
+            "points": "Total",
+            "change": "Δ",
+            "earned": "Earned",
+            "claimed": "Claimed",
+            "streak": "Streak",
+            "refresh": "Refresh",
+            "loading": "Loading...",
+            "not_logged_in": "Please log in to see followed channels.",
+            "no_live": "No followed channels are currently live.",
+            "last_updated": "Updated: {time}",
+        },
         "settings": {
             "general": {
                 "name": "General",
@@ -372,6 +416,8 @@ default_translation: Translation = {
                 "tray": "Autostart into tray: ",
                 "tray_notifications": "Tray notifications: ",
                 "dark_mode": "Dark mode: ",
+                "autoclaim_points": "Auto-claim channel points: ",
+                "extend_streaks": "Extend watch streaks: ",
                 "priority_mode": "Priority mode: ",
                 "proxy": "Proxy (requires restart):",
             },

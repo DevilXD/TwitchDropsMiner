@@ -7,6 +7,7 @@ from time import time
 from copy import deepcopy
 from itertools import chain
 from functools import partial
+from dataclasses import dataclass
 from collections import abc, deque, OrderedDict
 from datetime import datetime, timedelta, timezone
 from contextlib import suppress, asynccontextmanager
@@ -17,7 +18,7 @@ from yarl import URL
 
 from translate import _
 from gui import GUIManager
-from channel import Channel
+from channel import Channel, Stream
 from websocket import WebsocketPool
 from inventory import DropsCampaign
 from exceptions import (
@@ -57,7 +58,6 @@ from constants import (
 if TYPE_CHECKING:
     from utils import Game
     from gui import LoginForm
-    from channel import Stream
     from settings import Settings
     from inventory import TimedDrop
     from constants import ClientInfo, JsonType, GQLOperation
@@ -65,6 +65,14 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("TwitchDrops")
 gql_logger = logging.getLogger("TwitchDrops.gql")
+
+
+@dataclass
+class ChannelPointsStats:
+    name: str = ""
+    balance: int = 0
+    claimed: int = 0
+    streak_points: int = 0
 
 
 class SkipExtraJsonDecoder(json.JSONDecoder):
@@ -124,7 +132,7 @@ class _AuthState:
         }
         payload = {
             "client_id": client_info.CLIENT_ID,
-            "scopes": "",  # no scopes needed
+            "scopes": "user:read:follows",
         }
         while True:
             try:
@@ -440,11 +448,13 @@ class Twitch:
         self._auth_state: _AuthState = _AuthState(self)
         # GUI
         self.gui = GUIManager(self)
+        self.points_stats: dict[int, ChannelPointsStats] = {}
         # Storing and watching channels
         self.channels: OrderedDict[int, Channel] = OrderedDict()
         self.watching_channel: AwaitableValue[Channel] = AwaitableValue()
         self._watching_task: asyncio.Task[None] | None = None
         self._watching_restart = asyncio.Event()
+        self._watchtime_task: asyncio.Task[None] | None = None
         # Websocket
         self.websocket = WebsocketPool(self)
         # Maintenance task
@@ -491,6 +501,9 @@ class Twitch:
         if self._watching_task is not None:
             self._watching_task.cancel()
             self._watching_task = None
+        if self._watchtime_task is not None:
+            self._watchtime_task.cancel()
+            self._watchtime_task = None
         if self._mnt_task is not None:
             self._mnt_task.cancel()
             self._mnt_task = None
@@ -611,11 +624,17 @@ class Twitch:
         if self._watching_task is not None:
             self._watching_task.cancel()
         self._watching_task = asyncio.create_task(self._watch_loop())
+        if self._watchtime_task is not None:
+            self._watchtime_task.cancel()
+        self._watchtime_task = asyncio.create_task(self._watchtime_loop())
         # Add default topics
         self.websocket.add_topics([
             WebsocketTopic("User", "Drops", auth_state.user_id, self.process_drops),
             WebsocketTopic(
                 "User", "Notifications", auth_state.user_id, self.process_notifications
+            ),
+            WebsocketTopic(
+                "User", "CommunityPoints", auth_state.user_id, self.process_points
             ),
         ])
         full_cleanup: bool = False
@@ -1027,6 +1046,168 @@ class Twitch:
             self.print(status_text)
             self.gui.status.update(status_text)
 
+    async def get_followed_live_channels(self) -> list[Channel]:
+        auth_state = await self.get_auth()
+        channels: list[Channel] = []
+        params: dict[str, str] = {"user_id": str(auth_state.user_id), "first": "100"}
+        while True:
+            async with self.request(
+                "GET",
+                "https://api.twitch.tv/helix/streams/followed",
+                params=params,
+                headers={
+                    "Authorization": f"Bearer {auth_state.access_token}",
+                    "Client-Id": self._client_type.CLIENT_ID,
+                },
+            ) as response:
+                data = await response.json()
+            if response.status != 200:
+                error_msg = data.get("message", f"HTTP {response.status}")
+                if "Missing scope" in error_msg:
+                    raise Exception(
+                        f"{error_msg} — Please log out and log in again to fix this."
+                    )
+                raise Exception(f"Twitch API {response.status}: {error_msg}")
+            for stream_data in data.get("data", []):
+                channel = Channel(
+                    self,
+                    id=stream_data["user_id"],
+                    login=stream_data["user_login"],
+                    display_name=stream_data["user_name"],
+                )
+                game_json: JsonType | None = None
+                if stream_data.get("game_id"):
+                    game_json = {"id": stream_data["game_id"], "name": stream_data.get("game_name", "")}
+                channel._stream = Stream(
+                    channel,
+                    id=stream_data["id"],
+                    game=game_json,
+                    viewers=stream_data.get("viewer_count", 0),
+                    title=stream_data.get("title", ""),
+                )
+                channels.append(channel)
+            cursor: str = data.get("pagination", {}).get("cursor", "")
+            if not cursor:
+                break
+            params["after"] = cursor
+        return channels
+
+    async def get_points_context(self, channel_login: str) -> tuple[int, str | None]:
+        try:
+            response = await self.gql_request(
+                GQL_QUERIES["ChannelPointsContext"].with_variables({"channelLogin": channel_login})
+            )
+        except Exception:
+            return 0, None
+        channel = ((response.get("data") or {}).get("community") or {}).get("channel") or {}
+        points = ((channel.get("self") or {}).get("communityPoints")) or {}
+        balance = points.get("balance")
+        if not isinstance(balance, int):
+            return 0, None
+        return balance, (points.get("availableClaim") or {}).get("id")
+
+    async def claim_points(
+        self, channel_id: int | str, claim_id: str, *, points: int | None = None
+    ) -> bool:
+        try:
+            response = await self.gql_request(
+                GQL_QUERIES["ClaimCommunityPoints"].with_variables(
+                    {"input": {"claimID": claim_id, "channelID": str(channel_id)}}
+                )
+            )
+            claim_data = response["data"].get("claimCommunityPoints") or {}
+            success = claim_data.get("error") is None
+        except Exception:
+            return False
+        if success:
+            stats = self.points_stats.setdefault(int(channel_id), ChannelPointsStats())
+            stats.claimed += 1
+            if points is not None:
+                stats.balance += points
+            self.print(
+                _("status", "claimed_points").format(
+                    points=points if points is not None else "?",
+                    channel=stats.name or str(channel_id),
+                )
+            )
+        return success
+
+    async def _watchtime_loop(self) -> None:
+        follower_channels: dict[int, Channel] = {}
+        while True:
+            await asyncio.sleep(WATCH_INTERVAL.total_seconds())
+            extend_streaks: bool = self.settings.extend_streaks
+            autoclaim_points: bool = self.settings.autoclaim_points
+            if not (extend_streaks or autoclaim_points):
+                continue
+            try:
+                channels = await self.get_followed_live_channels()
+            except Exception:
+                continue
+            current: dict[int, Channel] = {}
+            for channel in channels:
+                existing = follower_channels.get(channel.id)
+                if (
+                    existing is not None
+                    and existing._stream is not None
+                    and channel._stream is not None
+                    and existing._stream.broadcast_id == channel._stream.broadcast_id
+                ):
+                    existing._stream.viewers = channel._stream.viewers
+                    existing._stream.title = channel._stream.title
+                    current[channel.id] = existing
+                else:
+                    if existing is not None:
+                        channel._spade_url = existing._spade_url
+                    current[channel.id] = channel
+            follower_channels = current
+            async def _watch(signal: str, coro: abc.Awaitable[bool], channel_name: str) -> bool:
+                try:
+                    return await coro
+                except Exception as exc:
+                    logger.log(CALL, f"{signal} watch failed for {channel_name}: {exc}")
+                    return False
+
+            playlist_count: int = 0
+            spade_count: int = 0
+            watch_failed: int = 0
+            for channel in follower_channels.values():
+                stats = self.points_stats.setdefault(channel.id, ChannelPointsStats())
+                stats.name = channel.name
+                if extend_streaks:
+                    playlist_ok = await _watch(
+                        "Playlist", channel._send_watch_playlist(), channel.name
+                    )
+                    if playlist_ok:
+                        playlist_count += 1
+                    elif channel._stream is not None:
+                        channel._stream._stream_url = None
+                    spade_ok = await _watch(
+                        "Spade", channel._send_watch_spade(), channel.name
+                    )
+                    if spade_ok:
+                        spade_count += 1
+                    if not (playlist_ok or spade_ok):
+                        watch_failed += 1
+                if autoclaim_points:
+                    balance, claim_id = await self.get_points_context(channel._login)
+                    stats.balance = balance
+                    if claim_id is not None:
+                        await self.claim_points(channel.id, claim_id)
+            if extend_streaks and follower_channels:
+                total = len(follower_channels)
+                if watch_failed:
+                    self.print(
+                        f"Watchtime: {playlist_count} playlist, {spade_count} spade,"
+                        f" {watch_failed} failed / {total} channels"
+                    )
+                else:
+                    logger.log(
+                        CALL,
+                        f"Watchtime: {playlist_count} playlist, {spade_count} spade"
+                        f" / {total} channels",
+                    )
+
     def stop_watching(self):
         self.gui.clear_drop()
         self.watching_channel.clear()
@@ -1219,6 +1400,41 @@ class Twitch:
                         {"input": {"id": data["id"]}}
                     )
                 )
+
+    @task_wrapper
+    async def process_points(self, user_id: int, message: JsonType):
+        # Message examples:
+        # {"type": "points-earned", "data": {"channel_id": "123", "point_gain":
+        #     {"total_points": 10, "reason_code": "WATCH", ...}, "balance": {"balance": 12345}}}
+        # {"type": "claim-available", "data": {"claim":
+        #     {"id": "...", "channel_id": "123", "point_gain": {"total_points": 50, ...}}}}
+        msg_type: str = message["type"]
+        if msg_type == "points-earned":
+            data: JsonType = message["data"]
+            channel_id = int(data["channel_id"])
+            point_gain: JsonType = data["point_gain"]
+            points: int = point_gain["total_points"]
+            reason: str = point_gain.get("reason_code", "")
+            stats = self.points_stats.setdefault(channel_id, ChannelPointsStats())
+            if not stats.name:
+                channel = self.channels.get(channel_id)
+                if channel is not None:
+                    stats.name = channel.name
+            stats.balance = data["balance"]["balance"]
+            if reason == "WATCH_STREAK":
+                stats.streak_points += points
+                self.print(
+                    _("status", "streak_points").format(
+                        points=points, channel=stats.name or str(channel_id)
+                    )
+                )
+        elif msg_type == "claim-available":
+            if not self.settings.autoclaim_points:
+                return
+            claim_data: JsonType = message["data"]["claim"]
+            channel_id = int(claim_data["channel_id"])
+            claim_amount: int | None = (claim_data.get("point_gain") or {}).get("total_points")
+            await self.claim_points(channel_id, claim_data["id"], points=claim_amount)
 
     async def get_auth(self) -> _AuthState:
         await self._auth_state.validate()

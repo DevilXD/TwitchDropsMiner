@@ -18,6 +18,8 @@ class SettingsFile(TypedDict):
     exclude: set[str]
     priority: list[str]
     autostart_tray: bool
+    extend_streaks: bool
+    autoclaim_points: bool
     connection_quality: int
     tray_notifications: bool
     enable_badges_emotes: bool
@@ -31,6 +33,8 @@ default_settings: SettingsFile = {
     "exclude": set(),
     "dark_mode": False,
     "autostart_tray": False,
+    "extend_streaks": True,
+    "autoclaim_points": True,
     "connection_quality": 1,
     "language": DEFAULT_LANG,
     "tray_notifications": True,
@@ -56,6 +60,8 @@ class Settings:
     exclude: set[str]
     priority: list[str]
     autostart_tray: bool
+    extend_streaks: bool
+    autoclaim_points: bool
     connection_quality: int
     tray_notifications: bool
     enable_badges_emotes: bool

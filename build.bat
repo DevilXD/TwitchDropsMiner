@@ -34,6 +34,25 @@ if not exist "%dirpath%\env\scripts\pyinstaller.exe" (
     )
 )
 
+taskkill /F /IM "Twitch Drops Miner.exe" >nul 2>&1
+if not errorlevel 1 (
+    echo Stopped the running miner instance.
+    REM give the OS a moment to release the file lock
+    timeout /t 2 /nobreak >nul
+)
+
+if exist "%dirpath%\dist\Twitch Drops Miner.exe" (
+    del /f /q "%dirpath%\dist\Twitch Drops Miner.exe"
+    if exist "%dirpath%\dist\Twitch Drops Miner.exe" (
+        echo:
+        echo Could not delete the old EXE - is it still running?
+        echo:
+        if not "%~1"=="--nopause" pause
+        exit /b 1
+    )
+    echo Deleted the old EXE.
+)
+
 REM Run PyInstaller with the specified build spec file
 echo Building...
 "%dirpath%\env\scripts\pyinstaller" "%dirpath%\build.spec"
@@ -48,4 +67,8 @@ if errorlevel 1 (
 echo:
 echo Build completed successfully.
 echo:
-if not "%~1"=="--nopause" pause
+
+echo Starting the miner...
+start "" /D "%dirpath%\dist" "%dirpath%\dist\Twitch Drops Miner.exe"
+
+

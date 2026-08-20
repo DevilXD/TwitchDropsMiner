@@ -147,7 +147,7 @@ jobs:
         run: |
           FOLDER="Twitch Drops Miner"
           mkdir -p "$FOLDER"
-          cp -r "dist/Twitch Drops Miner (by DevilXD).app" "$FOLDER/"
+          cp -r "dist/Twitch Drops Miner.app" "$FOLDER/"
           cp manual.txt "$FOLDER/"
           zip -r Twitch.Drops.Miner.MacOS.zip "$FOLDER"
 

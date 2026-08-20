@@ -18,8 +18,11 @@ if __name__ == "__main__":
     from tkinter import messagebox
     from typing import NoReturn, TYPE_CHECKING
 
-    import truststore
-    truststore.inject_into_ssl()
+    try:
+        import truststore
+        truststore.inject_into_ssl()
+    except ImportError:
+        pass
 
     from translate import _
     from twitch import Twitch

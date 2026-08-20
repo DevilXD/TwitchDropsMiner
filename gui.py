@@ -1077,6 +1077,227 @@ class ChannelList:
         self._table.delete(iid)
 
 
+class FollowerTab:
+    _TAB_INDEX = 2
+    _REFRESH_INTERVAL = 60  # seconds between auto-refreshes
+    _NUMERIC_COLUMNS = frozenset((
+        "viewers", "points", "change", "earned", "claimed", "streak",
+    ))
+
+    def __init__(self, manager: GUIManager, master: ttk.Widget):
+        self._manager = manager
+        self._refresh_task: asyncio.Task[None] | None = None
+        self._auto_refresh_task: asyncio.Task[None] | None = None
+        self._baseline_points: dict[str, int] = {} 
+        self._prev_values: dict[str, tuple[int, int, int]] = {}
+        self._last_change: dict[str, str] = {}
+        self._urls: dict[str, str] = {}
+        self._sort_column: str | None = None
+        self._sort_reverse: bool = False
+        manager.tabs.add_view_event(self._on_tab_switched)
+
+        header = ttk.Frame(master)
+        header.grid(column=0, row=0, sticky="ew", pady=(0, 4))
+        master.columnconfigure(0, weight=1)
+        ttk.Label(
+            header, text=_("gui", "followers", "name")
+        ).grid(column=0, row=0, sticky="w")
+        ttk.Button(
+            header,
+            text=_("gui", "followers", "refresh"),
+            command=self._do_refresh,
+        ).grid(column=1, row=0, padx=(8, 0))
+        self._status_label = ttk.Label(header, text="")
+        self._status_label.grid(column=2, row=0, padx=(8, 0))
+
+        # Treeview
+        frame = ttk.Frame(master)
+        frame.grid(column=0, row=1, sticky="nsew")
+        master.rowconfigure(1, weight=1)
+        frame.columnconfigure(0, weight=1)
+        frame.rowconfigure(0, weight=1)
+
+        yscroll = ttk.Scrollbar(frame, orient="vertical")
+        self._table = table = ttk.Treeview(
+            frame,
+            columns=(
+                "channel", "game", "viewers", "title",
+                "points", "change", "earned", "claimed", "streak",
+            ),
+            show="headings",
+            yscrollcommand=yscroll.set,
+        )
+        yscroll.config(command=table.yview)
+        table.grid(column=0, row=0, sticky="nsew")
+        yscroll.grid(column=1, row=0, sticky="ns")
+
+        font = Font(frame, manager._style.lookup("Treeview", "font"))
+
+        def _measure(text: str) -> int:
+            return font.measure(text) + 10
+
+        table.heading("channel", text=_("gui", "followers", "channel"), anchor="w")
+        table.column("channel", width=_measure("Channel_______"), minwidth=80, stretch=False)
+
+        table.heading("game", text=_("gui", "followers", "game"), anchor="w")
+        table.column("game", width=_measure("Game_____________"), minwidth=80, stretch=False)
+
+        table.heading("viewers", text=_("gui", "followers", "viewers"), anchor="center")
+        table.column("viewers", width=_measure("1 234 567"), minwidth=60, stretch=False, anchor="e")
+
+        table.heading("points", text=_("gui", "followers", "points"), anchor="center")
+        table.column("points", width=_measure("1 234 567"), minwidth=70, stretch=False, anchor="e")
+
+        table.heading("earned", text=_("gui", "followers", "earned"), anchor="center")
+        table.column("earned", width=_measure("+1 234 567"), minwidth=70, stretch=False, anchor="e")
+
+        table.heading("change", text=_("gui", "followers", "change"), anchor="center")
+        table.column("change", width=_measure("+1 234"), minwidth=45, stretch=False, anchor="e")
+
+        table.tag_configure("changed", foreground="#2eb52e")
+
+        table.heading("claimed", text=_("gui", "followers", "claimed"), anchor="center")
+        table.column("claimed", width=_measure("Claimed_"), minwidth=50, stretch=False, anchor="e")
+
+        table.heading("streak", text=_("gui", "followers", "streak"), anchor="center")
+        table.column("streak", width=_measure("+12 345"), minwidth=50, stretch=False, anchor="e")
+
+        table.heading("title", text=_("gui", "followers", "title"), anchor="w")
+        table.column("title", width=200, minwidth=100, stretch=True, anchor="w")
+
+        self._col_labels: dict[str, str] = {
+            col: table.heading(col, "text") for col in table["columns"]
+        }
+        for col in table["columns"]:
+            table.heading(col, command=partial(self._sort_by, col))
+        table.bind("<Double-1>", self._on_row_double_click)
+
+        self._auto_refresh_task = asyncio.create_task(self._auto_refresh())
+
+    def _on_tab_switched(self, event: tk.Event[ttk.Notebook]) -> None:
+        if self._manager.tabs.current_tab() == self._TAB_INDEX:
+            self._do_refresh()
+
+    def _do_refresh(self) -> None:
+        if self._refresh_task is not None and not self._refresh_task.done():
+            return
+        self._refresh_task = asyncio.create_task(self._refresh())
+
+    def _on_row_double_click(self, event: tk.Event[ttk.Treeview]) -> None:
+        iid = self._table.identify_row(event.y)
+        url = self._urls.get(iid)
+        if url:
+            webopen(url)
+
+    @staticmethod
+    def _numeric_key(value: str) -> float:
+        value = value.replace(",", "").replace("•", "0").strip()
+        try:
+            return float(value) if value else 0.0
+        except ValueError:
+            return 0.0
+
+    def _sort_by(self, col: str) -> None:
+        reverse = self._sort_column == col and not self._sort_reverse
+        self._resort(col, reverse)
+
+    def _resort(self, col: str, reverse: bool) -> None:
+        table = self._table
+        key = self._numeric_key if col in self._NUMERIC_COLUMNS else str.casefold
+        rows = sorted(
+            table.get_children(""), key=lambda iid: key(table.set(iid, col)), reverse=reverse
+        )
+        for index, iid in enumerate(rows):
+            table.move(iid, "", index)
+        if self._sort_column is not None and self._sort_column != col:
+            table.heading(self._sort_column, text=self._col_labels[self._sort_column])
+        table.heading(col, text=f"{self._col_labels[col]} {'▼' if reverse else '▲'}")
+        self._sort_column = col
+        self._sort_reverse = reverse
+
+    async def _auto_refresh(self) -> None:
+        self._do_refresh()
+        while True:
+            await asyncio.sleep(self._REFRESH_INTERVAL)
+            self._do_refresh()
+
+    async def _refresh(self) -> None:
+        self._status_label.config(text=_("gui", "followers", "loading"))
+        twitch = self._manager._twitch
+
+        async def get_points(ch) -> int:
+            if twitch.settings.autoclaim_points:
+                stats = twitch.points_stats.get(ch.id)
+                if stats is not None and stats.balance > 0:
+                    return stats.balance
+            balance, _ = await twitch.get_points_context(ch._login)
+            return balance
+
+        try:
+            async with asyncio.timeout(45):
+                channels = await twitch.get_followed_live_channels()
+                points_list = await asyncio.gather(
+                    *(get_points(ch) for ch in channels)
+                )
+        except TimeoutError:
+            self._status_label.config(text="Refresh timed out, retrying...")
+            return
+        except Exception as exc:
+            self._status_label.config(text=str(exc) or "Error")
+            return
+
+        table = self._table
+        seen: set[str] = set()
+        for channel, points in zip(channels, points_list):
+            login = channel._login
+            seen.add(login)
+            self._urls[login] = str(channel.url)
+            if login not in self._baseline_points:
+                self._baseline_points[login] = points
+            earned = points - self._baseline_points[login]
+            stats = twitch.points_stats.get(channel.id)
+            claimed = stats.claimed if stats is not None else 0
+            streak = stats.streak_points if stats is not None else 0
+            previous = self._prev_values.get(login)
+            self._prev_values[login] = (points, claimed, streak)
+            changed = previous is not None and previous != (points, claimed, streak)
+            if changed:
+                delta = points - previous[0]
+                self._last_change[login] = f"{delta:+,}" if delta else "•"
+            game = str(channel.game or "")
+            viewers = f"{channel.viewers:,}" if channel.viewers is not None else ""
+            title = channel._stream.title if channel._stream is not None else ""
+            points_str = f"{points:,}" if points else ""
+            earned_str = f"+{earned:,}" if earned > 0 else ""
+            claimed_str = str(claimed) if claimed else ""
+            streak_str = f"+{streak:,}" if streak else ""
+            values = (
+                channel.name, game, viewers, title,
+                points_str, self._last_change.get(login, ""),
+                earned_str, claimed_str, streak_str,
+            )
+            tags: tuple[str, ...] = ("changed",) if changed else ()
+            if table.exists(login):
+                table.item(login, values=values, tags=tags)
+            else:
+                table.insert("", "end", iid=login, values=values, tags=tags)
+        for iid in table.get_children():
+            if iid not in seen:
+                table.delete(iid)
+                self._prev_values.pop(iid, None)
+                self._last_change.pop(iid, None)
+                self._urls.pop(iid, None)
+        if self._sort_column is not None:
+            self._resort(self._sort_column, self._sort_reverse)
+        if not channels:
+            self._status_label.config(text=_("gui", "followers", "no_live"))
+        else:
+            now = datetime.now().strftime("%H:%M:%S")
+            self._status_label.config(
+                text=_("gui", "followers", "last_updated").format(time=now)
+            )
+
+
 class TrayIcon:
     TITLE = "Twitch Drops Miner"
 
@@ -1563,6 +1784,8 @@ class _SettingsVars(TypedDict):
     dark_mode: IntVar
     language: StringVar
     priority_mode: StringVar
+    extend_streaks: IntVar
+    autoclaim_points: IntVar
     tray_notifications: IntVar
     enable_badges_emotes: IntVar
     available_drops_check: IntVar
@@ -1598,6 +1821,8 @@ class SettingsPanel:
             "tray": IntVar(master, self._settings.autostart_tray),
             "dark_mode": IntVar(master, int(self._settings.dark_mode)),
             "priority_mode": StringVar(master, self.PRIORITY_MODES[priority_mode]),
+            "extend_streaks": IntVar(master, int(self._settings.extend_streaks)),
+            "autoclaim_points": IntVar(master, int(self._settings.autoclaim_points)),
             "tray_notifications": IntVar(master, self._settings.tray_notifications),
             "enable_badges_emotes": IntVar(
                 master, int(self._settings.enable_badges_emotes)
@@ -1671,6 +1896,30 @@ class SettingsPanel:
             checkboxes_frame,
             variable=self._vars["dark_mode"],
             command=self.update_dark_mode,
+        ).grid(column=1, row=irow, sticky="w")
+        ttk.Label(
+            checkboxes_frame, text=_("gui", "settings", "general", "autoclaim_points")
+        ).grid(column=0, row=(irow := irow + 1), sticky="e")
+        ttk.Checkbutton(
+            checkboxes_frame,
+            variable=self._vars["autoclaim_points"],
+            command=lambda: setattr(
+                self._settings,
+                "autoclaim_points",
+                bool(self._vars["autoclaim_points"].get()),
+            ),
+        ).grid(column=1, row=irow, sticky="w")
+        ttk.Label(
+            checkboxes_frame, text=_("gui", "settings", "general", "extend_streaks")
+        ).grid(column=0, row=(irow := irow + 1), sticky="e")
+        ttk.Checkbutton(
+            checkboxes_frame,
+            variable=self._vars["extend_streaks"],
+            command=lambda: setattr(
+                self._settings,
+                "extend_streaks",
+                bool(self._vars["extend_streaks"].get()),
+            ),
         ).grid(column=1, row=irow, sticky="w")
         ttk.Label(
             checkboxes_frame, text=_("gui", "settings", "general", "priority_mode")
@@ -2240,6 +2489,10 @@ class GUIManager:
         inv_frame = ttk.Frame(root_frame, padding=8)
         self.inv = InventoryOverview(self, inv_frame)
         self.tabs.add_tab(inv_frame, name=_("gui", "tabs", "inventory"))
+        # Followers tab
+        followers_frame = ttk.Frame(root_frame, padding=8)
+        self.followers = FollowerTab(self, followers_frame)
+        self.tabs.add_tab(followers_frame, name=_("gui", "tabs", "followers"))
         # Settings tab
         settings_frame = ttk.Frame(root_frame, padding=8)
         self.settings = SettingsPanel(self, settings_frame)
@@ -2790,6 +3043,8 @@ if __name__ == "__main__":
                 language="English",
                 autostart_tray=False,
                 exclude={"Lit Game"},
+                extend_streaks=True,
+                autoclaim_points=True,
                 tray_notifications=True,
                 enable_badges_emotes=False,
                 available_drops_check=False,
