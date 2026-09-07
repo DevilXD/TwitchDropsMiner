@@ -1753,6 +1753,8 @@ class SettingsPanel:
             priority_frame, placeholder=_("gui", "settings", "game_name"), width=30
         )
         self._priority_entry.grid(column=0, row=0, sticky="ew")
+        # update the choices every time the user clicks on the dropdown
+        self._priority_entry.config(postcommand=self.update_priority_choices)
         priority_frame.columnconfigure(0, weight=1)
         ttk.Button(
             priority_frame, text="➕", command=self.priority_add, width=3, style="Large.TButton"
@@ -1815,6 +1817,8 @@ class SettingsPanel:
             exclude_frame, placeholder=_("gui", "settings", "game_name"), width=26
         )
         self._exclude_entry.grid(column=0, row=0, sticky="ew")
+        # update the choices every time the user clicks on the dropdown
+        self._exclude_entry.config(postcommand=self.update_excluded_choices)
         ttk.Button(
             exclude_frame, text="➕", command=self.exclude_add, width=3, style="Large.TButton"
         ).grid(column=1, row=0)
@@ -1958,19 +1962,35 @@ class SettingsPanel:
                 plist_file.unlink(missing_ok=True)
 
     def update_excluded_choices(self) -> None:
+        game_choices: set[str] = self._game_names.difference(self._settings.exclude)
+        # if the exclude combobox has a value, check for names that match the current value
+        # only show those names in the dropdown
+        current_exclude_value: str = self._exclude_entry.get().strip()
+        if current_exclude_value:
+            game_choices = {
+                game for game in game_choices if current_exclude_value.lower() in game.lower()
+            }
+        
         self._exclude_entry.config(
-            values=sorted(self._game_names.difference(self._settings.exclude))
+            values=sorted(game_choices)
         )
 
     def update_priority_choices(self) -> None:
+        game_choices: set[str] = self._game_names.difference(self._settings.priority)
+        current_priority_value: str = self._priority_entry.get().strip()
+        # if the priority combobox has a value, check for names that match the current value
+        # only show those names in the dropdown
+        if current_priority_value:
+            game_choices = {
+                game for game in game_choices if current_priority_value.lower() in game.lower()
+            }
+
         self._priority_entry.config(
-            values=sorted(self._game_names.difference(self._settings.priority))
+            values=sorted(game_choices)
         )
 
     def set_games(self, games: set[Game]) -> None:
         self._game_names.update(game.name for game in games)
-        self.update_excluded_choices()
-        self.update_priority_choices()
 
     def priority_add(self) -> None:
         game_name: str = self._priority_entry.get()
@@ -1987,7 +2007,6 @@ class SettingsPanel:
             self._priority_list.see("end")
             self._settings.priority.append(game_name)
             self._settings.alter()
-            self.update_priority_choices()
         else:
             # already there, set the selection on it
             self._priority_list.selection_set(existing_idx)
@@ -2034,7 +2053,6 @@ class SettingsPanel:
         self._priority_list.delete(idx)
         del self._settings.priority[idx]
         self._settings.alter()
-        self.update_priority_choices()
 
     def priority_mode(self, event: tk.Event[ttk.Combobox]) -> None:
         mode_name: str = self._vars["priority_mode"].get()
@@ -2052,7 +2070,6 @@ class SettingsPanel:
         if game_name not in self._settings.exclude:
             self._settings.exclude.add(game_name)
             self._settings.alter()
-            self.update_excluded_choices()
             # insert it alphabetically
             for i, item in enumerate(self._exclude_list.get(0, "end")):
                 if game_name < item:
@@ -2084,7 +2101,6 @@ class SettingsPanel:
             self._exclude_list.delete(idx)
             self._settings.exclude.discard(item)
             self._settings.alter()
-            self.update_excluded_choices()
 
 
 class HelpTab:
