@@ -61,6 +61,7 @@ for source_path, dest_path, required in to_add:
 hooksconfig: dict[str, Any] = {}
 binaries: list[tuple[Path, str]] = []
 hiddenimports: list[str] = [
+    "certifi",
     "PIL._tkinter_finder",
     "setuptools._distutils.log",
     "setuptools._distutils.dir_util",
