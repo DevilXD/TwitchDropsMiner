@@ -20,6 +20,24 @@ Every several seconds, the application pretends to watch a particular stream by 
 ### Usage:
 
 - Download and unzip [the latest release](https://github.com/DevilXD/TwitchDropsMiner/releases) - it's recommended to keep it in the folder it comes in.
+- **Nix Users**: You can run the application directly from the flake using `nix run github:DevilXD/TwitchDropsMiner`, or add it to your NixOS/Home Manager configuration:
+  <details>
+  <summary>Example Flake configuration</summary>
+
+  ```nix
+  # flake.nix
+  inputs.TwitchDropsMiner = {
+    url = "github:DevilXD/TwitchDropsMiner";
+    inputs.nixpkgs.follows = "nixpkgs";
+  };
+
+  # configuration.nix / home.nix
+  environment.systemPackages = [ # or home.packages
+    inputs.TwitchDropsMiner.packages.${pkgs.stdenv.hostPlatform.system}.twitch-drops-miner
+  ];
+  ```
+
+  </details>
 - Run it and login/connect the miner to your Twitch account by using the in-app login form.
 - After a successful login, the app should fetch a list of all available campaigns and games you can mine drops for - you can then select and add games of choice to the Priority List available on the Settings tab, and then press on the `Reload` button to start processing. It will fetch a list of all applicable streams it can watch, and start mining right away. You can also manually switch to a different channel as needed.
 - If you wish to keep the miner occupied with mining anything it can, beyond what you've selected via the Priority List, you can use the Priority Mode setting to specify the mining order for the rest of the games.
