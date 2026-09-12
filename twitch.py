@@ -1331,9 +1331,11 @@ class Twitch:
                                     "PersistedQueryNotFound",
                                 )
                             ):
+                                operation_name = (
+                                    response_json.get("extensions") or {}
+                                ).get("operationName", "unknown")
                                 logger.error(
-                                    f"Retrying a {error_dict['message']} for "
-                                    f"{response_json['extensions']['operationName']}"
+                                    f"Retrying a {error_dict['message']} for {operation_name}"
                                 )
                                 single_retry = False
                                 if delay < 5:
