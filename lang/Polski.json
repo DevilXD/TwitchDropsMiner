@@ -31,6 +31,7 @@
     },
     "gui": {
         "output": "Dziennik zdarzeń",
+        "copy": "Kopiuj",
         "status": {
             "name": "Status",
             "idle": "Bezczynność",
@@ -130,6 +131,7 @@
         },
         "settings": {
             "general": {
+                "language": "Język 🌐 (wymaga ponownego uruchomienia): ",
                 "name": "Ogólne",
                 "autostart": "Autostart: ",
                 "tray": "Autostart z zasobnika: ",
@@ -153,10 +155,23 @@
             "game_name": "Nazwa gry",
             "priority": "Priorytety",
             "exclude": "Wykluczone",
-            "reload": "Przeładuj",
-            "reload_text": "Większość zmian wymaga przeładowania, które natychmiastowo je zastosuje: "
+            "reload": "Odśwież dane Twitch",
+            "reload_text": "Po zmianie list priorytetów lub wykluczeń odśwież dane Twitch: ",
+            "restart": "Uruchom ponownie aplikację",
+            "restart_text": "Aby zastosować teraz zmiany języka lub proxy: "
         },
         "help": {
+            "about": {
+                "name": "O programie",
+                "created_by": "Twórca: ",
+                "repository": "Repozytorium: ",
+                "donate": "Wesprzyj: ",
+                "donate_text": "Jeśli aplikacja jest dla Ciebie przydatna, rozważ niewielką darowiznę na wsparcie twórcy. Dziękujemy!"
+            },
+            "invalidate": {
+                "button": "Unieważnij",
+                "text": "Unieważnij token uwierzytelniania (wyloguj):"
+            },
             "links": {
                 "name": "Pomocne linki",
                 "inventory": "Zobacz swój ekwipunek na Twitchu",

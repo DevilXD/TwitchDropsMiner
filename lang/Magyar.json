@@ -31,6 +31,7 @@
     },
     "gui": {
         "output": "Kimenet",
+        "copy": "Másolás",
         "status": {
             "name": "Állapot",
             "idle": "Tétlen",
@@ -130,6 +131,7 @@
         },
         "settings": {
             "general": {
+                "language": "Nyelv 🌐 (újraindítás szükséges): ",
                 "name": "Általános",
                 "autostart": "Automatikus indítás: ",
                 "tray": "Indítás a tálcára kicsinyítve: ",
@@ -153,10 +155,23 @@
             "game_name": "Játék neve",
             "priority": "Prioritás",
             "exclude": "Kizárás",
-            "reload": "Újratöltés",
-            "reload_text": "A legtöbb módosítás életbe lépéséhez újratöltés szükséges: "
+            "reload": "Twitch-adatok frissítése",
+            "reload_text": "A prioritási vagy kizárási lista módosítása után frissítsd a Twitch-adatokat: ",
+            "restart": "Alkalmazás újraindítása",
+            "restart_text": "A nyelv- vagy proxyváltoztatások azonnali alkalmazásához: "
         },
         "help": {
+            "about": {
+                "name": "Névjegy",
+                "created_by": "Készítette: ",
+                "repository": "Adattár: ",
+                "donate": "Adomány: ",
+                "donate_text": "Ha hasznosnak találod az alkalmazást, fontold meg egy kisebb adománnyal a fejlesztő támogatását. Köszönjük!"
+            },
+            "invalidate": {
+                "button": "Érvénytelenítés",
+                "text": "Hitelesítési token érvénytelenítése (kijelentkezés):"
+            },
             "links": {
                 "name": "Hasznos hivatkozások",
                 "inventory": "Twitch-készlet megtekintése",

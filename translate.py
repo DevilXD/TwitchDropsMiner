@@ -158,6 +158,7 @@ class GUIInventory(TypedDict):
 
 class GUISettingsGeneral(TypedDict):
     name: str
+    language: str
     autostart: str
     tray: str
     tray_notifications: str
@@ -189,6 +190,8 @@ class GUISettings(TypedDict):
     exclude: str
     reload: str
     reload_text: str
+    restart: str
+    restart_text: str
 
 
 class GUIHelpLinks(TypedDict):
@@ -202,7 +205,16 @@ class GUIHelpInvalidate(TypedDict):
     text: str
 
 
+class GUIHelpAbout(TypedDict):
+    name: str
+    created_by: str
+    repository: str
+    donate: str
+    donate_text: str
+
+
 class GUIHelp(TypedDict):
+    about: GUIHelpAbout
     links: GUIHelpLinks
     how_it_works: str
     how_it_works_text: str
@@ -213,6 +225,7 @@ class GUIHelp(TypedDict):
 
 class GUIMessages(TypedDict):
     output: str
+    copy: str
     status: GUIStatus
     tabs: GUITabs
     tray: GUITray
@@ -274,6 +287,7 @@ default_translation: Translation = {
     },
     "gui": {
         "output": "Output",
+        "copy": "Copy",
         "status": {
             "name": "Status",
             "idle": "Idle",
@@ -374,6 +388,7 @@ default_translation: Translation = {
         "settings": {
             "general": {
                 "name": "General",
+                "language": "Language 🌐 (requires restart): ",
                 "autostart": "Autostart: ",
                 "tray": "Autostart into tray: ",
                 "tray_notifications": "Tray notifications: ",
@@ -400,10 +415,22 @@ default_translation: Translation = {
             "game_name": "Game name",
             "priority": "Priority",
             "exclude": "Exclude",
-            "reload": "Reload",
-            "reload_text": "Most changes require a reload to take an immediate effect: ",
+            "reload": "Refresh Twitch data",
+            "reload_text": "After changing priority or exclusion lists, refresh Twitch data: ",
+            "restart": "Restart application",
+            "restart_text": "To apply language or proxy changes now: ",
         },
         "help": {
+            "about": {
+                "name": "About",
+                "created_by": "Application created by: ",
+                "repository": "Repository: ",
+                "donate": "Donate: ",
+                "donate_text": (
+                    "If you like the application and found it useful, "
+                    "please consider donating a small amount of money to support me. Thank you!"
+                ),
+            },
             "links": {
                 "name": "Useful Links",
                 "inventory": "See Twitch inventory",

@@ -10,6 +10,13 @@
         "no_campaign": "Žádné dropy k dispozici, čekání na další dostupné dropy..."
     },
     "login": {
+        "chrome": {
+            "startup": "Otevírání prohlížeče...",
+            "login_to_complete": "Pro dokončení přihlášení klikněte znovu na tlačítko Přihlásit.",
+            "no_token": "Autorizační token nebyl nalezen.",
+            "closed_window": "Okno prohlížeče bylo zavřeno před dokončením přihlášení."
+        },
+        "error_code": "Kód chyby přihlášení: {error_code}",
         "unexpected_content": "Chyba při přesměrování. Nepoužíváte VPN?",
         "incorrect_login_pass": "Nesprávné přihlašení.",
         "incorrect_email_code": "Nesprávný E-Mail kód.",
@@ -24,6 +31,7 @@
     },
     "gui": {
         "output": "Výstup",
+        "copy": "Kopírovat",
         "status": {
             "name": "Status",
             "idle": "Dokončeno načítání",
@@ -123,20 +131,48 @@
         },
         "settings": {
             "general": {
+                "language": "Jazyk 🌐 (vyžaduje restart): ",
                 "name": "Nastavení",
                 "autostart": "Automatické spuštění: ",
                 "tray": "Automaticky spusti minimalizovaně: ",
+                "tray_notifications": "Oznámení: ",
                 "priority_only": "Pouze prioritní: ",
                 "dark_mode": "Tmavý režim: ",
-                "proxy": "Proxy:"
+                "proxy": "Proxy:",
+                "priority_mode": "Režim priority: "
+            },
+            "advanced": {
+                "name": "Pokročilé",
+                "warning": "Varování!",
+                "warning_text": "Tyto možnosti mohou způsobit nesprávné chování mineru.\nPokud narazíte na potíže, ujistěte se, že jsou všechny vypnuté.",
+                "enable_badges_emotes": "Povolit částečnou podporu odznaků a emotikonů: ",
+                "available_drops_check": "Povolit dodatečnou kontrolu dostupných dropů: "
+            },
+            "priority_modes": {
+                "priority_only": "Pouze seznam priorit",
+                "ending_soonest": "Končí nejdříve",
+                "low_availability": "Nejnižší dostupnost nejdříve"
             },
             "game_name": "Název Hry",
             "priority": "Priorita",
             "exclude": "Vynechat",
-            "reload": "Obnovit",
-            "reload_text": "Většina změn vyžaduje restart aplikace nebo obnovení: "
+            "reload": "Obnovit data Twitch",
+            "reload_text": "Po změně seznamů priorit nebo vyloučení obnovte data Twitch: ",
+            "restart": "Restartovat aplikaci",
+            "restart_text": "Chcete-li nyní použít změny jazyka nebo proxy: "
         },
         "help": {
+            "about": {
+                "name": "O aplikaci",
+                "created_by": "Vytvořil: ",
+                "repository": "Repozitář: ",
+                "donate": "Darovat: ",
+                "donate_text": "Pokud je pro vás aplikace užitečná, zvažte malý příspěvek na podporu vývojáře. Děkujeme!"
+            },
+            "invalidate": {
+                "button": "Zneplatnit",
+                "text": "Zneplatnit ověřovací token (odhlásit se):"
+            },
             "links": {
                 "name": "Nápověda",
                 "inventory": "Zobrazit Twitch Inventář",

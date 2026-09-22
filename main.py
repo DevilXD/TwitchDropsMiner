@@ -15,6 +15,7 @@ if __name__ == "__main__":
     import argparse
     import warnings
     import traceback
+    import subprocess
     import tkinter as tk
     from tkinter import messagebox
     from typing import NoReturn, TYPE_CHECKING
@@ -28,7 +29,14 @@ if __name__ == "__main__":
     from version import __version__
     from exceptions import CaptchaRequired
     from utils import lock_file, resource_path, set_root_icon
-    from constants import LOGGING_LEVELS, SELF_PATH, FILE_FORMATTER, LOG_PATH, LOCK_PATH
+    from constants import (
+        LOGGING_LEVELS,
+        SELF_PATH,
+        IS_PACKAGED,
+        FILE_FORMATTER,
+        LOG_PATH,
+        LOCK_PATH,
+    )
 
     if TYPE_CHECKING:
         from _typeshed import SupportsWrite
@@ -135,7 +143,7 @@ if __name__ == "__main__":
     del root, parser
 
     # client run
-    async def main():
+    async def main() -> tuple[int, bool]:
         # set language
         try:
             _.set_language(settings.language)
@@ -194,8 +202,11 @@ if __name__ == "__main__":
         client.save(force=True)
         client.gui.stop()
         client.gui.close_window()
-        sys.exit(exit_status)
+        return exit_status, client.gui.restart_requested
 
+    file = None
+    exit_status = 0
+    restart_requested = False
     try:
         # use lock_file to check if we're not already running
         success, file = lock_file(LOCK_PATH)
@@ -203,6 +214,18 @@ if __name__ == "__main__":
             # already running - exit
             sys.exit(3)
 
-        asyncio.run(main())
+        exit_status, restart_requested = asyncio.run(main())
     finally:
-        file.close()
+        if file is not None:
+            file.close()
+    if restart_requested:
+        restart_args = [str(SELF_PATH), *sys.argv[1:]]
+        if not IS_PACKAGED:
+            restart_args.insert(0, sys.executable)
+        restart_environment = os.environ.copy()
+        if IS_PACKAGED:
+            # One-file PyInstaller apps normally pass their temporary extraction directory to
+            # subprocesses. A restart must instead unpack a fresh, independent application copy.
+            restart_environment["PYINSTALLER_RESET_ENVIRONMENT"] = "1"
+        subprocess.Popen(restart_args, env=restart_environment)
+    sys.exit(exit_status)

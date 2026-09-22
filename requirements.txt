@@ -1,4 +1,6 @@
-aiohttp>=3.9,<4.0
+# CookieJar.load() allowed arbitrary code execution on attacker-controlled cookie files
+# before aiohttp 3.14; 3.14.1 also fixes host-only cookie persistence.
+aiohttp>=3.14.1,<4.0
 Pillow
 pystray
 PyGObject<3.51; sys_platform == "linux"  # required for better system tray support on Linux

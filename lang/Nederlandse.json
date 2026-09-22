@@ -31,6 +31,7 @@
     },
     "gui": {
         "output": "Protocol",
+        "copy": "Kopiëren",
         "status": {
             "name": "Status",
             "idle": "Inactief",
@@ -104,6 +105,7 @@
             "filter": {
                 "name": "Filter",
                 "show": "Weergeven:",
+                "not_linked": "Niet gekoppeld",
                 "linked": "Alleen gekoppelde",
                 "upcoming": "Verwacht",
                 "expired": "Verlopen",
@@ -130,20 +132,48 @@
         },
         "settings": {
             "general": {
+                "language": "Taal 🌐 (herstart vereist): ",
                 "name": "Algemeen",
                 "autostart": "Autostart: ",
                 "tray": "Automatisch starten in de taakbalk: ",
+                "tray_notifications": "Meldingen: ",
                 "priority_only": "Alleen prioriteit: ",
                 "dark_mode": "Donkere modus: ",
-                "proxy": "Proxy (Vereist opnieuw opstarten):"
+                "proxy": "Proxy (Vereist opnieuw opstarten):",
+                "priority_mode": "Prioriteitsmodus: "
+            },
+            "advanced": {
+                "name": "Geavanceerd",
+                "warning": "Waarschuwing!",
+                "warning_text": "Deze opties kunnen ervoor zorgen dat de miner niet goed werkt.\nSchakel ze allemaal uit als je problemen ondervindt.",
+                "enable_badges_emotes": "Gedeeltelijke ondersteuning voor badges en emotes inschakelen: ",
+                "available_drops_check": "Extra controle op beschikbare drops inschakelen: "
+            },
+            "priority_modes": {
+                "priority_only": "Alleen prioriteitenlijst",
+                "ending_soonest": "Eindigt het eerst",
+                "low_availability": "Lage beschikbaarheid eerst"
             },
             "game_name": "Spel",
             "priority": "Prioriteit",
             "exclude": "Uitsluiten",
-            "reload": "Herladen",
-            "reload_text": "Voor de meeste wijzigingen is een herlaadbeurt vereist om onmiddellijk van kracht te zijn: "
+            "reload": "Twitch-gegevens vernieuwen",
+            "reload_text": "Vernieuw de Twitch-gegevens na wijzigingen in prioriteits- of uitsluitingslijsten: ",
+            "restart": "Toepassing herstarten",
+            "restart_text": "Om wijzigingen aan taal of proxy nu toe te passen: "
         },
         "help": {
+            "about": {
+                "name": "Over",
+                "created_by": "Gemaakt door: ",
+                "repository": "Repository: ",
+                "donate": "Doneren: ",
+                "donate_text": "Als je de toepassing nuttig vindt, overweeg dan een kleine donatie om de ontwikkelaar te steunen. Bedankt!"
+            },
+            "invalidate": {
+                "button": "Ongeldig maken",
+                "text": "Authenticatietoken ongeldig maken (uitloggen):"
+            },
             "links": {
                 "name": "Handige Links",
                 "inventory": "Bekijk Twitch-inventaris",

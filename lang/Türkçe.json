@@ -31,6 +31,7 @@
     },
     "gui": {
         "output": "Çıktı",
+        "copy": "Kopyala",
         "status": {
             "name": "Durum",
             "idle": "Boşta",
@@ -130,6 +131,7 @@
         },
         "settings": {
             "general": {
+                "language": "Dil 🌐 (yeniden başlatma gerekir): ",
                 "name": "Genel",
                 "autostart": "Otomatik Başlatma: ",
                 "tray": "Sistem tepsisinde başlat: ",
@@ -153,10 +155,23 @@
             "game_name": "Oyun adı",
             "priority": "Öncelik",
             "exclude": "Hariç Tut",
-            "reload": "Yenile",
-            "reload_text": "Çoğu değişikliğin hemen etkili olması için uygulamanın yenilenmesi gerekir: "
+            "reload": "Twitch verilerini yenile",
+            "reload_text": "Öncelik veya hariç tutma listelerini değiştirdikten sonra Twitch verilerini yenileyin: ",
+            "restart": "Uygulamayı yeniden başlat",
+            "restart_text": "Dil veya proxy değişikliklerini şimdi uygulamak için: "
         },
         "help": {
+            "about": {
+                "name": "Hakkında",
+                "created_by": "Geliştiren: ",
+                "repository": "Depo: ",
+                "donate": "Bağış: ",
+                "donate_text": "Uygulamayı faydalı buluyorsanız geliştiriciyi desteklemek için küçük bir bağış yapmayı düşünebilirsiniz. Teşekkürler!"
+            },
+            "invalidate": {
+                "button": "Geçersiz kıl",
+                "text": "Kimlik doğrulama belirtecini geçersiz kıl (çıkış yap):"
+            },
             "links": {
                 "name": "Faydalı Bağlantılar",
                 "inventory": "Twitch envanterini gör",

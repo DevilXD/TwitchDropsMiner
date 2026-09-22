@@ -31,6 +31,7 @@
     },
     "gui": {
         "output": "Protokoll",
+        "copy": "Kopieren",
         "status": {
             "name": "Status",
             "idle": "Im Leerlauf",
@@ -130,20 +131,48 @@
         },
         "settings": {
             "general": {
+                "language": "Sprache 🌐 (Neustart erforderlich): ",
                 "name": "Allgemein",
                 "autostart": "Autostart: ",
                 "tray": "Autostart ins System Tray: ",
+                "tray_notifications": "Benachrichtigungen: ",
                 "priority_only": "Nur Priorität: ",
                 "dark_mode": "Dunkler Modus: ",
-                "proxy": "Proxy (Erfordert Neustart):"
+                "proxy": "Proxy (Erfordert Neustart):",
+                "priority_mode": "Prioritätsmodus: "
+            },
+            "advanced": {
+                "name": "Erweitert",
+                "warning": "Warnung!",
+                "warning_text": "Diese Optionen können dazu führen, dass der Miner nicht richtig funktioniert.\nWenn Probleme auftreten, stelle sicher, dass alle diese Optionen deaktiviert sind.",
+                "enable_badges_emotes": "Teilweise Unterstützung für Abzeichen und Emotes aktivieren: ",
+                "available_drops_check": "Zusätzliche Prüfung verfügbarer Drops aktivieren: "
+            },
+            "priority_modes": {
+                "priority_only": "Nur Prioritätenliste",
+                "ending_soonest": "Endet am frühesten",
+                "low_availability": "Niedrige Verfügbarkeit zuerst"
             },
             "game_name": "Spiel",
             "priority": "Priorität",
             "exclude": "Ausschließen",
-            "reload": "Neu laden",
-            "reload_text": "Die meisten Änderungen erfordern ein neu laden, um sofort wirksam zu werden: "
+            "reload": "Twitch-Daten aktualisieren",
+            "reload_text": "Nach Änderungen an Prioritäts- oder Ausschlusslisten Twitch-Daten aktualisieren: ",
+            "restart": "Anwendung neu starten",
+            "restart_text": "Um Sprach- oder Proxy-Änderungen jetzt anzuwenden: "
         },
         "help": {
+            "about": {
+                "name": "Über",
+                "created_by": "Erstellt von: ",
+                "repository": "Repository: ",
+                "donate": "Spenden: ",
+                "donate_text": "Wenn dir die Anwendung gefällt und sie nützlich ist, kannst du den Entwickler mit einer kleinen Spende unterstützen. Danke!"
+            },
+            "invalidate": {
+                "button": "Ungültig machen",
+                "text": "Authentifizierungstoken ungültig machen (abmelden):"
+            },
             "links": {
                 "name": "Hilfreiche Links",
                 "inventory": "Twitch Inventar ansehen",

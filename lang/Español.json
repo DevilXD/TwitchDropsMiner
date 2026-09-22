@@ -31,6 +31,7 @@
     },
     "gui": {
         "output": "Registros",
+        "copy": "Copiar",
         "status": {
             "name": "Estado",
             "idle": "En espera...",
@@ -130,6 +131,7 @@
         },
         "settings": {
             "general": {
+                "language": "Idioma 🌐 (requiere reinicio): ",
                 "name": "Ajustes generales",
                 "autostart": "Ejecutar al iniciar el sistema: ",
                 "tray": "Ejecutar en la bandeja del sistema: ",
@@ -153,10 +155,19 @@
             "game_name": "Nombre del juego",
             "priority": "Lista de juegos preferidos",
             "exclude": "Lista de juegos excluidos",
-            "reload": "Recargar",
-            "reload_text": "La mayoría de los cambios requieren recargar o reiniciar la aplicación para que sean aplicados: "
+            "reload": "Actualizar datos de Twitch",
+            "reload_text": "Después de cambiar las listas de prioridad o exclusión, actualiza los datos de Twitch: ",
+            "restart": "Reiniciar aplicación",
+            "restart_text": "Para aplicar ahora los cambios de idioma o proxy: "
         },
         "help": {
+            "about": {
+                "name": "Acerca de",
+                "created_by": "Creado por: ",
+                "repository": "Repositorio: ",
+                "donate": "Donar: ",
+                "donate_text": "Si la aplicación te resulta útil, considera hacer una pequeña donación para apoyar al desarrollador. ¡Gracias!"
+            },
             "links": {
                 "name": "Enlaces útiles",
                 "inventory": "Ver inventario de Twitch",

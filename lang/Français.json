@@ -31,6 +31,7 @@
     },
     "gui": {
         "output": "Sortie",
+        "copy": "Copier",
         "status": {
             "name": "Etat",
             "idle": "Inactif",
@@ -130,6 +131,7 @@
         },
         "settings": {
             "general": {
+                "language": "Langue 🌐 (redémarrage requis) : ",
                 "name": "Général",
                 "autostart": "Démarrage automatique :",
                 "tray": "Démarrage automatique dans la barre des tâches :",
@@ -137,6 +139,13 @@
                 "dark_mode": "Mode sombre : ",
                 "priority_mode": "Mode de priorité :",
                 "proxy": "Proxy (nécessite un redémarrage) :"
+            },
+            "advanced": {
+                "name": "Avancé",
+                "warning": "Avertissement !",
+                "warning_text": "Ces options peuvent perturber le fonctionnement du mineur.\nEn cas de problème, assurez-vous qu'elles sont toutes désactivées.",
+                "enable_badges_emotes": "Activer la prise en charge partielle des badges et emotes : ",
+                "available_drops_check": "Activer la vérification supplémentaire des drops disponibles : "
             },
             "priority_modes": {
                 "priority_only": "Liste de priorité uniquement",
@@ -146,10 +155,23 @@
             "game_name": "Nom du jeu",
             "priority": "Priorité",
             "exclude": "Exclure",
-            "reload": "Recharger",
-            "reload_text": "La plupart des modifications nécessitent un rechargement pour prendre effet immédiatement : "
+            "reload": "Actualiser les données Twitch",
+            "reload_text": "Après modification des listes de priorité ou d'exclusion, actualisez les données Twitch : ",
+            "restart": "Redémarrer l'application",
+            "restart_text": "Pour appliquer maintenant les changements de langue ou de proxy : "
         },
         "help": {
+            "about": {
+                "name": "À propos",
+                "created_by": "Créé par : ",
+                "repository": "Dépôt : ",
+                "donate": "Faire un don : ",
+                "donate_text": "Si l'application vous est utile, envisagez un petit don pour soutenir le développeur. Merci !"
+            },
+            "invalidate": {
+                "button": "Invalider",
+                "text": "Invalider le jeton d'authentification (se déconnecter) :"
+            },
             "links": {
                 "name": "Liens utiles",
                 "inventory": "Afficher l'inventaire Twitch",

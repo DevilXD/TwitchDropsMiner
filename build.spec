@@ -1,6 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 from __future__ import annotations
 
+import os
 import sys
 import platform
 import fnmatch
@@ -31,7 +32,7 @@ upx: bool = False  # Use UPX compression (reduces file size, may increase AV det
 console: bool = False  # True if you'd want to add a console window (useful for debugging)
 one_dir: bool = False  # True for one-dir, False for one-file
 optimize: int | None = None  # -1/None/0=none, 1=remove asserts, 2=also remove docstrings
-app_name: str = "Twitch Drops Miner (by DevilXD)"
+app_name: str = os.environ.get("TDM_BUILD_NAME", "Twitch Drops Miner (by DevilXD)")
 
 
 # (source_path, dest_path, required)
@@ -58,8 +59,26 @@ for source_path, dest_path, required in to_add:
     elif required:
         raise FileNotFoundError(str(source_path))
 
+# Some Windows Python installations resolve Tcl/Tk relative to the virtual
+# environment instead of the base interpreter. Bundle the matching resources
+# explicitly and point the frozen app at them in runtime_tk.py.
+tk_base_path = Path(sys.base_prefix)
+for source_dir, dest_dir in (
+    (tk_base_path / "tcl" / "tcl8.6", "_app_tcl"),
+    (tk_base_path / "tcl" / "tk8.6", "_app_tk"),
+):
+    if source_dir.is_dir():
+        for source_path in source_dir.rglob("*"):
+            if source_path.is_file():
+                relative_parent = source_path.parent.relative_to(source_dir)
+                datas.append((source_path, str(Path(dest_dir, relative_parent))))
+
 hooksconfig: dict[str, Any] = {}
 binaries: list[tuple[Path, str]] = []
+for dll_name in ("tcl86t.dll", "tk86t.dll"):
+    dll_path = tk_base_path / "DLLs" / dll_name
+    if dll_path.exists():
+        binaries.append((dll_path, "."))
 hiddenimports: list[str] = [
     "PIL._tkinter_finder",
     "setuptools._distutils.log",
@@ -100,6 +119,8 @@ a = Analysis(
     ["main.py"],
     datas=datas,
     binaries=binaries,
+    runtime_hooks=["runtime_tk.py"],
+    hookspath=["hooks"],
     hooksconfig=hooksconfig,
     hiddenimports=hiddenimports,
 )

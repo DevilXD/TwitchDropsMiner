@@ -31,6 +31,7 @@
     },
     "gui": {
         "output": "运行日志",
+        "copy": "复制",
         "status": {
             "name": "状态",
             "idle": "已完成获取",
@@ -130,6 +131,7 @@
         },
         "settings": {
             "general": {
+                "language": "语言 🌐（需要重启）：",
                 "name": "常规设置",
                 "autostart": "开机自启",
                 "tray": "开机自启并最小化",
@@ -153,10 +155,19 @@
             "game_name": "游戏名称",
             "priority": "优先列表-优先挖掘以下游戏的掉宝",
             "exclude": "排除列表-永不挖掘以下游戏的掉宝",
-            "reload": "刷新",
-            "reload_text": "大多数设置改动需要刷新或重启软件后才能生效："
+            "reload": "刷新 Twitch 数据",
+            "reload_text": "更改优先级或排除列表后，请刷新 Twitch 数据：",
+            "restart": "重启应用",
+            "restart_text": "立即应用语言或代理设置更改："
         },
         "help": {
+            "about": {
+                "name": "关于",
+                "created_by": "创建者：",
+                "repository": "代码仓库：",
+                "donate": "捐赠：",
+                "donate_text": "如果此应用对您有帮助，欢迎通过小额捐赠支持开发者。谢谢！"
+            },
             "links": {
                 "name": "帮助",
                 "inventory": "查看Twitch库存",

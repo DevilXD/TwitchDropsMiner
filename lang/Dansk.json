@@ -31,6 +31,7 @@
     },
     "gui": {
         "output": "Resultat",
+        "copy": "Kopiér",
         "status": {
             "name": "Status",
             "idle": "Ledig",
@@ -130,21 +131,48 @@
         },
         "settings": {
             "general": {
+                "language": "Sprog 🌐 (kræver genstart): ",
                 "name": "General",
                 "autostart": "Automatisk start: ",
                 "tray": "Automatisk start i systembakken: ",
                 "tray_notifications": "Bakkemeddelelser: ",
                 "priority_only": "Kun prioritet: ",
                 "dark_mode": "Mørk tilstand: ",
-                "proxy": "Proxy (kræver genstart):"
+                "proxy": "Proxy (kræver genstart):",
+                "priority_mode": "Prioritetstilstand: "
+            },
+            "advanced": {
+                "name": "Avanceret",
+                "warning": "Advarsel!",
+                "warning_text": "Disse indstillinger kan få mineren til at fungere forkert.\nHvis du oplever problemer, skal du sikre dig, at alle disse indstillinger er deaktiveret.",
+                "enable_badges_emotes": "Aktivér delvis understøttelse af badges og emotes: ",
+                "available_drops_check": "Aktivér ekstra kontrol af tilgængelige drops: "
+            },
+            "priority_modes": {
+                "priority_only": "Kun prioritetsliste",
+                "ending_soonest": "Slutter tidligst",
+                "low_availability": "Lav tilgængelighed først"
             },
             "game_name": "Spilnavn",
             "priority": "Prioritet",
             "exclude": "Udelukke",
-            "reload": "Genindlæs",
-            "reload_text": "De fleste ændringer kræver en genindlæsning for at få en øjeblikkelig virkning: "
+            "reload": "Opdater Twitch-data",
+            "reload_text": "Efter ændring af prioritets- eller udelukkelseslister skal Twitch-data opdateres: ",
+            "restart": "Genstart programmet",
+            "restart_text": "For at anvende ændringer af sprog eller proxy nu: "
         },
         "help": {
+            "about": {
+                "name": "Om",
+                "created_by": "Oprettet af: ",
+                "repository": "Kildekode: ",
+                "donate": "Donér: ",
+                "donate_text": "Hvis du synes, at programmet er nyttigt, kan du overveje at give udvikleren en lille donation. Tak!"
+            },
+            "invalidate": {
+                "button": "Ugyldiggør",
+                "text": "Ugyldiggør godkendelsestoken (log ud):"
+            },
             "links": {
                 "name": "Nyttige Links",
                 "inventory": "Se Twitch belønninger",

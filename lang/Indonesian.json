@@ -27,10 +27,11 @@
     "error": {
         "captcha": "Sambungan ditolak oleh CAPTCHA. Silakan coba lagi dalam waktu sekitar 12 jam.",
         "site_down": "Twitch tidak tersedia. Silakan coba lagi dalam {seconds} detik...",
-        "no_connection": "Tidak dapat tersambung ke Twitch. Silakan coba lagi dalam {detik} detik... ({url})"
+        "no_connection": "Tidak dapat tersambung ke Twitch. Silakan coba lagi dalam {seconds} detik... ({url})"
     },
     "gui": {
         "output": "Keluaran",
+        "copy": "Salin",
         "status": {
             "name": "Status",
             "idle": "Tidak aktif",
@@ -130,21 +131,48 @@
         },
         "settings": {
             "general": {
+                "language": "Bahasa 🌐 (perlu mulai ulang): ",
                 "name": "Umum",
                 "autostart": "Mulai secara otomatis :",
                 "tray": "Mulai otomatis di bilah tugas :",
                 "tray_notifications": "Pemberitahuan bilah tugas :",
                 "dark_mode": "Mode gelap: ",
                 "priority_only": "Prioritas saja :",
-                "proxy": "Proksi (harus dimulai ulang) :"
+                "proxy": "Proksi (harus dimulai ulang) :",
+                "priority_mode": "Mode prioritas: "
+            },
+            "advanced": {
+                "name": "Lanjutan",
+                "warning": "Peringatan!",
+                "warning_text": "Opsi ini dapat membuat miner bekerja tidak semestinya.\nJika mengalami masalah, pastikan semua opsi ini dinonaktifkan.",
+                "enable_badges_emotes": "Aktifkan dukungan sebagian untuk lencana dan emote: ",
+                "available_drops_check": "Aktifkan pemeriksaan tambahan untuk drop yang tersedia: "
+            },
+            "priority_modes": {
+                "priority_only": "Hanya daftar prioritas",
+                "ending_soonest": "Berakhir paling cepat",
+                "low_availability": "Ketersediaan rendah terlebih dahulu"
             },
             "game_name": "Nama game",
             "priority": "Prioritas",
             "exclude": "Kecualikan",
-            "reload": "Muat Ulang",
-            "reload_text": "Sebagian besar perubahan memerlukan pemuatan ulang untuk segera diterapkan : "
+            "reload": "Segarkan data Twitch",
+            "reload_text": "Setelah mengubah daftar prioritas atau pengecualian, segarkan data Twitch: ",
+            "restart": "Mulai ulang aplikasi",
+            "restart_text": "Untuk menerapkan perubahan bahasa atau proksi sekarang: "
         },
         "help": {
+            "about": {
+                "name": "Tentang",
+                "created_by": "Dibuat oleh: ",
+                "repository": "Repositori: ",
+                "donate": "Donasi: ",
+                "donate_text": "Jika aplikasi ini bermanfaat bagi Anda, pertimbangkan untuk memberikan donasi kecil kepada pengembang. Terima kasih!"
+            },
+            "invalidate": {
+                "button": "Batalkan",
+                "text": "Batalkan token autentikasi (keluar):"
+            },
             "links": {
                 "name": "Tautan berguna",
                 "inventory": "Lihat inventaris Twitch",

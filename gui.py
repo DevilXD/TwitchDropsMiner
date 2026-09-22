@@ -583,7 +583,7 @@ class LoginForm:
             # basic input data validation: 3-25 characters in length, only ascii and underscores
             if (
                 not 3 <= len(login_data.username) <= 25
-                and re.match(r'^[a-zA-Z0-9_]+$', login_data.username)
+                or not re.match(r'^[a-zA-Z0-9_]+$', login_data.username)
             ):
                 self.clear(login=True)
                 continue
@@ -800,6 +800,7 @@ class CampaignProgress:
 
 class ConsoleOutput:
     def __init__(self, manager: GUIManager, master: ttk.Widget):
+        self._manager = manager
         frame = ttk.LabelFrame(master, text=_("gui", "output"), padding=(4, 0, 4, 4))
         frame.grid(column=0, row=3, columnspan=3, sticky="nsew", padx=2)
         # tell master frame that the containing row can expand
@@ -818,11 +819,32 @@ class ConsoleOutput:
             xscrollcommand=xscroll.set,
             yscrollcommand=yscroll.set,
         )
+        # Windows/Tk can report Ctrl+C as an unknown keysym outside the
+        # English layout. Copy selected console text directly on Ctrl plus
+        # the physical C key (VK_C = 67).
+        self._text.bind("<KeyPress>", self._copy_selection_shortcut)
+        self._text.bind("<ButtonRelease-1>", lambda _event: self._text.focus_set())
         xscroll.config(command=self._text.xview)
         yscroll.config(command=self._text.yview)
         self._text.grid(column=0, row=0, sticky="nsew")
         xscroll.grid(column=0, row=1, sticky="ew")
         yscroll.grid(column=1, row=0, sticky="ns")
+
+    def _copy_selection_shortcut(self, event: tk.Event[tk.Text]) -> str | None:
+        if not (event.state & 0x0004):  # Control modifier
+            return None
+        if sys.platform == "win32" and event.keycode != 0x43:
+            return None
+        if sys.platform != "win32" and event.keysym.casefold() != "c":
+            return None
+        try:
+            selected = self._text.get("sel.first", "sel.last")
+        except tk.TclError:
+            return "break"
+        self._manager._root.clipboard_clear()
+        self._manager._root.clipboard_append(selected)
+        self._manager._root.update_idletasks()
+        return "break"
 
     def print(self, message: str):
         stamp = datetime.now().strftime("%X")
@@ -1171,10 +1193,13 @@ class TrayIcon:
         self._manager._root.withdraw()
 
     def restore(self):
+        # Deiconify first: this is the user-visible action and should not wait for
+        # the tray backend to finish updating its own icon state.
+        self._manager._root.deiconify()
+        self._manager._root.lift()
         if self.icon is not None:
             # self.stop()
             self.icon.visible = False
-        self._manager._root.deiconify()
 
     def notify(
         self, message: str, title: str | None = None, duration: float = 10
@@ -1588,6 +1613,7 @@ class SettingsPanel:
     def __init__(self, manager: GUIManager, master: ttk.Widget):
         self._manager = manager
         self._settings: Settings = manager._twitch.settings
+        self._restart_scheduled = False
         priority_mode = self._settings.priority_mode
         if priority_mode not in self.PRIORITY_MODES:
             priority_mode = PriorityMode.PRIORITY_ONLY
@@ -1629,12 +1655,14 @@ class SettingsPanel:
         # language frame
         language_frame = ttk.Frame(general_center)
         language_frame.grid(column=0, row=0)
-        ttk.Label(language_frame, text="Language 🌐 (requires restart): ").grid(column=0, row=0)
+        ttk.Label(
+            language_frame, text=_("gui", "settings", "general", "language")
+        ).grid(column=0, row=0)
         SelectCombobox(
             language_frame,
             values=list(_.languages),
             textvariable=self._vars["language"],
-            command=lambda e: setattr(self._settings, "language", self._vars["language"].get()),
+            command=self.update_language,
         ).grid(column=1, row=0)
 
         # checkboxes frame
@@ -1835,7 +1863,7 @@ class SettingsPanel:
             exclude_frame, text="❌", command=self.exclude_delete, width=3, style="Large.TButton"
         ).grid(column=0, row=2, columnspan=2, sticky="nsew")
 
-        # Reload button
+        # Refresh Twitch data / restart application buttons
         reload_frame = ttk.Frame(center_frame)
         reload_frame.grid(column=0, row=2, columnspan=3, pady=4)
         ttk.Label(reload_frame, text=_("gui", "settings", "reload_text")).grid(column=0, row=0)
@@ -1844,6 +1872,12 @@ class SettingsPanel:
             text=_("gui", "settings", "reload"),
             command=self._manager._twitch.state_change(State.INVENTORY_FETCH),
         ).grid(column=1, row=0)
+        ttk.Label(reload_frame, text=_("gui", "settings", "restart_text")).grid(column=0, row=1)
+        ttk.Button(
+            reload_frame,
+            text=_("gui", "settings", "restart"),
+            command=self.restart_application,
+        ).grid(column=1, row=1)
 
     def clear_selection(self) -> None:
         self._priority_list.selection_clear(0, "end")
@@ -1852,6 +1886,29 @@ class SettingsPanel:
     def update_dark_mode(self) -> None:
         self._settings.dark_mode = bool(self._vars["dark_mode"].get())
         self._manager.apply_theme(self._settings.dark_mode)
+
+    def update_language(self, _event: tk.Event[SelectCombobox]) -> None:
+        self._settings.language = self._vars["language"].get()
+        try:
+            # Language takes effect after restart, so persist this one setting immediately.
+            # It is otherwise lost if the app has to be terminated before regular shutdown.
+            self._settings.save()
+        except OSError:
+            logger.warning("Unable to save the selected language; it will be retried on exit")
+
+    def restart_application(self) -> None:
+        """Request a clean restart after the main process releases its lock."""
+        if self._restart_scheduled:
+            return
+
+        try:
+            self._settings.save(force=True)
+        except OSError:
+            logger.exception("Unable to save settings before restart")
+            return
+
+        self._restart_scheduled = True
+        self._manager.request_restart()
 
     def _get_self_path(self) -> str:
         # NOTE: we need double quotes in case the path contains spaces
@@ -2102,18 +2159,22 @@ class HelpTab:
         bottom_frame.grid(column=0, row=1, sticky="nsew")
         irow = 0
         # About
-        about = ttk.LabelFrame(center_frame, padding=(4, 0, 4, 4), text="About")
+        about = ttk.LabelFrame(
+            center_frame, padding=(4, 0, 4, 4), text=_("gui", "help", "about", "name")
+        )
         about.grid(column=0, row=(irow := irow + 1), sticky="nsew", padx=2)
         about.columnconfigure(2, weight=1)
         # About - created by
         ttk.Label(
-            about, text="Application created by: ", anchor="e"
+            about, text=_("gui", "help", "about", "created_by"), anchor="e"
         ).grid(column=0, row=0, sticky="nsew")
         LinkLabel(
             about, link="https://github.com/DevilXD", text="DevilXD"
         ).grid(column=1, row=0, sticky="nsew")
         # About - repo link
-        ttk.Label(about, text="Repository: ", anchor="e").grid(column=0, row=1, sticky="nsew")
+        ttk.Label(
+            about, text=_("gui", "help", "about", "repository"), anchor="e"
+        ).grid(column=0, row=1, sticky="nsew")
         LinkLabel(
             about,
             link="https://github.com/DevilXD/TwitchDropsMiner",
@@ -2123,14 +2184,13 @@ class HelpTab:
         ttk.Separator(
             about, orient="horizontal"
         ).grid(column=0, row=2, columnspan=3, sticky="nsew")
-        ttk.Label(about, text="Donate: ", anchor="e").grid(column=0, row=3, sticky="nsew")
+        ttk.Label(
+            about, text=_("gui", "help", "about", "donate"), anchor="e"
+        ).grid(column=0, row=3, sticky="nsew")
         LinkLabel(
             about,
             link="https://www.buymeacoffee.com/DevilXD",
-            text=(
-                "If you like the application and found it useful, "
-                "please consider donating a small amount of money to support me. Thank you!"
-            ),
+            text=_("gui", "help", "about", "donate_text"),
             wraplength=self.WIDTH,
         ).grid(column=1, row=3, sticky="nsew")
         # Useful links
@@ -2210,6 +2270,7 @@ class GUIManager:
         self._twitch: Twitch = twitch
         self._poll_task: asyncio.Task[NoReturn] | None = None
         self._close_requested = asyncio.Event()
+        self._restart_requested = False
         self._root = root = Tk(className=WINDOW_TITLE)
         # withdraw immediately to prevent the window from flashing
         self._root.withdraw()
@@ -2371,6 +2432,10 @@ class GUIManager:
     def close_requested(self) -> bool:
         return self._close_requested.is_set()
 
+    @property
+    def restart_requested(self) -> bool:
+        return self._restart_requested
+
     async def wait_until_closed(self):
         # wait until the user closes the window
         await self._close_requested.wait()
@@ -2418,9 +2483,15 @@ class GUIManager:
 
         while True:
             try:
-                # Drain pending Tk events non-blockingly
-                while do_one_event(DONT_WAIT):
-                    pass
+                # Do not drain an unbounded Tk event burst in one iteration.
+                # The tray thread schedules restore on this asyncio loop, so yielding
+                # after a small batch keeps the window responsive during UI updates.
+                for _ in range(64):
+                    if not do_one_event(DONT_WAIT):
+                        break
+                else:
+                    await asyncio.sleep(0)
+                    continue
             except tk.TclError:
                 # Root window was destroyed
                 break
@@ -2437,6 +2508,10 @@ class GUIManager:
         # notify client we're supposed to close
         self._twitch.close()
         return 0
+
+    def request_restart(self) -> None:
+        self._restart_requested = True
+        self.close()
 
     def close_window(self):
         """

@@ -31,6 +31,7 @@
     },
     "gui": {
         "output": "輸出日誌",
+        "copy": "複製",
         "status": {
             "name": "狀態",
             "idle": "已完成獲取",
@@ -130,6 +131,7 @@
         },
         "settings": {
             "general": {
+                "language": "語言 🌐（需要重新啟動）：",
                 "name": "基本設定",
                 "autostart": "開機時自動啟動：",
                 "tray": "開機時以最小化自動啟動：",
@@ -153,10 +155,19 @@
             "game_name": "遊戲名稱",
             "priority": "優先掉寶遊戲",
             "exclude": "排除掉寶遊戲",
-            "reload": "重新載入",
-            "reload_text": "大多數設置變更後需要重新載入才能立即生效："
+            "reload": "更新 Twitch 資料",
+            "reload_text": "變更優先順序或排除清單後，請更新 Twitch 資料：",
+            "restart": "重新啟動應用程式",
+            "restart_text": "立即套用語言或代理伺服器的變更："
         },
         "help": {
+            "about": {
+                "name": "關於",
+                "created_by": "建立者：",
+                "repository": "程式碼儲存庫：",
+                "donate": "贊助：",
+                "donate_text": "如果這個應用程式對您有幫助，歡迎以小額贊助支持開發者。謝謝！"
+            },
             "links": {
                 "name": "幫助",
                 "inventory": "查看 Twitch 庫存",

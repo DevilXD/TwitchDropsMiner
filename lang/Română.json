@@ -31,6 +31,7 @@
     },
     "gui": {
         "output": "Ieșire",
+        "copy": "Copiază",
         "status": {
             "name": "Statut",
             "idle": "Inactiv",
@@ -130,21 +131,48 @@
         },
         "settings": {
             "general": {
+                "language": "Limbă 🌐 (necesită repornire): ",
                 "name": "General",
                 "autostart": "Pornire automată :",
                 "tray": "Pornire automată în bara de activități :",
                 "tray_notifications": "Notificări în bara de activități :",
                 "dark_mode": "Mod întunecat :",
                 "priority_only": "Doar cu prioritate :",
-                "proxy": "Proxy (necesită repornire) :"
+                "proxy": "Proxy (necesită repornire) :",
+                "priority_mode": "Mod prioritate: "
+            },
+            "advanced": {
+                "name": "Avansat",
+                "warning": "Avertisment!",
+                "warning_text": "Aceste opțiuni pot face ca minerul să funcționeze incorect.\nDacă întâmpini probleme, asigură-te că toate sunt dezactivate.",
+                "enable_badges_emotes": "Activează suportul parțial pentru insigne și emote-uri: ",
+                "available_drops_check": "Activează verificarea suplimentară a dropurilor disponibile: "
+            },
+            "priority_modes": {
+                "priority_only": "Doar lista de priorități",
+                "ending_soonest": "Se termină cel mai curând",
+                "low_availability": "Disponibilitate redusă mai întâi"
             },
             "game_name": "Nume joc",
             "priority": "Prioritate",
             "exclude": "Exclude",
-            "reload": "Reîncarcă",
-            "reload_text": "Cele mai multe modificări necesită o reîncărcare pentru a se aplica imediat : "
+            "reload": "Actualizează datele Twitch",
+            "reload_text": "După modificarea listelor de priorități sau excluderi, actualizează datele Twitch: ",
+            "restart": "Repornește aplicația",
+            "restart_text": "Pentru a aplica acum modificările de limbă sau proxy: "
         },
         "help": {
+            "about": {
+                "name": "Despre",
+                "created_by": "Creat de: ",
+                "repository": "Depozit: ",
+                "donate": "Donează: ",
+                "donate_text": "Dacă aplicația îți este utilă, ia în considerare o mică donație pentru a susține dezvoltatorul. Mulțumim!"
+            },
+            "invalidate": {
+                "button": "Invalidează",
+                "text": "Invalidează tokenul de autentificare (deconectare):"
+            },
             "links": {
                 "name": "Link-uri utile",
                 "inventory": "Vizualizați inventarul Twitch",

@@ -30,7 +30,8 @@
     "no_connection": "Twitchに接続できません。{seconds}秒後に再試行します... ({url})"
   },
   "gui": {
-    "output": "出力",
+        "output": "出力",
+        "copy": "コピー",
     "status": {
       "name": "ステータス",
       "idle": "アイドル",
@@ -130,21 +131,48 @@
     },
     "settings": {
       "general": {
+        "language": "言語 🌐（再起動が必要）：",
         "name": "一般",
         "autostart": "自動起動：",
         "tray": "トレイに自動起動：",
         "tray_notifications": "トレイ通知：",
         "dark_mode": "ダークモード：",
         "priority_only": "優先のみ：",
-        "proxy": "プロキシ（再起動が必要）："
+        "proxy": "プロキシ（再起動が必要）：",
+        "priority_mode": "優先モード："
+      },
+      "advanced": {
+        "name": "詳細",
+        "warning": "警告！",
+        "warning_text": "これらの設定はマイナーの動作を不安定にする可能性があります。\n問題が発生した場合は、すべて無効になっていることを確認してください。",
+        "enable_badges_emotes": "バッジとエモートの部分的なサポートを有効にする：",
+        "available_drops_check": "利用可能なドロップの追加チェックを有効にする："
+      },
+      "priority_modes": {
+        "priority_only": "優先リストのみ",
+        "ending_soonest": "早く終了する順",
+        "low_availability": "利用可能性が低い順"
       },
       "game_name": "ゲーム名",
       "priority": "優先度",
       "exclude": "除外",
-      "reload": "再読み込み",
-      "reload_text": "ほとんどの変更は即時に反映されるために再読み込みが必要です："
+      "reload": "Twitch データを更新",
+      "reload_text": "優先リストまたは除外リストを変更した後、Twitch データを更新します：",
+      "restart": "アプリを再起動",
+      "restart_text": "言語またはプロキシの変更を今すぐ適用するには："
     },
     "help": {
+      "about": {
+        "name": "このアプリについて",
+        "created_by": "作成者: ",
+        "repository": "リポジトリ: ",
+        "donate": "寄付: ",
+        "donate_text": "アプリが役に立った場合は、開発者を支援するための少額の寄付をご検討ください。ありがとうございます。"
+      },
+      "invalidate": {
+        "button": "無効化",
+        "text": "認証トークンを無効化（ログアウト）:"
+      },
       "links": {
         "name": "役立つリンク",
         "inventory": "Twitchインベントリを表示",

@@ -30,7 +30,8 @@
     "no_connection": "Kan ikke koble til Twitch, prøver igjen om {seconds} sekunder... ({url})"
   },
   "gui": {
-    "output": "Utdata",
+        "output": "Utdata",
+        "copy": "Kopier",
     "status": {
       "name": "Status",
       "idle": "Inaktiv",
@@ -130,6 +131,7 @@
     },
     "settings": {
       "general": {
+        "language": "Språk 🌐 (krever omstart): ",
         "name": "Generelt",
         "autostart": "Autostart: ",
         "tray": "Autostart til systemkurv: ",
@@ -153,10 +155,23 @@
       "game_name": "Spillnavn",
       "priority": "Prioritet",
       "exclude": "Ekskluder",
-      "reload": "Last inn på nytt",
-      "reload_text": "De fleste endringer krever en ny innlasting for å tre i kraft umiddelbart: "
+      "reload": "Oppdater Twitch-data",
+      "reload_text": "Etter endringer i prioritets- eller ekskluderingslister, oppdater Twitch-data: ",
+      "restart": "Start programmet på nytt",
+      "restart_text": "For å bruke endringer i språk eller proxy nå: "
     },
     "help": {
+      "about": {
+        "name": "Om",
+        "created_by": "Laget av: ",
+        "repository": "Kodelager: ",
+        "donate": "Doner: ",
+        "donate_text": "Hvis du synes applikasjonen er nyttig, kan du vurdere en liten donasjon for å støtte utvikleren. Takk!"
+      },
+      "invalidate": {
+        "button": "Ugyldiggjør",
+        "text": "Ugyldiggjør autentiseringstoken (logg ut):"
+      },
       "links": {
         "name": "Nyttige lenker",
         "inventory": "Se Twitch-inventar",

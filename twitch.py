@@ -152,11 +152,23 @@ class _AuthState:
                     #     "verification_uri": "https://www.twitch.tv/activate?device-code=ABCDEFGH"
                     # }
                     response_json: JsonType = await response.json()
-                    device_code: str = response_json["device_code"]
-                    user_code: str = response_json["user_code"]
-                    interval: int = response_json["interval"]
-                    verification_uri: URL = URL(response_json["verification_uri"])
-                    expires_at = now + timedelta(seconds=response_json["expires_in"])
+                    required_fields = (
+                        "device_code",
+                        "user_code",
+                        "interval",
+                        "verification_uri",
+                        "expires_in",
+                    )
+                    if response.status != 200 or any(key not in response_json for key in required_fields):
+                        message = response_json.get("message", response_json.get("error", "unknown error"))
+                        raise LoginException(
+                            f"OAuth device authorization failed ({response.status}): {message}"
+                        )
+                    device_code = cast(str, response_json["device_code"])
+                    user_code = cast(str, response_json["user_code"])
+                    interval = cast(int, response_json["interval"])
+                    verification_uri = URL(cast(str, response_json["verification_uri"]))
+                    expires_at = now + timedelta(seconds=cast(int, response_json["expires_in"]))
 
                 # Print the code to the user, open them the activate page so they can type it in
                 await login_form.ask_enter_code(verification_uri, user_code)
@@ -1244,7 +1256,9 @@ class Twitch:
         method = method.upper()
         if self.settings.proxy and "proxy" not in kwargs:
             kwargs["proxy"] = self.settings.proxy
-        logger.debug(f"Request: ({method=}, {url=}, {kwargs=})")
+        # Request options may contain login credentials, OAuth headers, or proxy credentials.
+        # Keep debugging useful without writing those secrets to a console or log file.
+        logger.debug("Request: method=%s, url=%s, options=%s", method, url, sorted(kwargs))
         session_timeout = timedelta(seconds=session.timeout.total or 0)
         backoff = ExponentialBackoff(maximum=3*60)
         for delay in backoff:

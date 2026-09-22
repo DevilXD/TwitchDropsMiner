@@ -31,6 +31,7 @@
     },
     "gui": {
         "output": "Saída",
+        "copy": "Copiar",
         "status": {
             "name": "Status",
             "idle": "Em espera",
@@ -130,21 +131,48 @@
         },
         "settings": {
             "general": {
+                "language": "Idioma 🌐 (requer reinicialização): ",
                 "name": "Geral",
                 "autostart": "Auto-início: ",
                 "tray": "Auto-iniciar na área de notificação: ",
                 "tray_notifications": "Notificações: ",
                 "dark_mode": "Modo escuro: ",
                 "priority_only": "Apenas com prioridade: ",
-                "proxy": "Proxy (requer o reinício do app):"
+                "proxy": "Proxy (requer o reinício do app):",
+                "priority_mode": "Modo de prioridade: "
+            },
+            "advanced": {
+                "name": "Avançado",
+                "warning": "Aviso!",
+                "warning_text": "Estas opções podem fazer com que o minerador se comporte de forma incorreta.\nSe tiver problemas, confirme que todas estão desativadas.",
+                "enable_badges_emotes": "Ativar suporte parcial para emblemas e emotes: ",
+                "available_drops_check": "Ativar verificação adicional de drops disponíveis: "
+            },
+            "priority_modes": {
+                "priority_only": "Apenas lista de prioridades",
+                "ending_soonest": "Termina mais cedo",
+                "low_availability": "Menor disponibilidade primeiro"
             },
             "game_name": "Nome do jogo",
             "priority": "Prioridade",
             "exclude": "Excluir",
-            "reload": "Recarregar",
-            "reload_text": "A maioria das mudanças requer o reinício do app para serem efetivadas: "
+            "reload": "Atualizar dados da Twitch",
+            "reload_text": "Após alterar as listas de prioridade ou exclusão, atualize os dados da Twitch: ",
+            "restart": "Reiniciar aplicativo",
+            "restart_text": "Para aplicar agora as alterações de idioma ou proxy: "
         },
         "help": {
+            "about": {
+                "name": "Sobre",
+                "created_by": "Criado por: ",
+                "repository": "Repositório: ",
+                "donate": "Doar: ",
+                "donate_text": "Se o aplicativo for útil para você, considere fazer uma pequena doação para apoiar o desenvolvedor. Obrigado!"
+            },
+            "invalidate": {
+                "button": "Invalidar",
+                "text": "Invalidar o token de autenticação (sair):"
+            },
             "links": {
                 "name": "Links Uteis",
                 "inventory": "Ver inventario da Twitch",
