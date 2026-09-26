@@ -307,21 +307,40 @@ class Channel:
         For mobile view, spade_url is available immediately from the page, skipping step #2.
         """
         SETTINGS_PATTERN: str = r'src="(https://[\w.]+/config/settings\.[0-9a-f]{32}\.js)"'
-        SPADE_PATTERN: str = r'"spade_?url": ?"(https://[.\w\-/]+)"'
-        async with self._twitch.request("GET", self.url) as response1:
-            streamer_html: str = await response1.text(encoding="utf8")
-        match = re.search(SPADE_PATTERN, streamer_html, re.I)
-        if not match:
+        # NOTE: the Smart TV page's spade URL carries a query string (?allow_stream=true)
+        SPADE_PATTERN: str = r'"spade_?url": ?"(https://[^"\s]+)"'
+        FALLBACK_SPADE_URL = URLType("https://spade.twitch.tv/track")
+        session = await self._twitch.get_session()
+        proxy = self._twitch.settings.proxy or None
+
+        async def fetch(url: URL | str) -> str | None:
+            # single attempt: the Smart TV page intermittently answers with HTTP 555,
+            # which would otherwise keep the generic request() retrying for minutes
+            try:
+                async with session.get(url, proxy=proxy) as response:
+                    if response.status >= 400:
+                        logger.warning(f"spade_url extraction: {url} returned {response.status}")
+                        return None
+                    return await response.text(encoding="utf8")
+            except (aiohttp.ClientError, asyncio.TimeoutError):
+                return None
+
+        for page_url in (self.url, URL(f"https://www.twitch.tv/{self._login}")):
+            streamer_html = await fetch(page_url)
+            if streamer_html is None:
+                continue
+            match = re.search(SPADE_PATTERN, streamer_html, re.I)
+            if match:
+                return URLType(match.group(1))
             match = re.search(SETTINGS_PATTERN, streamer_html, re.I)
-            if not match:
-                raise MinerException("Error while spade_url extraction: step #1")
-            streamer_settings = match.group(1)
-            async with self._twitch.request("GET", streamer_settings) as response2:
-                settings_js: str = await response2.text(encoding="utf8")
-            match = re.search(SPADE_PATTERN, settings_js, re.I)
-            if not match:
-                raise MinerException("Error while spade_url extraction: step #2")
-        return URLType(match.group(1))
+            if match:
+                settings_js = await fetch(match.group(1))
+                if settings_js is not None and (
+                    match := re.search(SPADE_PATTERN, settings_js, re.I)
+                ):
+                    return URLType(match.group(1))
+        logger.warning("spade_url extraction failed, using the fallback URL")
+        return FALLBACK_SPADE_URL
 
     def _check_drops_enabled(self, available_drops: list[JsonType]) -> bool:
         return any(
