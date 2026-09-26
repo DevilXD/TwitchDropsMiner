@@ -249,6 +249,15 @@ class ClientType:
     )
 
 
+# Client types selectable in the settings, keyed by their settings value.
+# Twitch sometimes disables the login for one of them, so the user can switch to the other.
+CLIENT_TYPES: dict[str, ClientInfo] = {
+    "SMARTBOX": ClientType.SMARTBOX,
+    "ANDROID_APP": ClientType.ANDROID_APP,
+}
+DEFAULT_CLIENT_TYPE: str = "SMARTBOX"
+
+
 class State(Enum):
     IDLE = auto()
     INVENTORY_FETCH = auto()

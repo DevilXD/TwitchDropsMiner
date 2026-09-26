@@ -47,6 +47,7 @@ from constants import (
     MAX_WEBSOCKETS,
     WS_TOPICS_LIMIT,
     OUTPUT_FORMATTER,
+    DEFAULT_CLIENT_TYPE,
     State,
     PriorityMode,
 )
@@ -1564,12 +1565,18 @@ class _SettingsVars(TypedDict):
     dark_mode: IntVar
     language: StringVar
     priority_mode: StringVar
+    client_type: StringVar
     tray_notifications: IntVar
     enable_badges_emotes: IntVar
     available_drops_check: IntVar
 
 
 class SettingsPanel:
+    # keys have to match constants.CLIENT_TYPES
+    CLIENT_TYPES: dict[str, str] = {
+        "SMARTBOX": "Smart TV",
+        "ANDROID_APP": "Android App",
+    }
     AUTOSTART_NAME: str = "TwitchDropsMiner"
     AUTOSTART_KEY: str = "HKCU/Software/Microsoft/Windows/CurrentVersion/Run"
 
@@ -1592,6 +1599,10 @@ class SettingsPanel:
         if priority_mode not in self.PRIORITY_MODES:
             priority_mode = PriorityMode.PRIORITY_ONLY
             self._settings.priority_mode = priority_mode
+        client_type = self._settings.client_type
+        if client_type not in self.CLIENT_TYPES:
+            client_type = DEFAULT_CLIENT_TYPE
+            self._settings.client_type = client_type
         self._vars: _SettingsVars = {
             "autostart": IntVar(master, 0),
             "language": StringVar(master, _.current),
@@ -1599,6 +1610,7 @@ class SettingsPanel:
             "tray": IntVar(master, self._settings.autostart_tray),
             "dark_mode": IntVar(master, int(self._settings.dark_mode)),
             "priority_mode": StringVar(master, self.PRIORITY_MODES[priority_mode]),
+            "client_type": StringVar(master, self.CLIENT_TYPES[client_type]),
             "tray_notifications": IntVar(master, self._settings.tray_notifications),
             "enable_badges_emotes": IntVar(
                 master, int(self._settings.enable_badges_emotes)
@@ -1682,6 +1694,15 @@ class SettingsPanel:
             command=self.priority_mode,
             textvariable=self._vars["priority_mode"],
             values=list(self.PRIORITY_MODES.values()),
+        ).grid(column=1, row=irow, sticky="w")
+        ttk.Label(
+            checkboxes_frame, text=_("gui", "settings", "general", "client_type")
+        ).grid(column=0, row=(irow := irow + 1), sticky="e")
+        SelectCombobox(
+            checkboxes_frame,
+            command=self.client_type,
+            textvariable=self._vars["client_type"],
+            values=list(self.CLIENT_TYPES.values()),
         ).grid(column=1, row=irow, sticky="w")
 
         # proxy frame
@@ -2041,6 +2062,13 @@ class SettingsPanel:
         for value, name in self.PRIORITY_MODES.items():
             if mode_name == name:
                 self._settings.priority_mode = value
+                break
+
+    def client_type(self, event: tk.Event[ttk.Combobox]) -> None:
+        type_name: str = self._vars["client_type"].get()
+        for value, name in self.CLIENT_TYPES.items():
+            if type_name == name:
+                self._settings.client_type = value
                 break
 
     def exclude_add(self) -> None:
@@ -2834,6 +2862,7 @@ if __name__ == "__main__":
                 priority=[],
                 proxy=URL(),
                 dark_mode=False,
+                client_type=DEFAULT_CLIENT_TYPE,
                 alter=lambda: None,
                 language="English",
                 autostart_tray=False,

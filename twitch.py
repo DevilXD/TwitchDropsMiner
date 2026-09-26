@@ -47,9 +47,10 @@ from constants import (
     COOKIES_PATH,
     MAX_CHANNELS,
     GQL_QUERIES,
+    CLIENT_TYPES,
     WATCH_INTERVAL,
+    DEFAULT_CLIENT_TYPE,
     State,
-    ClientType,
     PriorityMode,
     WebsocketTopic,
 )
@@ -445,7 +446,9 @@ class Twitch:
         # Do not modify the default, safe values.
         self._qgl_limiter = RateLimiter(capacity=5, window=1)
         # Client type, session and auth
-        self._client_type: ClientInfo = ClientType.ANDROID_APP
+        self._client_type: ClientInfo = CLIENT_TYPES.get(
+            settings.client_type, CLIENT_TYPES[DEFAULT_CLIENT_TYPE]
+        )
         self._session: aiohttp.ClientSession | None = None
         self._auth_state: _AuthState = _AuthState(self)
         # GUI
