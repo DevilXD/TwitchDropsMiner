@@ -36,6 +36,7 @@ from utils import (
     timestamp,
     create_nonce,
     task_wrapper,
+    Game,
     RateLimiter,
     AwaitableValue,
     ExponentialBackoff,
@@ -56,7 +57,6 @@ from constants import (
 )
 
 if TYPE_CHECKING:
-    from utils import Game
     from gui import LoginForm
     from channel import Stream
     from settings import Settings
@@ -1415,6 +1415,120 @@ class Twitch:
         }
         return self._merge_data(campaign_ids, fetched_data)
 
+    async def discover_channel_campaigns(
+        self, known_campaigns: dict[str, JsonType]
+    ) -> dict[str, JsonType]:
+        """
+        Twitch now gates the campaigns dashboard and campaign details queries behind
+        an integrity check, returning null for them. The per-channel available drops query
+        still works, so use it on live drops-enabled streams of the relevant games,
+        to discover campaigns that haven't been started yet (ex. channel-specific ones).
+        """
+        # relevant games: the priority list, plus games of all already known campaigns
+        games: dict[str, Game] = {}
+        for campaign_data in known_campaigns.values():
+            if campaign_data.get("game") is not None:
+                game = Game(campaign_data["game"])
+                games[game.name] = game
+        for game_name in self.settings.priority:
+            if game_name not in games:
+                # the ID isn't known here, but only the name-based slug is needed
+                games[game_name] = Game({"id": 0, "name": game_name})
+        games = {
+            name: game for name, game in games.items() if name not in self.settings.exclude
+        }
+        channels: dict[int, Channel] = {}
+        for game in games.values():
+            try:
+                for channel in await self.get_live_streams(game, limit=30):
+                    channels[channel.id] = channel
+            except MinerException:
+                logger.warning(f"Campaign discovery: unable to fetch streams for: {game.name}")
+        available_ops: list[GQLOperation] = [
+            GQL_QUERIES["AvailableDrops"].with_variables({"channelID": str(channel_id)})
+            for channel_id in channels
+        ]
+        discovered: dict[str, JsonType] = {}
+        for ops_chunk in chunk(available_ops, 20):
+            response_list: list[JsonType] = await self.gql_request(ops_chunk)
+            for response_json in response_list:
+                channel_info: JsonType | None = response_json["data"]["channel"]
+                if channel_info is None:
+                    continue
+                channel = channels[int(channel_info["id"])]
+                for campaign_data in channel_info["viewerDropCampaigns"] or []:
+                    campaign_id: str = campaign_data["id"]
+                    if (
+                        campaign_id in known_campaigns
+                        or campaign_data["game"] is None
+                        or not campaign_data["timeBasedDrops"]
+                    ):
+                        continue
+                    acl_entry: JsonType = {
+                        "id": str(channel.id),
+                        "name": channel._login,
+                        "displayName": channel._display_name,
+                    }
+                    if campaign_id in discovered:
+                        # the same campaign is available on multiple channels
+                        discovered[campaign_id]["allow"]["channels"].append(acl_entry)
+                        continue
+                    game_data: JsonType = campaign_data["game"]
+                    game_name: str = game_data.get("displayName") or game_data["name"]
+                    # reuse the linked status from known campaigns of the same game
+                    linked: bool = next(
+                        (
+                            c["self"]["isAccountConnected"]
+                            for c in known_campaigns.values()
+                            if c.get("game") is not None
+                            and str(c["game"]["id"]) == str(game_data["id"])
+                            and c.get("self") is not None
+                        ),
+                        True,
+                    )
+                    timed_drops: list[JsonType] = []
+                    for drop_data in campaign_data["timeBasedDrops"]:
+                        benefit_edges: list[JsonType] = []
+                        for edge in drop_data["benefitEdges"] or []:
+                            benefit: JsonType = dict(edge["benefit"])
+                            benefit.setdefault("distributionType", "UNKNOWN")
+                            benefit_edges.append({**edge, "benefit": benefit})
+                        timed_drops.append({
+                            "id": drop_data["id"],
+                            "name": drop_data["name"],
+                            "startAt": drop_data["startAt"],
+                            "endAt": drop_data["endAt"],
+                            "requiredMinutesWatched": drop_data["requiredMinutesWatched"],
+                            "preconditionDrops": drop_data.get("preconditionDrops"),
+                            "benefitEdges": benefit_edges,
+                        })
+                    discovered[campaign_id] = {
+                        "id": campaign_id,
+                        "name": campaign_data["name"],
+                        "game": {
+                            "id": game_data["id"],
+                            "name": game_name,
+                            "displayName": game_name,
+                            "boxArtURL": (
+                                "https://static-cdn.jtvnw.net/ttv-boxart/"
+                                f"{game_data['id']}_IGDB-285x380.jpg"
+                            ),
+                        },
+                        "self": {"isAccountConnected": linked},
+                        "accountLinkURL": campaign_data.get("detailsURL") or "",
+                        "startAt": min(d["startAt"] for d in timed_drops),
+                        "endAt": campaign_data["endAt"],
+                        "status": "ACTIVE",
+                        "allow": {"channels": [acl_entry], "isEnabled": True},
+                        "timeBasedDrops": timed_drops,
+                    }
+        if discovered:
+            logger.info(
+                f"Campaign discovery: found {len(discovered)} extra campaign(s) "
+                f"on {len(channels)} live channel(s)"
+            )
+        return discovered
+
     async def fetch_inventory(self) -> None:
         status_update = self.gui.status.update
         status_update(_("gui", "status", "fetching_inventory"))
@@ -1452,6 +1566,11 @@ class Twitch:
             for task in fetch_campaigns_tasks:
                 task.cancel()
             raise
+        # discover campaigns missing from the (integrity-gated) dashboard, via live channels
+        try:
+            inventory_data.update(await self.discover_channel_campaigns(inventory_data))
+        except GQLException:
+            logger.warning("Campaign discovery failed")
         # filter out invalid campaigns
         for campaign_id in list(inventory_data.keys()):
             if inventory_data[campaign_id]["game"] is None:
