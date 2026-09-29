@@ -19,6 +19,7 @@ from translate import _
 from gui import GUIManager
 from channel import Channel
 from websocket import WebsocketPool
+from bridge import TokenBridge, BridgeRejected
 from inventory import DropsCampaign
 from exceptions import (
     ExitRequest,
@@ -31,6 +32,7 @@ from exceptions import (
     RequestException,
 )
 from utils import (
+    CHARS_ASCII,
     CHARS_HEX_LOWER,
     chunk,
     timestamp,
@@ -60,6 +62,7 @@ if TYPE_CHECKING:
     from channel import Stream
     from settings import Settings
     from inventory import TimedDrop
+    from bridge import BridgeCredentials
     from constants import ClientInfo, JsonType, GQLOperation
 
 
@@ -75,6 +78,12 @@ class SkipExtraJsonDecoder(json.JSONDecoder):
 
 
 SAFE_LOADS = lambda s: json.loads(s, cls=SkipExtraJsonDecoder)
+# GQL operations that require a valid Client-Integrity token with the web client
+INTEGRITY_OPERATIONS: Final[frozenset[str]] = frozenset({
+    "ViewerDropsDashboard",
+    "DropCampaignDetails",
+    "DropsPage_ClaimDropRewards",
+})
 
 
 class _AuthState:
@@ -191,6 +200,22 @@ class _AuthState:
             except RequestInvalid:
                 # the device_code has expired, request a new code
                 continue
+
+    async def _bridge_login(self) -> str:
+        """
+        Obtains a web client auth token from the user's browser, via the browser bridge.
+        """
+        bridge: TokenBridge = self._twitch.bridge
+        login_form: LoginForm = self._twitch.gui.login
+        if bridge.credentials is None:
+            logger.info("Waiting for the browser bridge to deliver a token")
+            login_form.update(_("gui", "login", "required"), None)
+            self._twitch.gui.grab_attention(sound=False)
+            self._twitch.print(_("login", "bridge", "instructions").format(url=bridge.url))
+            bridge.prompt_user(setup=True)
+            while bridge.credentials is None:
+                await self._twitch.gui.coro_unless_closed(bridge.wait_for_token())
+        return bridge.credentials.auth_token
 
     async def _login(self) -> str:
         logger.info("Login flow started")
@@ -349,6 +374,15 @@ class _AuthState:
             # headers["Client-Version"] = self.client_version
         if hasattr(self, "device_id"):
             headers["X-Device-Id"] = self.device_id
+        bridge: TokenBridge = self._twitch.bridge
+        if client_info is ClientType.WEB and (creds := bridge.credentials) is not None:
+            # integrity tokens are bound to the device ID of the browser that minted them
+            if creds.device_id is not None:
+                headers["X-Device-Id"] = creds.device_id
+            if creds.client_version is not None:
+                headers["Client-Version"] = creds.client_version
+            if gql and bridge.integrity_valid():
+                headers["Client-Integrity"] = creds.integrity_token
         if gql:
             headers["Origin"] = str(client_info.CLIENT_URL)
             headers["Referer"] = str(client_info.CLIENT_URL)
@@ -388,7 +422,10 @@ class _AuthState:
                 for invalid_token_attempt in range(2):
                     cookie = jar.filter_cookies(client_info.CLIENT_URL)
                     if "auth-token" not in cookie:
-                        self.access_token = await self._oauth_login()
+                        if client_info is ClientType.WEB:
+                            self.access_token = await self._bridge_login()
+                        else:
+                            self.access_token = await self._oauth_login()
                         cookie["auth-token"] = self.access_token
                     elif not hasattr(self, "access_token"):
                         logger.info("Restoring session from cookie")
@@ -404,6 +441,8 @@ class _AuthState:
                             logger.info("Restored session is invalid")
                             assert client_info.CLIENT_URL.host is not None
                             jar.clear_domain(client_info.CLIENT_URL.host)
+                            self._delattrs("access_token")
+                            self._twitch.bridge.credentials = None
                             continue
                         elif response.status == 200:
                             validate_response = await response.json()
@@ -445,9 +484,16 @@ class Twitch:
         # Do not modify the default, safe values.
         self._qgl_limiter = RateLimiter(capacity=5, window=1)
         # Client type, session and auth
-        self._client_type: ClientInfo = ClientType.ANDROID_APP
+        self._client_type: ClientInfo = ClientType.WEB
         self._session: aiohttp.ClientSession | None = None
         self._auth_state: _AuthState = _AuthState(self)
+        # Browser bridge, supplying the auth token and integrity tokens for the web client
+        if not settings.bridge_key:
+            # baked into the user's bookmark, so it has to persist
+            settings.bridge_key = create_nonce(CHARS_ASCII, 32)
+            settings.save()
+        self.bridge: TokenBridge = TokenBridge(self, settings.bridge_port, settings.bridge_key)
+        self._integrity_lock = asyncio.Lock()
         # GUI
         self.gui = GUIManager(self)
         # Storing and watching channels
@@ -594,16 +640,26 @@ class Twitch:
             with open(DUMP_PATH, 'w', encoding="utf8"):
                 # replace the existing file with an empty one
                 pass
-        while True:
+        if self._client_type is ClientType.WEB:
             try:
-                await self._run()
-                break
-            except ReloadRequest:
-                await self.shutdown()
-            except ExitRequest:
-                break
-            except aiohttp.ContentTypeError as exc:
-                raise RequestException(_("login", "unexpected_content")) from exc
+                await self.bridge.start()
+            except OSError as exc:
+                raise MinerException(
+                    _("login", "bridge", "port_error").format(port=self.bridge.port)
+                ) from exc
+        try:
+            while True:
+                try:
+                    await self._run()
+                    break
+                except ReloadRequest:
+                    await self.shutdown()
+                except ExitRequest:
+                    break
+                except aiohttp.ContentTypeError as exc:
+                    raise RequestException(_("login", "unexpected_content")) from exc
+        finally:
+            await self.bridge.stop()
 
     async def _run(self):
         """
@@ -1236,6 +1292,84 @@ class Twitch:
         await self._auth_state.validate()
         return self._auth_state
 
+    @property
+    def user_agent(self) -> str:
+        if self._client_type is ClientType.WEB and (creds := self.bridge.credentials) is not None:
+            # match the browser that minted the integrity token
+            return creds.user_agent
+        return self._client_type.USER_AGENT
+
+    async def ensure_integrity(self) -> None:
+        """
+        Makes sure there's a valid integrity token available, waiting for the browser if needed.
+        """
+        if self._client_type is not ClientType.WEB:
+            return
+        bridge = self.bridge
+        margin = timedelta(minutes=2)
+        async with self._integrity_lock:
+            if bridge.integrity_valid(margin):
+                return
+            logger.info("Integrity token expired, asking for a new one")
+            self.print(_("login", "bridge", "token_needed").format(url=bridge.url))
+            self.gui.grab_attention(sound=True)
+            bridge.prompt_user(setup=False)
+            while not bridge.integrity_valid(margin):
+                await self.gui.coro_unless_closed(bridge.wait_for_token())
+
+    def refresh_integrity(self) -> None:
+        """
+        Manually requested refresh of the integrity token, from the GUI.
+        """
+        if self._client_type is not ClientType.WEB:
+            return
+        self.print(_("login", "bridge", "token_needed").format(url=self.bridge.url))
+        self.bridge.prompt_user(setup=False, force=True)
+
+    async def accept_bridge_credentials(self, creds: BridgeCredentials) -> None:
+        """
+        Called by the browser bridge when it receives a token.
+        Raises BridgeRejected if the credentials can't be used.
+        """
+        auth_state = self._auth_state
+        if (
+            creds.device_id is not None
+            and getattr(auth_state, "device_id", None) != creds.device_id
+        ):
+            # keep using the browser's device ID, also after a restart
+            auth_state.device_id = creds.device_id
+            session = await self.get_session()
+            jar = cast(aiohttp.CookieJar, session.cookie_jar)
+            jar.update_cookies({"unique_id": creds.device_id}, self._client_type.CLIENT_URL)
+            jar.save(COOKIES_PATH)
+        if getattr(auth_state, "access_token", None) == creds.auth_token:
+            return
+        async with self.request(
+            "GET",
+            "https://id.twitch.tv/oauth2/validate",
+            headers={"Authorization": f"OAuth {creds.auth_token}"},
+        ) as response:
+            if response.status != 200:
+                raise BridgeRejected("Twitch rejected this browser's login token.")
+            validate_response: JsonType = await response.json()
+        if validate_response["client_id"] != ClientType.WEB.CLIENT_ID:
+            raise BridgeRejected("This browser's login token isn't a Twitch website token.")
+        user_id = int(validate_response["user_id"])
+        if hasattr(auth_state, "user_id") and auth_state.user_id != user_id:
+            raise BridgeRejected(
+                "This browser is logged in to a different Twitch account than the miner. "
+                "Log in to the same account, or log the miner out first "
+                "(Help tab, Invalidate)."
+            )
+        if hasattr(auth_state, "access_token"):
+            # same user, new browser session - adopt the browser's token
+            logger.info("Adopting a new auth token from the browser")
+            auth_state.access_token = creds.auth_token
+            session = await self.get_session()
+            jar = cast(aiohttp.CookieJar, session.cookie_jar)
+            jar.update_cookies({"auth-token": creds.auth_token}, self._client_type.CLIENT_URL)
+            jar.save(COOKIES_PATH)
+
     @asynccontextmanager
     async def request(
         self, method: str, url: URL | str, *, invalidate_after: datetime | None = None, **kwargs
@@ -1299,17 +1433,24 @@ class Twitch:
         self, ops: GQLOperation | list[GQLOperation]
     ) -> JsonType | list[JsonType]:
         gql_logger.debug(f"GQL Request: {ops}")
+        ops_list = ops if isinstance(ops, list) else [ops]
+        needs_integrity: bool = any(
+            op.get("operationName") in INTEGRITY_OPERATIONS for op in ops_list
+        )
         backoff = ExponentialBackoff(maximum=60)
         # Use a flag to retry the request a single time, if a specific set of errors is encountered
         single_retry: bool = True
+        integrity_retry: bool = True
         for delay in backoff:
+            if needs_integrity:
+                await self.ensure_integrity()
             async with self._qgl_limiter:
                 auth_state = await self.get_auth()
                 async with self.request(
                     "POST",
                     "https://gql.twitch.tv/gql",
                     json=ops,
-                    headers=auth_state.headers(user_agent=self._client_type.USER_AGENT, gql=True),
+                    headers=auth_state.headers(user_agent=self.user_agent, gql=True),
                 ) as response:
                     response_json: JsonType | list[JsonType] = await response.json()
             gql_logger.debug(f"GQL Response: {response_json}")
@@ -1325,6 +1466,20 @@ class Twitch:
                     for error_dict in response_json["errors"]:
                         if "message" in error_dict:
                             if (
+                                integrity_retry
+                                and self._client_type is ClientType.WEB
+                                and "integrity" in error_dict["message"].lower()
+                            ):
+                                # the integrity token was rejected - get a fresh one and retry
+                                logger.warning(
+                                    f"Integrity check failed for "
+                                    f"{response_json['extensions']['operationName']}"
+                                )
+                                self.bridge.invalidate_integrity()
+                                integrity_retry = False
+                                force_retry = True
+                                break
+                            elif (
                                 single_retry
                                 and error_dict["message"] in (
                                     "service error",

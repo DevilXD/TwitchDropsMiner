@@ -533,6 +533,7 @@ class LoginForm:
         frame.columnconfigure(0, weight=2)
         frame.columnconfigure(1, weight=1)
         frame.rowconfigure(4, weight=1)
+        frame.rowconfigure(5, weight=1)
         ttk.Label(frame, text=_("gui", "login", "labels")).grid(column=0, row=0)
         ttk.Label(frame, textvariable=self._var, justify="center").grid(column=1, row=0)
         self._login_entry = PlaceholderEntry(frame, placeholder=_("gui", "login", "username"))
@@ -549,6 +550,12 @@ class LoginForm:
             frame, text=_("gui", "login", "button"), command=self._confirm.set, state="disabled"
         )
         self._button.grid(column=0, row=4, columnspan=2)
+        self._refresh_button = ttk.Button(
+            frame,
+            text=_("gui", "login", "refresh_token"),
+            command=lambda: manager._twitch.refresh_integrity(),
+        )
+        self._refresh_button.grid(column=0, row=5, columnspan=2)
         self.update(_("gui", "login", "logged_out"), None)
 
     def clear(self, login: bool = False, password: bool = False, token: bool = False):

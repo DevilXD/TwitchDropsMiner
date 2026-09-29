@@ -28,8 +28,15 @@ class ChromeMessages(TypedDict):
     closed_window: str
 
 
+class BridgeMessages(TypedDict):
+    instructions: str
+    token_needed: str
+    port_error: str
+
+
 class LoginMessages(TypedDict):
     chrome: ChromeMessages
+    bridge: BridgeMessages
     error_code: str
     unexpected_content: str
     email_code_required: str
@@ -84,6 +91,7 @@ class GUILoginForm(TypedDict):
     password: str
     twofa_code: str
     button: str
+    refresh_token: str
 
 
 class GUIWebsocket(TypedDict):
@@ -260,6 +268,20 @@ default_translation: Translation = {
                 "The Chrome window was closed before the login procedure could be completed."
             ),
         },
+        "bridge": {
+            "instructions": (
+                "Log in using your web browser: follow the steps on {url} "
+                "(it should open automatically)."
+            ),
+            "token_needed": (
+                "The miner needs a fresh integrity token. Click the \"Connect Drops Miner\" "
+                "bookmark on the twitch.tv tab that just opened. First time? See {url}"
+            ),
+            "port_error": (
+                "Unable to start the browser bridge on port {port}. "
+                "Is another copy of the miner running?"
+            ),
+        },
         "error_code": "Login error code: {error_code}",
         "incorrect_login_pass": "Incorrect username or password.",
         "incorrect_email_code": "Incorrect email code.",
@@ -310,6 +332,7 @@ default_translation: Translation = {
             "password": "Password",
             "twofa_code": "2FA code (optional)",
             "button": "Login",
+            "refresh_token": "Refresh token",
         },
         "websocket": {
             "name": "Websocket Status",
