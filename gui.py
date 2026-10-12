@@ -1973,7 +1973,7 @@ class SettingsPanel:
         self.update_priority_choices()
 
     def priority_add(self) -> None:
-        game_name: str = self._priority_entry.get()
+        game_name: str = self._priority_entry.get().strip()
         if not game_name:
             # prevent adding empty strings
             return
@@ -2044,7 +2044,7 @@ class SettingsPanel:
                 break
 
     def exclude_add(self) -> None:
-        game_name: str = self._exclude_entry.get()
+        game_name: str = self._exclude_entry.get().strip()
         if not game_name:
             # prevent adding empty strings
             return

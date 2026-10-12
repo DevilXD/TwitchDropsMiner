@@ -68,6 +68,17 @@ class Settings:
         self._settings: SettingsFile = json_load(SETTINGS_PATH, default_settings)
         self._args: ParsedArgs = args
         self._altered: bool = False
+        self._normalize_game_lists()
+
+    def _normalize_game_lists(self) -> None:
+        priority = list(dict.fromkeys(game.strip() for game in self._settings["priority"]))
+        exclude = set(game.strip() for game in self._settings["exclude"])
+        priority = [game for game in priority if game]
+        exclude.discard("")
+        if priority != self._settings["priority"] or exclude != self._settings["exclude"]:
+            self._settings["priority"] = priority
+            self._settings["exclude"] = exclude
+            self._altered = True
 
     # default logic of reading settings is to check args first, then the settings file
     def __getattr__(self, name: str, /) -> Any:
