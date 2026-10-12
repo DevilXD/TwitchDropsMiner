@@ -120,43 +120,61 @@ class _AuthState:
 
     async def _oauth_login(self) -> str:
         login_form: LoginForm = self._twitch.gui.login
-        client_info: ClientInfo = self._twitch._client_type
-        headers = {
-            "Accept": "application/json",
-            "Accept-Encoding": "gzip",
-            "Accept-Language": "en-US",
-            "Cache-Control": "no-cache",
-            "Client-Id": client_info.CLIENT_ID,
-            "Host": "id.twitch.tv",
-            "Origin": str(client_info.CLIENT_URL),
-            "Pragma": "no-cache",
-            "Referer": str(client_info.CLIENT_URL),
-            "User-Agent": client_info.USER_AGENT,
-            "X-Device-Id": self.device_id,
-        }
-        payload = {
-            "client_id": client_info.CLIENT_ID,
-            "scopes": "",  # no scopes needed
-        }
+        # NOTE: Twitch currently rejects the Android app client for the device flow
+        # ("invalid client"). Fall back to the SMARTBOX client, which still works.
+        client_options = (
+            self._twitch._client_type,
+            ClientType.SMARTBOX,
+        )
+        client_options = tuple(dict.fromkeys(client_options))
         while True:
             try:
                 now = datetime.now(timezone.utc)
-                async with self._twitch.request(
-                    "POST", "https://id.twitch.tv/oauth2/device", headers=headers, data=payload
-                ) as response:
-                    # {
-                    #     "device_code": "40 chars [A-Za-z0-9]",
-                    #     "expires_in": 1800,
-                    #     "interval": 5,
-                    #     "user_code": "8 chars [A-Z]",
-                    #     "verification_uri": "https://www.twitch.tv/activate?device-code=ABCDEFGH"
-                    # }
-                    response_json: JsonType = await response.json()
-                    device_code: str = response_json["device_code"]
-                    user_code: str = response_json["user_code"]
-                    interval: int = response_json["interval"]
-                    verification_uri: URL = URL(response_json["verification_uri"])
-                    expires_at = now + timedelta(seconds=response_json["expires_in"])
+                last_error: str = "Twitch did not return a device code for the login flow."
+                for client_info in client_options:
+                    headers = {
+                        "Accept": "application/json",
+                        "Accept-Encoding": "gzip",
+                        "Accept-Language": "en-US",
+                        "Cache-Control": "no-cache",
+                        "Client-Id": client_info.CLIENT_ID,
+                        "Host": "id.twitch.tv",
+                        "Origin": str(client_info.CLIENT_URL),
+                        "Pragma": "no-cache",
+                        "Referer": str(client_info.CLIENT_URL),
+                        "User-Agent": client_info.USER_AGENT,
+                        "X-Device-Id": self.device_id,
+                    }
+                    payload = {
+                        "client_id": client_info.CLIENT_ID,
+                        "scopes": "",  # no scopes needed
+                    }
+                    async with self._twitch.request(
+                        "POST", "https://id.twitch.tv/oauth2/device", headers=headers, data=payload
+                    ) as response:
+                        # {
+                        #     "device_code": "40 chars [A-Za-z0-9]",
+                        #     "expires_in": 1800,
+                        #     "interval": 5,
+                        #     "user_code": "8 chars [A-Z]",
+                        #     "verification_uri": "https://www.twitch.tv/activate?device-code=ABCDEFGH"
+                        # }
+                        response_json: JsonType = await response.json()
+                        if "device_code" in response_json:
+                            self._twitch._client_type = client_info
+                            logger.info(
+                                f"Device OAuth code received (client: {client_info.CLIENT_ID})"
+                            )
+                            device_code: str = response_json["device_code"]
+                            user_code: str = response_json["user_code"]
+                            interval: int = response_json["interval"]
+                            verification_uri: URL = URL(response_json["verification_uri"])
+                            expires_at = now + timedelta(seconds=response_json["expires_in"])
+                            break
+                        logger.info(f"Device OAuth response: {response_json}")
+                        last_error = str(response_json.get("error", response_json))
+                else:
+                    raise LoginException(last_error)
 
                 # Print the code to the user, open them the activate page so they can type it in
                 await login_form.ask_enter_code(verification_uri, user_code)
@@ -366,6 +384,22 @@ class _AuthState:
             session = await self._twitch.get_session()
             jar = cast(aiohttp.CookieJar, session.cookie_jar)
             client_info: ClientInfo = self._twitch._client_type
+            known_client_options = (
+                ClientType.WEB,
+                ClientType.MOBILE_WEB,
+                ClientType.ANDROID_APP,
+                ClientType.SMARTBOX,
+            )
+            # adopt the client type that owns the saved session cookie, if any
+            for saved_client_info in (
+                ClientType.SMARTBOX,
+                ClientType.MOBILE_WEB,
+                self._twitch._client_type,
+            ):
+                if "auth-token" in jar.filter_cookies(saved_client_info.CLIENT_URL):
+                    self._twitch._client_type = saved_client_info
+                    client_info = saved_client_info
+                    break
         if not self._hasattrs("device_id"):
             async with self._twitch.request(
                 "GET", client_info.CLIENT_URL, headers=self.headers()
@@ -389,6 +423,9 @@ class _AuthState:
                     cookie = jar.filter_cookies(client_info.CLIENT_URL)
                     if "auth-token" not in cookie:
                         self.access_token = await self._oauth_login()
+                        # the login flow may have switched the client type
+                        client_info = self._twitch._client_type
+                        cookie = jar.filter_cookies(client_info.CLIENT_URL)
                         cookie["auth-token"] = self.access_token
                     elif not hasattr(self, "access_token"):
                         logger.info("Restoring session from cookie")
@@ -413,6 +450,26 @@ class _AuthState:
                 # ensure the cookie's client ID matches the currently selected client
                 if validate_response["client_id"] == client_info.CLIENT_ID:
                     break
+                # if the token belongs to another known client, adopt that client instead
+                matching_client_info: ClientInfo | None = next(
+                    (
+                        known_client_info
+                        for known_client_info in known_client_options
+                        if validate_response["client_id"] == known_client_info.CLIENT_ID
+                    ),
+                    None,
+                )
+                if matching_client_info is not None:
+                    matched_cookie = jar.filter_cookies(matching_client_info.CLIENT_URL)
+                    if (
+                        "auth-token" in matched_cookie
+                        and matched_cookie["auth-token"].value == self.access_token
+                    ):
+                        logger.info("Restored session client ID mismatch recovered")
+                        self._twitch._client_type = matching_client_info
+                        client_info = matching_client_info
+                        cookie = matched_cookie
+                        break
                 # otherwise, we need to delete the entire cookie file and clear the jar
                 logger.info("Cookie client ID mismatch")
                 jar.clear()
@@ -1302,6 +1359,7 @@ class Twitch:
         backoff = ExponentialBackoff(maximum=60)
         # Use a flag to retry the request a single time, if a specific set of errors is encountered
         single_retry: bool = True
+        auth_retry: bool = True
         for delay in backoff:
             async with self._qgl_limiter:
                 auth_state = await self.get_auth()
@@ -1363,6 +1421,13 @@ class Twitch:
                         raise GQLException(response_json['errors'])
                 # Other error handling
                 elif "error" in response_json:
+                    if response_json.get("error") == "Unauthorized" and auth_retry:
+                        logger.info("GQL authorization failed, refreshing login")
+                        auth_state.invalidate(delete_cookies=True)
+                        auth_retry = False
+                        delay = 0
+                        force_retry = True
+                        break
                     raise GQLException(
                         f"{response_json['error']}: {response_json['message']}"
                     )
