@@ -127,7 +127,7 @@ DEFAULT_LANG = "English"
 PING_INTERVAL = timedelta(minutes=3)
 PING_TIMEOUT = timedelta(seconds=10)
 ONLINE_DELAY = timedelta(seconds=120)
-WATCH_INTERVAL = timedelta(seconds=59)
+WATCH_INTERVAL = timedelta(seconds=20)
 # Strings
 WINDOW_TITLE = f"Twitch Drops Miner v{__version__} (by DevilXD)"
 # Logging
@@ -166,7 +166,7 @@ class ClientType:
         "kimne78kx3ncx6brgo4mv6wki5h1ko",
         (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-            "(KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+            "(KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
         ),
     )
     MOBILE_WEB = ClientInfo(
@@ -177,31 +177,31 @@ class ClientType:
             # other platforms only use the major version
             (
                 "Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/138.0.7204.158 Mobile Safari/537.36"
+                "(KHTML, like Gecko) Chrome/153.0.7204.158 Mobile Safari/537.36"
             ),
             (
                 "Mozilla/5.0 (Linux; Android 16; SM-A205U) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/138.0.7204.158 Mobile Safari/537.36"
+                "(KHTML, like Gecko) Chrome/153.0.7204.158 Mobile Safari/537.36"
             ),
             (
                 "Mozilla/5.0 (Linux; Android 16; SM-A102U) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/138.0.7204.158 Mobile Safari/537.36"
+                "(KHTML, like Gecko) Chrome/153.0.7204.158 Mobile Safari/537.36"
             ),
             (
                 "Mozilla/5.0 (Linux; Android 16; SM-G960U) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/138.0.7204.158 Mobile Safari/537.36"
+                "(KHTML, like Gecko) Chrome/153.0.7204.158 Mobile Safari/537.36"
             ),
             (
                 "Mozilla/5.0 (Linux; Android 16; SM-N960U) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/138.0.7204.158 Mobile Safari/537.36"
+                "(KHTML, like Gecko) Chrome/153.0.7204.158 Mobile Safari/537.36"
             ),
             (
                 "Mozilla/5.0 (Linux; Android 16; LM-Q720) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/138.0.7204.158 Mobile Safari/537.36"
+                "(KHTML, like Gecko) Chrome/153.0.7204.158 Mobile Safari/537.36"
             ),
             (
                 "Mozilla/5.0 (Linux; Android 16; LM-X420) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/138.0.7204.158 Mobile Safari/537.36"
+                "(KHTML, like Gecko) Chrome/153.0.7204.158 Mobile Safari/537.36"
             ),
         ]
     )
@@ -244,7 +244,7 @@ class ClientType:
         "ue6666qo983tsx6so1t0vnawi233wa",
         (
             "Mozilla/5.0 (Linux; Android 7.1; Smart Box C1) AppleWebKit/537.36 "
-            "(KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+            "(KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
         ),
     )
 
@@ -362,7 +362,7 @@ GQL_QUERIES: dict[str, GQLPersistedQuery] = {
     # returns all available campaigns
     "Campaigns": GQLPersistedQuery(
         "ViewerDropsDashboard",
-        "d9cae7761dafab85908c85e6683cb4201b449e66ac3bb5e894f15ff12aeafaa7",
+        "c16bb890cc8ce7647a96ee69cd313d423a378a3dedadf630a1017cde18975feb",
         variables={
             "fetchRewardCampaigns": False,
         }
