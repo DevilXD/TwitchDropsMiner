@@ -1570,15 +1570,18 @@ class Twitch:
             )
         except GQLException as exc:
             raise MinerException(f"Game: {game.slug}") from exc
-        if "game" in response["data"]:
-            return [
-                Channel.from_directory(
-                    self, stream_channel_data["node"], drops_enabled=drops_enabled
-                )
-                for stream_channel_data in response["data"]["game"]["streams"]["edges"]
-                if stream_channel_data["node"]["broadcaster"] is not None
-            ]
-        return []
+        game_data: JsonType | None = response["data"].get("game")
+        if game_data is None:
+            # the slug doesn't match any game on Twitch
+            logger.warning(f"Game not found on Twitch: {game.name} (slug: {game.slug})")
+            return []
+        return [
+            Channel.from_directory(
+                self, stream_channel_data["node"], drops_enabled=drops_enabled
+            )
+            for stream_channel_data in game_data["streams"]["edges"]
+            if stream_channel_data["node"]["broadcaster"] is not None
+        ]
 
     async def bulk_check_online(self, channels: abc.Iterable[Channel]):
         """
