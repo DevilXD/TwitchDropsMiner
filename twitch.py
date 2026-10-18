@@ -441,6 +441,8 @@ class Twitch:
         self._drops: dict[str, TimedDrop] = {}
         self._campaigns: dict[str, DropsCampaign] = {}
         self._mnt_triggers: deque[datetime] = deque()
+        # triggers at which a drop stops being completable in time, these re-pick the games
+        self._deadline_triggers: set[datetime] = set()
         # NOTE: GQL is pretty volatile and breaks everything if one runs into their rate limit.
         # Do not modify the default, safe values.
         self._qgl_limiter = RateLimiter(capacity=5, window=1)
@@ -523,6 +525,7 @@ class Twitch:
         self._auth_state.clear()
         self.wanted_games.clear()
         self._mnt_triggers.clear()
+        self._deadline_triggers.clear()
         # wait at least half a second + whatever it takes to complete the closing
         # this allows aiohttp to safely close the session
         await asyncio.sleep(start_time + 0.5 - time())
@@ -676,18 +679,25 @@ class Twitch:
                         priority.index(c.game.name) if c.game.name in priority else MAX_INT
                     )
                 )
-                for campaign in sorted_campaigns:
-                    game: Game = campaign.game
-                    if (
-                        game not in self.wanted_games  # isn't already there
-                        # and isn't excluded by list or priority mode
-                        and game.name not in exclude
-                        and (not priority_only or game.name in priority)
-                        # and can be progressed within the next hour
-                        and campaign.can_earn_within(next_hour)
-                    ):
-                        # non-excluded games with no priority are placed last, below priority ones
-                        self.wanted_games.append(game)
+                # Campaigns that can still be completed in time are preferred. Ones that
+                # can't are only used if there is nothing else to mine.
+                for require_finishable in (True, False):
+                    for campaign in sorted_campaigns:
+                        game: Game = campaign.game
+                        if (
+                            game not in self.wanted_games  # isn't already there
+                            # and isn't excluded by list or priority mode
+                            and game.name not in exclude
+                            and (not priority_only or game.name in priority)
+                            # and can be progressed within the next hour
+                            and campaign.can_earn_within(next_hour)
+                            and (not require_finishable or campaign.can_finish())
+                        ):
+                            # non-excluded games with no priority are placed last,
+                            # below priority ones
+                            self.wanted_games.append(game)
+                    if self.wanted_games:
+                        break
                 full_cleanup = True
                 self.restart_watching()
                 self.change_state(State.CHANNELS_CLEANUP)
@@ -982,7 +992,10 @@ class Twitch:
             now = datetime.now(timezone.utc)
             if now >= next_period:
                 break
-            if next_trigger != next_period:
+            if next_trigger in self._deadline_triggers:
+                logger.log(CALL, "Maintenance task requests a games update (deadline)")
+                self.change_state(State.GAMES_UPDATE)
+            elif next_trigger != next_period:
                 logger.log(CALL, "Maintenance task requests channels cleanup")
                 self.change_state(State.CHANNELS_CLEANUP)
         # this triggers a restart of this task every (up to) 60 minutes
@@ -1491,6 +1504,7 @@ class Twitch:
         self.gui.inv.clear()
         self.inventory.clear()
         self._mnt_triggers.clear()
+        self._deadline_triggers.clear()
         switch_triggers: set[datetime] = set()
         next_hour = datetime.now(timezone.utc) + timedelta(hours=1)
         # add the campaigns to the internal inventory
@@ -1498,6 +1512,9 @@ class Twitch:
             self._drops.update({drop.id: drop for drop in campaign.drops})
             if campaign.can_earn_within(next_hour):
                 switch_triggers.update(campaign.time_triggers)
+                finish_triggers = campaign.finish_triggers()
+                self._deadline_triggers.update(finish_triggers)
+                switch_triggers.update(finish_triggers)
             self.inventory.append(campaign)
             self._campaigns[campaign.id] = campaign
         # concurrently add the campaigns into the GUI
@@ -1547,7 +1564,7 @@ class Twitch:
             if campaign.can_earn(watching_channel):
                 campaigns.append(campaign)
         if campaigns:
-            campaigns.sort(key=lambda c: c.remaining_minutes)
+            campaigns.sort(key=lambda c: (not c.can_finish(), c.remaining_minutes))
             return campaigns[0]
         return None
 
