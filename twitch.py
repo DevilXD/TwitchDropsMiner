@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import json
 import asyncio
 import logging
@@ -121,76 +122,23 @@ class _AuthState:
     async def _oauth_login(self) -> str:
         login_form: LoginForm = self._twitch.gui.login
         client_info: ClientInfo = self._twitch._client_type
-        headers = {
-            "Accept": "application/json",
-            "Accept-Encoding": "gzip",
-            "Accept-Language": "en-US",
-            "Cache-Control": "no-cache",
-            "Client-Id": client_info.CLIENT_ID,
-            "Host": "id.twitch.tv",
-            "Origin": str(client_info.CLIENT_URL),
-            "Pragma": "no-cache",
-            "Referer": str(client_info.CLIENT_URL),
-            "User-Agent": client_info.USER_AGENT,
-            "X-Device-Id": self.device_id,
-        }
-        payload = {
-            "client_id": client_info.CLIENT_ID,
-            "scopes": "",  # no scopes needed
-        }
+        # Twitch has disabled the device code flow for this client, but the implicit grant flow
+        # still works, as long as the redirect URI matches the one registered for the client.
+        # The user logs in using their own browser, and pastes the URL they've been redirected to.
+        page_url = URL("https://id.twitch.tv/oauth2/authorize").with_query(
+            client_id=client_info.CLIENT_ID,
+            redirect_uri="https://www.twitch.tv/",
+            response_type="token",
+            scope="",  # no scopes needed
+        )
         while True:
-            try:
-                now = datetime.now(timezone.utc)
-                async with self._twitch.request(
-                    "POST", "https://id.twitch.tv/oauth2/device", headers=headers, data=payload
-                ) as response:
-                    # {
-                    #     "device_code": "40 chars [A-Za-z0-9]",
-                    #     "expires_in": 1800,
-                    #     "interval": 5,
-                    #     "user_code": "8 chars [A-Z]",
-                    #     "verification_uri": "https://www.twitch.tv/activate?device-code=ABCDEFGH"
-                    # }
-                    response_json: JsonType = await response.json()
-                    device_code: str = response_json["device_code"]
-                    user_code: str = response_json["user_code"]
-                    interval: int = response_json["interval"]
-                    verification_uri: URL = URL(response_json["verification_uri"])
-                    expires_at = now + timedelta(seconds=response_json["expires_in"])
-
-                # Print the code to the user, open them the activate page so they can type it in
-                await login_form.ask_enter_code(verification_uri, user_code)
-
-                payload = {
-                    "client_id": self._twitch._client_type.CLIENT_ID,
-                    "device_code": device_code,
-                    "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
-                }
-                while True:
-                    # sleep first, not like the user is gonna enter the code *that* fast
-                    await asyncio.sleep(interval)
-                    async with self._twitch.request(
-                        "POST",
-                        "https://id.twitch.tv/oauth2/token",
-                        headers=headers,
-                        data=payload,
-                        invalidate_after=expires_at,
-                    ) as response:
-                        # 200 means success, 400 means the user haven't entered the code yet
-                        if response.status != 200:
-                            continue
-                        response_json = await response.json()
-                        # {
-                        #     "access_token": "40 chars [A-Za-z0-9]",
-                        #     "refresh_token": "40 chars [A-Za-z0-9]",
-                        #     "scope": [...],
-                        #     "token_type": "bearer"
-                        # }
-                        self.access_token = cast(str, response_json["access_token"])
-                        return self.access_token
-            except RequestInvalid:
-                # the device_code has expired, request a new code
-                continue
+            redirect_url = await login_form.ask_redirect_url(page_url)
+            # https://www.twitch.tv/#access_token=30 chars [a-z0-9]&scope=&token_type=bearer
+            match = re.search(r"access_token=(\w+)", redirect_url)
+            if match is not None:
+                self.access_token = match.group(1)
+                return self.access_token
+            self._twitch.print("No access token found in the pasted URL, please try again.")
 
     async def _login(self) -> str:
         logger.info("Login flow started")

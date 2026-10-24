@@ -543,6 +543,8 @@ class LoginForm:
         # self._pass_entry.grid(column=0, row=2, columnspan=2)
         self._token_entry = PlaceholderEntry(frame, placeholder=_("gui", "login", "twofa_code"))
         # self._token_entry.grid(column=0, row=3, columnspan=2)
+        # shown only while waiting for the user to paste the redirect URL in
+        self._url_entry = PlaceholderEntry(frame, placeholder="Redirect URL")
 
         self._confirm = asyncio.Event()
         self._button = ttk.Button(
@@ -595,15 +597,25 @@ class LoginForm:
                 continue
             return login_data
 
-    async def ask_enter_code(self, page_url: URL, user_code: str) -> None:
+    async def ask_redirect_url(self, page_url: URL) -> str:
         self.update(_("gui", "login", "required"), None)
         # ensure the window isn't hidden into tray when this runs
         self._manager.grab_attention(sound=False)
         self._manager.print(_("gui", "login", "request"))
         await self.wait_for_login_press()
-        self._manager.print(f"Enter this code on the Twitch's device activation page: {user_code}")
-        await asyncio.sleep(4)
+        self._manager.print(
+            "Authorize the miner on the opened Twitch page, then copy the full address "
+            "of the page you end up on, paste it into the login form and press Login again."
+        )
         webopen(page_url)
+        self._url_entry.grid(column=0, row=1, columnspan=2)
+        try:
+            while not (redirect_url := self._url_entry.get().strip()):
+                await self.wait_for_login_press()
+            return redirect_url
+        finally:
+            self._url_entry.clear()
+            self._url_entry.grid_remove()
 
     def update(self, status: str, user_id: int | None):
         if user_id is not None:
