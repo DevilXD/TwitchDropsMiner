@@ -11,11 +11,11 @@
     },
     "login": {
         "unexpected_content": "Váratlan tartalomtípus érkezett, ez általában átirányítás miatt történik. Nem kell esetleg bejelentkezned az internet eléréséhez?",
-        "chrome": {
-            "startup": "A Chrome indítása...",
+        "browser": {
+            "startup": "A böngésző indítása...",
             "login_to_complete": "Fejezd be a bejelentkezést kézzel, majd nyomd meg újra a Bejelentkezés gombot.",
             "no_token": "Nem található hitelesítési token.",
-            "closed_window": "A Chrome ablaka bezárult, mielőtt a bejelentkezés befejeződhetett volna."
+            "closed_window": "A böngésző ablaka bezárult, mielőtt a bejelentkezés befejeződhetett volna."
         },
         "error_code": "Bejelentkezési hibakód: {error_code}",
         "incorrect_login_pass": "Hibás felhasználónév vagy jelszó.",

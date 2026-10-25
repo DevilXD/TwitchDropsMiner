@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import json
 import asyncio
 import logging
@@ -36,6 +37,7 @@ from utils import (
     timestamp,
     create_nonce,
     task_wrapper,
+    first_to_complete,
     RateLimiter,
     AwaitableValue,
     ExponentialBackoff,
@@ -118,6 +120,79 @@ class _AuthState:
         self._logged_in.clear()
         self._twitch.gui.help._invalidate_button.config(state="disabled")
 
+    async def _browser_login(self) -> str:
+        import zendriver
+
+        gui_print = self._twitch.gui.print
+        login_form: LoginForm = self._twitch.gui.login
+        client_info: ClientInfo = self._twitch._client_type
+        coro_unless_closed = self._twitch.gui.coro_unless_closed
+
+        if client_info.CLIENT_ID != ClientType.ANDROID_APP.CLIENT_ID:
+            # NOTE: The ANDROID_APP client uses "https://www.twitch.tv/" exactly
+            # as the redirect URL (including the trailing slash).
+            # Other clients may use different redirect URLs instead,
+            # but this would have to be tested first. This below is a reminder to do that first.
+            raise RuntimeError("Browser login has only been tested for the ANDROID_APP client")
+
+        while True:
+            gui_print(_("login", "browser", "startup"))
+            # login_data = await login_form.ask_login()
+            browser: zendriver.Browser | None = None
+            try:
+                browser = await zendriver.start()
+                await browser.get(
+                    f"https://www.twitch.tv/login?client_id={client_info.CLIENT_ID}&"
+                    f"redirect_params=client_id%3D{client_info.CLIENT_ID}%26"
+                    "redirect_uri%3Dhttps%253A%252F%252Fwww.twitch.tv%252F%26response_type%3Dtoken"
+                )
+                # auto login
+                # username_input = await page.select("#login-username")
+                # password_input = await page.select("#password-input")
+                # await username_input.send_keys(login_data.username)
+                # await password_input.send_keys(login_data.password)
+
+                # login_button = await page.select('[data-a-target="passport-login-button"]')
+                # await login_button.click()
+
+                # token submit button css selectors
+                # NOTE: These are old, the website could be using different selectors by now
+                # Button: "screen="two_factor" target="submit_button"
+                # Input: <input type="text" autocomplete="one-time-code" data-a-target="tw-input"
+                # inputmode="numeric" pattern="[0-9]*" value="">
+
+                # wait for the user to navigate away from the URL, indicating successful login;
+                # alternatively, they can press on the login button again
+                async def url_waiter(browser=browser):
+                    while (
+                        await browser.test_connection()
+                        and browser.main_tab is not None
+                        and not str(browser.main_tab.url).startswith(
+                            "https://www.twitch.tv/#access_token="
+                        )
+                    ):
+                        await asyncio.sleep(0.5)
+
+                gui_print(_("login", "browser", "login_to_complete"))
+                await first_to_complete([
+                    url_waiter(),
+                    coro_unless_closed(login_form.wait_for_login_press()),
+                ])
+
+                # check if the browser window is still open
+                if await browser.test_connection() and browser.main_tab is not None:
+                    match = re.search(r'#access_token=(\w+)', str(browser.main_tab.url), re.I)
+                    if match is not None:
+                        return match.group(1)
+                    gui_print(_("login", "browser", "no_token"))
+                else:
+                    gui_print(_("login", "browser", "closed_window"))
+            finally:
+                if browser is not None:
+                    await browser.stop()
+                    browser = None
+            await coro_unless_closed(login_form.wait_for_login_press())
+
     async def _oauth_login(self) -> str:
         login_form: LoginForm = self._twitch.gui.login
         client_info: ClientInfo = self._twitch._client_type
@@ -162,7 +237,7 @@ class _AuthState:
                 await login_form.ask_enter_code(verification_uri, user_code)
 
                 payload = {
-                    "client_id": self._twitch._client_type.CLIENT_ID,
+                    "client_id": client_info.CLIENT_ID,
                     "device_code": device_code,
                     "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
                 }
@@ -346,7 +421,7 @@ class _AuthState:
         if hasattr(self, "session_id"):
             headers["Client-Session-Id"] = self.session_id
         # if hasattr(self, "client_version"):
-            # headers["Client-Version"] = self.client_version
+        #     headers["Client-Version"] = self.client_version
         if hasattr(self, "device_id"):
             headers["X-Device-Id"] = self.device_id
         if gql:
@@ -360,12 +435,12 @@ class _AuthState:
             await self._validate()
 
     async def _validate(self):
+        client_info: ClientInfo = self._twitch._client_type
         if not hasattr(self, "session_id"):
             self.session_id = create_nonce(CHARS_HEX_LOWER, 16)
         if not self._hasattrs("device_id", "access_token", "user_id"):
             session = await self._twitch.get_session()
             jar = cast(aiohttp.CookieJar, session.cookie_jar)
-            client_info: ClientInfo = self._twitch._client_type
         if not self._hasattrs("device_id"):
             async with self._twitch.request(
                 "GET", client_info.CLIENT_URL, headers=self.headers()
@@ -388,7 +463,7 @@ class _AuthState:
                 for invalid_token_attempt in range(2):
                     cookie = jar.filter_cookies(client_info.CLIENT_URL)
                     if "auth-token" not in cookie:
-                        self.access_token = await self._oauth_login()
+                        self.access_token = await self._browser_login()
                         cookie["auth-token"] = self.access_token
                     elif not hasattr(self, "access_token"):
                         logger.info("Restoring session from cookie")

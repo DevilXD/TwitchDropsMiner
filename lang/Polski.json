@@ -11,11 +11,11 @@
     },
     "login": {
         "unexpected_content": "Otrzymano nieoczekiwaną zawartość, zwykle z powodu przekierowania.\nUpewnij się, że nie jest wymagane dodatkowe logowanie lub potwierdzenie dostępu do Internetu.",
-        "chrome": {
-            "startup": "Uruchamianie Chrome...",
+        "browser": {
+            "startup": "Uruchamianie przeglądarki...",
             "login_to_complete": "Kliknij przycisk „Zaloguj” ponownie, aby zakończyć proces ręcznego logowania...",
             "no_token": "Nie znaleziono tokena autoryzacyjnego.",
-            "closed_window": "Okno przeglądarki Chrome zostało zamknięte przed zakończeniem procesu logowania."
+            "closed_window": "Okno przeglądarki zostało zamknięte przed zakończeniem procesu logowania."
         },
         "error_code": "Kod błędu logowania: {error_code}",
         "incorrect_login_pass": "Nieprawidłowa nazwa użytkownika lub hasło.",

@@ -11,11 +11,11 @@
     },
     "login": {
         "unexpected_content": "Tip de conținut neașteptat returnat, de obicei din cauza unei redirecționări. Trebuie să vă autentificați pentru a accesa Internetul?",
-        "chrome": {
-            "startup": "Deschidere Chrome",
+        "browser": {
+            "startup": "Deschidere browser",
             "login_to_complete": "Finalizați procedura de conectare manual apăsând din nou butonul Conectare.",
             "no_token": "Nu a putut fi găsit niciun token de autorizare.",
-            "closed_window": "Fereastra Chrome a fost închisă înainte de finalizarea procesului de conectare."
+            "closed_window": "Fereastra browserului a fost închisă înainte de finalizarea procesului de conectare."
         },
         "error_code": "Cod de eroare de conexiune: {error_code}",
         "incorrect_login_pass": "Numele de utilizator sau parola introdusă este incorectă.",

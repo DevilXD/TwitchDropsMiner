@@ -11,11 +11,11 @@
     },
     "login": {
         "unexpected_content": "Onverwacht inhoudstype geretourneerd, meestal als gevolg van een omleiding.\nIs inloggen vereist voor toegang tot internet?",
-        "chrome": {
-            "startup": "Chrome starten...",
+        "browser": {
+            "startup": "Browser starten...",
             "login_to_complete": "Druk nogmaals op Aanmelden om het aanmeldingsproces handmatig te voltooien.",
             "no_token": "Er is geen autorisatietoken gevonden.",
-            "closed_window": "Het Chrome-venster werd gesloten voordat het inlogproces voltooid kon worden."
+            "closed_window": "Het browservenster werd gesloten voordat het inlogproces voltooid kon worden."
         },
         "error_code": "Login Foutcode: {error_code}",
         "incorrect_login_pass": "Verkeerde gebruikersnaam of wachtwoord.",

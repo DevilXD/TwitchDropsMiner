@@ -11,11 +11,11 @@
     },
     "login": {
         "unexpected_content": "Type de contenu inattendu renvoyé, généralement dû à une redirection. Avez-vous besoin de vous connecter pour accéder à Internet ?",
-        "chrome": {
-            "startup": "Ouverture de Chrome",
+        "browser": {
+            "startup": "Ouverture du navigateur",
             "login_to_complete": "Terminez la procédure de connexion manuellement en appuyant à nouveau sur le bouton Connexion.",
             "no_token": "Aucun jeton d'autorisation (authorization token) n'a pu être trouvé.",
-            "closed_window": "La fenêtre Chrome a été fermée avant la fin de la procédure de connexion."
+            "closed_window": "La fenêtre du navigateur a été fermée avant la fin de la procédure de connexion."
         },
         "error_code": "Code d'erreur de connexion : {error_code}",
         "incorrect_login_pass": "Le nom d'utilisateur ou le mot de passe saisi est incorrect.",

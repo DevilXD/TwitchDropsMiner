@@ -11,11 +11,11 @@
     },
     "login": {
         "unexpected_content": "Uventet innholdstype returnert, vanligvis på grunn av omdirigering. Trenger du å logge inn for internettilgang?",
-        "chrome": {
-            "startup": "Åpner Chrome...",
+        "browser": {
+            "startup": "Åpner nettleseren...",
             "login_to_complete": "Fullfør innloggingen manuelt ved å trykke på Logg inn-knappen igjen.",
             "no_token": "Ingen autorisasjonstoken ble funnet.",
-            "closed_window": "Chrome-vinduet ble lukket før innloggingen kunne fullføres."
+            "closed_window": "Nettleservinduet ble lukket før innloggingen kunne fullføres."
         },
         "error_code": "Innloggingsfeilkode: {error_code}",
         "incorrect_login_pass": "Feil brukernavn eller passord.",

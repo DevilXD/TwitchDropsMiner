@@ -11,11 +11,11 @@
     },
     "login": {
         "unexpected_content": "Beklenmeyen içerik türü döndürüldü, genellikle bir yönlendirmeden kaynaklanır. İnternet erişimi için giriş yapmanız gerekiyor mu?",
-        "chrome": {
-            "startup": "Chrome açılıyor...",
+        "browser": {
+            "startup": "Tarayıcı açılıyor...",
             "login_to_complete": "Giriş düğmesine tekrar basarak giriş işlemini manuel olarak tamamlayın.",
             "no_token": "Yetkilendirme anahtarı (token) bulunamadı.",
-            "closed_window": "Giriş işlemi tamamlanamadan Chrome penceresi kapatıldı."
+            "closed_window": "Giriş işlemi tamamlanamadan tarayıcı penceresi kapatıldı."
         },
         "error_code": "Giriş hata kodu: {error_code}",
         "incorrect_login_pass": "Hatalı kullanıcı adı veya şifre.",

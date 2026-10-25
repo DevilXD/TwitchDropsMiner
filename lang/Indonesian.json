@@ -11,11 +11,11 @@
     },
     "login": {
         "unexpected_content": "Jenis konten yang tidak diharapkan yang dikembalikan, biasanya karena pengalihan. Apakah Anda perlu tersambung untuk mengakses Internet ?",
-        "chrome": {
-            "startup": "Membuka Chrome",
+        "browser": {
+            "startup": "Membuka browser",
             "login_to_complete": "Selesaikan prosedur koneksi secara manual dengan menekan tombol Connection (Koneksi) sekali lagi..",
             "no_token": "Token otorisasi tidak dapat ditemukan.",
-            "closed_window": "Jendela Chrome ditutup sebelum prosedur koneksi selesai."
+            "closed_window": "Jendela browser ditutup sebelum prosedur koneksi selesai."
         },
         "error_code": "Kode kesalahan koneksi: {error_code}",
         "incorrect_login_pass": "Nama pengguna atau kata sandi yang dimasukkan salah.",

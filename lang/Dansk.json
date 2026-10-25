@@ -11,11 +11,11 @@
     },
     "login": {
         "unexpected_content": "Uventet indholdstype returneres, normalt på grund af at blive omdirigeret. Skal du logge ind for internetadgang?",
-        "chrome": {
-            "startup": "Åbner Chrome...",
+        "browser": {
+            "startup": "Åbner browseren...",
             "login_to_complete": "Fuldfør login-proceduren manuelt ved at trykke på Login-knappen igen.",
             "no_token": "Der blev ikke fundet noget autorisationstoken.",
-            "closed_window": "Chrome-vinduet blev lukket, før login-proceduren kunne fuldføres."
+            "closed_window": "Browservinduet blev lukket, før login-proceduren kunne fuldføres."
         },
         "error_code": "Login fejlkode: {error_code}",
         "incorrect_login_pass": "Forkert brugernavn eller kodeord.",

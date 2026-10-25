@@ -11,11 +11,11 @@
     },
     "login": {
         "unexpected_content": "Se produjo un error inesperado, \ngeneralmente debido a una redirección.\n¿Necesitas un VPN o iniciar sesión para acceder a internet?",
-        "chrome": {
-            "startup": "Iniciando Chrome...",
+        "browser": {
+            "startup": "Iniciando el navegador...",
             "login_to_complete": "Por favor, presione Iniciar sesión nuevamente para \ncompletar el inicio de sesión.",
             "no_token": "No se pudo obtener un token de autorización.",
-            "closed_window": "La ventana de Chrome se cerró antes de que \nse completara el inicio de sesión."
+            "closed_window": "La ventana del navegador se cerró antes de que \nse completara el inicio de sesión."
         },
         "error_code": "Error de inicio de sesión: {error_code}",
         "incorrect_login_pass": "El usuario o contraseña ingresada es incorrecto.",

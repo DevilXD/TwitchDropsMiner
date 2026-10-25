@@ -11,11 +11,11 @@
     },
     "login": {
         "unexpected_content": "Unerwarteter Inhaltstyp zurückgegeben, normalerweise aufgrund einer Weiterleitung.\nIst ein Login für den Internetzugang erforderlich?",
-        "chrome": {
-            "startup": "Starte Chrome...",
+        "browser": {
+            "startup": "Browser wird gestartet...",
             "login_to_complete": "Erneut auf Anmelden drücken, um den Anmeldevorgang manuell abzuschließen.",
             "no_token": "Es wurde kein Autorisierungs-Token gefunden.",
-            "closed_window": "Das Chrome-Fenster wurde geschlossen, bevor der Anmeldevorgang abgeschlossen werden konnte."
+            "closed_window": "Das Browserfenster wurde geschlossen, bevor der Anmeldevorgang abgeschlossen werden konnte."
         },
         "error_code": "Login-Fehlercode: {error_code}",
         "incorrect_login_pass": "Falscher Benutzername oder Passwort.",
