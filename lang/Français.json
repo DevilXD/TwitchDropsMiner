@@ -10,6 +10,7 @@
         "no_campaign": "Aucune campagne active pour laquelle miner des drops. En attente d'une campagne active..."
     },
     "login": {
+        "unexpected_content": "Type de contenu inattendu renvoyé, généralement dû à une redirection. Avez-vous besoin de vous connecter pour accéder à Internet ?",
         "chrome": {
             "startup": "Ouverture de Chrome",
             "login_to_complete": "Terminez la procédure de connexion manuellement en appuyant à nouveau sur le bouton Connexion.",
@@ -17,7 +18,6 @@
             "closed_window": "La fenêtre Chrome a été fermée avant la fin de la procédure de connexion."
         },
         "error_code": "Code d'erreur de connexion : {error_code}",
-        "unexpected_content": "Type de contenu inattendu renvoyé, généralement dû à une redirection. Avez-vous besoin de vous connecter pour accéder à Internet ?",
         "incorrect_login_pass": "Le nom d'utilisateur ou le mot de passe saisi est incorrect.",
         "incorrect_email_code": "Le code de vérification de l'e-mail est incorrect.",
         "incorrect_twofa_code": "Le code 2FA est incorrect.",

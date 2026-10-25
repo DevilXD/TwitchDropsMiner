@@ -10,6 +10,7 @@
         "no_campaign": "Sem campanhas ativas no momento para minerar. Esperando por uma campanha ativa..."
     },
     "login": {
+        "unexpected_content": "Ocorreu um erro inesperado, geralmente causado por redirecionamento de internet. Você precisa se autenticar para ter acesso à internet?",
         "chrome": {
             "startup": "Abrindo Google Chrome",
             "login_to_complete": "Por Favor complete o login pela pagina web manualmente pressionando o botão Login novamente.",
@@ -17,7 +18,6 @@
             "closed_window": "O Google Chrome foi fechado antes da autenticação ser concluída."
         },
         "error_code": "Código de erro do login: {error_code}",
-        "unexpected_content": "Ocorreu um erro inesperado, geralmente causado por redirecionamento de internet. Você precisa se autenticar para ter acesso à internet?",
         "incorrect_login_pass": "Usuário e/ou senha incorreto(s)",
         "incorrect_email_code": "Codigo de email incorreto",
         "incorrect_twofa_code": "Codigo F2A incorreto",
