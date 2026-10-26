@@ -23,6 +23,8 @@ class SettingsFile(TypedDict):
     enable_badges_emotes: bool
     available_drops_check: bool
     priority_mode: PriorityMode
+    discord_webhook: str
+    finish_action: int
 
 
 default_settings: SettingsFile = {
@@ -35,8 +37,10 @@ default_settings: SettingsFile = {
     "language": DEFAULT_LANG,
     "tray_notifications": True,
     "enable_badges_emotes": False,
-    "available_drops_check": False,
-    "priority_mode": PriorityMode.PRIORITY_ONLY,
+    "available_drops_check": True,
+    "priority_mode": PriorityMode.ENDING_SOONEST,
+    "discord_webhook": "",
+    "finish_action": 0,
 }
 
 
@@ -61,6 +65,8 @@ class Settings:
     enable_badges_emotes: bool
     available_drops_check: bool
     priority_mode: PriorityMode
+    discord_webhook: str
+    finish_action: int
 
     PASSTHROUGH = ("_settings", "_args", "_altered")
 
@@ -68,6 +74,19 @@ class Settings:
         self._settings: SettingsFile = json_load(SETTINGS_PATH, default_settings)
         self._args: ParsedArgs = args
         self._altered: bool = False
+        seen_priority: set[str] = set()
+        deduped_priority: list[str] = []
+        for game_name in self._settings["priority"]:
+            if game_name and game_name not in seen_priority:
+                seen_priority.add(game_name)
+                deduped_priority.append(game_name)
+        if deduped_priority != self._settings["priority"]:
+            self._settings["priority"] = deduped_priority
+            self._altered = True
+        overlap = self._settings["exclude"].intersection(seen_priority)
+        if overlap:
+            self._settings["exclude"].difference_update(overlap)
+            self._altered = True
 
     # default logic of reading settings is to check args first, then the settings file
     def __getattr__(self, name: str, /) -> Any:

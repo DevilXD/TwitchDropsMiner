@@ -196,6 +196,7 @@ if __name__ == "__main__":
         client.gui.close_window()
         sys.exit(exit_status)
 
+    file: io.TextIOWrapper | None = None
     try:
         # use lock_file to check if we're not already running
         success, file = lock_file(LOCK_PATH)
@@ -205,4 +206,5 @@ if __name__ == "__main__":
 
         asyncio.run(main())
     finally:
-        file.close()
+        if file is not None:
+            file.close()

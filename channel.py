@@ -5,15 +5,15 @@ import gzip
 import json
 import asyncio
 import logging
-from base64 import b64encode
-from functools import cached_property
-from typing import Any, SupportsInt, cast, TYPE_CHECKING
+from base64 import b64decode, b64encode
+from typing import Any, SupportsInt, TYPE_CHECKING
 
 import aiohttp
+from datetime import datetime, timezone, timedelta
 from yarl import URL
 
-from utils import Game, json_minify, isonow
-from exceptions import MinerException, RequestException
+from utils import Game, json_minify, isonow, task_wrapper
+from exceptions import MinerException, RequestException, GQLException
 from constants import CALL, GQL_QUERIES, ONLINE_DELAY, URLType, GQLQuery
 
 if TYPE_CHECKING:
@@ -23,6 +23,14 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger("TwitchDrops")
+
+# Twitch ignores or rejects Android TV (SMARTBOX) user agents for the public
+# website and watch/spade endpoints. Always use a modern desktop Chrome UA for
+# channel page fetches and watch payloads so minute-watched events are counted.
+DESKTOP_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+)
 
 
 class Stream:
@@ -42,8 +50,9 @@ class Stream:
         self.game: Game | None = Game(game) if game else None
         self.title: str = title
         self._stream_url: URLType | None = None
+        self._ingest_url: URLType | None = None
 
-    @cached_property
+    @property
     def _watch_payload(self) -> list[JsonType]:
         return [
             {
@@ -66,13 +75,13 @@ class Stream:
             }
         ]
 
-    @cached_property
+    @property
     def spade_payload(self) -> JsonType:
         return {
             "data": (b64encode(json_minify(self._watch_payload).encode("utf8"))).decode("utf8")
         }
 
-    @cached_property
+    @property
     def gql_payload(self) -> GQLQuery:
         return GQLQuery(
             (
@@ -87,13 +96,13 @@ class Stream:
     @classmethod
     def from_get_stream(cls, channel: Channel, channel_data: JsonType) -> Stream:
         stream = channel_data["stream"]
-        settings = channel_data["broadcastSettings"]
+        settings = channel_data.get("broadcastSettings") or {}
         return cls(
             channel,
             id=stream["id"],
-            game=settings["game"],
-            viewers=stream["viewersCount"],
-            title=settings["title"],
+            game=settings.get("game"),
+            viewers=stream.get("viewersCount", 0),
+            title=settings.get("title") or "",
         )
 
     @classmethod
@@ -103,9 +112,9 @@ class Stream:
         self = cls(
             channel,
             id=channel_data["id"],
-            game=channel_data["game"],  # has to be there since we searched with it
-            viewers=channel_data["viewersCount"],
-            title=channel_data["title"],
+            game=channel_data.get("game"),
+            viewers=channel_data.get("viewersCount", 0),
+            title=channel_data.get("title") or "",
         )
         self.drops_enabled = drops_enabled
         return self
@@ -118,13 +127,22 @@ class Stream:
     async def get_stream_url(self) -> URLType | None:
         if self._stream_url is not None:
             return self._stream_url
-        # get the stream playback access token from GQL
-        playback_token_response: JsonType = await self.channel._twitch.gql_request(
-            GQL_QUERIES["PlaybackAccessToken"].with_variables({"login": self.channel._login})
-        )
-        token_data: JsonType = playback_token_response["data"]["streamPlaybackAccessToken"]
-        token_value = token_data["value"]
-        token_signature = token_data["signature"]
+        try:
+            # get the stream playback access token from GQL
+            playback_token_response: JsonType = await self.channel._twitch.gql_request(
+                GQL_QUERIES["PlaybackAccessToken"].with_variables({"login": self.channel._login})
+            )
+            token_data: JsonType | None = (
+                (playback_token_response.get("data") or {}).get("streamPlaybackAccessToken")
+            )
+            if not isinstance(token_data, dict):
+                return None
+            token_value = token_data.get("value")
+            token_signature = token_data.get("signature")
+            if not token_value or not token_signature:
+                return None
+        except (GQLException, MinerException, aiohttp.ClientError, asyncio.TimeoutError):
+            return None
         # using the token, query Twitch for a list of all available stream qualities
         available_qualities: str = ''
         try:
@@ -134,27 +152,47 @@ class Stream:
                     "https://usher.ttvnw.net/api/channel/hls/"
                     f"{self.channel._login}.m3u8?sig={token_signature}&token={token_value}"
                 ),
+                headers={"User-Agent": DESKTOP_USER_AGENT},
             ) as qualities_response:
+                if qualities_response.status >= 400:
+                    return None
                 available_qualities = await qualities_response.text()
             # try to decode the suspected JSON
             try:
-                available_json: JsonType = json.loads(available_qualities)
+                available_json: JsonType | list[JsonType] = json.loads(available_qualities)
             except json.JSONDecodeError:
                 # No JSON: this is the expected path. Do nothing and continue with the below.
                 pass
             else:
                 # JSON was decoded - if there's an error, log it and report failure
                 if isinstance(available_json, list):
-                    available_json = available_json[0]
-                if "error" in available_json:
+                    available_json = available_json[0] if available_json else {}
+                if isinstance(available_json, dict) and "error" in available_json:
                     logger.error(f"Stream URL get error: \"{available_json['error']}\"")
                     self.channel.set_offline()
                 return None
+            # Extract per-session HLS ingest Spade URL if embedded in #EXT-X-TWITCH-INFO (C="...")
+            ingest_match = re.search(r',C="([^"]+)"', available_qualities)
+            if ingest_match:
+                try:
+                    raw_ingest = ingest_match.group(1)
+                    raw_ingest += "=" * (-len(raw_ingest) % 4)
+                    decoded_ingest = b64decode(raw_ingest).decode("utf8", errors="ignore")
+                    if decoded_ingest.startswith("http"):
+                        self._ingest_url = URLType(decoded_ingest)
+                except ValueError:
+                    pass
             # pick the last URL from the list, usually with the lowest quality stream
-            self._stream_url = cast(URLType, URL(available_qualities.strip().split("\n")[-1]))
-        except (aiohttp.InvalidURL, ValueError):
-            self.channel._twitch.print(available_qualities)
-            raise
+            http_lines = [
+                line.strip()
+                for line in available_qualities.strip().splitlines()
+                if line.strip().startswith("http")
+            ]
+            if not http_lines:
+                return None
+            self._stream_url = URLType(http_lines[-1])
+        except (aiohttp.ClientError, asyncio.TimeoutError, ValueError, MinerException):
+            return None
         return self._stream_url
 
 
@@ -235,7 +273,10 @@ class Channel:
 
     @property
     def url(self) -> URLType:
-        return URLType(f"{self._twitch._client_type.CLIENT_URL}/{self._login}")
+        # Channel HTML is always fetched from the normal Twitch website. SMARTBOX
+        # authentication is only an API identity; android.tv.twitch.tv channel pages
+        # do not expose the settings/spade metadata needed for watch tracking.
+        return URLType(f"https://www.twitch.tv/{self._login}")
 
     @property
     def iid(self) -> str:
@@ -290,6 +331,28 @@ class Channel:
             return self._stream.drops_enabled
         return False
 
+    @property
+    def is_current_acl(self) -> bool:
+        """
+        True if this channel is an allowed channel for an active earnable campaign
+        matching the game it is currently streaming (or an active earnable campaign if offline).
+        """
+        if not self.acl_based:
+            return False
+        if self._stream is not None and self._stream.game is not None:
+            current_game = self._stream.game
+            return any(
+                campaign.game == current_game and self in campaign.allowed_channels
+                and campaign.can_earn(self, ignore_channel_status=True)
+                for campaign in self._twitch.inventory
+            )
+        now_utc = datetime.now(timezone.utc)
+        return any(
+            self in campaign.allowed_channels
+            and campaign.can_earn_within(now_utc + timedelta(hours=1))
+            for campaign in self._twitch.inventory
+        )
+
     def display(self, *, add: bool = False):
         self._gui_channels.display(self, add=add)
 
@@ -306,31 +369,58 @@ class Channel:
 
         For mobile view, spade_url is available immediately from the page, skipping step #2.
         """
-        SETTINGS_PATTERN: str = r'src="(https://[\w.]+/config/settings\.[0-9a-f]{32}\.js)"'
-        SPADE_PATTERN: str = r'"spade_?url": ?"(https://[.\w\-/]+)"'
-        async with self._twitch.request("GET", self.url) as response1:
-            streamer_html: str = await response1.text(encoding="utf8")
-        match = re.search(SPADE_PATTERN, streamer_html, re.I)
-        if not match:
-            match = re.search(SETTINGS_PATTERN, streamer_html, re.I)
+        try:
+            SETTINGS_PATTERN: str = r'src="(https://[\w.]+/config/settings\.[0-9a-f]{32}\.js)"'
+            SPADE_PATTERN: str = r'"spade_?url": ?"(https://[.\w\-/]+)"'
+            headers = {"User-Agent": DESKTOP_USER_AGENT}
+            async with self._twitch.request("GET", self.url, headers=headers) as response1:
+                streamer_html: str = await response1.text(encoding="utf8", errors="replace")
+            match = re.search(SPADE_PATTERN, streamer_html, re.I)
             if not match:
-                raise MinerException("Error while spade_url extraction: step #1")
-            streamer_settings = match.group(1)
-            async with self._twitch.request("GET", streamer_settings) as response2:
-                settings_js: str = await response2.text(encoding="utf8")
-            match = re.search(SPADE_PATTERN, settings_js, re.I)
-            if not match:
-                raise MinerException("Error while spade_url extraction: step #2")
-        return URLType(match.group(1))
+                match = re.search(SETTINGS_PATTERN, streamer_html, re.I)
+                if match:
+                    streamer_settings = match.group(1)
+                    async with self._twitch.request(
+                        "GET", streamer_settings, headers=headers
+                    ) as response2:
+                        settings_js: str = await response2.text(encoding="utf8", errors="replace")
+                    match = re.search(SPADE_PATTERN, settings_js, re.I)
+            if match:
+                return URLType(match.group(1))
+        except (MinerException, RequestException, aiohttp.ClientError, asyncio.TimeoutError, Exception) as exc:
+            logger.log(CALL, f"Spade URL extraction encountered an error for {self.name}: {exc}")
+        return URLType("https://spade.twitch.tv/")
 
-    def _check_drops_enabled(self, available_drops: list[JsonType]) -> bool:
-        return any(
+    def _check_drops_enabled(
+        self, available_drops: list[JsonType], stream: Stream | None = None
+    ) -> bool:
+        if any(
             (
-                (campaign := self._twitch._campaigns.get(campaign_data["id"])) is not None
+                isinstance(campaign_data, dict)
+                and "id" in campaign_data
+                and (campaign := self._twitch._campaigns.get(campaign_data["id"])) is not None
                 and campaign.can_earn(self, ignore_channel_status=True)
             )
             for campaign_data in available_drops
-        )
+        ):
+            return True
+
+        # Fallback: if available_drops is empty or GQL returned null/no matching campaigns,
+        # do not falsely mark drops_enabled = False if this channel is an ACL channel for
+        # an active earnable campaign, OR matches an active non-ACL campaign for stream.game.
+        target_stream = stream if stream is not None else self._stream
+        if target_stream is not None and target_stream.game is not None:
+            game = target_stream.game
+            for campaign in self._twitch.inventory:
+                if campaign.game == game and (not campaign.allowed_channels or self in campaign.allowed_channels):
+                    if campaign.can_earn(self, ignore_channel_status=True):
+                        return True
+
+        return False
+
+    def update_available_drops(self, available_drops: list[JsonType]) -> None:
+        if self._stream is not None:
+            self._stream.drops_enabled = self._check_drops_enabled(available_drops, stream=self._stream)
 
     def external_update(self, channel_data: JsonType, available_drops: list[JsonType]):
         """
@@ -338,12 +428,12 @@ class Channel:
 
         Used for bulk-updates of channel statuses during reload.
         """
-        if not channel_data["stream"]:
+        if not channel_data.get("stream"):
             self._stream = None
             return
         stream = Stream.from_get_stream(self, channel_data)
         if not stream.drops_enabled:
-            stream.drops_enabled = self._check_drops_enabled(available_drops)
+            stream.drops_enabled = self._check_drops_enabled(available_drops, stream=stream)
         self._stream = stream
 
     async def get_stream(self) -> Stream | None:
@@ -351,13 +441,13 @@ class Channel:
             response: JsonType = await self._twitch.gql_request(self.stream_gql)
         except MinerException as exc:
             raise MinerException(f"Channel: {self._login}") from exc
-        channel_data: JsonType | None = response["data"]["user"]
-        if not channel_data:
+        channel_data: JsonType | None = (response.get("data") or {}).get("user")
+        if not isinstance(channel_data, dict):
             return None
         # fill in display name
         if self._display_name is None:
-            self._display_name = channel_data["displayName"]
-        if not channel_data["stream"]:
+            self._display_name = channel_data.get("displayName")
+        if not channel_data.get("stream"):
             return None
         stream = Stream.from_get_stream(self, channel_data)
         if not stream.drops_enabled:
@@ -368,9 +458,16 @@ class Channel:
             except MinerException:
                 logger.log(CALL, f"AvailableDrops GQL call failed for channel: {self._login}")
             else:
-                stream.drops_enabled = self._check_drops_enabled(
-                    available_drops_campaigns["data"]["channel"]["viewerDropCampaigns"] or []
+                channel_node: JsonType | None = (
+                    (available_drops_campaigns.get("data") or {}).get("channel")
                 )
+                if isinstance(channel_node, dict):
+                    stream.drops_enabled = self._check_drops_enabled(
+                        channel_node.get("viewerDropCampaigns") or [],
+                        stream=stream,
+                    )
+            if not stream.drops_enabled:
+                stream.drops_enabled = self._check_drops_enabled([], stream=stream)
         return stream
 
     async def update_stream(self) -> bool:
@@ -383,14 +480,21 @@ class Channel:
         self._twitch.on_channel_update(self, old_stream, self._stream)
         return self._stream is not None
 
-    async def _online_delay(self):
+    @task_wrapper
+    async def _online_delay(self) -> None:
         """
         The 'stream-up' event is sent before the stream actually goes online,
         so just wait a bit and check if it's actually online by then.
         """
-        await asyncio.sleep(ONLINE_DELAY.total_seconds())
-        self._pending_stream_up = None  # for 'display' to work properly
-        await self.update_stream()
+        try:
+            await asyncio.sleep(ONLINE_DELAY.total_seconds())
+            self._pending_stream_up = None  # for 'display' to work properly
+            await self.update_stream()
+        except (MinerException, aiohttp.ClientError, asyncio.TimeoutError) as exc:
+            logger.warning(f"Delayed stream update failed for {self.name}: {exc}")
+            self.display()
+        finally:
+            self._pending_stream_up = None
 
     def check_online(self):
         """
@@ -405,7 +509,7 @@ class Channel:
         This is called externally, if we receive an event about the status possibly being ONLINE
         or having to be updated.
         """
-        if self._pending_stream_up is None:
+        if self._pending_stream_up is None or self._pending_stream_up.done():
             self._pending_stream_up = asyncio.create_task(self._online_delay())
             self.display()
 
@@ -428,79 +532,148 @@ class Channel:
         if needs_display:
             self.display()
 
-    # async def _send_watch_playlist(self) -> bool:
-    async def send_watch(self) -> bool:
+    async def _send_watch_hls(self) -> bool:
         """
-        This performs a HEAD request on the stream's current playlist,
-        to simulate watching the stream.
-        Optimally, send every ~20 seconds to advance drops.
+        Perform a HEAD request on the stream's latest HLS segment to advance drops.
         """
         if self._stream is None:
             return False
-        # get the stream url
         stream_url = await self._stream.get_stream_url()
         if stream_url is None:
             return False
-        # fetch a list of chunks available to download for the stream
-        # NOTE: the CDN is configured to forcibly disconnect shortly after serving the list,
-        # if we don't do it yourselves. Lets help it by actually doing it ourselves instead.
-        async with self._twitch.request(
-            "GET", stream_url, headers={"Connection": "close"}
-        ) as chunks_response:
-            if chunks_response.status >= 400:
-                # if the stream goes OFFLINE, trying to get a list of chunks returns a 404
-                return False
-            available_chunks: str = await chunks_response.text()
+        try:
+            # fetch a list of chunks available to download for the stream
+            # NOTE: the CDN is configured to forcibly disconnect shortly after serving the list,
+            # if we don't do it yourselves. Lets help it by actually doing it ourselves instead.
+            async with self._twitch.request(
+                "GET",
+                stream_url,
+                headers={"Connection": "close", "User-Agent": DESKTOP_USER_AGENT},
+            ) as chunks_response:
+                if chunks_response.status >= 400:
+                    # stream went OFFLINE or playback token expired; invalidate cached URL
+                    if self._stream is not None:
+                        self._stream._stream_url = None
+                        self._stream._ingest_url = None
+                    return False
+                available_chunks: str = await chunks_response.text()
+        except (MinerException, aiohttp.ClientError, asyncio.TimeoutError):
+            if self._stream is not None:
+                self._stream._stream_url = None
+                self._stream._ingest_url = None
+            return False
         # the response may contain some invalid JSON with duplicate double quotes
         # in the value strings: we need to get rid of them by removing the "url" key entirely
         # if no JSON can be found within the response, this is a NOOP
         available_chunks = re.sub(r'"url": ?".+}",', '', available_chunks)
         # try to decode the suspected JSON
         try:
-            available_json: JsonType = json.loads(available_chunks)
+            available_json: JsonType | list[JsonType] = json.loads(available_chunks)
         except json.JSONDecodeError:
             # No JSON: this is the expected path. Do nothing and continue with the below.
             pass
         else:
             # JSON was decoded - if there's an error, log it and report failure
             if isinstance(available_json, list):
-                available_json = available_json[0]
-            if "error" in available_json:
+                available_json = available_json[0] if available_json else {}
+            if isinstance(available_json, dict) and "error" in available_json:
                 logger.error(f"Send watch error: \"{available_json['error']}\"")
             return False
         # the list contains ~15 chunks of the stream at ~2s intervals
         chunks_list: list[URLType] = [
-            URLType(chunk)
-            for chunk in available_chunks.strip().split("\n")
-            if chunk.startswith("http")
+            URLType(chunk.strip())
+            for chunk in available_chunks.strip().splitlines()
+            if chunk.strip().startswith("http")
         ]
+        if not chunks_list:
+            return False
+        success_count = 0
+        consecutive_failures = 0
         for stream_chunk_url in chunks_list:
-            # sending a HEAD request is enough to advance the drops,
-            # without downloading the actual stream data
-            async with self._twitch.request("HEAD", stream_chunk_url) as head_response:
-                if head_response.status != 200:
-                    return False
-        return True
+            try:
+                async with self._twitch.request(
+                    "HEAD", stream_chunk_url, headers={"User-Agent": DESKTOP_USER_AGENT}
+                ) as head_response:
+                    if head_response.status == 200:
+                        success_count += 1
+                        consecutive_failures = 0
+                    else:
+                        consecutive_failures += 1
+            except (MinerException, aiohttp.ClientError, asyncio.TimeoutError):
+                consecutive_failures += 1
+            if consecutive_failures >= 3:
+                break
+        head_ok = success_count >= max(1, len(chunks_list) // 2)
+        # Also post the minute-watched payload to the per-session HLS ingest URL if available
+        if self._stream is not None and self._stream._ingest_url is not None:
+            try:
+                async with self._twitch.request(
+                    "POST",
+                    self._stream._ingest_url,
+                    data=self._stream.spade_payload,
+                    headers={"User-Agent": DESKTOP_USER_AGENT},
+                ) as ingest_response:
+                    if ingest_response.status in (200, 204):
+                        head_ok = True
+            except (MinerException, aiohttp.ClientError, asyncio.TimeoutError):
+                pass
+        return head_ok
+
+    async def send_watch(self) -> bool:
+        """
+        Send the Spade beacon as the primary watch mechanism (required under SMARTBOX),
+        while also triggering GQL and HLS checks concurrently.
+        """
+        if self._stream is None:
+            return False
+        spade_ok, gql_ok, hls_ok = await asyncio.gather(
+            self._send_watch_spade(),
+            self._send_watch_gql(),
+            self._send_watch_hls(),
+            return_exceptions=True,
+        )
+        return bool(spade_ok is True or gql_ok is True or hls_ok is True)
 
     async def _send_watch_spade(self) -> bool:
         if self._stream is None:
             return False
         if self._spade_url is None:
-            self._spade_url = await self.get_spade_url()
+            try:
+                self._spade_url = await self.get_spade_url()
+            except Exception:
+                self._spade_url = URLType("https://spade.twitch.tv/")
+        target_url = self._spade_url or URLType("https://spade.twitch.tv/")
         try:
             async with self._twitch.request(
-                "POST", self._spade_url, data=self._stream.spade_payload
+                "POST",
+                target_url,
+                data=self._stream.spade_payload,
+                headers={"User-Agent": DESKTOP_USER_AGENT},
             ) as response:
-                return response.status == 204
-        except RequestException:
+                if response.status not in (200, 204):
+                    logger.log(
+                        CALL,
+                        f"Spade watch payload rejected for {self.name}: HTTP {response.status}",
+                    )
+                    self._spade_url = None
+                    return False
+                return True
+        except (MinerException, aiohttp.ClientError, asyncio.TimeoutError):
             return False
 
-    # NOTE: This is currently unused.
     async def _send_watch_gql(self) -> bool:
         if self._stream is None:
             return False
         try:
             watch_response = await self._twitch.gql_request(self._stream.gql_payload)
-            return watch_response["data"]["sendSpadeEvents"]["statusCode"] == 204
-        except RequestException:
+            if not isinstance(watch_response, dict):
+                return False
+            data = watch_response.get("data")
+            if not isinstance(data, dict):
+                return False
+            events = data.get("sendSpadeEvents")
+            if isinstance(events, dict) and events.get("statusCode") == 204:
+                return True
+            return False
+        except (MinerException, RequestException, GQLException, aiohttp.ClientError, asyncio.TimeoutError):
             return False

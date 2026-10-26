@@ -10,14 +10,14 @@
         "no_campaign": "Tidak ada kampanye aktif yang bisa ditambang. Menunggu kampanye aktif..."
     },
     "login": {
-        "unexpected_content": "Jenis konten yang tidak diharapkan yang dikembalikan, biasanya karena pengalihan. Apakah Anda perlu tersambung untuk mengakses Internet ?",
-        "browser": {
-            "startup": "Membuka browser",
+        "chrome": {
+            "startup": "Membuka Chrome",
             "login_to_complete": "Selesaikan prosedur koneksi secara manual dengan menekan tombol Connection (Koneksi) sekali lagi..",
             "no_token": "Token otorisasi tidak dapat ditemukan.",
-            "closed_window": "Jendela browser ditutup sebelum prosedur koneksi selesai."
+            "closed_window": "Jendela Chrome ditutup sebelum prosedur koneksi selesai."
         },
         "error_code": "Kode kesalahan koneksi: {error_code}",
+        "unexpected_content": "Jenis konten yang tidak diharapkan yang dikembalikan, biasanya karena pengalihan. Apakah Anda perlu tersambung untuk mengakses Internet ?",
         "incorrect_login_pass": "Nama pengguna atau kata sandi yang dimasukkan salah.",
         "incorrect_email_code": "Kode verifikasi email salah.",
         "incorrect_twofa_code": "Kode verifikasi 2FA salah.",

@@ -1,14 +1,11 @@
 from __future__ import annotations
 
 from collections import abc
-from typing import Any, TypedDict, TYPE_CHECKING
+from typing import Any, TypedDict
 
 from exceptions import MinerException
 from utils import json_load, json_save
 from constants import IS_PACKAGED, LANG_PATH, DEFAULT_LANG
-
-if TYPE_CHECKING:
-    from typing_extensions import NotRequired
 
 
 class StatusMessages(TypedDict):
@@ -21,7 +18,7 @@ class StatusMessages(TypedDict):
     no_campaign: str
 
 
-class BrowserMessages(TypedDict):
+class ChromeMessages(TypedDict):
     startup: str
     login_to_complete: str
     no_token: str
@@ -29,7 +26,7 @@ class BrowserMessages(TypedDict):
 
 
 class LoginMessages(TypedDict):
-    browser: BrowserMessages
+    chrome: ChromeMessages
     error_code: str
     unexpected_content: str
     email_code_required: str
@@ -225,8 +222,11 @@ class GUIMessages(TypedDict):
     help: GUIHelp
 
 
-class Translation(TypedDict):
-    language_name: NotRequired[str]
+class _TranslationOptional(TypedDict, total=False):
+    language_name: str
+
+
+class Translation(_TranslationOptional):
     english_name: str
     status: StatusMessages
     login: LoginMessages
@@ -250,14 +250,14 @@ default_translation: Translation = {
             "Unexpected content type returned, usually due to being redirected. "
             "Do you need to login for internet access?"
         ),
-        "browser": {
-            "startup": "Opening the browser...",
+        "chrome": {
+            "startup": "Opening Chrome...",
             "login_to_complete": (
                 "Complete the login procedure manually by pressing the Login button again."
             ),
             "no_token": "No authorization token could be found.",
             "closed_window": (
-                "The browser window was closed before the login procedure could be completed."
+                "The Chrome window was closed before the login procedure could be completed."
             ),
         },
         "error_code": "Login error code: {error_code}",
@@ -473,12 +473,12 @@ class Translator:
 
     @property
     def current(self) -> str:
-        return self._translation["language_name"]
+        return self._translation.get("language_name", DEFAULT_LANG)
 
     def set_language(self, language: str):
         if language not in self._langs:
             raise ValueError("Unrecognized language")
-        elif self._translation["language_name"] == language:
+        elif self._translation.get("language_name") == language:
             # same language as loaded selected
             return
         elif language == DEFAULT_LANG:

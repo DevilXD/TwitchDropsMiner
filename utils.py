@@ -19,7 +19,17 @@ from contextlib import suppress
 from functools import cached_property
 from datetime import datetime, timezone
 from collections import abc, OrderedDict
-from typing import Any, Literal, Callable, Generic, Mapping, TypeVar, ParamSpec, cast
+from typing import (
+    Any,
+    Literal,
+    Callable,
+    Generic,
+    Mapping,
+    TypeVar,
+    ParamSpec,
+    overload,
+    cast,
+)
 
 from yarl import URL
 from PIL.ImageTk import PhotoImage
@@ -124,18 +134,35 @@ def deduplicate(iterable: abc.Iterable[_T]) -> list[_T]:
     return list(OrderedDict.fromkeys(iterable).keys())
 
 
+@overload
+def task_wrapper(
+    afunc: abc.Callable[_P, abc.Coroutine[Any, Any, _T]], *, critical: bool = False
+) -> abc.Callable[_P, abc.Coroutine[Any, Any, _T | None]]:
+    ...
+
+
+@overload
+def task_wrapper(
+    afunc: None = None, *, critical: bool = False
+) -> abc.Callable[
+    [abc.Callable[_P, abc.Coroutine[Any, Any, _T]]],
+    abc.Callable[_P, abc.Coroutine[Any, Any, _T | None]],
+]:
+    ...
+
+
 def task_wrapper(
     afunc: abc.Callable[_P, abc.Coroutine[Any, Any, _T]] | None = None, *, critical: bool = False
-):
+) -> Any:
     def decorator(
         afunc: abc.Callable[_P, abc.Coroutine[Any, Any, _T]]
-    ) -> abc.Callable[_P, abc.Coroutine[Any, Any, _T]]:
+    ) -> abc.Callable[_P, abc.Coroutine[Any, Any, _T | None]]:
         @wraps(afunc)
-        async def wrapper(*args: _P.args, **kwargs: _P.kwargs):
+        async def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> _T | None:
             try:
-                await afunc(*args, **kwargs)
+                return await afunc(*args, **kwargs)
             except (ExitRequest, ReloadRequest):
-                pass
+                return None
             except Exception:
                 logger.exception(f"Exception in {afunc.__name__} task")
                 if critical:
@@ -418,13 +445,29 @@ class AwaitableValue(Generic[_T]):
         self._event.clear()
 
 
+CANONICAL_GAME_ALIASES: dict[int, set[str]] = {
+    515025: {"Overwatch", "Overwatch 2"},
+}
+
+CANONICAL_GAME_SLUGS: dict[int, str] = {
+    515025: "overwatch-2",
+}
+
+NAME_TO_CANONICAL_ID: dict[str, int] = {
+    "overwatch": 515025,
+    "overwatch 2": 515025,
+}
+
+
 class Game:
     SPECIAL_GAME_IDS: set[int] = {509663, 509672}
 
     def __init__(self, data: JsonType):
         self.id: int = int(data["id"])
         self.name: str = data.get("displayName") or data["name"]
-        if "slug" in data:
+        if self.canonical_id in CANONICAL_GAME_SLUGS:
+            self.slug = CANONICAL_GAME_SLUGS[self.canonical_id]
+        elif "slug" in data:
             self.slug = data["slug"]
 
     def __str__(self) -> str:
@@ -433,19 +476,47 @@ class Game:
     def __repr__(self) -> str:
         return f"Game({self.id}, {self.name})"
 
+    @property
+    def canonical_id(self) -> int:
+        if self.id in CANONICAL_GAME_SLUGS:
+            return self.id
+        return NAME_TO_CANONICAL_ID.get(self.name.strip().casefold(), self.id)
+
+    @property
+    def aliases(self) -> set[str]:
+        aliases: set[str] = {self.name}
+        cid = self.canonical_id
+        if cid in CANONICAL_GAME_ALIASES:
+            aliases.update(CANONICAL_GAME_ALIASES[cid])
+        return aliases
+
+    def matches(self, other: str | Game) -> bool:
+        if isinstance(other, Game):
+            return self == other
+        if not isinstance(other, str):
+            return False
+        if self.name.casefold() == other.casefold():
+            return True
+        for alias in self.aliases:
+            if alias.casefold() == other.casefold():
+                return True
+        return False
+
     def __eq__(self, other: object) -> bool:
         if isinstance(other, self.__class__):
-            return self.id == other.id
+            return self.canonical_id == other.canonical_id
         return NotImplemented
 
     def __hash__(self) -> int:
-        return self.id
+        return self.canonical_id
 
     @cached_property
     def slug(self) -> str:
         """
         Converts the game name into a slug, useable for the GQL API.
         """
+        if self.canonical_id in CANONICAL_GAME_SLUGS:
+            return CANONICAL_GAME_SLUGS[self.canonical_id]
         # remove specific characters
         slug_text = re.sub(r'\'', '', self.name.lower())
         # remove non alpha-numeric characters
@@ -456,3 +527,4 @@ class Game:
 
     def is_special(self) -> bool:
         return self.id in self.SPECIAL_GAME_IDS
+

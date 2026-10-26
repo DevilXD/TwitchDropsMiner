@@ -56,6 +56,9 @@ class Websocket:
         self._max_pong: float = self._next_ping + PING_TIMEOUT.total_seconds()
         # main task, responsible for receiving messages, sending them, and websocket ping
         self._handle_task: asyncio.Task[None] | None = None
+        # Keep strong references to independently-dispatched topic handlers until
+        # they finish. This also lets shutdown cancel/drain them cleanly.
+        self._message_tasks: set[asyncio.Task[Any]] = set()
         # topics stuff
         self.topics: dict[str, WebsocketTopic] = {}
         self._submitted: set[WebsocketTopic] = set()
@@ -101,6 +104,13 @@ class Websocket:
                 with suppress(asyncio.TimeoutError, asyncio.CancelledError):
                     await asyncio.wait_for(self._handle_task, timeout=2)
                 self._handle_task = None
+            if self._message_tasks:
+                message_tasks = tuple(self._message_tasks)
+                for task in message_tasks:
+                    if not task.done():
+                        task.cancel()
+                await asyncio.gather(*message_tasks, return_exceptions=True)
+                self._message_tasks.clear()
             if remove:
                 self.topics.clear()
                 self._topics_changed.set()
@@ -121,15 +131,18 @@ class Websocket:
         else:
             proxy = None
         for delay in backoff:
+            if self._closed.is_set():
+                return
             try:
                 async with session.ws_connect(ws_url, proxy=proxy) as websocket:
                     yield websocket
                     backoff.reset()
             except (
                 asyncio.TimeoutError,
-                aiohttp.ClientResponseError,
-                aiohttp.ClientConnectionError,
+                aiohttp.ClientError,
             ):
+                if self._closed.is_set():
+                    return
                 ws_logger.info(
                     f"Websocket[{self._idx}] connection problem (sleep: {round(delay)}s)"
                 )
@@ -161,7 +174,7 @@ class Websocket:
             ws_logger.info(f"Websocket[{self._idx}] connected.")
             try:
                 try:
-                    while not self._reconnect_requested.is_set():
+                    while not self._reconnect_requested.is_set() and not self._closed.is_set():
                         await self._handle_ping()
                         await self._handle_topics()
                         await self._handle_recv()
@@ -170,19 +183,27 @@ class Websocket:
                     self._submitted.clear()
                     # set _topics_changed to let the next WS connection resub to the topics
                     self._topics_changed.set()
+                if self._closed.is_set():
+                    ws_logger.info(f"Websocket[{self._idx}] stopped.")
+                    self.set_status(_("gui", "websocket", "disconnected"))
+                    return
                 # A reconnect was requested
             except WebsocketClosed as exc:
-                if exc.received:
-                    # server closed the connection, not us - reconnect
-                    ws_logger.warning(
-                        f"Websocket[{self._idx}] closed unexpectedly: {websocket.close_code}"
-                    )
-                elif self._closed.is_set():
+                if self._closed.is_set():
                     # we closed it - exit
                     ws_logger.info(f"Websocket[{self._idx}] stopped.")
                     self.set_status(_("gui", "websocket", "disconnected"))
                     return
+                elif exc.received:
+                    # server closed the connection, not us - reconnect
+                    ws_logger.warning(
+                        f"Websocket[{self._idx}] closed unexpectedly: {websocket.close_code}"
+                    )
             except Exception:
+                if self._closed.is_set():
+                    ws_logger.info(f"Websocket[{self._idx}] stopped.")
+                    self.set_status(_("gui", "websocket", "disconnected"))
+                    return
                 ws_logger.exception(f"Exception in Websocket[{self._idx}]")
             self.set_status(_("gui", "websocket", "reconnecting"))
             ws_logger.warning(f"Websocket[{self._idx}] reconnecting...")
@@ -245,15 +266,19 @@ class Websocket:
         Note that there's no return value - this modifies `messages` in-place.
         """
         ws = self._ws.get_with_default(None)
-        assert ws is not None
+        if ws is None or ws.closed:
+            raise WebsocketClosed(received=False)
         while True:
             try:
                 raw_message: aiohttp.WSMessage = await ws.receive(timeout=timeout)
-            except aiohttp.ClientConnectionError:
-                raise WebsocketClosed(received=False)
+            except (aiohttp.ClientError, RuntimeError) as exc:
+                raise WebsocketClosed(received=False) from exc
             ws_logger.debug(f"Websocket[{self._idx}] received: {raw_message}")
             if raw_message.type is WSMsgType.TEXT:
-                message: JsonType = json.loads(raw_message.data)
+                try:
+                    message: JsonType = json.loads(raw_message.data)
+                except (json.JSONDecodeError, TypeError):
+                    continue
                 messages.append(message)
             elif raw_message.type is WSMsgType.CLOSE:
                 raise WebsocketClosed(received=True)
@@ -269,12 +294,31 @@ class Websocket:
             else:
                 ws_logger.error(f"Websocket[{self._idx}] error: Unknown message: {raw_message}")
 
+    def _message_task_done(self, task: asyncio.Task[Any]) -> None:
+        self._message_tasks.discard(task)
+        if task.cancelled():
+            return
+        # task_wrapper already logs handler failures. Retrieve the exception here
+        # so asyncio doesn't emit "Task exception was never retrieved".
+        with suppress(Exception):
+            task.exception()
+
     def _handle_message(self, message):
         # request the assigned topic to process the response
-        topic = self.topics.get(message["data"]["topic"])
-        if topic is not None:
-            # use a task to not block the websocket
-            asyncio.create_task(topic(json.loads(message["data"]["message"])))
+        data = message.get("data")
+        if not isinstance(data, dict):
+            return
+        topic = self.topics.get(data.get("topic", ""))
+        if topic is not None and "message" in data:
+            try:
+                payload = json.loads(data["message"])
+            except (json.JSONDecodeError, TypeError):
+                return
+            # use a task to not block the websocket, but keep it strongly referenced
+            # until completion so it cannot be garbage-collected mid-handler.
+            task = asyncio.create_task(topic(payload))
+            self._message_tasks.add(task)
+            task.add_done_callback(self._message_task_done)
 
     async def _handle_recv(self):
         """
@@ -286,7 +330,7 @@ class Websocket:
             await self._gather_recv(messages, timeout=0.5)
         # process them
         for message in messages:
-            msg_type = message["type"]
+            msg_type = message.get("type")
             if msg_type == "MESSAGE":
                 self._handle_message(message)
             elif msg_type == "PONG":
@@ -323,13 +367,14 @@ class Websocket:
 
     async def send(self, message: JsonType):
         ws = self._ws.get_with_default(None)
-        assert ws is not None
+        if ws is None or ws.closed:
+            raise WebsocketClosed(received=False)
         if message["type"] != "PING":
             message["nonce"] = create_nonce(CHARS_ASCII, 30)
         try:
             await ws.send_json(message, dumps=json_minify)
-        except aiohttp.ClientConnectionError:
-            raise WebsocketClosed(received=False)
+        except (aiohttp.ClientError, asyncio.TimeoutError, RuntimeError) as exc:
+            raise WebsocketClosed(received=False) from exc
         ws_logger.debug(f"Websocket[{self._idx}] sent: {message}")
 
 
@@ -348,7 +393,11 @@ class WebsocketPool:
 
     async def start(self):
         self._running.set()
-        await asyncio.gather(*(ws.start() for ws in self.websockets))
+        # Starting the pool means ensuring reconnect loops are running, not blocking
+        # inventory/GQL work until every websocket has connected. Topics can be queued
+        # while disconnected and are submitted automatically after reconnect.
+        for ws in self.websockets:
+            ws.start_nowait()
 
     async def stop(self, *, clear_topics: bool = False):
         self._running.clear()

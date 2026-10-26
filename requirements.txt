@@ -1,9 +1,8 @@
 aiohttp>=3.9,<4.0
 Pillow
 pystray
-truststore
-zendriver
+PyGObject<3.51; sys_platform == "linux"  # required for better system tray support on Linux
 
 # environment-dependent dependencies
-PyGObject<3.51; sys_platform == "linux"  # required for better system tray support on Linux
 pywin32; sys_platform == "win32"
+truststore
