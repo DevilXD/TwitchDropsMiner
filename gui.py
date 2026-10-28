@@ -904,6 +904,8 @@ class ChannelList:
         )
         self._add_column("acl_base", "📋", width_template="✔")
         self._channel_map: dict[str, Channel] = {}
+        self._display_batch_depth = 0
+        self._pending_widths: dict[str, int] = {}
 
     def _add_column(
         self,
@@ -962,7 +964,8 @@ class ChannelList:
 
     def _redraw(self):
         # this forces a redraw that recalculates widget width
-        self._table.event_generate("<<ThemeChanged>>")
+        if self._display_batch_depth == 0:
+            self._table.event_generate("<<ThemeChanged>>")
 
     def _adjust_width(self, column: str, value: str):
         # causes the column to expand if the value's width is greater than the current width
@@ -970,6 +973,13 @@ class ChannelList:
             return
         value_width = self._measure(value)
         curr_width = self._table.column(column, "width")
+        if self._display_batch_depth:
+            if value_width > curr_width:
+                self._pending_widths[column] = max(
+                    value_width,
+                    self._pending_widths.get(column, curr_width),
+                )
+            return
         if value_width > curr_width:
             self._table.column(column, width=value_width)
             self._redraw()
@@ -1071,6 +1081,30 @@ class ChannelList:
                     "channel": channel.name,
                 },
             )
+
+    def display_many(self, channels: abc.Iterable[Channel]) -> None:
+        """
+        Add/update a group of channels while deferring column resize redraws.
+
+        During initial channel gathering, repeated <<ThemeChanged>> events are
+        substantially more expensive than the inserts themselves.
+        """
+        self._display_batch_depth += 1
+        try:
+            for channel in channels:
+                self.display(channel, add=True)
+        finally:
+            self._display_batch_depth -= 1
+            if self._display_batch_depth == 0 and self._pending_widths:
+                changed = False
+                for column, width in self._pending_widths.items():
+                    curr_width = self._table.column(column, "width")
+                    if width > curr_width:
+                        self._table.column(column, width=width)
+                        changed = True
+                self._pending_widths.clear()
+                if changed:
+                    self._redraw()
 
     def remove(self, channel: Channel):
         iid = channel.iid
@@ -1228,11 +1262,20 @@ class Notebook:
 
 
 class CampaignDisplay(TypedDict):
-    frame: ttk.Frame
-    status: ttk.Label
+    frame: ttk.Frame | None
+    status: ttk.Label | None
+    window: int | None
 
 
 class InventoryOverview:
+    # Campaign cards are substantially taller than the usual Tk row. Keep a
+    # fixed logical row height so the canvas can represent the whole inventory
+    # without keeping every card widget alive.
+    CAMPAIGN_HEIGHT = 156
+    CAMPAIGN_GAP = 6
+    ROW_STRIDE = CAMPAIGN_HEIGHT + CAMPAIGN_GAP
+    VIEWPORT_BUFFER_ROWS = 3
+
     def __init__(self, manager: GUIManager, master: ttk.Widget):
         self._manager = manager
         self._cache: ImageCache = manager._cache
@@ -1247,6 +1290,7 @@ class InventoryOverview:
             "finished": IntVar(master, 0),
         }
         manager.tabs.add_view_event(self._on_tab_switched)
+
         # Filtering options
         filter_frame = ttk.LabelFrame(
             master, text=_("gui", "inventory", "filter", "name"), padding=(4, 0, 4, 4)
@@ -1300,41 +1344,64 @@ class InventoryOverview:
         ttk.Button(
             filter_frame, text=_("gui", "inventory", "filter", "refresh"), command=self.refresh
         ).grid(column=(icolumn := icolumn + 1), row=0)
-        # Inventory view
-        self._canvas = tk.Canvas(master, scrollregion=(0, 0, 0, 0))
+
+        # Inventory view. Campaign frames are canvas window items created only
+        # when their logical row is near the visible viewport.
+        self._canvas = tk.Canvas(
+            master,
+            scrollregion=(0, 0, 0, 0),
+            yscrollincrement=32,
+        )
         self._canvas.grid(column=0, row=1, sticky="nsew")
         master.rowconfigure(1, weight=1)
         master.columnconfigure(0, weight=1)
         xscroll = ttk.Scrollbar(master, orient="horizontal", command=self._canvas.xview)
         xscroll.grid(column=0, row=2, sticky="ew")
-        yscroll = ttk.Scrollbar(master, orient="vertical", command=self._canvas.yview)
-        yscroll.grid(column=1, row=1, sticky="ns")
-        self._canvas.configure(xscrollcommand=xscroll.set, yscrollcommand=yscroll.set)
+        self._yscroll = ttk.Scrollbar(master, orient="vertical", command=self._canvas.yview)
+        self._yscroll.grid(column=1, row=1, sticky="ns")
+        self._canvas.configure(
+            xscrollcommand=xscroll.set,
+            yscrollcommand=self._on_yscroll,
+        )
         self._canvas.bind("<Configure>", self._canvas_update)
-        self._main_frame = ttk.Frame(self._canvas)
         self._canvas.bind(
             "<Enter>", lambda e: self._canvas.bind_all("<MouseWheel>", self._on_mousewheel)
         )
         self._canvas.bind("<Leave>", lambda e: self._canvas.unbind_all("<MouseWheel>"))
-        self._canvas.create_window(0, 0, anchor="nw", window=self._main_frame)
+
+        # Model/render state. None frame/status/window means the campaign exists
+        # logically but currently has no Tk widgets allocated.
         self._campaigns: dict[DropsCampaign, CampaignDisplay] = {}
+        self._campaign_order: list[DropsCampaign] = []
+        self._visible_campaigns: list[DropsCampaign] = []
+        self._visible_rows: dict[DropsCampaign, int] = {}
+        self._campaign_visibility: dict[DropsCampaign, bool] = {}
+        self._campaign_status: dict[DropsCampaign, tuple[str, str]] = {}
         self._drops: dict[str, ttk.Label] = {}
 
+        self._render_tasks: dict[DropsCampaign, asyncio.Task[None]] = {}
+        self._generation = 0
+        self._max_campaign_width = 0
+
+        self._layout_after: str | None = None
+        self._canvas_update_after: str | None = None
+        self._virtualize_after: str | None = None
+        self._wheel_after: str | None = None
+        self._wheel_delta: int = 0
+        self._wheel_horizontal: bool = False
+
     def configure_theme(self, *, bg: str):
-        # Canvas background needs manual control
         self._canvas.configure(bg=bg)
 
-    def _update_visibility(self, campaign: DropsCampaign):
-        # True if the campaign is supposed to show, False makes it hidden.
-        frame = self._campaigns[campaign]["frame"]
+    def _is_visible(self, campaign: DropsCampaign) -> bool:
         not_linked = bool(self._filters["not_linked"].get())
         expired = bool(self._filters["expired"].get())
         excluded = bool(self._filters["excluded"].get())
         upcoming = bool(self._filters["upcoming"].get())
         finished = bool(self._filters["finished"].get())
         priority_only = self._settings.priority_mode is PriorityMode.PRIORITY_ONLY
-        if (
-            campaign.required_minutes > 0  # don't show sub-only campaigns
+        return (
+            campaign.required_minutes > 0
             and (not_linked or campaign.eligible)
             and (campaign.active or upcoming and campaign.upcoming or expired and campaign.expired)
             and (
@@ -1344,15 +1411,23 @@ class InventoryOverview:
                 )
             )
             and (finished or not campaign.finished)
-        ):
-            frame.grid()
-        else:
-            frame.grid_remove()
+        )
+
+    def _update_visibility(self, campaign: DropsCampaign) -> bool:
+        visible = self._is_visible(campaign)
+        if self._campaign_visibility.get(campaign) == visible:
+            return False
+        self._campaign_visibility[campaign] = visible
+        return True
 
     def _on_tab_switched(self, event: tk.Event[ttk.Notebook]) -> None:
         if self._manager.tabs.current_tab() == 1:
-            # refresh only if we're switching to the tab
             self.refresh()
+            self._schedule_virtualize()
+        else:
+            # There is no reason to keep the heavy inventory card hierarchy
+            # alive while another tab is displayed.
+            self._unrealize_all()
 
     def get_status(self, campaign: DropsCampaign) -> tuple[str, str]:
         if campaign.active:
@@ -1367,137 +1442,391 @@ class InventoryOverview:
         return (status_text, status_color)
 
     def refresh(self):
-        for campaign in self._campaigns:
-            # status
-            status_label = self._campaigns[campaign]["status"]
-            status_text, status_color = self.get_status(campaign)
-            status_label.config(text=status_text, foreground=status_color)
-            # visibility
-            self._update_visibility(campaign)
+        visibility_changed = False
+        for campaign, display in self._campaigns.items():
+            status = self.get_status(campaign)
+            if self._campaign_status.get(campaign) != status:
+                self._campaign_status[campaign] = status
+                status_label = display["status"]
+                if status_label is not None:
+                    status_label.config(text=status[0], foreground=status[1])
+            visibility_changed |= self._update_visibility(campaign)
+        if visibility_changed:
+            self._schedule_layout()
+        else:
+            self._canvas_update()
+            self._schedule_virtualize()
+
+    def _schedule_layout(self) -> None:
+        if self._layout_after is None:
+            self._layout_after = self._canvas.after_idle(self._rebuild_visible_campaigns)
+
+    def _rebuild_visible_campaigns(self) -> None:
+        self._layout_after = None
+        visible = [
+            campaign
+            for campaign in self._campaign_order
+            if self._campaign_visibility.get(campaign, False)
+        ]
+        self._visible_campaigns = visible
+        self._visible_rows = {campaign: row for row, campaign in enumerate(visible)}
+
+        # Remove cards no longer represented in the filtered logical list and
+        # reposition the handful of currently realized cards.
+        for campaign, display in list(self._campaigns.items()):
+            row = self._visible_rows.get(campaign)
+            if row is None:
+                self._unrealize_campaign(campaign)
+                continue
+            if display["window"] is not None:
+                self._canvas.coords(
+                    display["window"],
+                    0,
+                    row * self.ROW_STRIDE + self.CAMPAIGN_GAP // 2,
+                )
+
         self._canvas_update()
+        self._schedule_virtualize()
 
     def _canvas_update(self, event: tk.Event[tk.Canvas] | None = None):
-        self._canvas.update_idletasks()
-        self._canvas.configure(scrollregion=self._canvas.bbox("all"))
+        if self._canvas_update_after is None:
+            self._canvas_update_after = self._canvas.after_idle(self._apply_canvas_update)
+
+    def _apply_canvas_update(self) -> None:
+        self._canvas_update_after = None
+        width = max(self._canvas.winfo_width(), self._max_campaign_width)
+        height = len(self._visible_campaigns) * self.ROW_STRIDE
+        self._canvas.configure(scrollregion=(0, 0, width, height))
+        self._schedule_virtualize()
+
+    def _on_yscroll(self, first: str, last: str) -> None:
+        self._yscroll.set(first, last)
+        self._schedule_virtualize()
+
+    def _schedule_virtualize(self) -> None:
+        if self._virtualize_after is None:
+            self._virtualize_after = self._canvas.after_idle(self._refresh_virtualized)
+
+    def _refresh_virtualized(self) -> None:
+        self._virtualize_after = None
+        if self._manager.tabs.current_tab() != 1:
+            return
+        if not self._visible_campaigns:
+            self._unrealize_all()
+            return
+
+        top = max(0.0, float(self._canvas.canvasy(0)))
+        bottom = top + max(1, self._canvas.winfo_height())
+        start = max(0, int(top // self.ROW_STRIDE) - self.VIEWPORT_BUFFER_ROWS)
+        end = min(
+            len(self._visible_campaigns),
+            int(bottom // self.ROW_STRIDE) + self.VIEWPORT_BUFFER_ROWS + 2,
+        )
+        desired = set(self._visible_campaigns[start:end])
+
+        for campaign, display in list(self._campaigns.items()):
+            if display["frame"] is not None and campaign not in desired:
+                self._unrealize_campaign(campaign)
+
+        generation = self._generation
+        for campaign in desired:
+            display = self._campaigns.get(campaign)
+            if (
+                display is not None
+                and display["frame"] is None
+                and campaign not in self._render_tasks
+            ):
+                task = asyncio.create_task(self._realize_campaign(campaign, generation))
+                self._render_tasks[campaign] = task
+                task.add_done_callback(partial(self._campaign_render_done, campaign))
+
+    def _campaign_render_done(
+        self, campaign: DropsCampaign, task: asyncio.Task[None]
+    ) -> None:
+        if self._render_tasks.get(campaign) is task:
+            self._render_tasks.pop(campaign, None)
+        if task.cancelled():
+            # A row may have become visible again while its previous render task
+            # was still being cancelled. Re-evaluate the viewport immediately.
+            self._schedule_virtualize()
+            return
+        exc = task.exception()
+        if exc is not None:
+            logger.error(
+                f"Inventory campaign render failed: {campaign.id}",
+                exc_info=(type(exc), exc, exc.__traceback__),
+            )
+        self._schedule_virtualize()
 
     def _on_mousewheel(self, event: tk.Event[tk.Misc]):
-        delta = -1 if event.delta > 0 else 1
+        self._wheel_delta += -1 if event.delta > 0 else 1
         state: int = event.state if isinstance(event.state, int) else 0
-        if state & 1:
-            scroll = self._canvas.xview_scroll
-        else:
-            scroll = self._canvas.yview_scroll
-        scroll(delta, "units")
+        self._wheel_horizontal = bool(state & 1)
+        if self._wheel_after is None:
+            self._wheel_after = self._canvas.after(12, self._flush_mousewheel)
 
-    async def add_campaign(self, campaign: DropsCampaign) -> None:
-        campaign_frame = ttk.Frame(self._main_frame, relief="ridge", borderwidth=1, padding=4)
-        campaign_frame.grid(column=0, row=len(self._campaigns), sticky="nsew", pady=3)
-        campaign_frame.rowconfigure(4, weight=1)
-        campaign_frame.columnconfigure(1, weight=1)
-        campaign_frame.columnconfigure(3, weight=10000)
-        # Name
-        ttk.Label(
-            campaign_frame, text=campaign.name, takefocus=False, width=45
-        ).grid(column=0, row=0, columnspan=2, sticky="w")
-        # Status
-        status_text, status_color = self.get_status(campaign)
-        status_label = ttk.Label(
-            campaign_frame, text=status_text, takefocus=False, foreground=status_color
-        )
-        status_label.grid(column=1, row=1, sticky="w", padx=4)
-        # NOTE: We have to save the campaign's frame and status before any awaits happen,
-        # otherwise the len(self._campaigns) call may overwrite an existing frame,
-        # if the campaigns are added concurrently.
+    def _flush_mousewheel(self) -> None:
+        self._wheel_after = None
+        delta = self._wheel_delta
+        self._wheel_delta = 0
+        if delta == 0:
+            return
+        delta = max(-8, min(8, delta))
+        if self._wheel_horizontal:
+            self._canvas.xview_scroll(delta, "units")
+        else:
+            self._canvas.yview_scroll(delta, "units")
+        self._schedule_virtualize()
+
+    def add_campaign(self, campaign: DropsCampaign) -> None:
+        # Inventory population only records the model. Heavy Tk widgets and image
+        # decoding are deferred until the campaign is near the visible viewport.
+        if campaign in self._campaigns:
+            return
         self._campaigns[campaign] = {
-            "frame": campaign_frame,
-            "status": status_label,
+            "frame": None,
+            "status": None,
+            "window": None,
         }
-        # Starts / Ends
-        MouseOverLabel(
-            campaign_frame,
-            text=_("gui", "inventory", "ends").format(
-                time=campaign.ends_at.astimezone().replace(microsecond=0, tzinfo=None)
-            ),
-            alt_text=_("gui", "inventory", "starts").format(
-                time=campaign.starts_at.astimezone().replace(microsecond=0, tzinfo=None)
-            ),
-            reverse=campaign.upcoming,
-            takefocus=False,
-        ).grid(column=1, row=2, sticky="w", padx=4)
-        # Linking status
-        if campaign.eligible:
-            link_kwargs = {
-                "style": '',
-                "text": _("gui", "inventory", "status", "linked"),
-                "foreground": "green",
-            }
-        else:
-            link_kwargs = {
-                "text": _("gui", "inventory", "status", "not_linked"),
-                "foreground": "red",
-            }
-        LinkLabel(
-            campaign_frame,
-            link=campaign.link_url,
-            takefocus=False,
-            padding=0,
-            **link_kwargs,
-        ).grid(column=1, row=3, sticky="w", padx=4)
-        # ACL channels
-        acl = campaign.allowed_channels
-        if acl:
-            if len(acl) <= 5:
-                allowed_text: str = '\n'.join(ch.name for ch in acl)
-            else:
-                allowed_text = '\n'.join(ch.name for ch in acl[:4])
-                allowed_text += (
-                    f"\n{_('gui', 'inventory', 'and_more').format(amount=len(acl) - 4)}"
-                )
-        else:
-            allowed_text = _("gui", "inventory", "all_channels")
-        ttk.Label(
-            campaign_frame,
-            text=f"{_('gui', 'inventory', 'allowed_channels')}\n{allowed_text}",
-            takefocus=False,
-        ).grid(column=1, row=4, sticky="nw", padx=4)
-        # Image
-        campaign_image = await self._cache.get(campaign.image_url, size=(108, 144))
-        ttk.Label(campaign_frame, image=campaign_image).grid(column=0, row=1, rowspan=4)
-        # Drops separator
-        ttk.Separator(
-            campaign_frame, orient="vertical", takefocus=False
-        ).grid(column=2, row=0, rowspan=5, sticky="ns")
-        # Drops display
-        drops_row = ttk.Frame(campaign_frame)
-        drops_row.grid(column=3, row=0, rowspan=5, sticky="nsew", padx=4)
-        drops_row.rowconfigure(0, weight=1)
-        for i, drop in enumerate(campaign.drops):
-            drop_frame = ttk.Frame(drops_row, relief="ridge", borderwidth=1, padding=5)
-            drop_frame.grid(column=i, row=0, padx=4)
-            benefits_frame = ttk.Frame(drop_frame)
-            benefits_frame.grid(column=0, row=0)
-            benefit_images: list[PhotoImage] = await asyncio.gather(
-                *(self._cache.get(benefit.image_url, (80, 80)) for benefit in drop.benefits)
+        self._campaign_order.append(campaign)
+        self._campaign_status[campaign] = self.get_status(campaign)
+        self._campaign_visibility[campaign] = self._is_visible(campaign)
+        self._schedule_layout()
+
+    async def _realize_campaign(self, campaign: DropsCampaign, generation: int) -> None:
+        if generation != self._generation:
+            return
+        display = self._campaigns.get(campaign)
+        row = self._visible_rows.get(campaign)
+        if display is None or row is None or display["frame"] is not None:
+            return
+
+        campaign_frame = ttk.Frame(
+            self._canvas, relief="ridge", borderwidth=1, padding=4
+        )
+        window = self._canvas.create_window(
+            0,
+            row * self.ROW_STRIDE + self.CAMPAIGN_GAP // 2,
+            anchor="nw",
+            window=campaign_frame,
+            height=self.CAMPAIGN_HEIGHT,
+        )
+        display["frame"] = campaign_frame
+        display["window"] = window
+
+        try:
+            campaign_frame.rowconfigure(4, weight=1)
+            campaign_frame.columnconfigure(1, weight=1)
+            campaign_frame.columnconfigure(3, weight=10000)
+
+            ttk.Label(
+                campaign_frame, text=campaign.name, takefocus=False, width=45
+            ).grid(column=0, row=0, columnspan=2, sticky="w")
+
+            status_text, status_color = self.get_status(campaign)
+            self._campaign_status[campaign] = (status_text, status_color)
+            status_label = ttk.Label(
+                campaign_frame,
+                text=status_text,
+                takefocus=False,
+                foreground=status_color,
             )
-            for i, benefit, image in zip(range(len(drop.benefits)), drop.benefits, benefit_images):
-                ttk.Label(
-                    benefits_frame,
-                    text=benefit.name,
-                    image=image,
-                    compound="bottom",
-                ).grid(column=i, row=0, padx=5)
-            self._drops[drop.id] = label = ttk.Label(drop_frame, justify=tk.CENTER)
-            self.update_progress(drop, label)
-            label.grid(column=0, row=1)
-        if self._manager.tabs.current_tab() == 1:
-            self._update_visibility(campaign)
+            status_label.grid(column=1, row=1, sticky="w", padx=4)
+            display["status"] = status_label
+
+            MouseOverLabel(
+                campaign_frame,
+                text=_("gui", "inventory", "ends").format(
+                    time=campaign.ends_at.astimezone().replace(microsecond=0, tzinfo=None)
+                ),
+                alt_text=_("gui", "inventory", "starts").format(
+                    time=campaign.starts_at.astimezone().replace(microsecond=0, tzinfo=None)
+                ),
+                reverse=campaign.upcoming,
+                takefocus=False,
+            ).grid(column=1, row=2, sticky="w", padx=4)
+
+            if campaign.eligible:
+                link_kwargs = {
+                    "style": '',
+                    "text": _("gui", "inventory", "status", "linked"),
+                    "foreground": "green",
+                }
+            else:
+                link_kwargs = {
+                    "text": _("gui", "inventory", "status", "not_linked"),
+                    "foreground": "red",
+                }
+            LinkLabel(
+                campaign_frame,
+                link=campaign.link_url,
+                takefocus=False,
+                padding=0,
+                **link_kwargs,
+            ).grid(column=1, row=3, sticky="w", padx=4)
+
+            acl = campaign.allowed_channels
+            if acl:
+                if len(acl) <= 5:
+                    allowed_text: str = '\n'.join(ch.name for ch in acl)
+                else:
+                    allowed_text = '\n'.join(ch.name for ch in acl[:4])
+                    allowed_text += (
+                        f"\n{_('gui', 'inventory', 'and_more').format(amount=len(acl) - 4)}"
+                    )
+            else:
+                allowed_text = _("gui", "inventory", "all_channels")
+            ttk.Label(
+                campaign_frame,
+                text=f"{_('gui', 'inventory', 'allowed_channels')}\n{allowed_text}",
+                takefocus=False,
+            ).grid(column=1, row=4, sticky="nw", padx=4)
+
+            # Create lightweight placeholders before awaiting image cache I/O so
+            # scrolling never waits for image decode/network work.
+            campaign_image_label = ttk.Label(campaign_frame)
+            campaign_image_label.grid(column=0, row=1, rowspan=4)
+
+            ttk.Separator(
+                campaign_frame, orient="vertical", takefocus=False
+            ).grid(column=2, row=0, rowspan=5, sticky="ns")
+
+            drops_row = ttk.Frame(campaign_frame)
+            drops_row.grid(column=3, row=0, rowspan=5, sticky="nsew", padx=4)
+            drops_row.rowconfigure(0, weight=1)
+
+            benefit_labels: list[tuple[ttk.Label, Any]] = []
+            for drop_index, drop in enumerate(campaign.drops):
+                drop_frame = ttk.Frame(drops_row, relief="ridge", borderwidth=1, padding=5)
+                drop_frame.grid(column=drop_index, row=0, padx=4)
+                benefits_frame = ttk.Frame(drop_frame)
+                benefits_frame.grid(column=0, row=0)
+
+                for benefit_index, benefit in enumerate(drop.benefits):
+                    benefit_label = ttk.Label(
+                        benefits_frame,
+                        text=benefit.name,
+                        compound="bottom",
+                    )
+                    benefit_label.grid(column=benefit_index, row=0, padx=5)
+                    benefit_labels.append((benefit_label, benefit))
+
+                label = ttk.Label(drop_frame, justify=tk.CENTER)
+                self._drops[drop.id] = label
+                self.update_progress(drop, label)
+                label.grid(column=0, row=1)
+
+            # Yield before image work. If the user scrolls away, virtualization can
+            # cancel this task and destroy the card without finishing unnecessary I/O.
+            await asyncio.sleep(0)
+            if (
+                generation != self._generation
+                or self._campaigns.get(campaign) is not display
+                or display["frame"] is not campaign_frame
+                or campaign not in self._visible_rows
+            ):
+                return
+
+            campaign_image = await self._cache.get(campaign.image_url, size=(108, 144))
+            if display["frame"] is not campaign_frame:
+                return
+            campaign_image_label.config(image=campaign_image)
+            # Tk widgets only store the Tcl image name. Keep a Python reference on
+            # the visible label so ImageCache can evict old off-screen PhotoImages.
+            setattr(campaign_image_label, "_image_ref", campaign_image)
+
+            if benefit_labels:
+                benefit_images: list[PhotoImage] = await asyncio.gather(
+                    *(
+                        self._cache.get(benefit.image_url, (80, 80))
+                        for _, benefit in benefit_labels
+                    )
+                )
+                if display["frame"] is not campaign_frame:
+                    return
+                for (benefit_label, benefit), image in zip(benefit_labels, benefit_images):
+                    benefit_label.config(image=image)
+                    setattr(benefit_label, "_image_ref", image)
+
+            self._canvas.after_idle(
+                lambda frame=campaign_frame, gen=generation: self._measure_campaign_width(
+                    frame, gen
+                )
+            )
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            self._unrealize_campaign(campaign)
+            raise
+
+    def _measure_campaign_width(self, frame: ttk.Frame, generation: int) -> None:
+        if generation != self._generation or not frame.winfo_exists():
+            return
+        width = frame.winfo_reqwidth()
+        if width > self._max_campaign_width:
+            self._max_campaign_width = width
             self._canvas_update()
 
+    def _unrealize_campaign(self, campaign: DropsCampaign) -> None:
+        task = self._render_tasks.get(campaign)
+        try:
+            current = asyncio.current_task()
+        except RuntimeError:
+            current = None
+        if task is not None and task is not current and not task.done():
+            task.cancel()
+
+        display = self._campaigns.get(campaign)
+        if display is None:
+            return
+        for drop in campaign.drops:
+            self._drops.pop(drop.id, None)
+
+        window = display["window"]
+        if window is not None:
+            self._canvas.delete(window)
+        frame = display["frame"]
+        if frame is not None and frame.winfo_exists():
+            frame.destroy()
+        display["frame"] = None
+        display["status"] = None
+        display["window"] = None
+
+    def _unrealize_all(self) -> None:
+        for campaign in list(self._campaigns):
+            self._unrealize_campaign(campaign)
+
     def clear(self) -> None:
-        for child in self._main_frame.winfo_children():
-            child.destroy()
+        self._generation += 1
+
+        for after_id_name in (
+            "_layout_after",
+            "_canvas_update_after",
+            "_virtualize_after",
+            "_wheel_after",
+        ):
+            after_id = getattr(self, after_id_name)
+            if after_id is not None:
+                with suppress(tk.TclError):
+                    self._canvas.after_cancel(after_id)
+                setattr(self, after_id_name, None)
+
+        for task in list(self._render_tasks.values()):
+            if not task.done():
+                task.cancel()
+        self._render_tasks.clear()
+        self._wheel_delta = 0
+
+        self._unrealize_all()
         self._drops.clear()
         self._campaigns.clear()
+        self._campaign_order.clear()
+        self._visible_campaigns.clear()
+        self._visible_rows.clear()
+        self._campaign_visibility.clear()
+        self._campaign_status.clear()
+        self._max_campaign_width = 0
+        self._canvas.configure(scrollregion=(0, 0, 0, 0))
 
     def update_progress(self, drop: TimedDrop, label: ttk.Label) -> None:
         progress_text: str
@@ -1514,7 +1843,6 @@ class InventoryOverview:
                 minutes=drop.required_minutes,
             )
             if drop.ends_at < drop.campaign.ends_at:
-                # this drop becomes unavailable earlier than the campaign ends
                 progress_text += '\n' + _("gui", "inventory", "ends").format(
                     time=drop.ends_at.astimezone().replace(microsecond=0, tzinfo=None)
                 )
@@ -1524,26 +1852,28 @@ class InventoryOverview:
                     minutes=drop.required_minutes
                 )
             else:
-                # required_minutes is zero for subscription-based drops
                 progress_text = ''
             if datetime.now(timezone.utc) < drop.starts_at > drop.campaign.starts_at:
-                # this drop can only be earned later than the campaign start
                 progress_text += '\n' + _("gui", "inventory", "starts").format(
                     time=drop.starts_at.astimezone().replace(microsecond=0, tzinfo=None)
                 )
             elif drop.ends_at < drop.campaign.ends_at:
-                # this drop becomes unavailable earlier than the campaign ends
                 progress_text += '\n' + _("gui", "inventory", "ends").format(
                     time=drop.ends_at.astimezone().replace(microsecond=0, tzinfo=None)
                 )
         label.config(text=progress_text, foreground=progress_color)
 
     def update_drop(self, drop: TimedDrop) -> None:
+        # Progress is model-owned. A virtualized row that is not currently
+        # realized simply renders the latest value next time it enters the viewport.
         label = self._drops.get(drop.id)
-        if label is None:
-            return
-        self.update_progress(drop, label)
+        if label is not None:
+            self.update_progress(drop, label)
 
+        # Completion can change whether the campaign should be shown. Re-evaluate
+        # immediately instead of leaving a finished card visible until a tab switch.
+        if self._update_visibility(drop.campaign):
+            self._schedule_layout()
 
 def proxy_validate(entry: PlaceholderEntry, settings: Settings) -> bool:
     raw_url = entry.get().strip()
@@ -2909,7 +3239,7 @@ if __name__ == "__main__":
             "Wardrobe Cleaning", "Cleaning Masters", ["Fancy Pants"], 2, 7, 0, 240
         )
         campaign = drop.campaign
-        await gui.inv.add_campaign(campaign)
+        gui.inv.add_campaign(campaign)
 
         gui.print("Single-line test message")
         await asyncio.sleep(1)

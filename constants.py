@@ -345,7 +345,7 @@ GQL_QUERIES: dict[str, GQLPersistedQuery] = {
     # returns all in-progress campaigns
     "Inventory": GQLPersistedQuery(
         "Inventory",
-        "8337eb8541b314040b0edde0c09c5c7a2783ba1960aa9edfbf3bac16d0fec404",
+        "d86775d0ef16a63a33ad52e80eaff963b2d5b72fada7c991504a57496e1d8e4b",
         variables={
             "fetchRewardCampaigns": False,
         }
@@ -362,7 +362,7 @@ GQL_QUERIES: dict[str, GQLPersistedQuery] = {
     # returns all available campaigns
     "Campaigns": GQLPersistedQuery(
         "ViewerDropsDashboard",
-        "c16bb890cc8ce7647a96ee69cd313d423a378a3dedadf630a1017cde18975feb",
+        "5a4da2ab3d5b47c9f9ce864e727b2cb346af1e3ea8b897fe8f704a97ff017619",
         variables={
             "fetchRewardCampaigns": False,
         }
@@ -379,7 +379,7 @@ GQL_QUERIES: dict[str, GQLPersistedQuery] = {
     # returns drops available for a particular channel
     "AvailableDrops": GQLPersistedQuery(
         "DropsHighlightService_AvailableDrops",
-        "782dad0f032942260171d2d80a654f88bdd0c5a9dddc392e9bc92218a0f42d20",
+        "9a62a09bce5b53e26e64a671e530bc599cb6aab1e5ba3cbd5d85966d3940716f",
         variables={
             "channelID": ...,  # channel ID as a str
         },
@@ -400,7 +400,7 @@ GQL_QUERIES: dict[str, GQLPersistedQuery] = {
     # returns live channels for a particular game
     "GameDirectory": GQLPersistedQuery(
         "DirectoryPage_Game",
-        "86bcceb4e8b1a51256ff8eed8bd8aae4acacf80d737efe904f84f3aeadf8cafd",
+        "cb5dc816e139dcb8a118f14b4b677d59abc224a4b016c4bc2bb00a47fe0ddec4",
         variables={
             "limit": 30,  # limit of channels returned
             "slug": ...,  # game slug

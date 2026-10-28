@@ -229,11 +229,34 @@ class _AuthState:
                     #     "verification_uri": "https://www.twitch.tv/activate?device-code=ABCDEFGH"
                     # }
                     response_json: JsonType = await response.json()
-                    device_code: str = response_json["device_code"]
-                    user_code: str = response_json["user_code"]
-                    interval: int = response_json["interval"]
-                    verification_uri: URL = URL(response_json["verification_uri"])
-                    expires_at = now + timedelta(seconds=response_json["expires_in"])
+                    required_fields = (
+                        "device_code",
+                        "user_code",
+                        "interval",
+                        "verification_uri",
+                        "expires_in",
+                    )
+                    missing_fields = [
+                        field for field in required_fields if field not in response_json
+                    ]
+                    if response.status != 200 or missing_fields:
+                        # Twitch returns an error JSON (for example {"error": "invalid client"})
+                        # when a client is no longer eligible for device authorization. Do not
+                        # turn that into an opaque KeyError: surface a useful login error instead.
+                        error_detail = cast(
+                            str,
+                            response_json.get("message")
+                            or response_json.get("error")
+                            or f"HTTP {response.status}",
+                        )
+                        raise LoginException(
+                            f"Twitch device authorization failed: {error_detail}"
+                        )
+                    device_code: str = cast(str, response_json["device_code"])
+                    user_code: str = cast(str, response_json["user_code"])
+                    interval: int = int(response_json["interval"])
+                    verification_uri: URL = URL(cast(str, response_json["verification_uri"]))
+                    expires_at = now + timedelta(seconds=int(response_json["expires_in"]))
 
                 # Print the code to the user, open them the activate page so they can type it in
                 await login_form.ask_enter_code(verification_uri, user_code)
@@ -522,7 +545,11 @@ class Twitch:
         # Do not modify the default, safe values.
         self._qgl_limiter = RateLimiter(capacity=5, window=1)
         # Client type, session and auth
-        self._client_type: ClientInfo = ClientType.ANDROID_APP
+        # Twitch stopped issuing device codes to the Android app client in September 2026.
+        # Use the Smart Box client for the device authorization flow; this mirrors the
+        # upstream v1.3.1 login fix and prevents fresh installs from failing before the
+        # browser activation page can be opened.
+        self._client_type: ClientInfo = ClientType.SMARTBOX
         self._session: aiohttp.ClientSession | None = None
         self._auth_state: _AuthState = _AuthState(self)
         # GUI
@@ -810,10 +837,11 @@ class Twitch:
                     self.change_state(State.IDLE)
             elif self._state is State.CHANNELS_FETCH:
                 self.gui.status.update(_("gui", "status", "gathering"))
-                # start with all current channels, clear the memory and GUI
+                # Start with all current channels, but keep the live mapping intact
+                # while network discovery runs. PubSub remains subscribed during this
+                # phase, so clearing the mapping here creates a race where valid stream
+                # events resolve as "non-existing channel".
                 new_channels: set[Channel] = set(channels.values())
-                channels.clear()
-                self.gui.channels.clear()
                 # gather and add ACL channels from campaigns
                 # NOTE: we consider only campaigns that can be progressed
                 # NOTE: we use another set so that we can set them online separately
@@ -831,14 +859,38 @@ class Twitch:
                             no_acl.add(campaign.game)
                 # remove all ACL channels that already exist from the other set
                 acl_channels.difference_update(new_channels)
-                # use the other set to set them online if possible
-                await self.bulk_check_online(acl_channels)
+
+                # ACL status checks and game-directory discovery are independent.
+                # Run both pipelines together, and batch GameDirectory operations
+                # instead of paying one HTTP round trip per eligible game.
+                acl_check_task = asyncio.create_task(
+                    self.bulk_check_online(acl_channels, check_available_drops=False)
+                )
+                directory_task = asyncio.create_task(
+                    self.get_live_streams_bulk(no_acl, drops_enabled=True)
+                )
+                try:
+                    _acl_result, directory_channels = await asyncio.gather(
+                        acl_check_task,
+                        directory_task,
+                    )
+                except (Exception, asyncio.CancelledError):
+                    # gather() does not reliably cancel sibling tasks when one
+                    # independently-created task fails. Stop and drain both so a
+                    # failed channel refresh cannot keep mutating state in background.
+                    for task in (acl_check_task, directory_task):
+                        if not task.done():
+                            task.cancel()
+                    await asyncio.gather(
+                        acl_check_task,
+                        directory_task,
+                        return_exceptions=True,
+                    )
+                    raise
+
                 # finally, add them as new channels
                 new_channels.update(acl_channels)
-                for game in no_acl:
-                    # for every campaign without an ACL, for it's game,
-                    # add a list of live channels with drops enabled
-                    new_channels.update(await self.get_live_streams(game, drops_enabled=True))
+                new_channels.update(directory_channels)
                 # sort them descending by viewers, by priority and by game priority
                 # NOTE: Viewers sort also ensures ONLINE channels are sorted to the top
                 # NOTE: We can drop using the set now, because there's no more channels being added
@@ -850,12 +902,29 @@ class Twitch:
                 # ensure that we won't end up with more channels than we can handle
                 # NOTE: we trim from the end because that's where the non-priority,
                 # offline (or online but low viewers) channels end up
-                to_remove_channels = ordered_channels[MAX_CHANNELS:]
                 ordered_channels = ordered_channels[:MAX_CHANNELS]
+
+                # The optional AvailableDrops verification is comparatively expensive.
+                # Only check retained online ACL channels instead of every ACL candidate
+                # discovered before MAX_CHANNELS trimming.
+                if self.settings.available_drops_check:
+                    await self.bulk_check_available_drops(
+                        channel
+                        for channel in ordered_channels
+                        if channel.acl_based and channel.online
+                    )
+
+                # Atomically reconcile the discovered set with the currently tracked
+                # set. All network awaits are finished above, so there is no event-loop
+                # interleaving between removing stale channels and repopulating the GUI.
+                desired_ids = {channel.id for channel in ordered_channels}
+                to_remove_channels = [
+                    channel
+                    for channel_id, channel in channels.items()
+                    if channel_id not in desired_ids
+                ]
                 if to_remove_channels:
-                    # tracked channels and gui were cleared earlier, so no need to do it here
-                    # just make sure to unsubscribe from their topics
-                    to_remove_topics = []
+                    to_remove_topics: list[str] = []
                     for channel in to_remove_channels:
                         to_remove_topics.append(
                             WebsocketTopic.as_str("Channel", "StreamState", channel.id)
@@ -864,11 +933,19 @@ class Twitch:
                             WebsocketTopic.as_str("Channel", "StreamUpdate", channel.id)
                         )
                     self.websocket.remove_topics(to_remove_topics)
-                    del to_remove_channels, to_remove_topics
-                # set our new channel list
+                    for channel in to_remove_channels:
+                        del channels[channel.id]
+                        channel.remove()
+                    del to_remove_topics
+
+                # Rebuild only the visual ordering now that the authoritative channel
+                # mapping is stable. Existing Channel objects remain valid throughout
+                # the fetch, so queued PubSub events can still resolve correctly.
+                self.gui.channels.clear()
                 for channel in ordered_channels:
                     channels[channel.id] = channel
-                    channel.display(add=True)
+                self.gui.channels.display_many(ordered_channels)
+                del desired_ids, to_remove_channels
                 # subscribe to these channel's state updates
                 to_add_topics: list[WebsocketTopic] = []
                 for channel_id in channels:
@@ -1130,7 +1207,9 @@ class Twitch:
         msg_type = message["type"]
         channel = self.channels.get(channel_id)
         if channel is None:
-            logger.error(f"Stream state change for a non-existing channel: {channel_id}")
+            # PubSub messages already queued before an UNLISTEN can arrive after
+            # channel cleanup. They are stale by definition and safe to ignore.
+            logger.debug(f"Ignoring stale stream state for removed channel: {channel_id}")
             return
         if msg_type == "viewcount":
             if not channel.online:
@@ -1166,7 +1245,9 @@ class Twitch:
         # }
         channel = self.channels.get(channel_id)
         if channel is None:
-            logger.error(f"Broadcast settings update for a non-existing channel: {channel_id}")
+            # Same cleanup race as stream-state messages: an in-flight update can
+            # arrive after its channel/topic has already been removed.
+            logger.debug(f"Ignoring stale broadcast update for removed channel: {channel_id}")
             return
         if message["old_game"] != message["game"]:
             game_change = f", game changed: {message['old_game']} -> {message['game']}"
@@ -1396,52 +1477,87 @@ class Twitch:
             else:
                 response_list = [response_json]
             force_retry: bool = False
-            for response_json in response_list:
+            for response_index, response_json in enumerate(response_list):
+                if not isinstance(response_json, dict):
+                    raise GQLException(f"Unexpected GQL response: {response_json!r}")
+
+                # Twitch error responses do not consistently include
+                # extensions.operationName. Fall back to the submitted operation so
+                # logging an error never becomes a second, fatal KeyError.
+                extensions = response_json.get("extensions")
+                operation_name: str | None = (
+                    cast(str | None, extensions.get("operationName"))
+                    if isinstance(extensions, dict)
+                    else None
+                )
+                if operation_name is None:
+                    submitted_op: GQLOperation | None
+                    if isinstance(ops, list):
+                        submitted_op = ops[response_index] if response_index < len(ops) else None
+                    else:
+                        submitted_op = ops
+                    if isinstance(submitted_op, dict):
+                        operation_name = cast(str | None, submitted_op.get("operationName"))
+                operation_name = operation_name or "<unknown operation>"
+
                 # GQL error handling
                 if "errors" in response_json:
+                    handled_error = False
                     for error_dict in response_json["errors"]:
-                        if "message" in error_dict:
-                            if (
-                                single_retry
-                                and error_dict["message"] in (
-                                    "service error",
-                                    "PersistedQueryNotFound",
-                                )
-                            ):
-                                logger.error(
-                                    f"Retrying a {error_dict['message']} for "
-                                    f"{response_json['extensions']['operationName']}"
-                                )
-                                single_retry = False
-                                if delay < 5:
-                                    # overwrite the delay if too short
-                                    delay = 5
-                                force_retry = True
+                        if not isinstance(error_dict, dict):
+                            continue
+                        message = error_dict.get("message")
+                        if not isinstance(message, str):
+                            continue
+
+                        if message == "PersistedQueryNotFound" and single_retry:
+                            logger.error(f"Retrying {message} for {operation_name}")
+                            single_retry = False
+                            if delay < 5:
+                                delay = 5
+                            force_retry = True
+                            handled_error = True
+                            break
+
+                        if message == "server error":
+                            # Some server errors include a valid GraphQL path so the
+                            # failed field can be treated as null. If Twitch omits or
+                            # changes that path, retry instead of crashing on path[-1].
+                            data_obj = response_json.get("data")
+                            path = error_dict.get("path")
+                            if isinstance(data_obj, dict) and isinstance(path, list) and path:
+                                target: Any = data_obj
+                                try:
+                                    for key in path[:-1]:
+                                        target = target[key]
+                                    target[path[-1]] = None
+                                except (KeyError, IndexError, TypeError):
+                                    force_retry = True
+                                handled_error = True
                                 break
-                            elif error_dict["message"] == "server error":
-                                # nullify the key the error path points to
-                                data_dict: JsonType = response_json["data"]
-                                path: list[str] = error_dict.get("path", [])
-                                for key in path[:-1]:
-                                    data_dict = data_dict[key]
-                                data_dict[path[-1]] = None
-                                break
-                            elif (
-                                error_dict["message"] in (
-                                    "service timeout",
-                                    "request cancelled",
-                                    "service unavailable",
-                                    "context deadline exceeded",
-                                )
-                            ):
-                                force_retry = True
-                                break
-                    else:
-                        raise GQLException(response_json['errors'])
+                            force_retry = True
+                            handled_error = True
+                            break
+
+                        if message in (
+                            "service error",
+                            "service timeout",
+                            "request cancelled",
+                            "service unavailable",
+                            "context deadline exceeded",
+                        ):
+                            logger.warning(f"Retrying {message} for {operation_name}")
+                            force_retry = True
+                            handled_error = True
+                            break
+
+                    if not handled_error:
+                        raise GQLException(response_json["errors"])
                 # Other error handling
                 elif "error" in response_json:
                     raise GQLException(
-                        f"{response_json['error']}: {response_json['message']}"
+                        f"{response_json.get('error', 'GQL error')}: "
+                        f"{response_json.get('message', 'No message')}"
                     )
                 if force_retry:
                     break
@@ -1489,6 +1605,123 @@ class Twitch:
         }
         return self._merge_data(campaign_ids, fetched_data)
 
+    async def fetch_campaign_catalog(self) -> dict[str, JsonType]:
+        """
+        Fetch full campaign metadata from the public Twitch Drops catalog.
+
+        Twitch's SMARTBOX client can still use the device OAuth flow, but Twitch
+        intentionally returns an empty/incomplete ViewerDropsDashboard response for it.
+        The catalog is used only for public campaign metadata; authentication, inventory
+        progress, websocket updates, watch events and claiming remain direct Twitch calls.
+        """
+        catalog_url = "https://twitch-drops-api.sunkwi.com/v2/drops"
+        request_kwargs: JsonType = {"headers": {"Accept": "application/json"}}
+        if self.settings.proxy:
+            request_kwargs["proxy"] = self.settings.proxy
+
+        try:
+            timeout = aiohttp.ClientTimeout(total=20)
+            async with aiohttp.ClientSession(
+                timeout=timeout,
+                cookie_jar=aiohttp.DummyCookieJar(),
+                headers={"User-Agent": "TwitchDropsMiner campaign fallback"},
+            ) as session:
+                async with session.get(catalog_url, **request_kwargs) as response:
+                    if response.status != 200:
+                        raise RequestException(
+                            f"Campaign catalog returned HTTP {response.status}"
+                        )
+                    payload: JsonType = await response.json()
+        except (aiohttp.ClientError, asyncio.TimeoutError, ValueError, RequestException) as exc:
+            logger.warning(f"Campaign catalog fallback failed: {exc}")
+            return {}
+
+        groups = payload.get("data")
+        if not isinstance(groups, list):
+            logger.warning("Campaign catalog fallback returned an invalid payload")
+            return {}
+
+        # Reject materially stale snapshots instead of presenting campaigns that
+        # may already have ended. The service advertises a 60-second refresh
+        # interval, but allow a generous grace period for transient delays.
+        last_updated_raw = payload.get("lastUpdatedAt")
+        refresh_interval = payload.get("refreshIntervalSeconds", 60)
+        try:
+            refresh_seconds = max(1, int(refresh_interval))
+            last_updated = timestamp(cast(str, last_updated_raw))
+        except (TypeError, ValueError):
+            logger.warning("Campaign catalog fallback returned invalid freshness metadata")
+            return {}
+        now = datetime.now(timezone.utc)
+        max_age = timedelta(seconds=max(300, refresh_seconds * 5))
+        if last_updated > now + timedelta(minutes=2) or now - last_updated > max_age:
+            logger.warning(
+                "Campaign catalog fallback is stale; refusing to use outdated campaign data"
+            )
+            return {}
+
+        applicable_statuses = ("ACTIVE", "UPCOMING")
+        campaigns: dict[str, JsonType] = {}
+        for group in groups:
+            if not isinstance(group, dict):
+                continue
+            box_art_url = group.get("gameBoxArtURL", "")
+            rewards = group.get("rewards") or []
+            if not isinstance(rewards, list):
+                continue
+            for raw_campaign in rewards:
+                if not isinstance(raw_campaign, dict):
+                    continue
+                campaign_id = raw_campaign.get("id")
+                if (
+                    not isinstance(campaign_id, str)
+                    or raw_campaign.get("status") not in applicable_statuses
+                ):
+                    continue
+                try:
+                    campaign_start = timestamp(cast(str, raw_campaign["startAt"]))
+                    campaign_end = timestamp(cast(str, raw_campaign["endAt"]))
+                except (KeyError, TypeError, ValueError):
+                    continue
+                # Do not trust a cached ACTIVE/UPCOMING status after the real end
+                # timestamp. This prevents ended campaigns from resurfacing if the
+                # public catalog is briefly behind Twitch.
+                if campaign_end <= now:
+                    continue
+
+                campaign: JsonType = deepcopy(raw_campaign)
+                game = campaign.get("game")
+                if not isinstance(game, dict):
+                    continue
+                game.setdefault("boxArtURL", box_art_url)
+
+                # The public catalog cannot know account-specific linkage state.
+                # Inventory data, when present, wins during the merge below. For
+                # catalog-only campaigns assume eligibility so they remain mineable;
+                # Twitch will still enforce actual account linkage server-side.
+                if not isinstance(campaign.get("self"), dict):
+                    campaign["self"] = {"isAccountConnected": True}
+                else:
+                    campaign["self"].setdefault("isAccountConnected", True)
+
+                allowed = campaign.get("allow")
+                if not isinstance(allowed, dict):
+                    allowed = {"isEnabled": False, "channels": None}
+                    campaign["allow"] = allowed
+                else:
+                    allowed.setdefault("channels", None)
+
+                if not isinstance(campaign.get("timeBasedDrops"), list):
+                    campaign["timeBasedDrops"] = []
+                campaign.setdefault("accountLinkURL", "")
+                campaigns[campaign_id] = campaign
+
+        logger.warning(
+            "Twitch did not expose the full campaign list to the SMARTBOX client; "
+            f"using public campaign metadata fallback ({len(campaigns)} campaigns)."
+        )
+        return campaigns
+
     async def fetch_inventory(self) -> None:
         status_update = self.gui.status.update
         status_update(_("gui", "status", "fetching_inventory"))
@@ -1510,22 +1743,30 @@ class Twitch:
             for c in available_list
             if c["status"] in applicable_statuses  # that are currently not expired
         }
-        # fetch detailed data for each campaign, in chunks
+
         status_update(_("gui", "status", "fetching_campaigns"))
-        fetch_campaigns_tasks: list[asyncio.Task[Any]] = [
-            asyncio.create_task(self.fetch_campaigns(campaigns_chunk))
-            for campaigns_chunk in chunk(available_campaigns.items(), 20)
-        ]
-        try:
-            for coro in asyncio.as_completed(fetch_campaigns_tasks):
-                chunk_campaigns_data = await coro
-                # merge the inventory and campaigns datas together
-                inventory_data = self._merge_data(inventory_data, chunk_campaigns_data)
-        except Exception:
-            # asyncio.as_completed doesn't cancel tasks on errors
-            for task in fetch_campaigns_tasks:
-                task.cancel()
-            raise
+        if self._client_type is ClientType.SMARTBOX:
+            # SMARTBOX can authenticate, but Twitch does not expose the complete
+            # campaign dashboard to this client. Use public metadata as the
+            # discovery layer and keep account-specific inventory data authoritative.
+            catalog_campaigns = await self.fetch_campaign_catalog()
+            inventory_data = self._merge_data(inventory_data, catalog_campaigns)
+        else:
+            # Normal clients can still resolve campaign details directly from Twitch.
+            fetch_campaigns_tasks: list[asyncio.Task[Any]] = [
+                asyncio.create_task(self.fetch_campaigns(campaigns_chunk))
+                for campaigns_chunk in chunk(available_campaigns.items(), 20)
+            ]
+            try:
+                for coro in asyncio.as_completed(fetch_campaigns_tasks):
+                    chunk_campaigns_data = await coro
+                    # merge the inventory and campaigns datas together
+                    inventory_data = self._merge_data(inventory_data, chunk_campaigns_data)
+            except Exception:
+                # asyncio.as_completed doesn't cancel tasks on errors
+                for task in fetch_campaigns_tasks:
+                    task.cancel()
+                raise
         # filter out invalid campaigns
         for campaign_id in list(inventory_data.keys()):
             if inventory_data[campaign_id]["game"] is None:
@@ -1577,31 +1818,23 @@ class Twitch:
                 switch_triggers.update(campaign.time_triggers)
             self.inventory.append(campaign)
             self._campaigns[campaign.id] = campaign
-        # concurrently add the campaigns into the GUI
-        # NOTE: this fetches pictures from the CDN, so might be slow without a cache
+        # Register campaigns in the virtualized GUI. add_campaign() is now
+        # model-only, so creating one asyncio task per campaign would just add
+        # scheduler overhead. Yield periodically to keep Tk responsive.
         status_update(
             _("gui", "status", "adding_campaigns").format(counter=f"(0/{len(campaigns)})")
         )
-        add_campaign_tasks: list[asyncio.Task[None]] = [
-            asyncio.create_task(self.gui.inv.add_campaign(campaign))
-            for campaign in campaigns
-        ]
-        try:
-            for i, coro in enumerate(asyncio.as_completed(add_campaign_tasks), start=1):
-                await coro
+        for i, campaign in enumerate(campaigns, start=1):
+            self.gui.inv.add_campaign(campaign)
+            if i == len(campaigns) or i % 25 == 0:
                 status_update(
                     _("gui", "status", "adding_campaigns").format(
                         counter=f"({i}/{len(campaigns)})"
                     )
                 )
-                # this is needed here explicitly, because cache reads from disk don't raise this
-                if self.gui.close_requested:
-                    raise ExitRequest()
-        except Exception:
-            # asyncio.as_completed doesn't cancel tasks on errors
-            for task in add_campaign_tasks:
-                task.cancel()
-            raise
+                await asyncio.sleep(0)
+            if self.gui.close_requested:
+                raise ExitRequest()
         self._mnt_triggers.extend(sorted(switch_triggers))
         # trim out all triggers that we're already past
         now = datetime.now(timezone.utc)
@@ -1628,42 +1861,121 @@ class Twitch:
             return campaigns[0]
         return None
 
-    async def get_live_streams(
+    def _game_directory_op(
         self, game: Game, *, limit: int = 20, drops_enabled: bool = True
-    ) -> list[Channel]:
+    ) -> GQLOperation:
         filters: list[str] = []
         if drops_enabled:
             filters.append("DROPS_ENABLED")
+        return GQL_QUERIES["GameDirectory"].with_variables({
+            "limit": limit,
+            "slug": game.slug,
+            "options": {
+                "includeRestricted": ["SUB_ONLY_LIVE"],
+                "systemFilters": filters,
+            },
+        })
+
+    def _channels_from_game_directory(
+        self, response: JsonType, *, drops_enabled: bool
+    ) -> list[Channel]:
+        game_data = response.get("data", {}).get("game")
+        if not game_data:
+            return []
+        return [
+            Channel.from_directory(
+                self, stream_channel_data["node"], drops_enabled=drops_enabled
+            )
+            for stream_channel_data in game_data["streams"]["edges"]
+            if stream_channel_data["node"]["broadcaster"] is not None
+        ]
+
+    async def get_live_streams(
+        self, game: Game, *, limit: int = 20, drops_enabled: bool = True
+    ) -> list[Channel]:
         try:
             response = await self.gql_request(
-                GQL_QUERIES["GameDirectory"].with_variables({
-                    "limit": limit,
-                    "slug": game.slug,
-                    "options": {
-                        "includeRestricted": ["SUB_ONLY_LIVE"],
-                        "systemFilters": filters,
-                    },
-                })
+                self._game_directory_op(
+                    game,
+                    limit=limit,
+                    drops_enabled=drops_enabled,
+                )
             )
         except GQLException as exc:
             raise MinerException(f"Game: {game.slug}") from exc
-        if "game" in response["data"]:
-            return [
-                Channel.from_directory(
-                    self, stream_channel_data["node"], drops_enabled=drops_enabled
-                )
-                for stream_channel_data in response["data"]["game"]["streams"]["edges"]
-                if stream_channel_data["node"]["broadcaster"] is not None
-            ]
-        return []
+        return self._channels_from_game_directory(
+            response,
+            drops_enabled=drops_enabled,
+        )
 
-    async def bulk_check_online(self, channels: abc.Iterable[Channel]):
+    async def get_live_streams_bulk(
+        self,
+        games: abc.Iterable[Game],
+        *,
+        limit: int = 20,
+        drops_enabled: bool = True,
+    ) -> list[Channel]:
+        """
+        Fetch live channels for multiple games using batched GQL operations.
+
+        Twitch accepts lists of persisted GQL operations. Grouping up to 20
+        GameDirectory queries per request removes the old one-request-per-game
+        latency while preserving fresh discovery on every channel refresh.
+        """
+        game_list = list(games)
+        if not game_list:
+            return []
+
+        operations: list[GQLOperation] = [
+            self._game_directory_op(
+                game,
+                limit=limit,
+                drops_enabled=drops_enabled,
+            )
+            for game in game_list
+        ]
+        tasks: list[asyncio.Task[list[JsonType]]] = [
+            asyncio.create_task(self.gql_request(operation_chunk))
+            for operation_chunk in chunk(operations, 20)
+        ]
+
+        channels: list[Channel] = []
+        try:
+            for coro in asyncio.as_completed(tasks):
+                response_list: list[JsonType] = await coro
+                for response in response_list:
+                    channels.extend(
+                        self._channels_from_game_directory(
+                            response,
+                            drops_enabled=drops_enabled,
+                        )
+                    )
+        except GQLException as exc:
+            for task in tasks:
+                task.cancel()
+            game_names = ", ".join(game.slug for game in game_list)
+            raise MinerException(f"Games: {game_names}") from exc
+        except Exception:
+            for task in tasks:
+                task.cancel()
+            raise
+        return channels
+
+    async def bulk_check_online(
+        self,
+        channels: abc.Iterable[Channel],
+        *,
+        check_available_drops: bool | None = None,
+    ):
         """
         Utilize batch GQL requests to check ONLINE status for a lot of channels at once.
-        Also handles the drops_enabled check (if enabled).
+
+        AvailableDrops verification can be deferred until after channel ranking/trimming
+        so discarded ACL candidates do not consume extra GQL requests.
         """
+        channel_list = list(channels)
         acl_streams_map: dict[int, JsonType] = {}
-        stream_gql_ops: list[GQLOperation] = [channel.stream_gql for channel in channels]
+        stream_gql_ops: list[GQLOperation] = [channel.stream_gql for channel in channel_list]
         if not stream_gql_ops:
             # shortcut for nothing to process
             # NOTE: Have to do this here, becase "channels" can be any iterable
@@ -1684,9 +1996,12 @@ class Twitch:
             for task in stream_gql_tasks:
                 task.cancel()
             raise
+        if check_available_drops is None:
+            check_available_drops = self.settings.available_drops_check
+
         # for all channels with an active stream, check the available drops as well
         acl_available_drops_map: dict[int, list[JsonType]] = {}
-        if self.settings.available_drops_check:
+        if check_available_drops:
             available_gql_ops: list[GQLOperation] = [
                 GQL_QUERIES["AvailableDrops"].with_variables({"channelID": str(channel_id)})
                 for channel_id, channel_data in acl_streams_map.items()
@@ -1709,7 +2024,7 @@ class Twitch:
                 for task in available_gql_tasks:
                     task.cancel()
                 raise
-        for channel in channels:
+        for channel in channel_list:
             channel_id = channel.id
             if channel_id not in acl_streams_map:
                 continue
@@ -1718,3 +2033,44 @@ class Twitch:
                 continue
             available_drops: list[JsonType] = acl_available_drops_map.get(channel_id, [])
             channel.external_update(channel_data, available_drops)
+
+    async def bulk_check_available_drops(
+        self, channels: abc.Iterable[Channel]
+    ) -> None:
+        """
+        Verify drop availability for already-ranked online channels in batches.
+
+        This is intentionally separate from bulk_check_online so the advanced
+        AvailableDrops check runs only for channels that survive MAX_CHANNELS trimming.
+        """
+        channel_list = [channel for channel in channels if channel.online]
+        if not channel_list:
+            return
+
+        operations: list[GQLOperation] = [
+            GQL_QUERIES["AvailableDrops"].with_variables(
+                {"channelID": str(channel.id)}
+            )
+            for channel in channel_list
+        ]
+        tasks: list[asyncio.Task[list[JsonType]]] = [
+            asyncio.create_task(self.gql_request(operation_chunk))
+            for operation_chunk in chunk(operations, 20)
+        ]
+        available_map: dict[int, list[JsonType]] = {}
+        try:
+            for coro in asyncio.as_completed(tasks):
+                response_list: list[JsonType] = await coro
+                for response_json in response_list:
+                    available_info: JsonType | None = response_json["data"]["channel"]
+                    if available_info is not None:
+                        available_map[int(available_info["id"])] = (
+                            available_info["viewerDropCampaigns"] or []
+                        )
+        except Exception:
+            for task in tasks:
+                task.cancel()
+            raise
+
+        for channel in channel_list:
+            channel.update_available_drops(available_map.get(channel.id, []))

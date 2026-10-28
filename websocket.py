@@ -56,6 +56,9 @@ class Websocket:
         self._max_pong: float = self._next_ping + PING_TIMEOUT.total_seconds()
         # main task, responsible for receiving messages, sending them, and websocket ping
         self._handle_task: asyncio.Task[None] | None = None
+        # Keep strong references to independently-dispatched topic handlers until
+        # they finish. This also lets shutdown cancel/drain them cleanly.
+        self._message_tasks: set[asyncio.Task[Any]] = set()
         # topics stuff
         self.topics: dict[str, WebsocketTopic] = {}
         self._submitted: set[WebsocketTopic] = set()
@@ -101,6 +104,13 @@ class Websocket:
                 with suppress(asyncio.TimeoutError, asyncio.CancelledError):
                     await asyncio.wait_for(self._handle_task, timeout=2)
                 self._handle_task = None
+            if self._message_tasks:
+                message_tasks = tuple(self._message_tasks)
+                for task in message_tasks:
+                    if not task.done():
+                        task.cancel()
+                await asyncio.gather(*message_tasks, return_exceptions=True)
+                self._message_tasks.clear()
             if remove:
                 self.topics.clear()
                 self._topics_changed.set()
@@ -269,12 +279,24 @@ class Websocket:
             else:
                 ws_logger.error(f"Websocket[{self._idx}] error: Unknown message: {raw_message}")
 
+    def _message_task_done(self, task: asyncio.Task[Any]) -> None:
+        self._message_tasks.discard(task)
+        if task.cancelled():
+            return
+        # task_wrapper already logs handler failures. Retrieve the exception here
+        # so asyncio doesn't emit "Task exception was never retrieved".
+        with suppress(Exception):
+            task.exception()
+
     def _handle_message(self, message):
         # request the assigned topic to process the response
         topic = self.topics.get(message["data"]["topic"])
         if topic is not None:
-            # use a task to not block the websocket
-            asyncio.create_task(topic(json.loads(message["data"]["message"])))
+            # use a task to not block the websocket, but keep it strongly referenced
+            # until completion so it cannot be garbage-collected mid-handler.
+            task = asyncio.create_task(topic(json.loads(message["data"]["message"])))
+            self._message_tasks.add(task)
+            task.add_done_callback(self._message_task_done)
 
     async def _handle_recv(self):
         """
@@ -348,7 +370,11 @@ class WebsocketPool:
 
     async def start(self):
         self._running.set()
-        await asyncio.gather(*(ws.start() for ws in self.websockets))
+        # Starting the pool means ensuring reconnect loops are running, not blocking
+        # inventory/GQL work until every websocket has connected. Topics can be queued
+        # while disconnected and are submitted automatically after reconnect.
+        for ws in self.websockets:
+            ws.start_nowait()
 
     async def stop(self, *, clear_topics: bool = False):
         self._running.clear()

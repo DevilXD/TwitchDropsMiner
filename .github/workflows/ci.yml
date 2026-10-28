@@ -41,6 +41,59 @@ jobs:
             exit 1
           fi
 
+      - name: Validate Python sources
+        run: |
+          python -m compileall -q .
+          python - <<'PY'
+          import ast
+          import symtable
+          from pathlib import Path
+
+          failures = []
+          for path in Path(".").glob("*.py"):
+              source = path.read_text(encoding="utf8")
+              tree = ast.parse(source, filename=str(path))
+              imports_translation = any(
+                  isinstance(node, ast.ImportFrom)
+                  and node.module == "translate"
+                  and any(
+                      alias.name == "_" and alias.asname in (None, "_")
+                      for alias in node.names
+                  )
+                  for node in tree.body
+              )
+              if not imports_translation:
+                  continue
+
+              root = symtable.symtable(source, str(path), "exec")
+              pending = list(root.get_children())
+              while pending:
+                  table = pending.pop()
+                  pending.extend(table.get_children())
+                  if table.get_type() != "function":
+                      continue
+                  try:
+                      symbol = table.lookup("_")
+                  except KeyError:
+                      continue
+                  # This is the actual failure mode seen in _run(): a normal
+                  # function scope both reads translate._ and assigns to _, so
+                  # Python treats _ as a local and raises UnboundLocalError.
+                  # Comprehensions have their own child scope and are safe.
+                  if (
+                      symbol.is_local()
+                      and symbol.is_assigned()
+                      and symbol.is_referenced()
+                  ):
+                      failures.append(
+                          f"{path}:{table.get_lineno()}: "
+                          f"{table.get_name()} shadows translate._"
+                      )
+
+          if failures:
+              raise SystemExit("\n".join(failures))
+          PY
+
   windows:
     name: Windows
     runs-on: windows-latest
@@ -91,20 +144,21 @@ jobs:
         run: |
           pyinstaller build.spec
 
-      - name: Create release folder
+      - name: Create artifact folder
         run: |
           $FolderName = 'Twitch Drops Miner'
           New-Item $FolderName -ItemType Directory
           Copy-Item dist\*.exe $FolderName
           Copy-Item manual.txt $FolderName
-          Compress-Archive -Path $FolderName -DestinationPath Twitch.Drops.Miner.Windows.zip
 
+      # upload-artifact already produces a ZIP download. Upload the folder directly
+      # so the Actions artifact contains the executable/manual instead of ZIP-inside-ZIP.
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: error
           name: Twitch.Drops.Miner.Windows
-          path: Twitch.Drops.Miner.Windows.zip
+          path: Twitch Drops Miner
 
   macos:
     name: macOS
@@ -317,17 +371,45 @@ jobs:
       contents: write
 
     steps:
+      - name: Check this is the latest master build
+        id: latest
+        run: |
+          latest_sha="$(gh api "repos/$GITHUB_REPOSITORY/commits/master" --jq .sha)"
+          if [ "$latest_sha" = "$GITHUB_SHA" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping stale dev-release publication: $GITHUB_SHA (latest is $latest_sha)"
+          fi
+        env:
+          GITHUB_TOKEN: ${{github.token}}
+
       - name: Set up variables
+        if: steps.latest.outputs.publish == 'true'
         id: vars
         run: |
           echo "date_now=$(date --rfc-3339=seconds)" >> "${GITHUB_OUTPUT}"
 
       - name: Download build artifacts from previous jobs
+        if: steps.latest.outputs.publish == 'true'
         uses: actions/download-artifact@v4
         with:
           path: artifacts
 
+      # The Windows Actions artifact is intentionally uploaded as a folder so its
+      # downloadable artifact ZIP contains the executable/manual directly (single wrap).
+      # download-artifact extracts those files at the artifact root, so recreate the
+      # friendly "Twitch Drops Miner" folder only for the Releases-page ZIP.
+      - name: Package Windows release asset
+        if: steps.latest.outputs.publish == 'true'
+        run: |
+          mkdir -p "release-windows/Twitch Drops Miner"
+          cp -a artifacts/Twitch.Drops.Miner.Windows/. "release-windows/Twitch Drops Miner/"
+          cd release-windows
+          zip -r "$GITHUB_WORKSPACE/Twitch.Drops.Miner.Windows.zip" "Twitch Drops Miner"
+
       - name: Delete the existing pre-release (if present)
+        if: steps.latest.outputs.publish == 'true'
         run: |
           TAG=dev-build
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
@@ -339,11 +421,12 @@ jobs:
           GITHUB_TOKEN: ${{github.token}}
 
       - name: Create a new dev build release
+        if: steps.latest.outputs.publish == 'true'
         uses: ncipollo/release-action@v1
         with:
           allowUpdates: true
           artifactErrorsFailBuild: true
-          artifacts: artifacts/*/*
+          artifacts: Twitch.Drops.Miner.Windows.zip,artifacts/*/*.zip
           body: |
             **This is an automatically generated in-development pre-release version of the application, that includes the latest master branch changes.**
             **⚠️ This build is not stable and may end up terminating with a fatal error. ⚠️**
