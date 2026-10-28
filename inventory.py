@@ -23,6 +23,9 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger("TwitchDrops")
+
+# a drop that is this close to being completable in time is still considered completable
+FINISH_MARGIN = timedelta(minutes=5)
 DIMS_PATTERN = re.compile(r'-\d+x\d+(?=\.(?:jpg|png|gif)$)', re.I)
 
 
@@ -374,6 +377,40 @@ class DropsCampaign:
                 *((d.starts_at, d.ends_at) for d in self.timed_drops.values()),
             )
         )
+
+    def _remaining_windows(self) -> list[tuple[TimedDrop, datetime]]:
+        """Earnable drops paired with the moment they (or the campaign) stop being earnable."""
+        now = datetime.now(timezone.utc)
+        windows: list[tuple[TimedDrop, datetime]] = []
+        for drop in self.drops:
+            if not drop._base_earn_conditions():
+                continue
+            end = min(drop.ends_at, self.ends_at)
+            if end > now:
+                windows.append((drop, end))
+        return windows
+
+    def can_finish(self, margin: timedelta = FINISH_MARGIN) -> bool:
+        """
+        True if at least one earnable drop can still be completed before it ends,
+        assuming it earns one minute per minute watched. The margin absorbs small
+        inaccuracies in Twitch's reported remaining time.
+        """
+        now = datetime.now(timezone.utc)
+        return any(
+            timedelta(minutes=drop.remaining_minutes) <= (end - now) + margin
+            for drop, end in self._remaining_windows()
+        )
+
+    def finish_triggers(self, margin: timedelta = FINISH_MARGIN) -> set[datetime]:
+        """Moments at which an earnable drop stops being completable in time."""
+        now = datetime.now(timezone.utc)
+        triggers: set[datetime] = set()
+        for drop, end in self._remaining_windows():
+            moment = end - timedelta(minutes=drop.remaining_minutes) + margin
+            if moment > now:
+                triggers.add(moment)
+        return triggers
 
     @property
     def active(self) -> bool:
