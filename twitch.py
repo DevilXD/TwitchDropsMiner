@@ -187,6 +187,8 @@ class _AuthState:
                     gui_print(_("login", "browser", "no_token"))
                 else:
                     gui_print(_("login", "browser", "closed_window"))
+            except FileNotFoundError:
+                gui_print(_("login", "browser", "not_found"))
             finally:
                 if browser is not None:
                     await browser.stop()

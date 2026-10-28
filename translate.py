@@ -26,6 +26,7 @@ class BrowserMessages(TypedDict):
     login_to_complete: str
     no_token: str
     closed_window: str
+    not_found: str
 
 
 class LoginMessages(TypedDict):
@@ -258,6 +259,10 @@ default_translation: Translation = {
             "no_token": "No authorization token could be found.",
             "closed_window": (
                 "The browser window was closed before the login procedure could be completed."
+            ),
+            "not_found": (
+                "No compatible browser could be found. "
+                "Please install a compatible browser (Chrome, Edge, or Brave) and try again."
             ),
         },
         "error_code": "Login error code: {error_code}",
