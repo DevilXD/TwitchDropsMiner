@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y \
     libgirepository1.0-dev libcairo2-dev pkg-config python3-dev \
     libgtk-3-0 dbus-x11 libcanberra-gtk3-module \
     x11vnc xvfb fluxbox wget unzip curl \
+    chromium \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Installer les dépendances Python
@@ -27,6 +28,10 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 ENV DISPLAY=:1
+
+# Dossier des données persistantes (cookies.jar, settings.json, cache...)
+ENV TDM_DATA_DIR=/data
+RUN mkdir -p /data
 
 EXPOSE 6080
 

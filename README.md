@@ -46,6 +46,7 @@ docker run -d \
   --name twitch_miner_webvnc \
   -e VNC_PASSWORD=secret \
   -p 6080:6080 \
+  -v ./data:/data \
   twitch_drop_miner
 ```
 
@@ -65,6 +66,15 @@ Access the GUI at: `http://<your-host-ip>:6080/vnc.html`
 | Variable       | Description                            | Default        |
 | -------------- | -------------------------------------- | -------------- |
 | `VNC_PASSWORD` | Password to access the VNC GUI session | `twitch_miner` |
+| `TDM_DATA_DIR` | Folder where `cookies.jar`, `settings.json`, the cache and `log.txt` are stored | `/data` |
+
+Mount `/data` as a volume (see above) so your login session and settings survive container rebuilds and updates.
+
+---
+
+## 🔑 Login
+
+The miner logs in through a real browser window (Chromium, included in the image). When asked to log in, open the web VNC page: a Chromium window shows the Twitch login page. Log in there, and the window closes by itself once the miner got its token.
 
 ---
 

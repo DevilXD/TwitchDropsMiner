@@ -1,5 +1,3 @@
-version: "3"
-
 services:
   twitch_miner:
     build:
@@ -10,4 +8,6 @@ services:
       - "6080:6080"
     environment:
       - VNC_PASSWORD=secret
+    volumes:
+      - ./data:/data # cookies.jar, settings.json, cache, log.txt
     restart: unless-stopped
