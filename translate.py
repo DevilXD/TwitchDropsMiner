@@ -21,15 +21,16 @@ class StatusMessages(TypedDict):
     no_campaign: str
 
 
-class ChromeMessages(TypedDict):
+class BrowserMessages(TypedDict):
     startup: str
     login_to_complete: str
     no_token: str
     closed_window: str
+    not_found: str
 
 
 class LoginMessages(TypedDict):
-    chrome: ChromeMessages
+    browser: BrowserMessages
     error_code: str
     unexpected_content: str
     email_code_required: str
@@ -197,12 +198,18 @@ class GUIHelpLinks(TypedDict):
     campaigns: str
 
 
+class GUIHelpInvalidate(TypedDict):
+    button: str
+    text: str
+
+
 class GUIHelp(TypedDict):
     links: GUIHelpLinks
     how_it_works: str
     how_it_works_text: str
     getting_started: str
     getting_started_text: str
+    invalidate: GUIHelpInvalidate
 
 
 class GUIMessages(TypedDict):
@@ -244,14 +251,18 @@ default_translation: Translation = {
             "Unexpected content type returned, usually due to being redirected. "
             "Do you need to login for internet access?"
         ),
-        "chrome": {
-            "startup": "Opening Chrome...",
+        "browser": {
+            "startup": "Opening the browser...",
             "login_to_complete": (
                 "Complete the login procedure manually by pressing the Login button again."
             ),
             "no_token": "No authorization token could be found.",
             "closed_window": (
-                "The Chrome window was closed before the login procedure could be completed."
+                "The browser window was closed before the login procedure could be completed."
+            ),
+            "not_found": (
+                "No compatible browser could be found. "
+                "Please install a compatible browser (Chrome, Edge, or Brave) and try again."
             ),
         },
         "error_code": "Login error code: {error_code}",
@@ -264,7 +275,7 @@ default_translation: Translation = {
     "error": {
         "captcha": "Your login attempt was denied by CAPTCHA.\nPlease try again in 12+ hours.",
         "site_down": "Twitch is down, retrying in {seconds} seconds...",
-        "no_connection": "Cannot connect to Twitch, retrying in {seconds} seconds...",
+        "no_connection": "Cannot connect to Twitch, retrying in {seconds} seconds... ({url})",
     },
     "gui": {
         "output": "Output",
@@ -434,6 +445,10 @@ default_translation: Translation = {
                 "the \"Priority mode\", requires you to press on \"Reload\" "
                 "for the changes to take an effect."
             ),
+            "invalidate": {
+                "button": "Invalidate",
+                "text": "Invalidate the authentication token (log out):",
+            },
         },
     },
 }

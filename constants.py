@@ -110,6 +110,7 @@ SETTINGS_PATH = Path(WORKING_DIR, "settings.json")
 # Typing
 JsonType = Dict[str, Any]
 URLType = NewType("URLType", str)
+GQLOperation: TypeAlias = "GQLQuery | GQLPersistedQuery"
 TopicProcess: TypeAlias = "abc.Callable[[int, JsonType], Any]"
 # Values
 MAX_INT = sys.maxsize
@@ -126,7 +127,7 @@ DEFAULT_LANG = "English"
 PING_INTERVAL = timedelta(minutes=3)
 PING_TIMEOUT = timedelta(seconds=10)
 ONLINE_DELAY = timedelta(seconds=120)
-WATCH_INTERVAL = timedelta(seconds=59)
+WATCH_INTERVAL = timedelta(seconds=20)
 # Strings
 WINDOW_TITLE = f"Twitch Drops Miner v{__version__} (by DevilXD)"
 # Logging
@@ -165,7 +166,7 @@ class ClientType:
         "kimne78kx3ncx6brgo4mv6wki5h1ko",
         (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-            "(KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+            "(KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36"
         ),
     )
     MOBILE_WEB = ClientInfo(
@@ -176,31 +177,31 @@ class ClientType:
             # other platforms only use the major version
             (
                 "Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/138.0.7204.158 Mobile Safari/537.36"
+                "(KHTML, like Gecko) Chrome/156.0.8078.54 Mobile Safari/537.36"
             ),
             (
                 "Mozilla/5.0 (Linux; Android 16; SM-A205U) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/138.0.7204.158 Mobile Safari/537.36"
+                "(KHTML, like Gecko) Chrome/156.0.8078.54 Mobile Safari/537.36"
             ),
             (
                 "Mozilla/5.0 (Linux; Android 16; SM-A102U) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/138.0.7204.158 Mobile Safari/537.36"
+                "(KHTML, like Gecko) Chrome/156.0.8078.54 Mobile Safari/537.36"
             ),
             (
                 "Mozilla/5.0 (Linux; Android 16; SM-G960U) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/138.0.7204.158 Mobile Safari/537.36"
+                "(KHTML, like Gecko) Chrome/156.0.8078.54 Mobile Safari/537.36"
             ),
             (
                 "Mozilla/5.0 (Linux; Android 16; SM-N960U) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/138.0.7204.158 Mobile Safari/537.36"
+                "(KHTML, like Gecko) Chrome/156.0.8078.54 Mobile Safari/537.36"
             ),
             (
                 "Mozilla/5.0 (Linux; Android 16; LM-Q720) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/138.0.7204.158 Mobile Safari/537.36"
+                "(KHTML, like Gecko) Chrome/156.0.8078.54 Mobile Safari/537.36"
             ),
             (
                 "Mozilla/5.0 (Linux; Android 16; LM-X420) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/138.0.7204.158 Mobile Safari/537.36"
+                "(KHTML, like Gecko) Chrome/156.0.8078.54 Mobile Safari/537.36"
             ),
         ]
     )
@@ -210,31 +211,31 @@ class ClientType:
         [
             (
                 "Dalvik/2.1.0 (Linux; U; Android 16; SM-S911B Build/TP1A.220624.014) "
-                "tv.twitch.android.app/25.3.0/2503006"
+                "tv.twitch.android.app/31.8.0/3108006"
             ),
             (
                 "Dalvik/2.1.0 (Linux; U; Android 16; SM-S938B Build/BP2A.250605.031) "
-                "tv.twitch.android.app/25.3.0/2503006"
+                "tv.twitch.android.app/31.8.0/3108006"
             ),
             (
                 "Dalvik/2.1.0 (Linux; Android 16; SM-X716N Build/UP1A.231005.007) "
-                "tv.twitch.android.app/25.3.0/2503006"
+                "tv.twitch.android.app/31.8.0/3108006"
             ),
             (
                 "Dalvik/2.1.0 (Linux; U; Android 15; SM-G990B Build/AP3A.240905.015.A2) "
-                "tv.twitch.android.app/25.3.0/2503006"
+                "tv.twitch.android.app/31.8.0/3108006"
             ),
             (
                 "Dalvik/2.1.0 (Linux; U; Android 15; SM-G970F Build/AP3A.241105.008) "
-                "tv.twitch.android.app/25.3.0/2503006"
+                "tv.twitch.android.app/31.8.0/3108006"
             ),
             (
                 "Dalvik/2.1.0 (Linux; U; Android 15; SM-A566E Build/AP3A.240905.015.A2) "
-                "tv.twitch.android.app/25.3.0/2503006"
+                "tv.twitch.android.app/31.8.0/3108006"
             ),
             (
                 "Dalvik/2.1.0 (Linux; U; Android 14; SM-X306B Build/UP1A.231005.007) "
-                "tv.twitch.android.app/25.3.0/2503006"
+                "tv.twitch.android.app/31.8.0/3108006"
             ),
         ]
     )
@@ -243,7 +244,7 @@ class ClientType:
         "ue6666qo983tsx6so1t0vnawi233wa",
         (
             "Mozilla/5.0 (Linux; Android 7.1; Smart Box C1) AppleWebKit/537.36 "
-            "(KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+            "(KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36"
         ),
     )
 
@@ -255,6 +256,7 @@ class State(Enum):
     CHANNELS_FETCH = auto()
     CHANNELS_CLEANUP = auto()
     CHANNEL_SWITCH = auto()
+    RESTART = auto()
     EXIT = auto()
 
 
@@ -264,7 +266,21 @@ class PriorityMode(Enum):
     LOW_AVBL_FIRST = 2
 
 
-class GQLOperation(JsonType):
+class GQLQuery(JsonType):
+    def __init__(self, query: str, g64data: str):
+        super().__init__(
+            query=query,
+            variables={
+                "input": {
+                    "data": g64data,
+                    "repository": "twilight",
+                    "encoding": "GZIP_B64",
+                }
+            }
+        )
+
+
+class GQLPersistedQuery(JsonType):
     def __init__(self, name: str, sha256: str, *, variables: JsonType | None = None):
         super().__init__(
             operationName=name,
@@ -278,7 +294,7 @@ class GQLOperation(JsonType):
         if variables is not None:
             self.__setitem__("variables", variables)
 
-    def with_variables(self, variables: JsonType) -> GQLOperation:
+    def with_variables(self, variables: JsonType) -> GQLPersistedQuery:
         modified = deepcopy(self)
         if "variables" in self:
             existing_variables: JsonType = modified["variables"]
@@ -288,9 +304,9 @@ class GQLOperation(JsonType):
         return modified
 
 
-GQL_OPERATIONS: dict[str, GQLOperation] = {
+GQL_QUERIES: dict[str, GQLPersistedQuery] = {
     # returns stream information for a particular channel
-    "GetStreamInfo": GQLOperation(
+    "GetStreamInfo": GQLPersistedQuery(
         "VideoPlayerStreamInfoOverlayChannel",
         "198492e0857f6aedead9665c81c5a06d67b25b58034649687124083ff288597d",
         variables={
@@ -298,7 +314,7 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
         },
     ),
     # can be used to claim channel points
-    "ClaimCommunityPoints": GQLOperation(
+    "ClaimCommunityPoints": GQLPersistedQuery(
         "ClaimCommunityPoints",
         "46aaeebe02c99afdf4fc97c7c0cba964124bf6b0af229395f1f6d1feed05b3d0",
         variables={
@@ -309,7 +325,7 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
         },
     ),
     # can be used to claim a drop
-    "ClaimDrop": GQLOperation(
+    "ClaimDrop": GQLPersistedQuery(
         "DropsPage_ClaimDropRewards",
         "a455deea71bdc9015b78eb49f4acfbce8baa7ccbedd28e549bb025bd0f751930",
         variables={
@@ -319,7 +335,7 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
         },
     ),
     # returns current state of points (balance, claim available) for a particular channel
-    "ChannelPointsContext": GQLOperation(
+    "ChannelPointsContext": GQLPersistedQuery(
         "ChannelPointsContext",
         "374314de591e69925fce3ddc2bcf085796f56ebb8cad67a0daa3165c03adc345",
         variables={
@@ -327,15 +343,15 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
         },
     ),
     # returns all in-progress campaigns
-    "Inventory": GQLOperation(
+    "Inventory": GQLPersistedQuery(
         "Inventory",
-        "d86775d0ef16a63a33ad52e80eaff963b2d5b72fada7c991504a57496e1d8e4b",
+        "8337eb8541b314040b0edde0c09c5c7a2783ba1960aa9edfbf3bac16d0fec404",
         variables={
             "fetchRewardCampaigns": False,
         }
     ),
     # returns current state of drops (current drop progress)
-    "CurrentDrop": GQLOperation(
+    "CurrentDrop": GQLPersistedQuery(
         "DropCurrentSessionContext",
         "4d06b702d25d652afb9ef835d2a550031f1cf762b193523a92166f40ea3d142b",
         variables={
@@ -344,15 +360,15 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
         },
     ),
     # returns all available campaigns
-    "Campaigns": GQLOperation(
+    "Campaigns": GQLPersistedQuery(
         "ViewerDropsDashboard",
-        "5a4da2ab3d5b47c9f9ce864e727b2cb346af1e3ea8b897fe8f704a97ff017619",
+        "c16bb890cc8ce7647a96ee69cd313d423a378a3dedadf630a1017cde18975feb",
         variables={
             "fetchRewardCampaigns": False,
         }
     ),
     # returns extended information about a particular campaign
-    "CampaignDetails": GQLOperation(
+    "CampaignDetails": GQLPersistedQuery(
         "DropCampaignDetails",
         "039277bf98f3130929262cc7c6efd9c141ca3749cb6dca442fc8ead9a53f77c1",
         variables={
@@ -361,7 +377,7 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
         },
     ),
     # returns drops available for a particular channel
-    "AvailableDrops": GQLOperation(
+    "AvailableDrops": GQLPersistedQuery(
         "DropsHighlightService_AvailableDrops",
         "782dad0f032942260171d2d80a654f88bdd0c5a9dddc392e9bc92218a0f42d20",
         variables={
@@ -369,7 +385,7 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
         },
     ),
     # retuns stream playback access token
-    "PlaybackAccessToken": GQLOperation(
+    "PlaybackAccessToken": GQLPersistedQuery(
         "PlaybackAccessToken",
         "ed230aa1e33e07eebb8928504583da78a5173989fadfb1ac94be06a04f3cdbe9",
         variables={
@@ -382,9 +398,9 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
         },
     ),
     # returns live channels for a particular game
-    "GameDirectory": GQLOperation(
+    "GameDirectory": GQLPersistedQuery(
         "DirectoryPage_Game",
-        "76cb069d835b8a02914c08dc42c421d0dafda8af5b113a3f19141824b901402f",
+        "86bcceb4e8b1a51256ff8eed8bd8aae4acacf80d737efe904f84f3aeadf8cafd",
         variables={
             "limit": 30,  # limit of channels returned
             "slug": ...,  # game slug
@@ -403,21 +419,21 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
             "sortTypeIsRecency": False,
         },
     ),
-    "SlugRedirect": GQLOperation(  # can be used to turn game name -> game slug
+    "SlugRedirect": GQLPersistedQuery(  # can be used to turn game name -> game slug
         "DirectoryGameRedirect",
         "1f0300090caceec51f33c5e20647aceff9017f740f223c3c532ba6fa59f6b6cc",
         variables={
             "name": ...,  # game name
         },
     ),
-    "NotificationsView": GQLOperation(  # unused, triggers notifications "update-summary"
+    "NotificationsView": GQLPersistedQuery(  # unused, triggers notifications "update-summary"
         "OnsiteNotifications_View",
         "e8e06193f8df73d04a1260df318585d1bd7a7bb447afa058e52095513f2bfa4f",
         variables={
             "input": {},
         },
     ),
-    "NotificationsList": GQLOperation(  # unused
+    "NotificationsList": GQLPersistedQuery(  # unused
         "OnsiteNotifications_ListNotifications",
         "11cdb54a2706c2c0b2969769907675680f02a6e77d8afe79a749180ad16bfea6",
         variables={
@@ -428,7 +444,7 @@ GQL_OPERATIONS: dict[str, GQLOperation] = {
             "shouldLoadLastBroadcast": False,
         },
     ),
-    "NotificationsDelete": GQLOperation(
+    "NotificationsDelete": GQLPersistedQuery(
         "OnsiteNotifications_DeleteNotification",
         "13d463c831f28ffe17dccf55b3148ed8b3edbbd0ebadd56352f1ff0160616816",
         variables={
