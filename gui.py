@@ -2813,15 +2813,34 @@ class GUIManager:
 
     async def coro_unless_closed(self, coro: abc.Awaitable[_T]) -> _T:
         # In Python 3.11, we need to explicitly wrap awaitables
-        tasks = [asyncio.ensure_future(coro), asyncio.ensure_future(self._close_requested.wait())]
+        request_task = asyncio.ensure_future(coro)
+        close_task = asyncio.ensure_future(self._close_requested.wait())
         done: set[asyncio.Task[Any]]
         pending: set[asyncio.Task[Any]]
-        done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+        try:
+            done, pending = await asyncio.wait(
+                (request_task, close_task), return_when=asyncio.FIRST_COMPLETED
+            )
+        except asyncio.CancelledError:
+            # The caller (e.g. a reload/shutdown) was cancelled while waiting.
+            # Stop the in-flight request here so the closed session cannot leak it.
+            request_task.cancel()
+            close_task.cancel()
+            await asyncio.gather(request_task, close_task, return_exceptions=True)
+            raise
         for task in pending:
             task.cancel()
-        if self._close_requested.is_set():
+        if pending:
+            # Await cancellation so a closing session doesn't leak
+            # "Task exception was never retrieved" from an in-flight request.
+            await asyncio.gather(*pending, return_exceptions=True)
+        if close_task in done:
+            # A request may have completed (possibly with a session-closing error)
+            # at the same time as the close event. Consume those exceptions.
+            if done:
+                await asyncio.gather(*done, return_exceptions=True)
             raise ExitRequest()
-        return await next(iter(done))
+        return await request_task
 
     def prevent_close(self):
         self._close_requested.clear()

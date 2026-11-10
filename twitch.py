@@ -610,13 +610,18 @@ class Twitch:
 
     async def shutdown(self) -> None:
         start_time = time()
+        self._pending_state = None
+        self._pending_reason = ""
+        await self.gui.inv.stop()
+        await self.gui.stop_cache()
         self.stop_watching()
-        if self._watching_task is not None:
-            self._watching_task.cancel()
-            self._watching_task = None
-        if self._mnt_task is not None:
-            self._mnt_task.cancel()
-            self._mnt_task = None
+        for attribute in ("_watching_task", "_mnt_task"):
+            task: asyncio.Task[None] | None = getattr(self, attribute)
+            if task is not None:
+                task.cancel()
+                with suppress(asyncio.CancelledError, Exception):
+                    await task
+                setattr(self, attribute, None)
         # stop websocket, close session and save cookies
         await self.websocket.stop(clear_topics=True)
         if self._session is not None:
