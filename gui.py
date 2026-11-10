@@ -66,6 +66,13 @@ if TYPE_CHECKING:
 logger = logging.getLogger("TwitchDrops")
 TK_PADDING = Union[int, Tuple[int, int], Tuple[int, int, int], Tuple[int, int, int, int]]
 DIGITS = ceil(log10(WS_TOPICS_LIMIT))
+# Measuring emoji through Tk triggers font fallback, which can take tens of
+# milliseconds per glyph. We strip them from measurements and budget a fixed
+# width instead. (Covers dingbats, misc symbols, and most emoji blocks.)
+EMOJI_PATTERN = re.compile(
+    "[\U0001F000-\U0001FAFF\u2300-\u23FF\u2600-\u27BF\u2B00-\u2BFF\uFE0F\u200D]+"
+)
+EMOJI_WIDTH = 18  # approximate rendered width of one emoji, in pixels
 
 
 ######################
@@ -413,9 +420,12 @@ class SelectCombobox(ttk.Combobox):
     ) -> None:
         if width is None:
             font = Font(master, ttk.Style().lookup("TCombobox", "font"))
+            # font.measure is a Tk round-trip. Measuring only the longest label is
+            # enough for a width hint and avoids one call per language/mode.
+            sample = max(values, key=len) if values else ''
             # font.measure returns width in pixels, using '0' as the average character,
             # which is 6 pixels wide. We can convert it to width in characters by dividing.
-            width = max(font.measure(v) // 6 + 1 for v in values)
+            width = font.measure(sample) // 6 + 1
         width += width_offset
         super().__init__(
             master,
@@ -901,66 +911,52 @@ class ChannelList:
         table.tag_configure("watching", background="gray70")
         table.bind("<Button-1>", self._disable_column_resize)
         table.bind("<<TreeviewSelect>>", self._selected)
-        self._add_column("#0", '', width=0)
-        self._add_column(
-            "channel", _("gui", "channels", "headings", "channel"), width=100, anchor='w'
-        )
-        self._add_column(
-            "status",
-            _("gui", "channels", "headings", "status"),
-            width_template=[
-                _("gui", "channels", "online"),
-                _("gui", "channels", "pending"),
-                _("gui", "channels", "offline"),
-            ],
-        )
-        self._add_column("game", _("gui", "channels", "headings", "game"), width=50)
-        self._add_column("drops", "🎁", width_template="✔")
-        self._add_column(
-            "viewers", _("gui", "channels", "headings", "viewers"), width_template="1234567"
-        )
-        self._add_column("acl_base", "📋", width_template="✔")
+        # Define every column in one pass. Adding columns one at a time used to
+        # re-read and restore all previous columns on every call, which is O(n²)
+        # Tk calls and was a measurable part of window startup.
+        column_specs: list[
+            tuple[str, str, tk._Anchor, int | None, str | list[str] | None]
+        ] = [
+            ("channel", _("gui", "channels", "headings", "channel"), "w", 100, None),
+            (
+                "status",
+                _("gui", "channels", "headings", "status"),
+                "center",
+                None,
+                [
+                    _("gui", "channels", "online"),
+                    _("gui", "channels", "checking"),
+                    _("gui", "channels", "offline"),
+                ],
+            ),
+            ("game", _("gui", "channels", "headings", "game"), "center", 50, None),
+            ("drops", "🎁", "center", None, "✔"),
+            (
+                "viewers",
+                _("gui", "channels", "headings", "viewers"),
+                "center",
+                None,
+                "1234567",
+            ),
+            ("acl_base", "📋", "center", None, "✔"),
+        ]
+        table.config(columns=tuple(cid for cid, *_ in column_specs))
+        table.heading("#0", text='', anchor="center")
+        table.column("#0", minwidth=0, width=0, stretch=False)
+        for cid, name, anchor, width, width_template in column_specs:
+            if width_template is not None:
+                if isinstance(width_template, str):
+                    width = self._measure(width_template)
+                else:
+                    width = max(
+                        (self._measure(template) for template in width_template),
+                        default=20,
+                    )
+                self._const_width.add(cid)
+            assert width is not None
+            table.heading(cid, text=name, anchor=anchor)
+            table.column(cid, minwidth=width, width=width, stretch=False)
         self._channel_map: dict[str, Channel] = {}
-
-    def _add_column(
-        self,
-        cid: str,
-        name: str,
-        *,
-        anchor: tk._Anchor = "center",
-        width: int | None = None,
-        width_template: str | list[str] | None = None,
-    ):
-        table = self._table
-        # NOTE: we don't do this for the icon column
-        if cid != "#0":
-            # we need to save the column settings and headings before modifying the columns...
-            columns: tuple[str, ...] = table.cget("columns") or ()
-            column_settings: dict[str, tuple[str, tk._Anchor, int, int]] = {}
-            for s_cid in columns:
-                s_column = table.column(s_cid)
-                assert s_column is not None
-                s_heading = table.heading(s_cid)
-                assert s_heading is not None
-                column_settings[s_cid] = (
-                    s_heading["text"], s_heading["anchor"], s_column["width"], s_column["minwidth"]
-                )
-            # ..., then add the column
-            table.config(columns=columns + (cid,))
-            # ..., and then restore column settings and headings afterwards
-            for s_cid, (s_name, s_anchor, s_width, s_minwidth) in column_settings.items():
-                table.heading(s_cid, text=s_name, anchor=s_anchor)
-                table.column(s_cid, minwidth=s_minwidth, width=s_width, stretch=False)
-        # set heading and column settings for the new column
-        if width_template is not None:
-            if isinstance(width_template, str):
-                width = self._measure(width_template)
-            else:
-                width = max((self._measure(template) for template in width_template), default=20)
-            self._const_width.add(cid)
-        assert width is not None
-        table.heading(cid, text=name, anchor=anchor)
-        table.column(cid, minwidth=width, width=width, stretch=False)
 
     def _disable_column_resize(self, event):
         if self._table.identify_region(event.x, event.y) == "separator":
@@ -975,7 +971,13 @@ class ChannelList:
 
     def _measure(self, text: str) -> int:
         # we need this because columns have 9-10 pixels of padding that cuts text off
-        return self._font.measure(text) + 10
+        # Emoji are measured as a fixed width: Tk's fallback lookup for them is
+        # extremely slow and would otherwise dominate channel-list population.
+        emoji_width = sum(
+            len(match.group()) * EMOJI_WIDTH for match in EMOJI_PATTERN.finditer(text)
+        )
+        plain = EMOJI_PATTERN.sub('', text)
+        return self._font.measure(plain) + 10 + emoji_width
 
     def _redraw(self):
         # this forces a redraw that recalculates widget width
@@ -1112,6 +1114,7 @@ class TrayIcon:
             "maint": Image_module.open(resource_path("icons/maint.ico")),
         }
         self._icon_state: str = "pickaxe"
+        self._notify_task: asyncio.Task[None] | None = None
         self._button = ttk.Button(master, command=self.minimize, text=_("gui", "tray", "minimize"))
 
         # Hides Tray button for macOS
@@ -1137,7 +1140,8 @@ class TrayIcon:
             f"{self.TITLE}\n",
             f"{campaign.game.name}\n",
             drop.rewards_text(),
-            f" {drop.progress:.1%} ({campaign.claimed_drops}/{campaign.total_drops})"
+            f" {drop.progress:.1%}{'~' if drop.is_estimated else ''} "
+            f"({campaign.claimed_drops}/{campaign.total_drops})"
         ]
         min_len: int = 30
         max_len: int = 127
@@ -1174,6 +1178,9 @@ class TrayIcon:
         loop.run_in_executor(None, self.icon.run)
 
     def stop(self):
+        if self._notify_task is not None:
+            self._notify_task.cancel()
+            self._notify_task = None
         if self.icon is not None:
             self.icon.stop()
             self.icon = None
@@ -1204,13 +1211,24 @@ class TrayIcon:
             return None
         if self.icon is not None:
             icon = self.icon  # nonlocal scope bind
+            # A new notification replaces the previous one instead of stacking
+            # removal timers that can strip the newest notification early.
+            if self._notify_task is not None:
+                self._notify_task.cancel()
+            task: asyncio.Task[None]
 
             async def notifier():
                 icon.notify(message, title)
-                await asyncio.sleep(duration)
-                icon.remove_notification()
+                try:
+                    await asyncio.sleep(duration)
+                finally:
+                    # Only the notification that is still current may remove it.
+                    if self._notify_task is task:
+                        icon.remove_notification()
 
-            return asyncio.create_task(notifier())
+            task = asyncio.create_task(notifier())
+            self._notify_task = task
+            return task
         return None
 
     def update_title(self, drop: TimedDrop | None):
@@ -2658,14 +2676,19 @@ class GUIManager:
         inv_frame = ttk.Frame(root_frame, padding=8)
         self.inv = InventoryOverview(self, inv_frame)
         self.tabs.add_tab(inv_frame, name=_("gui", "tabs", "inventory"))
-        # Settings tab
+        # Settings tab - built lazily on first view. It contains a lot of widgets
+        # and is rarely the tab a user needs first, so this keeps startup snappier.
         settings_frame = ttk.Frame(root_frame, padding=8)
-        self.settings = SettingsPanel(self, settings_frame)
+        self._settings_frame = settings_frame
+        self.settings: SettingsPanel | None = None
+        self._pending_games: set[Game] = set()
         self.tabs.add_tab(settings_frame, name=_("gui", "tabs", "settings"))
+        self._settings_tab_index = self.tabs.index(settings_frame)
         # Help tab
         help_frame = ttk.Frame(root_frame, padding=8)
         self.help = HelpTab(self, help_frame)
         self.tabs.add_tab(help_frame, name=_("gui", "tabs", "help"))
+        self.tabs.add_view_event(self._on_tab_switched)
         # clamp minimum window size (update geometry first)
         root.update_idletasks()
         root.minsize(width=root.winfo_reqwidth(), height=root.winfo_reqheight())
@@ -2728,6 +2751,39 @@ class GUIManager:
             if elm[:2] != ("!disabled", "!selected")
         ]
 
+    def _on_tab_switched(self, event: tk.Event[ttk.Notebook]) -> None:
+        if self.tabs.current_tab() == self._settings_tab_index:
+            self._ensure_settings()
+
+    def _ensure_settings(self) -> SettingsPanel:
+        """
+        Build the Settings tab on first view.
+
+        The panel has enough widgets (and font measurements) to be a measurable
+        part of startup, and most sessions never open it. Building it lazily keeps
+        the first window responsive without changing any settings semantics.
+        """
+        if self.settings is None:
+            self.settings = SettingsPanel(self, self._settings_frame)
+            if self._pending_games:
+                self.settings.set_games(self._pending_games)
+            # Apply the current palette to the newly-created Tk listboxes.
+            self.apply_theme(self._twitch.settings.dark_mode)
+            # The Settings tab is the widest tab. Keep the window's minimum in
+            # sync now that its real size is known (it was built lazily).
+            self._root.update_idletasks()
+            self._root.minsize(
+                width=self._root.winfo_reqwidth(),
+                height=self._root.winfo_reqheight(),
+            )
+        return self.settings
+
+    def show_settings(self) -> None:
+        """Open Settings and focus the Priority game entry."""
+        panel = self._ensure_settings()
+        self.tabs.select(self._settings_frame)
+        panel._priority_entry.focus_set()
+
     def wnd_proc(self, hwnd, msg, w_param, l_param):
         """
         This function serves as a message processor for all messages sent
@@ -2784,9 +2840,8 @@ class GUIManager:
     async def _poll(self):
         """
         This runs the Tkinter event loop via asyncio instead of calling mainloop.
-        0.05s gives similar performance and CPU usage.
-        Not ideal, but the simplest way to avoid threads, thread safety,
-        loop.call_soon_threadsafe, futures and all of that.
+        0.01s gives ~100 Hz event processing (smooth scrolling/resizing) while
+        still keeping idle CPU low.
 
         Uses TKINTER_DONT_WAIT to prevent Tcl/Tk from hanging inside native
         system calls (e.g. X11/Wayland input contexts) during heavy UI redraws.
@@ -2804,7 +2859,7 @@ class GUIManager:
             except tk.TclError:
                 # Root window was destroyed
                 break
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.01)
 
         self._poll_task = None
 
@@ -2830,11 +2885,16 @@ class GUIManager:
         # support pressing ESC to unfocus
         self._root.focus_set()
         self.channels.clear_selection()
-        self.settings.clear_selection()
+        if self.settings is not None:
+            self.settings.clear_selection()
 
     # these are here to interface with underlaying GUI components
     def save(self, *, force: bool = False) -> None:
         self._cache.save(force=force)
+
+    async def stop_cache(self) -> None:
+        """Cancel in-flight image downloads before the HTTP session closes."""
+        await self._cache.stop()
 
     def grab_attention(self, *, sound: bool = True):
         self.tray.restore()
@@ -2965,6 +3025,7 @@ class GUIManager:
         # Base containers and labels
         s.configure("TFrame", background=bg, foreground=fg)
         s.configure("TLabel", background=bg, foreground=fg)
+        s.configure("Muted.TLabel", background=bg, foreground=muted)
         s.configure("TLabelframe", background=bg, foreground=fg)
         s.configure("TLabelframe.Label", background=bg, foreground=fg)
         # Buttons and checks
@@ -3054,12 +3115,13 @@ class GUIManager:
         # Console text
         self.output.configure_theme(bg=surface, fg=fg, sel_bg=sel_bg, sel_fg=sel_fg)
         # Listboxes
-        self.settings._priority_list.configure_theme(
-            bg=surface, fg=fg, sel_bg=sel_bg, sel_fg=sel_fg
-        )
-        self.settings._exclude_list.configure_theme(
-            bg=surface, fg=fg, sel_bg=sel_bg, sel_fg=sel_fg
-        )
+        if self.settings is not None:
+            self.settings._priority_list.configure_theme(
+                bg=surface, fg=fg, sel_bg=sel_bg, sel_fg=sel_fg
+            )
+            self.settings._exclude_list.configure_theme(
+                bg=surface, fg=fg, sel_bg=sel_bg, sel_fg=sel_fg
+            )
         # Inventory canvas
         self.inv.configure_theme(bg=bg)
 
