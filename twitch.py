@@ -88,7 +88,8 @@ class SkipExtraJsonDecoder(json.JSONDecoder):
         return obj
 
 
-SAFE_LOADS = lambda s: json.loads(s, cls=SkipExtraJsonDecoder)
+def SAFE_LOADS(s: str) -> JsonType:
+    return json.loads(s, cls=SkipExtraJsonDecoder)
 
 
 class _AuthState:
