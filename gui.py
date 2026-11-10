@@ -1063,7 +1063,7 @@ class ChannelList:
         if channel.online:
             status = _("gui", "channels", "online")
         elif channel.pending_online:
-            status = _("gui", "channels", "pending")
+            status = _("gui", "channels", "checking")
         else:
             status = _("gui", "channels", "offline")
         # game
