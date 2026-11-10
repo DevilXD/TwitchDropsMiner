@@ -1558,52 +1558,114 @@ class InventoryOverview:
             status_color = "red"
         return (status_text, status_color)
 
-    def refresh(self):
-        for campaign in self._campaigns:
-            # status
-            status_label = self._campaigns[campaign]["status"]
-            status_text, status_color = self.get_status(campaign)
-            status_label.config(text=status_text, foreground=status_color)
-            # visibility
-            self._update_visibility(campaign)
-        self._canvas_update()
-
-    def _canvas_update(self, event: tk.Event[tk.Canvas] | None = None):
-        self._canvas.update_idletasks()
-        self._canvas.configure(scrollregion=self._canvas.bbox("all"))
-
-    def _on_mousewheel(self, event: tk.Event[tk.Misc]):
-        delta = -1 if event.delta > 0 else 1
-        state: int = event.state if isinstance(event.state, int) else 0
-        if state & 1:
-            scroll = self._canvas.xview_scroll
+    def _update_setup_hint(self) -> None:
+        if (
+            self._settings.priority_mode is PriorityMode.PRIORITY_ONLY
+            and not self._settings.priority
+        ):
+            self._setup_label.config(
+                text=_("gui", "inventory", "setup", "priority_empty")
+            )
+            self._setup_frame.grid()
         else:
-            scroll = self._canvas.yview_scroll
-        scroll(delta, "units")
+            self._setup_frame.grid_remove()
 
-    async def add_campaign(self, campaign: DropsCampaign) -> None:
-        campaign_frame = ttk.Frame(self._main_frame, relief="ridge", borderwidth=1, padding=4)
-        campaign_frame.grid(column=0, row=len(self._campaigns), sticky="nsew", pady=3)
-        campaign_frame.rowconfigure(4, weight=1)
+    def refresh(self):
+        selection = self._tree.selection()
+        selected = selection[0] if selection else self._selected
+        visible = [campaign for campaign in self._campaigns.values() if self._is_visible(campaign)]
+        column = self._sort_column
+        if column is not None:
+            visible.sort(
+                key=lambda campaign: self._sort_key(column, campaign),
+                reverse=self._sort_reverse,
+            )
+        self._tree.delete(*self._tree.get_children())
+        for campaign in visible:
+            self._tree.insert(
+                "",
+                "end",
+                iid=campaign.id,
+                values=self._row_values(campaign),
+                tags=(self._row_tag(campaign),),
+            )
+        if selected is not None and self._tree.exists(selected):
+            self._tree.selection_set(selected)
+            self._tree.see(selected)
+        elif selected is not None:
+            self._selected = None
+            self._show_details(None)
+        self._update_setup_hint()
+        self._details_canvas_update()
+
+    def _on_select(self, event: tk.Event[ttk.Treeview] | None = None) -> None:
+        selection = self._tree.selection()
+        campaign_id = selection[0] if selection else None
+        if campaign_id == self._selected:
+            return
+        self._selected = campaign_id
+        campaign = self._campaigns.get(campaign_id) if campaign_id is not None else None
+        self._show_details(campaign)
+
+    def _details_canvas_update(self, event: tk.Event[tk.Canvas] | None = None) -> None:
+        self._details_canvas.configure(scrollregion=self._details_canvas.bbox("all"))
+
+    def _show_details(self, campaign: DropsCampaign | None) -> None:
+        self._detail_generation += 1
+        generation = self._detail_generation
+        if self._detail_task is not None:
+            self._detail_task.cancel()
+            self._detail_task = None
+        self._clear_details()
+        if campaign is None:
+            ttk.Label(
+                self._details_host,
+                text=_("gui", "inventory", "select_campaign"),
+                style="Muted.TLabel",
+            ).grid(column=0, row=0, sticky="w", padx=8, pady=8)
+            self._details_canvas_update()
+            return
+        self._detail_task = asyncio.create_task(
+            self._build_details(campaign, generation)
+        )
+        self._detail_task.add_done_callback(self._detail_done)
+
+    def _clear_details(self) -> None:
+        for child in self._details_host.winfo_children():
+            child.destroy()
+        self._drops.clear()
+        self._details_canvas_update()
+
+    def _detail_done(self, task: asyncio.Task[None]) -> None:
+        if task is self._detail_task:
+            self._detail_task = None
+        if not task.cancelled() and (exc := task.exception()) is not None:
+            logger.error("Failed to build campaign details", exc_info=exc)
+
+    async def _build_details(
+        self, campaign: DropsCampaign, generation: int
+    ) -> None:
+        """
+        Build the rich details for the selected campaign only.
+
+        This is the old card layout, but one campaign at a time. The campaign
+        list stays a fast native Treeview; images are fetched only on selection.
+        """
+        campaign_frame = ttk.Frame(
+            self._details_host, relief="ridge", borderwidth=1, padding=6
+        )
+        campaign_frame.grid(column=0, row=0, sticky="nsew")
         campaign_frame.columnconfigure(1, weight=1)
         campaign_frame.columnconfigure(3, weight=10000)
         # Name
-        ttk.Label(
-            campaign_frame, text=campaign.name, takefocus=False, width=45
-        ).grid(column=0, row=0, columnspan=2, sticky="w")
+        ttk.Label(campaign_frame, text=campaign.name, takefocus=False).grid(
+            column=0, row=0, columnspan=2, sticky="w"
+        )
         # Status
         status_text, status_color = self.get_status(campaign)
-        status_label = ttk.Label(
+        ttk.Label(
             campaign_frame, text=status_text, takefocus=False, foreground=status_color
-        )
-        status_label.grid(column=1, row=1, sticky="w", padx=4)
-        # NOTE: We have to save the campaign's frame and status before any awaits happen,
-        # otherwise the len(self._campaigns) call may overwrite an existing frame,
-        # if the campaigns are added concurrently.
-        self._campaigns[campaign] = {
-            "frame": campaign_frame,
-            "status": status_label,
-        }
+        ).grid(column=1, row=1, sticky="w", padx=4)
         # Starts / Ends
         MouseOverLabel(
             campaign_frame,
@@ -2456,6 +2518,7 @@ class SettingsPanel:
             else:
                 self._exclude_list.insert("end", game_name)
                 self._exclude_list.see("end")
+            changed = True
         else:
             # it was already there, select it
             for i, item in enumerate(self._exclude_list.get(0, "end")):
