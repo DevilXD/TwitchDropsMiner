@@ -5,7 +5,9 @@ import gzip
 import json
 import asyncio
 import logging
+from enum import Enum, auto
 from base64 import b64encode
+from datetime import datetime, timezone
 from functools import cached_property
 from typing import Any, SupportsInt, cast, TYPE_CHECKING
 
@@ -23,6 +25,20 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger("TwitchDrops")
+
+
+class ChannelStatus(Enum):
+    """
+    The presence of a channel, as far as the miner knows it.
+
+    This used to be encoded implicitly in the combination of `_stream` and
+    `_pending_stream_up`. Making it a named value means the GUI, the switch logic
+    and the tests all agree on what "pending" means.
+    """
+
+    OFFLINE = auto()
+    PENDING_ONLINE = auto()
+    ONLINE = auto()
 
 
 class Stream:
@@ -161,7 +177,7 @@ class Stream:
 class Channel:
     __slots__ = (
         "_twitch", "_gui_channels", "id", "_login", "_display_name", "_spade_url",
-        "_stream", "_pending_stream_up", "acl_based"
+        "_stream", "_pending_stream_up", "_stream_generation", "_status_since", "acl_based"
     )
 
     def __init__(
@@ -181,6 +197,12 @@ class Channel:
         self._spade_url: URLType | None = None
         self._stream: Stream | None = None
         self._pending_stream_up: asyncio.Task[Any] | None = None
+        # Every external event that can invalidate an in-flight stream check bumps
+        # this counter. The check captures it before awaiting the network and only
+        # applies its result if the counter is still the same. This is what keeps a
+        # slow ONLINE check from resurrecting a channel that has just gone OFFLINE.
+        self._stream_generation: int = 0
+        self._status_since: datetime = datetime.now(timezone.utc)
         # ACL-based channels are:
         # • considered first when switching channels
         # • if we're watching a non-based channel, a based channel going up triggers a switch
@@ -245,18 +267,37 @@ class Channel:
         return str(self.id)
 
     @property
+    def status(self) -> ChannelStatus:
+        """
+        The channel's presence, as a single explicit value.
+
+        NOTE: A channel can be ONLINE while a re-check is pending. That's why the
+        pending task is not folded into the status while `_stream` is available.
+        """
+        if self._stream is not None:
+            return ChannelStatus.ONLINE
+        if self._pending_stream_up is not None:
+            return ChannelStatus.PENDING_ONLINE
+        return ChannelStatus.OFFLINE
+
+    @property
+    def status_since(self) -> datetime:
+        """When the current status was first observed (UTC)."""
+        return self._status_since
+
+    @property
     def online(self) -> bool:
         """
         Returns True if the streamer is online and is currently streaming, False otherwise.
         """
-        return self._stream is not None
+        return self.status is ChannelStatus.ONLINE
 
     @property
     def offline(self) -> bool:
         """
         Returns True if the streamer is offline and isn't about to come online, False otherwise.
         """
-        return self._stream is None and self._pending_stream_up is None
+        return self.status is ChannelStatus.OFFLINE
 
     @property
     def pending_online(self) -> bool:
@@ -265,7 +306,7 @@ class Channel:
         This is because 'stream-up' event is received way before
         stream information becomes available.
         """
-        return self._stream is None and self._pending_stream_up is not None
+        return self.status is ChannelStatus.PENDING_ONLINE
 
     @property
     def game(self) -> Game | None:
@@ -294,6 +335,7 @@ class Channel:
         self._gui_channels.display(self, add=add)
 
     def remove(self):
+        self._stream_generation += 1
         if self._pending_stream_up is not None:
             self._pending_stream_up.cancel()
             self._pending_stream_up = None
@@ -332,19 +374,34 @@ class Channel:
             for campaign_data in available_drops
         )
 
+    def _set_stream(self, stream: Stream | None) -> None:
+        """
+        Apply a stream value and keep the derived status timestamp coherent.
+        """
+        old_status = self.status
+        self._stream = stream
+        if self.status is not old_status:
+            self._status_since = datetime.now(timezone.utc)
+
     def external_update(self, channel_data: JsonType, available_drops: list[JsonType]):
         """
         Update stream information based on data provided externally.
 
         Used for bulk-updates of channel statuses during reload.
         """
+        # The payload is the newest truth we have - cancel and invalidate any
+        # in-flight per-channel check so it can't overwrite this result.
+        self._stream_generation += 1
+        if self._pending_stream_up is not None:
+            self._pending_stream_up.cancel()
+            self._pending_stream_up = None
         if not channel_data["stream"]:
-            self._stream = None
+            self._set_stream(None)
             return
         stream = Stream.from_get_stream(self, channel_data)
         if not stream.drops_enabled:
             stream.drops_enabled = self._check_drops_enabled(available_drops)
-        self._stream = stream
+        self._set_stream(stream)
 
     async def get_stream(self) -> Stream | None:
         try:
@@ -373,24 +430,37 @@ class Channel:
                 )
         return stream
 
-    async def update_stream(self) -> bool:
+    async def update_stream(self, *, generation: int | None = None) -> bool:
         """
         Fetches the current channel stream, and if one exists,
         updates it's game, title, tags and viewers. Updates channel status in general.
+
+        When `generation` is passed, the result is discarded if a newer event has
+        invalidated this check while the request was in flight.
         """
         old_stream = self._stream
-        self._stream = await self.get_stream()
+        new_stream = await self.get_stream()
+        if generation is not None and generation != self._stream_generation:
+            # A newer event (offline, or another check) won the race.
+            return self._stream is not None
+        self._set_stream(new_stream)
         self._twitch.on_channel_update(self, old_stream, self._stream)
         return self._stream is not None
 
-    async def _online_delay(self):
+    async def _online_delay(self, generation: int):
         """
         The 'stream-up' event is sent before the stream actually goes online,
         so just wait a bit and check if it's actually online by then.
         """
         await asyncio.sleep(ONLINE_DELAY.total_seconds())
+        if generation != self._stream_generation:
+            # Offline (or another check) happened while we were sleeping.
+            # Only clear the pending slot if it still belongs to this check.
+            if self._pending_stream_up is asyncio.current_task():
+                self._pending_stream_up = None
+            return
         self._pending_stream_up = None  # for 'display' to work properly
-        await self.update_stream()
+        await self.update_stream(generation=generation)
 
     def check_online(self):
         """
@@ -406,7 +476,15 @@ class Channel:
         or having to be updated.
         """
         if self._pending_stream_up is None:
-            self._pending_stream_up = asyncio.create_task(self._online_delay())
+            # Deliberate debounce: events arriving while a check is already pending
+            # do not extend or restart the delay; the check already scheduled will
+            # read the freshest data when it fires.
+            self._stream_generation += 1
+            if self._stream is None:
+                self._status_since = datetime.now(timezone.utc)
+            self._pending_stream_up = asyncio.create_task(
+                self._online_delay(self._stream_generation)
+            )
             self.display()
 
     def set_offline(self):
@@ -415,6 +493,8 @@ class Channel:
 
         This is called externally, if we receive an event indicating the channel is now OFFLINE.
         """
+        # Any in-flight check now describes a past that we know is wrong.
+        self._stream_generation += 1
         needs_display: bool = False
         if self._pending_stream_up is not None:
             self._pending_stream_up.cancel()
@@ -422,7 +502,7 @@ class Channel:
             needs_display = True
         if self.online:
             old_stream = self._stream
-            self._stream = None
+            self._set_stream(None)
             self._twitch.on_channel_update(self, old_stream, self._stream)
             needs_display = False  # calling on_channel_update always does a display at the end
         if needs_display:
@@ -438,19 +518,27 @@ class Channel:
         if self._stream is None:
             return False
         # get the stream url
-        stream_url = await self._stream.get_stream_url()
+        try:
+            stream_url = await self._stream.get_stream_url()
+        except RequestException as exc:
+            # A transient GQL/token failure must not kill the critical watch loop.
+            logger.warning(f"Stream URL request failed for {self.name}: {exc}")
+            return False
         if stream_url is None:
             return False
         # fetch a list of chunks available to download for the stream
         # NOTE: the CDN is configured to forcibly disconnect shortly after serving the list,
         # if we don't do it yourselves. Lets help it by actually doing it ourselves instead.
-        async with self._twitch.request(
-            "GET", stream_url, headers={"Connection": "close"}
-        ) as chunks_response:
-            if chunks_response.status >= 400:
-                # if the stream goes OFFLINE, trying to get a list of chunks returns a 404
-                return False
-            available_chunks: str = await chunks_response.text()
+        try:
+            async with self._twitch.request(
+                "GET", stream_url, headers={"Connection": "close"}
+            ) as chunks_response:
+                if chunks_response.status >= 400:
+                    # if the stream goes OFFLINE, trying to get a list of chunks returns a 404
+                    return False
+                available_chunks: str = await chunks_response.text()
+        except RequestException:
+            return False
         # the response may contain some invalid JSON with duplicate double quotes
         # in the value strings: we need to get rid of them by removing the "url" key entirely
         # if no JSON can be found within the response, this is a NOOP
@@ -477,9 +565,14 @@ class Channel:
         for stream_chunk_url in chunks_list:
             # sending a HEAD request is enough to advance the drops,
             # without downloading the actual stream data
-            async with self._twitch.request("HEAD", stream_chunk_url) as head_response:
-                if head_response.status != 200:
-                    return False
+            try:
+                async with self._twitch.request(
+                    "HEAD", stream_chunk_url
+                ) as head_response:
+                    if head_response.status != 200:
+                        return False
+            except RequestException:
+                return False
         return True
 
     async def _send_watch_spade(self) -> bool:

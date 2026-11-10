@@ -131,6 +131,7 @@ class GUIChannels(TypedDict):
     name: str
     switch: str
     online: str
+    checking: str
     pending: str
     offline: str
     headings: GUIChannelHeadings
@@ -368,11 +369,13 @@ default_translation: Translation = {
             "remaining": "{time} remaining",
             "drop_progress": "Progress:",
             "campaign_progress": "Progress:",
+            "estimated": " (estimated)",
         },
         "channels": {
             "name": "Channels",
             "switch": "Switch",
             "online": "ONLINE  ✔",
+            "checking": "CHECKING ⏳",
             "pending": "OFFLINE ⏳",
             "offline": "OFFLINE ❌",
             "headings": {

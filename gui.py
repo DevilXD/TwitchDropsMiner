@@ -1024,6 +1024,9 @@ class ChannelList:
     def set_watching(self, channel: Channel):
         self.clear_watching()
         iid = channel.iid
+        if not self._table.exists(iid):
+            # The channel row may not exist yet (or was just removed by cleanup).
+            return
         self._table.item(iid, tags="watching")
         self._table.see(iid)
 

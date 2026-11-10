@@ -1065,14 +1065,29 @@ class Twitch:
                             no_acl.add(campaign.game)
                 # remove all ACL channels that already exist from the other set
                 acl_channels.difference_update(new_channels)
-                # use the other set to set them online if possible
-                await self.bulk_check_online(acl_channels)
+                # Revalidate every tracked channel, not just newly discovered ACL
+                # ones. A missed websocket `stream-down` must not leave a channel
+                # ONLINE forever; `bulk_check_online` now applies offline results too.
+                await self.bulk_check_online(new_channels | acl_channels)
                 # finally, add them as new channels
                 new_channels.update(acl_channels)
-                for game in no_acl:
-                    # for every campaign without an ACL, for it's game,
-                    # add a list of live channels with drops enabled
-                    new_channels.update(await self.get_live_streams(game, drops_enabled=True))
+                # for every campaign without an ACL, for its game, add a list of
+                # live channels with drops enabled. These directory queries are
+                # independent, so run them together instead of waiting one by one.
+                if no_acl:
+                    live_stream_tasks = [
+                        asyncio.create_task(
+                            self.get_live_streams(game, drops_enabled=True)
+                        )
+                        for game in no_acl
+                    ]
+                    try:
+                        live_stream_lists = await asyncio.gather(*live_stream_tasks)
+                    except BaseException:
+                        await self._cancel_tasks(live_stream_tasks)
+                        raise
+                    for live_streams in live_stream_lists:
+                        new_channels.update(live_streams)
                 # sort them descending by viewers, by priority and by game priority
                 # NOTE: Viewers sort also ensures ONLINE channels are sorted to the top
                 # NOTE: We can drop using the set now, because there's no more channels being added
@@ -1100,6 +1115,7 @@ class Twitch:
                     self.websocket.remove_topics(to_remove_topics)
                     del to_remove_channels, to_remove_topics
                 # set our new channel list
+                channels.clear()
                 for channel in ordered_channels:
                     channels[channel.id] = channel
                     channel.display(add=True)
@@ -1432,7 +1448,12 @@ class Twitch:
                 if self.should_switch(channel):
                     # we can watch the channel, and we should
                     self.print(_("status", "goes_online").format(channel=channel.name))
-                    self.watch(channel)
+                    if self._lifecycle.state is State.IDLE:
+                        # Do not start the watch loop while the UI says Idle;
+                        # request a switch so the pipeline owns the transition.
+                        self.request_state(State.CHANNEL_SWITCH)
+                    else:
+                        self.watch(channel)
                 else:
                     logger.info(f"{channel.name} goes ONLINE")
             else:
@@ -1455,7 +1476,7 @@ class Twitch:
                             f"(🎁: {stream_before.drops_enabled and '✔' or '❌'} -> "
                             f"{stream_after.drops_enabled and '✔' or '❌'})"
                         )
-                    self.change_state(State.CHANNEL_SWITCH)
+                    self.request_state(State.CHANNEL_SWITCH)
                 else:
                     # Channel stays ONLINE, and we can still watch it - no change
                     pass
@@ -1471,7 +1492,10 @@ class Twitch:
                 )
                 if self.should_switch(channel):
                     # ... and we should watch it
-                    self.watch(channel)
+                    if self._lifecycle.state is State.IDLE:
+                        self.request_state(State.CHANNEL_SWITCH)
+                    else:
+                        self.watch(channel)
         channel.display()
 
     @task_wrapper
@@ -1902,6 +1926,13 @@ class Twitch:
         Also handles the drops_enabled check (if enabled).
         """
         acl_streams_map: dict[int, JsonType] = {}
+        # Materialize once: the original iterable may be a generator and is needed
+        # again for applying the results below.
+        channels = list(channels)
+        # Snapshot each channel's state generation. A websocket event or a
+        # per-channel check can land while these bulk requests are in flight; its
+        # result is newer than ours and must win.
+        generations = {channel.id: channel._stream_generation for channel in channels}
         stream_gql_ops: list[GQLOperation] = [channel.stream_gql for channel in channels]
         if not stream_gql_ops:
             # shortcut for nothing to process
@@ -1918,10 +1949,9 @@ class Twitch:
                     channel_data: JsonType = response_json["data"]["user"]
                     if channel_data is not None:
                         acl_streams_map[int(channel_data["id"])] = channel_data
-        except Exception:
-            # asyncio.as_completed doesn't cancel tasks on errors
-            for task in stream_gql_tasks:
-                task.cancel()
+        except BaseException:
+            # asyncio.as_completed doesn't cancel tasks on errors or cancellation
+            await self._cancel_tasks(stream_gql_tasks)
             raise
         # for all channels with an active stream, check the available drops as well
         acl_available_drops_map: dict[int, list[JsonType]] = {}
@@ -1943,17 +1973,23 @@ class Twitch:
                         acl_available_drops_map[int(available_info["id"])] = (
                             available_info["viewerDropCampaigns"] or []
                         )
-            except Exception:
-                # asyncio.as_completed doesn't cancel tasks on errors
-                for task in available_gql_tasks:
-                    task.cancel()
+            except BaseException:
+                # asyncio.as_completed doesn't cancel tasks on errors or cancellation
+                await self._cancel_tasks(available_gql_tasks)
                 raise
         for channel in channels:
             channel_id = channel.id
             if channel_id not in acl_streams_map:
                 continue
+            if channel._stream_generation != generations[channel_id]:
+                # A newer websocket event or check updated this channel while the
+                # bulk query was running; do not overwrite it with older data.
+                continue
             channel_data = acl_streams_map[channel_id]
             if channel_data["stream"] is None:
+                # Apply the negative result instead of skipping it; otherwise a
+                # missed websocket stream-down leaves the channel ONLINE forever.
+                channel.set_offline()
                 continue
             available_drops: list[JsonType] = acl_available_drops_map.get(channel_id, [])
             channel.external_update(channel_data, available_drops)
