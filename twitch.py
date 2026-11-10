@@ -1833,8 +1833,11 @@ class Twitch:
         campaigns.sort(key=lambda c: c.eligible, reverse=True)
 
         self._drops.clear()
-        self.gui.inv.clear()
         self.inventory.clear()
+        # NOTE: `_campaigns` is a lookup used by channel checks. It must be rebuilt
+        # together with the inventory, otherwise it slowly accumulates stale campaign
+        # objects across reloads and can answer questions using outdated data.
+        self._campaigns.clear()
         self._mnt_triggers.clear()
         switch_triggers: set[datetime] = set()
         next_hour = datetime.now(timezone.utc) + timedelta(hours=1)
