@@ -440,12 +440,26 @@ class StatusBar:
         frame.grid(column=0, row=0, columnspan=3, sticky="nsew", padx=2)
         self._label = ttk.Label(frame)
         self._label.grid(column=0, row=0, sticky="nsew")
+        # The second line explains *why* the app is in the current state and when
+        # it got there. It is deliberately muted so the primary status stays dominant.
+        self._hint = ttk.Label(
+            frame,
+            style="Muted.TLabel",
+            wraplength=560,
+            justify="left",
+            anchor="w",
+        )
+        self._hint.grid(column=0, row=1, sticky="nsew")
 
     def update(self, text: str):
         self._label.config(text=text)
 
+    def set_hint(self, text: str):
+        self._hint.config(text=text)
+
     def clear(self):
         self._label.config(text='')
+        self._hint.config(text='')
 
 
 class _WSEntry(TypedDict):
@@ -2197,7 +2211,7 @@ class HelpTab:
                 auth_state.invalidate(delete_cookies=True)
             else:
                 logger.error(f"Failed to invalidate the auth token: {response.status}")
-        self._twitch.change_state(State.RESTART)
+        self._twitch.request_state(State.RESTART)
 
 
 ##########################################
@@ -2253,6 +2267,7 @@ class GUIManager:
         style.configure("green.TLabel", foreground="green")
         style.configure("yellow.TLabel", foreground="goldenrod")
         style.configure("red.TLabel", foreground="red")
+        style.configure("Muted.TLabel", foreground="grey50")
         # fonts storage
         self._fonts: dict[str, Font] = {}
         # end of style changes
@@ -2463,7 +2478,19 @@ class GUIManager:
             self._root.bell()
 
     def set_games(self, games: set[Game]) -> None:
-        self.settings.set_games(games)
+        self._pending_games.update(games)
+        if self.settings is not None:
+            self.settings.set_games(games)
+
+    def set_state_hint(self, hint: str) -> None:
+        """
+        Update the explanatory line under the main status text.
+
+        Called by the miner on every lifecycle transition. Keeping the hint
+        separate from the status text means the miner can show progress updates
+        without losing the "why are we here" context.
+        """
+        self.status.set_hint(hint)
 
     def display_drop(
         self, drop: TimedDrop, *, countdown: bool = True, subone: bool = False

@@ -51,10 +51,20 @@ from constants import (
     GQL_QUERIES,
     WATCH_INTERVAL,
     State,
+    JsonType,
     ClientType,
     PriorityMode,
     WebsocketTopic,
 )
+from lifecycle import (
+    DEFERRED_REQUESTS,
+    SETTLED_STATES,
+    STATE_STATUS,
+    STATE_TRAY_ICON,
+    URGENT_REQUESTS,
+    create_miner_statemachine,
+)
+from statemachine import Transition
 
 if TYPE_CHECKING:
     from utils import Game
@@ -62,7 +72,7 @@ if TYPE_CHECKING:
     from channel import Stream
     from settings import Settings
     from inventory import TimedDrop
-    from constants import ClientInfo, JsonType, GQLOperation
+    from constants import ClientInfo, GQLOperation
 
 
 logger = logging.getLogger("TwitchDrops")
@@ -92,6 +102,11 @@ class _AuthState:
 
     def _hasattrs(self, *attrs: str) -> bool:
         return all(hasattr(self, attr) for attr in attrs)
+
+    @property
+    def logged_in(self) -> bool:
+        """True when a validated session (user ID + access token) is available."""
+        return self._logged_in.is_set()
 
     def _delattrs(self, *attrs: str) -> None:
         for attr in attrs:
@@ -508,11 +523,28 @@ class _AuthState:
 
 
 class Twitch:
-    def __init__(self, settings: Settings):
+    # Higher wins when two external requests overlap. INVENTORY_FETCH subsumes
+    # local rule/channel work; a lower-priority request arriving later is ignored.
+    REQUEST_PRIORITY = {
+        State.RESTART: 5,
+        State.INVENTORY_FETCH: 4,
+        State.RULES_UPDATE: 3,
+        State.CHANNELS_CLEANUP: 2,
+        State.CHANNEL_SWITCH: 1,
+    }
+
+    def __init__(self, settings: Settings, *, gui: GUIManager | None = None):
         self.settings: Settings = settings
         # State management
-        self._state: State = State.IDLE
+        # NOTE: `_state_change` is a wake-up signal for the main loop; the actual
+        # state and its history live in the explicit state machine. This split is
+        # what allows the loop to wait for either a new request or a pipeline step.
+        self._lifecycle = create_miner_statemachine()
         self._state_change = asyncio.Event()
+        # Externally requested states (buttons, websocket events, timers) are
+        # latched here instead of overwriting an in-flight pipeline step.
+        self._pending_state: State | None = None
+        self._pending_reason: str = ""
         self.wanted_games: list[Game] = []
         self.inventory: list[DropsCampaign] = []
         self._drops: dict[str, TimedDrop] = {}
@@ -526,7 +558,7 @@ class Twitch:
         self._session: aiohttp.ClientSession | None = None
         self._auth_state: _AuthState = _AuthState(self)
         # GUI
-        self.gui = GUIManager(self)
+        self.gui = gui if gui is not None else GUIManager(self)
         # Storing and watching channels
         self.channels: OrderedDict[int, Channel] = OrderedDict()
         self.watching_channel: AwaitableValue[Channel] = AwaitableValue()
@@ -536,6 +568,10 @@ class Twitch:
         self.websocket = WebsocketPool(self)
         # Maintenance task
         self._mnt_task: asyncio.Task[None] | None = None
+        # When the hourly inventory refresh is scheduled to run. Shown in the
+        # status hint while idle, so users don't have to guess when new campaigns
+        # will appear.
+        self._next_reload_at: datetime | None = None
 
     async def get_session(self) -> aiohttp.ClientSession:
         if (session := self._session) is not None:
@@ -597,33 +633,181 @@ class Twitch:
         self._drops.clear()
         self.channels.clear()
         self.inventory.clear()
+        self._campaigns.clear()
         self._auth_state.clear()
         self.wanted_games.clear()
         self._mnt_triggers.clear()
+        self._next_reload_at = None
         # wait at least half a second + whatever it takes to complete the closing
         # this allows aiohttp to safely close the session
         await asyncio.sleep(start_time + 0.5 - time())
 
+    @staticmethod
+    async def _cancel_tasks(tasks: abc.Iterable[asyncio.Task[Any]]) -> None:
+        """Cancel tasks and consume their exceptions before closing a session."""
+        task_list = list(tasks)
+        for task in task_list:
+            task.cancel()
+        if task_list:
+            await asyncio.gather(*task_list, return_exceptions=True)
+
     def wait_until_login(self) -> abc.Coroutine[Any, Any, Literal[True]]:
         return self._auth_state._logged_in.wait()
 
-    def change_state(self, state: State) -> None:
-        if self._state is not State.EXIT:
-            # prevent state changing once we switch to exit state
-            self._state = state
+    @property
+    def state(self) -> State:
+        """The current lifecycle state, for both humans and tools."""
+        return self._lifecycle.state
+
+    @property
+    def state_history(self) -> tuple[Transition[State], ...]:
+        """Recent lifecycle transitions, oldest first."""
+        return self._lifecycle.history
+
+    def state_snapshot(self) -> dict[str, object]:
+        """
+        JSON-serializable snapshot of the miner lifecycle.
+
+        Intended for tooling and agents: it answers "where am I, what can happen
+        next, how did I get here, and why" in one call.
+        """
+        snapshot = self._lifecycle.as_dict()
+        snapshot["pending"] = (
+            self._pending_state.name if self._pending_state is not None else None
+        )
+        snapshot["pending_reason"] = self._pending_reason
+        return snapshot
+
+    def _state_hint(self) -> str:
+        stamp = self._lifecycle.changed_at.astimezone().strftime("%X")
+        hint = _("gui", "status", "since").format(time=stamp)
+        if reason := self._lifecycle.reason:
+            hint = f"{hint} • {reason}"
+        if self._lifecycle.state is State.IDLE and self._next_reload_at is not None:
+            reload_at = self._next_reload_at.astimezone().strftime("%X")
+            hint = f"{hint} • {_('gui', 'status', 'next_reload').format(time=reload_at)}"
+        return hint
+
+    def _apply_state_ui(self) -> None:
+        """
+        Apply the user-visible side effects of the current lifecycle state.
+
+        Keeping this in one place means the status bar and the tray icon can never
+        disagree with the actual state, and that adding a state can't silently
+        forget to update one of them.
+        """
+        state = self._lifecycle.state
+        if (status := STATE_STATUS.get(state)) is not None:
+            self.gui.status.update(_(*status))
+        if (icon := STATE_TRAY_ICON.get(state)) is not None:
+            self.gui.tray.change_icon(icon)
+        self.gui.set_state_hint(self._state_hint())
+
+    def change_state(self, state: State, *, reason: str = "") -> None:
+        """
+        Apply an immediate life-cycle transition.
+
+        This is for the main pipeline and terminal EXIT. External code (GUI,
+        websocket callbacks, timers) must use `request_state()` so an in-flight
+        pipeline step cannot overwrite the request.
+
+        `reason` is user-facing text shown under the status bar; pass a translated
+        string when it explains *why* the app is in a waiting state (e.g. no
+        campaigns). Pipeline steps can omit it.
+        """
+        if self._lifecycle.state is State.EXIT:
+            # EXIT is terminal: keep the wake-up semantics, ignore the request.
+            self._state_change.set()
+            return
+        previous = self._lifecycle.state
+        changed = self._lifecycle.set(state, reason=reason)
+        if changed:
+            reason_text = f" ({reason})" if reason else ""
+            logger.log(CALL, f"Lifecycle: {previous.name} -> {state.name}{reason_text}")
+            self._apply_state_ui()
         self._state_change.set()
 
+    def request_state(self, state: State, *, reason: str = "") -> None:
+        """
+        Request a life-cycle state from outside the main pipeline.
+
+        Requests are latched rather than written straight into the state machine:
+        a long `fetch_inventory()` must not overwrite a user's Reload/Exit, and a
+        websocket event must not be lost between two pipeline steps.
+        """
+        if self._lifecycle.state is State.EXIT:
+            return
+        if state is State.EXIT:
+            # EXIT is terminal and must be visible immediately.
+            self._pending_state = None
+            self._pending_reason = ""
+            self.change_state(State.EXIT, reason=reason)
+            return
+        if self._pending_state is State.RESTART and state is not State.EXIT:
+            # A restart (e.g. invalidating the token) must not be cancelled by a
+            # later websocket notification or maintenance request.
+            return
+        if self._pending_state is not None:
+            new_priority = self.REQUEST_PRIORITY.get(state, 0)
+            old_priority = self.REQUEST_PRIORITY.get(self._pending_state, 0)
+            if new_priority <= old_priority:
+                # The existing request already covers this one (or is more urgent).
+                return
+            logger.log(
+                CALL,
+                f"Lifecycle request replaced: {self._pending_state.name} -> {state.name}",
+            )
+        self._pending_state = state
+        self._pending_reason = reason
+        self._state_change.set()
+
+    def _apply_pending_state(self) -> None:
+        state = self._pending_state
+        if state is None:
+            return
+        if state is self.state:
+            # The loop is about to run exactly this step; the request is already
+            # satisfied and must not re-trigger it. Keep an explanatory reason
+            # visible in the status hint.
+            reason = self._pending_reason
+            self._pending_state = None
+            self._pending_reason = ""
+            if reason:
+                self.change_state(state, reason=reason)
+            return
+        if state in DEFERRED_REQUESTS and self.state not in SETTLED_STATES:
+            # Do not short-circuit a running inventory pass. The pipeline reaches
+            # CHANNELS_CLEANUP / CHANNEL_SWITCH on its own, where this request is
+            # either satisfied by that step or applied afterwards.
+            return
+        reason = self._pending_reason
+        self._pending_state = None
+        self._pending_reason = ""
+        self.change_state(state, reason=reason)
+
+    def _advance_state(self, state: State, *, reason: str = "") -> bool:
+        """
+        Advance the automatic pipeline, yielding only to an urgent request.
+
+        Deferred channel-level requests must not stall the pipeline (they are
+        applied once it settles), so only an urgent pending request returns False.
+        """
+        if self._pending_state in URGENT_REQUESTS:
+            return False
+        self.change_state(state, reason=reason)
+        return True
+
     def state_change(self, state: State) -> abc.Callable[[], None]:
-        # this is identical to change_state, but defers the call
+        # this is identical to request_state, but defers the call
         # perfect for GUI usage
-        return partial(self.change_state, state)
+        return partial(self.request_state, state)
 
     def close(self):
         """
         Called when the application is requested to close by the user,
         usually by the console or application window being closed.
         """
-        self.change_state(State.EXIT)
+        self.request_state(State.EXIT)
 
     def prevent_close(self):
         """
@@ -682,6 +866,26 @@ class Twitch:
             except aiohttp.ContentTypeError as exc:
                 raise RequestException(_("login", "unexpected_content")) from exc
 
+    def _idle_reason(self) -> tuple[str, str]:
+        """
+        Explain why no games are being mined.
+
+        Returns (output message, short status-bar reason). The distinction matters:
+        "no campaigns at all" and "you haven't picked any priority games" need
+        different user actions.
+        """
+        if not self.inventory:
+            return _("status", "no_campaign"), _("gui", "status", "no_campaign_reason")
+        if (
+            self.settings.priority_mode is PriorityMode.PRIORITY_ONLY
+            and not self.settings.priority
+        ):
+            return _("status", "no_priority"), _("gui", "status", "no_priority_reason")
+        return (
+            _("status", "no_matching_campaigns"),
+            _("gui", "status", "no_matching_reason"),
+        )
+
     async def _run(self):
         """
         Main method that runs the whole client.
@@ -692,11 +896,17 @@ class Twitch:
         • Changing the stream that's being watched if necessary
         """
         self.gui.start()
+        if self.state is State.EXIT:
+            return
         auth_state = await self.get_auth()
+        if self.state is State.EXIT:
+            return
         await self.websocket.start()
+        if self.state is State.EXIT:
+            return
         # NOTE: watch task is explicitly restarted on each new run
         if self._watching_task is not None:
-            self._watching_task.cancel()
+            await self._cancel_tasks([self._watching_task])
         self._watching_task = asyncio.create_task(self._watch_loop())
         # Add default topics
         self.websocket.add_topics([
@@ -707,27 +917,49 @@ class Twitch:
         ])
         full_cleanup: bool = False
         channels: Final[OrderedDict[int, Channel]] = self.channels
+        # A ReloadRequest exits `_run` with the machine in RESTART. Reset it
+        # explicitly so the next run always starts from a known state.
+        if self.state is not State.EXIT:
+            self._lifecycle.reset(reason="new run")
+            # Requests made before the first fetch are subsumed by that fetch.
+            # RESTART is kept: it is the token-invalidation/reload path.
+            if self._pending_state is not None and self._pending_state is not State.RESTART:
+                logger.log(
+                    CALL,
+                    f"Dropping pre-start request: {self._pending_state.name}",
+                )
+                self._pending_state = None
+                self._pending_reason = ""
         self.change_state(State.INVENTORY_FETCH)
         while True:
-            if self._state is State.IDLE:
+            self._apply_pending_state()
+            if self.state is State.IDLE:
                 if self.settings.dump:
                     self.gui.close()
                     continue
-                self.gui.tray.change_icon("idle")
-                self.gui.status.update(_("gui", "status", "idle"))
                 self.stop_watching()
                 # clear the flag and wait until it's set again
                 self._state_change.clear()
-            elif self._state is State.INVENTORY_FETCH:
-                self.gui.tray.change_icon("maint")
+            elif self.state is State.INVENTORY_FETCH:
+                # A fresh inventory can remove campaigns and their ACL channels,
+                # so this pass must clean up every channel, not just stale ones.
+                full_cleanup = True
                 # ensure the websocket is running
                 await self.websocket.start()
                 await self.fetch_inventory()
                 self.gui.set_games(set(campaign.game for campaign in self.inventory))
                 # Save state on every inventory fetch
                 self.save()
+                self._advance_state(State.GAMES_UPDATE)
+            elif self.state is State.RULES_UPDATE:
+                # Priority/exclude/priority-mode changes are local. Recompute the
+                # wanted-games list and rebuild channels without a GQL reload.
+                # NOTE: Do not clear `full_cleanup` here. If a RULES_UPDATE
+                # preempted the tail of an INVENTORY_FETCH, the fresh inventory
+                # may have removed campaigns, and their ACL channels must still
+                # be cleaned up. The flag is cleared after cleanup runs.
                 self.change_state(State.GAMES_UPDATE)
-            elif self._state is State.GAMES_UPDATE:
+            elif self.state is State.GAMES_UPDATE:
                 # claim drops from expired and active campaigns
                 for campaign in self.inventory:
                     if not campaign.upcoming:
@@ -765,25 +997,26 @@ class Twitch:
                     ):
                         # non-excluded games with no priority are placed last, below priority ones
                         self.wanted_games.append(game)
-                full_cleanup = True
                 self.restart_watching()
-                self.change_state(State.CHANNELS_CLEANUP)
-            elif self._state is State.CHANNELS_CLEANUP:
-                self.gui.status.update(_("gui", "status", "cleanup"))
+                self._advance_state(State.CHANNELS_CLEANUP)
+            elif self.state is State.CHANNELS_CLEANUP:
                 if not self.wanted_games or full_cleanup:
                     # no games selected or we're doing full cleanup: remove everything
                     to_remove_channels: list[Channel] = list(channels.values())
                 else:
-                    # remove all channels that:
+                    # Incremental cleanup must still drop channels whose game is
+                    # no longer wanted, including ACL-based ones; otherwise a
+                    # deleted priority game stays in the list until the next full
+                    # reload. Offline ACL channels are kept because they can come
+                    # online later and must stay subscribed.
                     to_remove_channels = [
                         channel
                         for channel in channels.values()
                         if (
-                            not channel.acl_based  # aren't ACL-based
-                            and (
-                                channel.offline  # and are offline
-                                # or online but aren't streaming the game we want anymore
-                                or (channel.game is None or channel.game not in self.wanted_games)
+                            (channel.game is not None and channel.game not in self.wanted_games)
+                            or (
+                                not channel.acl_based
+                                and (channel.offline or channel.game is None)
                             )
                         )
                     ]
@@ -803,16 +1036,17 @@ class Twitch:
                         channel.remove()
                     del to_remove_channels, to_remove_topics
                 if self.wanted_games:
-                    self.change_state(State.CHANNELS_FETCH)
+                    self._advance_state(State.CHANNELS_FETCH)
                 else:
-                    # with no games available, we switch to IDLE after cleanup
-                    self.print(_("status", "no_campaign"))
-                    self.change_state(State.IDLE)
-            elif self._state is State.CHANNELS_FETCH:
-                self.gui.status.update(_("gui", "status", "gathering"))
-                # start with all current channels, clear the memory and GUI
+                    # with no eligible games, explain exactly why and wait
+                    message, hint = self._idle_reason()
+                    self.print(message)
+                    self._advance_state(State.IDLE, reason=hint)
+            elif self.state is State.CHANNELS_FETCH:
+                # Start with all current channels. Keep the channel map alive until
+                # revalidation completes, so websocket events arriving during the
+                # GQL work still find their channel instead of being dropped.
                 new_channels: set[Channel] = set(channels.values())
-                channels.clear()
                 self.gui.channels.clear()
                 # gather and add ACL channels from campaigns
                 # NOTE: we consider only campaigns that can be progressed
@@ -905,7 +1139,7 @@ class Twitch:
                         ):
                             active_drop.display(countdown=False, subone=True)
                         break
-                self.change_state(State.CHANNEL_SWITCH)
+                self._advance_state(State.CHANNEL_SWITCH)
                 del (
                     no_acl,
                     acl_channels,
@@ -914,11 +1148,10 @@ class Twitch:
                     ordered_channels,
                     watching_channel,
                 )
-            elif self._state is State.CHANNEL_SWITCH:
+            elif self.state is State.CHANNEL_SWITCH:
                 if self.settings.dump:
                     self.gui.close()
                     continue
-                self.gui.status.update(_("gui", "status", "switching"))
                 # Change into the selected channel, stay in the watching channel,
                 # or select a new channel that meets the required conditions
                 new_watching = None
@@ -950,23 +1183,29 @@ class Twitch:
                     self._state_change.clear()
                 else:
                     # not watching anything and there isn't anything to watch either
-                    self.print(_("status", "no_channel"))
-                    self.change_state(State.IDLE)
+                    no_channel_text = _("status", "no_channel")
+                    self.print(no_channel_text)
+                    self._advance_state(
+                        State.IDLE, reason=_("gui", "status", "no_channel_reason")
+                    )
                 del new_watching, selected_channel, watching_channel
-            elif self._state is State.RESTART:
+            elif self.state is State.RESTART:
                 raise ReloadRequest()
-            elif self._state is State.EXIT:
-                self.gui.tray.change_icon("pickaxe")
-                self.gui.status.update(_("gui", "status", "exiting"))
+            elif self.state is State.EXIT:
                 # we've been requested to exit the application
                 break
             await self._state_change.wait()
 
     async def _watch_sleep(self, delay: float) -> None:
-        # we use wait_for here to allow an asyncio.sleep-like that can be ended prematurely
-        self._watching_restart.clear()
+        # use wait_for here to allow an asyncio.sleep-like that can be ended prematurely
+        # NOTE: check the flag first, so a restart requested while the watch payload
+        # was in flight isn't lost by clearing it before waiting.
+        if self._watching_restart.is_set():
+            self._watching_restart.clear()
+            return
         with suppress(asyncio.TimeoutError):
             await asyncio.wait_for(self._watching_restart.wait(), timeout=delay)
+        self._watching_restart.clear()
 
     @task_wrapper(critical=True)
     async def _watch_loop(self) -> NoReturn:
@@ -1061,10 +1300,10 @@ class Twitch:
                 break
             if next_trigger != next_period:
                 logger.log(CALL, "Maintenance task requests channels cleanup")
-                self.change_state(State.CHANNELS_CLEANUP)
+                self.request_state(State.CHANNELS_CLEANUP)
         # this triggers a restart of this task every (up to) 60 minutes
         logger.log(CALL, "Maintenance task requests a reload")
-        self.change_state(State.INVENTORY_FETCH)
+        self.request_state(State.INVENTORY_FETCH)
 
     def can_watch(self, channel: Channel) -> bool:
         """
@@ -1302,7 +1541,7 @@ class Twitch:
                 "quests_viewer_reward_campaign_earned_emote",  # emote confirmation
                 # badge confirmation?
             ):
-                self.change_state(State.INVENTORY_FETCH)
+                self.request_state(State.INVENTORY_FETCH)
                 await self.gql_request(
                     GQL_QUERIES["NotificationsDelete"].with_variables(
                         {"input": {"id": data["id"]}}

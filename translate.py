@@ -19,6 +19,9 @@ class StatusMessages(TypedDict):
     claimed_drop: str
     no_channel: str
     no_campaign: str
+    no_priority: str
+    no_matching_campaigns: str
+    progress_stalled: str
 
 
 class BrowserMessages(TypedDict):
@@ -54,6 +57,15 @@ class GUIStatus(TypedDict):
     cleanup: str
     gathering: str
     switching: str
+    games_update: str
+    restarting: str
+    applying_settings: str
+    since: str
+    next_reload: str
+    no_campaign_reason: str
+    no_priority_reason: str
+    no_matching_reason: str
+    no_channel_reason: str
     fetching_inventory: str
     fetching_campaigns: str
     adding_campaigns: str
@@ -245,6 +257,19 @@ default_translation: Translation = {
         "claimed_drop": "Claimed drop: {drop}",
         "no_channel": "No available channels to watch. Waiting for an ONLINE channel...",
         "no_campaign": "No active campaigns to mine drops for. Waiting for an active campaign...",
+        "no_priority": (
+            "No games selected. Add games to the Priority list in Settings "
+            "(or use the Inventory tab), or change the Priority mode. "
+            "Changes apply automatically."
+        ),
+        "no_matching_campaigns": (
+            "No active campaigns match your Priority/Exclude settings. "
+            "Adjust them in Settings; changes apply automatically."
+        ),
+        "progress_stalled": (
+            "Estimated drop progress reached its limit for {game}. "
+            "Resyncing with Twitch..."
+        ),
     },
     "login": {
         "unexpected_content": (
@@ -287,6 +312,15 @@ default_translation: Translation = {
             "cleanup": "Cleaning up channels...",
             "gathering": "Gathering channels...",
             "switching": "Switching the channel...",
+            "games_update": "Selecting games to mine...",
+            "restarting": "Restarting...",
+            "applying_settings": "Applying settings...",
+            "since": "Since {time}",
+            "next_reload": "Next reload at {time}",
+            "no_campaign_reason": "No campaigns available",
+            "no_priority_reason": "No priority games selected",
+            "no_matching_reason": "No matching campaigns",
+            "no_channel_reason": "No channels available",
             "fetching_inventory": "Fetching inventory...",
             "fetching_campaigns": "Fetching campaigns...",
             "adding_campaigns": "Adding campaigns to inventory... {counter}",

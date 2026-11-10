@@ -256,6 +256,7 @@ class State(Enum):
     CHANNELS_FETCH = auto()
     CHANNELS_CLEANUP = auto()
     CHANNEL_SWITCH = auto()
+    RULES_UPDATE = auto()
     RESTART = auto()
     EXIT = auto()
 
