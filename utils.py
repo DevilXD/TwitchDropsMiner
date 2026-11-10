@@ -202,6 +202,76 @@ SERIALIZE_ENV: dict[str, Callable[[Any], object]] = {
     "datetime": lambda d: datetime.fromtimestamp(d, timezone.utc),
 }
 
+# Logging helpers: never write credentials or playback tokens to log.txt.
+_SENSITIVE_KEYS = frozenset({
+    "authorization",
+    "cookie",
+    "cookies",
+    "set-cookie",
+    "x-device-id",
+    "client-session-id",
+    "password",
+    "passwd",
+    "token",
+    "access_token",
+    "refresh_token",
+    "device_code",
+    "authy_token",
+    "twitchguard_code",
+    "captcha",
+    "client_secret",
+})
+_SENSITIVE_QUERY_KEYS = frozenset({
+    "token",
+    "sig",
+    "oauth_token",
+    "access_token",
+})
+
+
+def redact_sensitive(value: Any) -> Any:
+    """Return a copy of a request payload with credentials replaced by '***'."""
+    if isinstance(value, Mapping):
+        redacted: dict[Any, Any] = {}
+        for key, item in value.items():
+            key_text = str(key).lower()
+            if key_text in _SENSITIVE_KEYS:
+                redacted[key] = "***"
+            elif key_text == "proxy" and isinstance(item, (URL, str)):
+                redacted[key] = redact_url(item)
+            else:
+                redacted[key] = redact_sensitive(item)
+        return redacted
+    if isinstance(value, list):
+        return [redact_sensitive(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(redact_sensitive(item) for item in value)
+    return value
+
+
+def redact_url(url: URL | str) -> str:
+    """Return a URL string with sensitive query values and userinfo redacted."""
+    try:
+        parsed = URL(str(url))
+    except Exception:
+        return str(url)
+    if parsed.user is not None:
+        parsed = parsed.with_user("***")
+    if parsed.password is not None:
+        parsed = parsed.with_password("***")
+    if parsed.query:
+        parsed = parsed.with_query({
+            key: ("***" if key.lower() in _SENSITIVE_QUERY_KEYS else value)
+            for key, value in parsed.query.items()
+        })
+    if parsed.fragment:
+        fragment = parsed.fragment
+        for key in _SENSITIVE_QUERY_KEYS:
+            fragment = re.sub(rf"(?i)({re.escape(key)}=)[^&]*", r"\1***", fragment)
+        if fragment != parsed.fragment:
+            parsed = parsed.with_fragment(fragment)
+    return str(parsed)
+
 
 def _remove_missing(obj: JsonType) -> JsonType:
     # this modifies obj in place, but we return it just in case

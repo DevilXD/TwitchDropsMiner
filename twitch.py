@@ -41,6 +41,8 @@ from utils import (
     RateLimiter,
     AwaitableValue,
     ExponentialBackoff,
+    redact_url,
+    redact_sensitive,
 )
 from constants import (
     CALL,
@@ -1589,7 +1591,13 @@ class Twitch:
         method = method.upper()
         if self.settings.proxy and "proxy" not in kwargs:
             kwargs["proxy"] = self.settings.proxy
-        logger.debug(f"Request: ({method=}, {url=}, {kwargs=})")
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(
+                "Request: (method=%s, url=%s, kwargs=%s)",
+                method,
+                redact_url(url),
+                redact_sensitive(kwargs),
+            )
         session_timeout = timedelta(seconds=session.timeout.total or 0)
         backoff = ExponentialBackoff(maximum=3*60)
         for delay in backoff:
@@ -1607,7 +1615,9 @@ class Twitch:
                     session.request(method, url, **kwargs)
                 )
                 assert response is not None
-                logger.debug(f"Response: {response.status}: {response}")
+                logger.debug(
+                    "Response: %s: %s", response.status, redact_url(response.url)
+                )
                 if response.status < 500:
                     # pre-read the response to avoid getting errors outside of the context manager
                     raw_response = await response.read()  # noqa
@@ -1643,7 +1653,8 @@ class Twitch:
     async def gql_request(
         self, ops: GQLOperation | list[GQLOperation]
     ) -> JsonType | list[JsonType]:
-        gql_logger.debug(f"GQL Request: {ops}")
+        if gql_logger.isEnabledFor(logging.DEBUG):
+            gql_logger.debug("GQL Request: %s", ops)
         backoff = ExponentialBackoff(maximum=60)
         # Use a flag to retry the request a single time, if a specific set of errors is encountered
         single_retry: bool = True
@@ -1657,7 +1668,8 @@ class Twitch:
                     headers=auth_state.headers(user_agent=self._client_type.USER_AGENT, gql=True),
                 ) as response:
                     response_json: JsonType | list[JsonType] = await response.json()
-            gql_logger.debug(f"GQL Response: {response_json}")
+            if gql_logger.isEnabledFor(logging.DEBUG):
+                gql_logger.debug("GQL Response: %s", response_json)
             orig_response = response_json
             if isinstance(response_json, list):
                 response_list = response_json
