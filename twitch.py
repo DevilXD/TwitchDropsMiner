@@ -1840,31 +1840,9 @@ class Twitch:
                 switch_triggers.update(campaign.time_triggers)
             self.inventory.append(campaign)
             self._campaigns[campaign.id] = campaign
-        # concurrently add the campaigns into the GUI
-        # NOTE: this fetches pictures from the CDN, so might be slow without a cache
-        status_update(
-            _("gui", "status", "adding_campaigns").format(counter=f"(0/{len(campaigns)})")
-        )
-        add_campaign_tasks: list[asyncio.Task[None]] = [
-            asyncio.create_task(self.gui.inv.add_campaign(campaign))
-            for campaign in campaigns
-        ]
-        try:
-            for i, coro in enumerate(asyncio.as_completed(add_campaign_tasks), start=1):
-                await coro
-                status_update(
-                    _("gui", "status", "adding_campaigns").format(
-                        counter=f"({i}/{len(campaigns)})"
-                    )
-                )
-                # this is needed here explicitly, because cache reads from disk don't raise this
-                if self.gui.close_requested:
-                    raise ExitRequest()
-        except Exception:
-            # asyncio.as_completed doesn't cancel tasks on errors
-            for task in add_campaign_tasks:
-                task.cancel()
-            raise
+        # Populate the inventory list. Rows are native Treeview items, so this
+        # is instant and starts no image downloads; details load on selection.
+        self.gui.inv.set_campaigns(campaigns)
         self._mnt_triggers.extend(sorted(switch_triggers))
         # trim out all triggers that we're already past
         now = datetime.now(timezone.utc)

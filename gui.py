@@ -11,6 +11,7 @@ import plistlib
 import tkinter as tk
 from pathlib import Path
 from collections import abc
+from contextlib import suppress
 from textwrap import dedent
 from math import log10, ceil
 from dataclasses import dataclass
@@ -35,6 +36,7 @@ if sys.platform == "darwin":
 
 from translate import _
 from cache import ImageCache
+from inventory import CAMPAIGN_IMAGE_SIZE, CampaignStatus, DropStatus
 from exceptions import MinerException, ExitRequest
 from utils import resource_path, set_root_icon, webopen, task_wrapper, Game, _T
 from constants import (
@@ -791,7 +793,8 @@ class CampaignProgress:
             return
         vars_drop["rewards"].set(drop.rewards_text())
         vars_drop["progress"].set(drop.progress)
-        vars_drop["percentage"].set(f"{drop.progress:6.1%}")
+        estimated_marker = _("gui", "progress", "estimated") if drop.is_estimated else ''
+        vars_drop["percentage"].set(f"{drop.progress:6.1%}{estimated_marker}")
         campaign = drop.campaign
         vars_campaign["name"].set(campaign.name)
         vars_campaign["game"].set(campaign.game.name)
@@ -1240,16 +1243,29 @@ class Notebook:
     def current_tab(self) -> int:
         return self._nb.index("current")
 
+    def index(self, widget: ttk.Widget) -> int:
+        return self._nb.index(widget)
+
+    def select(self, widget: ttk.Widget) -> None:
+        self._nb.select(widget)
+
     def add_view_event(self, callback: abc.Callable[[tk.Event[ttk.Notebook]], Any]):
         self._nb.bind("<<NotebookTabChanged>>", callback, True)
 
 
-class CampaignDisplay(TypedDict):
-    frame: ttk.Frame
-    status: ttk.Label
-
-
 class InventoryOverview:
+    # (column id, translation key under gui.inventory.headings, width, anchor, stretch)
+    COLUMNS = (
+        ("campaign", "campaign", 260, "w", True),
+        ("game", "game", 160, "w", True),
+        ("status", "status", 110, "center", False),
+        ("progress", "progress", 150, "center", False),
+        ("ends", "ends", 160, "center", False),
+        ("linked", "linked", 90, "center", False),
+    )
+    # Columns where the first click should start in descending order.
+    SORT_DEFAULT_REVERSE = frozenset({"progress", "linked"})
+
     def __init__(self, manager: GUIManager, master: ttk.Widget):
         self._manager = manager
         self._cache: ImageCache = manager._cache
@@ -1269,13 +1285,13 @@ class InventoryOverview:
             master, text=_("gui", "inventory", "filter", "name"), padding=(4, 0, 4, 4)
         )
         LABEL_SPACING = 20
-        filter_frame.grid(column=0, row=0, columnspan=2, sticky="nsew")
+        filter_frame.grid(column=0, row=0, sticky="nsew")
         ttk.Label(
             filter_frame, text=_("gui", "inventory", "filter", "show"), padding=(0, 0, 10, 0)
         ).grid(column=0, row=0)
         icolumn = 0
         ttk.Checkbutton(
-            filter_frame, variable=self._filters["not_linked"]
+            filter_frame, variable=self._filters["not_linked"], command=self.refresh
         ).grid(column=(icolumn := icolumn + 1), row=0)
         ttk.Label(
             filter_frame,
@@ -1283,7 +1299,7 @@ class InventoryOverview:
             padding=(0, 0, LABEL_SPACING, 0),
         ).grid(column=(icolumn := icolumn + 1), row=0)
         ttk.Checkbutton(
-            filter_frame, variable=self._filters["upcoming"]
+            filter_frame, variable=self._filters["upcoming"], command=self.refresh
         ).grid(column=(icolumn := icolumn + 1), row=0)
         ttk.Label(
             filter_frame,
@@ -1291,7 +1307,7 @@ class InventoryOverview:
             padding=(0, 0, LABEL_SPACING, 0),
         ).grid(column=(icolumn := icolumn + 1), row=0)
         ttk.Checkbutton(
-            filter_frame, variable=self._filters["expired"]
+            filter_frame, variable=self._filters["expired"], command=self.refresh
         ).grid(column=(icolumn := icolumn + 1), row=0)
         ttk.Label(
             filter_frame,
@@ -1299,7 +1315,7 @@ class InventoryOverview:
             padding=(0, 0, LABEL_SPACING, 0),
         ).grid(column=(icolumn := icolumn + 1), row=0)
         ttk.Checkbutton(
-            filter_frame, variable=self._filters["excluded"]
+            filter_frame, variable=self._filters["excluded"], command=self.refresh
         ).grid(column=(icolumn := icolumn + 1), row=0)
         ttk.Label(
             filter_frame,
@@ -1307,7 +1323,7 @@ class InventoryOverview:
             padding=(0, 0, LABEL_SPACING, 0),
         ).grid(column=(icolumn := icolumn + 1), row=0)
         ttk.Checkbutton(
-            filter_frame, variable=self._filters["finished"]
+            filter_frame, variable=self._filters["finished"], command=self.refresh
         ).grid(column=(icolumn := icolumn + 1), row=0)
         ttk.Label(
             filter_frame,
@@ -1317,54 +1333,192 @@ class InventoryOverview:
         ttk.Button(
             filter_frame, text=_("gui", "inventory", "filter", "refresh"), command=self.refresh
         ).grid(column=(icolumn := icolumn + 1), row=0)
-        # Inventory view
-        self._canvas = tk.Canvas(master, scrollregion=(0, 0, 0, 0))
-        self._canvas.grid(column=0, row=1, sticky="nsew")
+        # Onboarding: the default Priority-only mode with an empty list is the
+        # state that used to look stuck. Offer a direct route to Settings.
+        self._setup_frame = ttk.Frame(filter_frame)
+        self._setup_frame.grid(
+            column=0, row=1, columnspan=icolumn + 1, sticky="w", pady=(2, 0)
+        )
+        self._setup_label = ttk.Label(self._setup_frame, style="Muted.TLabel")
+        self._setup_label.grid(column=0, row=0, sticky="w")
+        self._setup_button = ttk.Button(
+            self._setup_frame,
+            text=_("gui", "inventory", "setup", "choose_games"),
+            command=self._manager.show_settings,
+        )
+        self._setup_button.grid(column=1, row=0, padx=(8, 0))
+        self._setup_frame.grid_remove()
+        # A native Treeview scales to hundreds of campaigns without the embedded
+        # widget cost of the old card canvas (106 cards used to create 1,157
+        # widgets and took ~100 ms per scroll step).
+        paned = ttk.Panedwindow(master, orient="vertical")
+        paned.grid(column=0, row=1, sticky="nsew")
         master.rowconfigure(1, weight=1)
         master.columnconfigure(0, weight=1)
-        xscroll = ttk.Scrollbar(master, orient="horizontal", command=self._canvas.xview)
-        xscroll.grid(column=0, row=2, sticky="ew")
-        yscroll = ttk.Scrollbar(master, orient="vertical", command=self._canvas.yview)
-        yscroll.grid(column=1, row=1, sticky="ns")
-        self._canvas.configure(xscrollcommand=xscroll.set, yscrollcommand=yscroll.set)
-        self._canvas.bind("<Configure>", self._canvas_update)
-        self._main_frame = ttk.Frame(self._canvas)
-        self._canvas.bind(
-            "<Enter>", lambda e: self._canvas.bind_all("<MouseWheel>", self._on_mousewheel)
+
+        list_frame = ttk.Frame(paned)
+        list_frame.rowconfigure(0, weight=1)
+        list_frame.columnconfigure(0, weight=1)
+        self._tree = ttk.Treeview(
+            list_frame,
+            columns=tuple(column[0] for column in self.COLUMNS),
+            show="headings",
+            selectmode="browse",
         )
-        self._canvas.bind("<Leave>", lambda e: self._canvas.unbind_all("<MouseWheel>"))
-        self._canvas.create_window(0, 0, anchor="nw", window=self._main_frame)
-        self._campaigns: dict[DropsCampaign, CampaignDisplay] = {}
+        for cid, key, width, anchor, stretch in self.COLUMNS:
+            self._tree.heading(
+                cid,
+                text=_("gui", "inventory", "headings", key),
+                anchor=anchor,
+                command=partial(self._sort_by, cid),
+            )
+            self._tree.column(
+                cid,
+                width=width,
+                minwidth=max(60, width // 2),
+                anchor=anchor,
+                stretch=stretch,
+            )
+        tree_scroll = ttk.Scrollbar(list_frame, orient="vertical", command=self._tree.yview)
+        self._tree.configure(yscrollcommand=tree_scroll.set)
+        self._tree.grid(column=0, row=0, sticky="nsew")
+        tree_scroll.grid(column=1, row=0, sticky="ns")
+        self._tree.tag_configure("active", foreground="green")
+        self._tree.tag_configure("upcoming", foreground="goldenrod")
+        self._tree.tag_configure("expired", foreground="red")
+        self._tree.tag_configure("finished", foreground="green")
+        self._tree.bind("<<TreeviewSelect>>", self._on_select)
+        paned.add(list_frame, weight=3)
+
+        details_frame = ttk.LabelFrame(
+            paned, text=_("gui", "inventory", "details"), padding=(4, 0, 4, 4)
+        )
+        details_frame.rowconfigure(0, weight=1)
+        details_frame.columnconfigure(0, weight=1)
+        self._details_canvas = tk.Canvas(details_frame, highlightthickness=0)
+        self._details_canvas.grid(column=0, row=0, sticky="nsew")
+        details_xscroll = ttk.Scrollbar(
+            details_frame, orient="horizontal", command=self._details_canvas.xview
+        )
+        details_xscroll.grid(column=0, row=1, sticky="ew")
+        self._details_canvas.configure(xscrollcommand=details_xscroll.set)
+        self._details_host = ttk.Frame(self._details_canvas)
+        self._details_canvas.create_window(0, 0, anchor="nw", window=self._details_host)
+        self._details_host.bind("<Configure>", self._details_canvas_update)
+        self._details_canvas.bind("<Configure>", self._details_canvas_update)
+        paned.add(details_frame, weight=2)
+
+        self._campaigns: dict[str, DropsCampaign] = {}
         self._drops: dict[str, ttk.Label] = {}
+        self._selected: str | None = None
+        self._detail_task: asyncio.Task[None] | None = None
+        self._detail_generation: int = 0
+        # Sorting state persists across filters/reloads. `None` keeps the miner's
+        # own eligibility/activity/time order.
+        self._sort_column: str | None = None
+        self._sort_reverse: bool = False
+        self._update_headings()
+        self._show_details(None)
 
     def configure_theme(self, *, bg: str):
         # Canvas background needs manual control
-        self._canvas.configure(bg=bg)
+        self._details_canvas.configure(bg=bg)
 
-    def _update_visibility(self, campaign: DropsCampaign):
-        # True if the campaign is supposed to show, False makes it hidden.
-        frame = self._campaigns[campaign]["frame"]
+    def _sort_by(self, column: str) -> None:
+        if self._sort_column == column:
+            self._sort_reverse = not self._sort_reverse
+        else:
+            self._sort_column = column
+            self._sort_reverse = column in self.SORT_DEFAULT_REVERSE
+        self._update_headings()
+        self.refresh()
+
+    def _update_headings(self) -> None:
+        for cid, key, _width, anchor, _stretch in self.COLUMNS:
+            text = _("gui", "inventory", "headings", key)
+            if cid == self._sort_column:
+                text += " ▼" if self._sort_reverse else " ▲"
+            self._tree.heading(cid, text=text, anchor=anchor)
+
+    def _status_rank(self, campaign: DropsCampaign) -> int:
+        if campaign.finished:
+            return 3
+        return {
+            CampaignStatus.ACTIVE: 0,
+            CampaignStatus.UPCOMING: 1,
+            CampaignStatus.EXPIRED: 2,
+        }.get(campaign.status, 4)
+
+    def _sort_key(self, column: str, campaign: DropsCampaign) -> Any:
+        if column == "campaign":
+            return campaign.name.casefold()
+        if column == "game":
+            return campaign.game.name.casefold()
+        if column == "status":
+            return self._status_rank(campaign)
+        if column == "progress":
+            return campaign.progress
+        if column == "ends":
+            return campaign.ends_at
+        if column == "linked":
+            return campaign.eligible
+        return ''
+
+    def _is_visible(self, campaign: DropsCampaign) -> bool:
         not_linked = bool(self._filters["not_linked"].get())
         expired = bool(self._filters["expired"].get())
         excluded = bool(self._filters["excluded"].get())
         upcoming = bool(self._filters["upcoming"].get())
         finished = bool(self._filters["finished"].get())
-        priority_only = self._settings.priority_mode is PriorityMode.PRIORITY_ONLY
-        if (
+        # In priority-only mode with an empty priority list, don't hide the whole
+        # inventory: the user needs to see campaigns to decide what to add.
+        priority_filter = (
+            self._settings.priority_mode is PriorityMode.PRIORITY_ONLY
+            and bool(self._settings.priority)
+        )
+        status = campaign.status
+        return (
             campaign.required_minutes > 0  # don't show sub-only campaigns
             and (not_linked or campaign.eligible)
-            and (campaign.active or upcoming and campaign.upcoming or expired and campaign.expired)
+            and (
+                status is CampaignStatus.ACTIVE
+                or (status is CampaignStatus.UPCOMING and upcoming)
+                or (status is CampaignStatus.EXPIRED and expired)
+            )
             and (
                 excluded or (
                     campaign.game.name not in self._settings.exclude
-                    and not priority_only or campaign.game.name in self._settings.priority
+                    and (not priority_filter or campaign.game.name in self._settings.priority)
                 )
             )
             and (finished or not campaign.finished)
-        ):
-            frame.grid()
-        else:
-            frame.grid_remove()
+        )
+
+    def _row_values(self, campaign: DropsCampaign) -> tuple[str, str, str, str, str, str]:
+        status_text, _status_color = self.get_status(campaign)
+        progress_text = (
+            f"{campaign.claimed_drops}/{campaign.total_drops} "
+            f"({campaign.progress:3.0%})"
+        )
+        ends_text = str(campaign.ends_at.astimezone().replace(microsecond=0, tzinfo=None))
+        link_text = (
+            _("gui", "inventory", "status", "linked")
+            if campaign.eligible
+            else _("gui", "inventory", "status", "not_linked")
+        )
+        return (
+            campaign.name,
+            campaign.game.name,
+            status_text,
+            progress_text,
+            ends_text,
+            link_text,
+        )
+
+    def _row_tag(self, campaign: DropsCampaign) -> str:
+        if campaign.finished:
+            return "finished"
+        return campaign.status.name.lower()
 
     def _on_tab_switched(self, event: tk.Event[ttk.Notebook]) -> None:
         if self._manager.tabs.current_tab() == 1:
@@ -1372,10 +1526,13 @@ class InventoryOverview:
             self.refresh()
 
     def get_status(self, campaign: DropsCampaign) -> tuple[str, str]:
-        if campaign.active:
+        if campaign.finished:
+            return _("gui", "inventory", "status", "finished"), "green"
+        status = campaign.status
+        if status is CampaignStatus.ACTIVE:
             status_text: str = _("gui", "inventory", "status", "active")
             status_color: str = "green"
-        elif campaign.upcoming:
+        elif status is CampaignStatus.UPCOMING:
             status_text = _("gui", "inventory", "status", "upcoming")
             status_color = "goldenrod"
         else:
@@ -1477,9 +1634,11 @@ class InventoryOverview:
             text=f"{_('gui', 'inventory', 'allowed_channels')}\n{allowed_text}",
             takefocus=False,
         ).grid(column=1, row=4, sticky="nw", padx=4)
-        # Image
-        campaign_image = await self._cache.get(campaign.image_url, size=(108, 144))
-        ttk.Label(campaign_frame, image=campaign_image).grid(column=0, row=1, rowspan=4)
+        # Rule actions for this game. These are the fastest path out of the
+        # "no priority games selected" state without hunting through Settings.
+        actions = ttk.Frame(campaign_frame)
+        actions.grid(column=0, row=5, columnspan=4, sticky="w", pady=(6, 0))
+        self._build_rule_actions(actions, campaign)
         # Drops separator
         ttk.Separator(
             campaign_frame, orient="vertical", takefocus=False
@@ -1488,41 +1647,182 @@ class InventoryOverview:
         drops_row = ttk.Frame(campaign_frame)
         drops_row.grid(column=3, row=0, rowspan=5, sticky="nsew", padx=4)
         drops_row.rowconfigure(0, weight=1)
-        for i, drop in enumerate(campaign.drops):
-            drop_frame = ttk.Frame(drops_row, relief="ridge", borderwidth=1, padding=5)
-            drop_frame.grid(column=i, row=0, padx=4)
-            benefits_frame = ttk.Frame(drop_frame)
-            benefits_frame.grid(column=0, row=0)
-            benefit_images: list[PhotoImage] = await asyncio.gather(
+        campaign_image_task = asyncio.create_task(
+            self._cache.get(campaign.image_url, size=CAMPAIGN_IMAGE_SIZE)
+        )
+        benefit_tasks = [
+            asyncio.gather(
                 *(self._cache.get(benefit.image_url, (80, 80)) for benefit in drop.benefits)
             )
-            for i, benefit, image in zip(range(len(drop.benefits)), drop.benefits, benefit_images):
-                ttk.Label(
-                    benefits_frame,
-                    text=benefit.name,
-                    image=image,
-                    compound="bottom",
-                ).grid(column=i, row=0, padx=5)
-            self._drops[drop.id] = label = ttk.Label(drop_frame, justify=tk.CENTER)
-            self.update_progress(drop, label)
-            label.grid(column=0, row=1)
-        if self._manager.tabs.current_tab() == 1:
-            self._update_visibility(campaign)
-            self._canvas_update()
+            for drop in campaign.drops
+        ]
+        try:
+            for i, (drop, benefit_task) in enumerate(
+                zip(campaign.drops, benefit_tasks)
+            ):
+                drop_frame = ttk.Frame(
+                    drops_row, relief="ridge", borderwidth=1, padding=5
+                )
+                drop_frame.grid(column=i, row=0, padx=4)
+                benefits_frame = ttk.Frame(drop_frame)
+                benefits_frame.grid(column=0, row=0)
+                benefit_images: list[PhotoImage] = await benefit_task
+                if generation != self._detail_generation:
+                    return
+                for j, (benefit, image) in enumerate(zip(drop.benefits, benefit_images)):
+                    ttk.Label(
+                        benefits_frame,
+                        text=benefit.name,
+                        image=image,
+                        compound="bottom",
+                    ).grid(column=j, row=0, padx=5)
+                self._drops[drop.id] = label = ttk.Label(
+                    drop_frame, justify=tk.CENTER
+                )
+                self.update_progress(drop, label)
+                label.grid(column=0, row=1)
+            campaign_image = await campaign_image_task
+            if generation != self._detail_generation:
+                return
+            ttk.Label(campaign_frame, image=campaign_image).grid(
+                column=0, row=1, rowspan=4
+            )
+            self._details_canvas_update()
+        finally:
+            # A selection change must not leave stale image downloads running.
+            if not campaign_image_task.done():
+                campaign_image_task.cancel()
+            for benefit_task in benefit_tasks:
+                if not benefit_task.done():
+                    benefit_task.cancel()
+
+    def _build_rule_actions(self, parent: ttk.Frame, campaign: DropsCampaign) -> None:
+        game_name = campaign.game.name
+        if game_name in self._settings.priority:
+            ttk.Label(
+                parent,
+                text=_("gui", "inventory", "actions", "in_priority"),
+                foreground="green",
+            ).grid(column=0, row=0, sticky="w")
+        else:
+            ttk.Button(
+                parent,
+                text=_("gui", "inventory", "actions", "add_priority"),
+                command=partial(self._add_to_priority, campaign),
+            ).grid(column=0, row=0, sticky="w")
+        if game_name in self._settings.exclude:
+            ttk.Label(
+                parent,
+                text=_("gui", "inventory", "actions", "excluded"),
+                foreground="red",
+            ).grid(column=1, row=0, padx=(8, 0), sticky="w")
+        else:
+            ttk.Button(
+                parent,
+                text=_("gui", "inventory", "actions", "exclude"),
+                command=partial(self._exclude_game, campaign),
+            ).grid(column=1, row=0, padx=(8, 0), sticky="w")
+
+    def _sync_settings_panel(self) -> None:
+        if self._manager.settings is not None:
+            self._manager.settings.sync()
+
+    def _add_to_priority(self, campaign: DropsCampaign) -> None:
+        game_name = campaign.game.name
+        if game_name in self._settings.exclude:
+            self._settings.exclude.discard(game_name)
+        if game_name not in self._settings.priority:
+            self._settings.priority.append(game_name)
+        self._settings.alter()
+        self._sync_settings_panel()
+        self._manager._twitch.request_state(State.RULES_UPDATE)
+        self.refresh()
+        self.refresh_details()
+
+    def _exclude_game(self, campaign: DropsCampaign) -> None:
+        game_name = campaign.game.name
+        self._settings.exclude.add(game_name)
+        if game_name in self._settings.priority:
+            self._settings.priority.remove(game_name)
+        self._settings.alter()
+        self._sync_settings_panel()
+        self._manager._twitch.request_state(State.RULES_UPDATE)
+        self.refresh()
+        self.refresh_details()
+
+    def refresh_details(self) -> None:
+        """
+        Rebuild the detail pane for the current selection.
+
+        The pane embeds rule actions whose state depends on settings, and its
+        progress labels point at campaign/drop objects. Both go stale after a
+        settings change or an inventory reload; rebuilding keeps it truthful.
+        """
+        if self._selected is None:
+            return
+        if not self._tree.exists(self._selected):
+            self._selected = None
+            self._show_details(None)
+            return
+        campaign = self._campaigns.get(self._selected)
+        if campaign is not None:
+            self._show_details(campaign)
+
+    def set_campaigns(self, campaigns: list[DropsCampaign]) -> None:
+        """
+        Replace the inventory with a fresh campaign list.
+
+        Rows are native Treeview items, so this is fast and does not start any
+        image downloads. Details (and their images) load only when selected.
+        Selection and scroll position survive a reload; the detail pane is rebuilt
+        because the campaign objects are new.
+        """
+        selected = self._selected
+        scroll = self._tree.yview()[0] if self._tree.get_children() else 0.0
+        # Cancel the old detail build before its campaign objects are replaced.
+        self._detail_generation += 1
+        if self._detail_task is not None:
+            self._detail_task.cancel()
+            self._detail_task = None
+        self._campaigns = {campaign.id: campaign for campaign in campaigns}
+        self.refresh()
+        if selected is None:
+            self._show_details(None)
+        elif self._tree.exists(selected):
+            campaign = self._campaigns.get(selected)
+            if campaign is not None:
+                self._selected = selected
+                self._show_details(campaign)
+        self._tree.yview_moveto(scroll)
 
     def clear(self) -> None:
-        for child in self._main_frame.winfo_children():
-            child.destroy()
-        self._drops.clear()
+        self._detail_generation += 1
+        if self._detail_task is not None:
+            self._detail_task.cancel()
+            self._detail_task = None
+        self._tree.delete(*self._tree.get_children())
         self._campaigns.clear()
+        self._selected = None
+        self._clear_details()
+
+    async def stop(self) -> None:
+        """Cancel and await detail/image work without clearing the visible list."""
+        self._detail_generation += 1
+        task = self._detail_task
+        self._detail_task = None
+        if task is not None:
+            task.cancel()
+            with suppress(asyncio.CancelledError, Exception):
+                await task
 
     def update_progress(self, drop: TimedDrop, label: ttk.Label) -> None:
         progress_text: str
         progress_color: str = ''
-        if drop.is_claimed:
+        status = drop.status
+        if status is DropStatus.CLAIMED:
             progress_color = "green"
             progress_text = _("gui", "inventory", "status", "claimed")
-        elif drop.can_claim:
+        elif status is DropStatus.READY_TO_CLAIM:
             progress_color = "goldenrod"
             progress_text = _("gui", "inventory", "status", "ready_to_claim")
         elif drop.current_minutes or drop.can_earn():
@@ -1530,6 +1830,9 @@ class InventoryOverview:
                 percent=f"{drop.progress:3.1%}",
                 minutes=drop.required_minutes,
             )
+            if drop.is_estimated:
+                # The percentage includes locally estimated minutes. Say so.
+                progress_text += _("gui", "inventory", "estimated")
             if drop.ends_at < drop.campaign.ends_at:
                 # this drop becomes unavailable earlier than the campaign ends
                 progress_text += '\n' + _("gui", "inventory", "ends").format(
@@ -1556,10 +1859,16 @@ class InventoryOverview:
         label.config(text=progress_text, foreground=progress_color)
 
     def update_drop(self, drop: TimedDrop) -> None:
+        campaign = self._campaigns.get(drop.campaign.id)
+        if campaign is not None and self._tree.exists(campaign.id):
+            self._tree.item(
+                campaign.id,
+                values=self._row_values(campaign),
+                tags=(self._row_tag(campaign),),
+            )
         label = self._drops.get(drop.id)
-        if label is None:
-            return
-        self.update_progress(drop, label)
+        if label is not None:
+            self.update_progress(drop, label)
 
 
 def proxy_validate(entry: PlaceholderEntry, settings: Settings) -> bool:
@@ -1866,6 +2175,28 @@ class SettingsPanel:
         self._priority_list.selection_clear(0, "end")
         self._exclude_list.selection_clear(0, "end")
 
+    def _refresh_inventory(self) -> None:
+        """
+        Apply mining-rule changes to the inventory view and the miner itself.
+
+        Priority/exclude/mode changes are local; request a RULES_UPDATE instead of
+        a full GQL inventory reload.
+        """
+        self._manager.inv.refresh()
+        self._manager.inv.refresh_details()
+        self._manager._twitch.request_state(State.RULES_UPDATE)
+
+    def sync(self) -> None:
+        """Rebuild the rule lists from settings after an external change."""
+        self._priority_list.delete(0, "end")
+        if self._settings.priority:
+            self._priority_list.insert("end", *self._settings.priority)
+        self._exclude_list.delete(0, "end")
+        if self._settings.exclude:
+            self._exclude_list.insert("end", *sorted(self._settings.exclude))
+        self.update_priority_choices()
+        self.update_excluded_choices()
+
     def update_dark_mode(self) -> None:
         self._settings.dark_mode = bool(self._vars["dark_mode"].get())
         self._manager.apply_theme(self._settings.dark_mode)
@@ -1995,6 +2326,17 @@ class SettingsPanel:
             # prevent adding empty strings
             return
         self._priority_entry.clear()
+        changed = False
+        # Keep the two rule lists mutually exclusive.
+        if game_name in self._settings.exclude:
+            self._settings.exclude.discard(game_name)
+            for i, item in enumerate(self._exclude_list.get(0, "end")):
+                if item == game_name:
+                    self._exclude_list.delete(i)
+                    break
+            self._settings.alter()
+            self.update_excluded_choices()
+            changed = True
         # add it preventing duplicates
         try:
             existing_idx: int = self._settings.priority.index(game_name)
@@ -2005,10 +2347,13 @@ class SettingsPanel:
             self._settings.priority.append(game_name)
             self._settings.alter()
             self.update_priority_choices()
+            changed = True
         else:
             # already there, set the selection on it
             self._priority_list.selection_set(existing_idx)
             self._priority_list.see(existing_idx)
+        if changed:
+            self._refresh_inventory()
 
     def _priority_idx(self) -> int | None:
         selection: tuple[int, ...] = self._priority_list.curselection()
@@ -2043,6 +2388,7 @@ class SettingsPanel:
         self._settings.priority.pop(idx)
         self._settings.priority.insert(insert_idx, item)
         self._settings.alter()
+        self._refresh_inventory()
 
     def priority_delete(self) -> None:
         idx: int | None = self._priority_idx()
@@ -2052,6 +2398,7 @@ class SettingsPanel:
         del self._settings.priority[idx]
         self._settings.alter()
         self.update_priority_choices()
+        self._refresh_inventory()
 
     def priority_mode(self, event: tk.Event[ttk.Combobox]) -> None:
         mode_name: str = self._vars["priority_mode"].get()
@@ -2059,6 +2406,7 @@ class SettingsPanel:
             if mode_name == name:
                 self._settings.priority_mode = value
                 break
+        self._refresh_inventory()
 
     def exclude_add(self) -> None:
         game_name: str = self._exclude_entry.get()
@@ -2066,6 +2414,17 @@ class SettingsPanel:
             # prevent adding empty strings
             return
         self._exclude_entry.clear()
+        changed = False
+        # Keep the two rule lists mutually exclusive.
+        if game_name in self._settings.priority:
+            self._settings.priority.remove(game_name)
+            for i, item in enumerate(self._priority_list.get(0, "end")):
+                if item == game_name:
+                    self._priority_list.delete(i)
+                    break
+            self._settings.alter()
+            self.update_priority_choices()
+            changed = True
         if game_name not in self._settings.exclude:
             self._settings.exclude.add(game_name)
             self._settings.alter()
@@ -2090,6 +2449,8 @@ class SettingsPanel:
                 return
             self._exclude_list.selection_set(existing_idx)
             self._exclude_list.see(existing_idx)
+        if changed:
+            self._refresh_inventory()
 
     def exclude_delete(self) -> None:
         selection: tuple[int, ...] = self._exclude_list.curselection()
@@ -2102,6 +2463,7 @@ class SettingsPanel:
             self._settings.exclude.discard(item)
             self._settings.alter()
             self.update_excluded_choices()
+            self._refresh_inventory()
 
 
 class HelpTab:
@@ -2823,6 +3185,7 @@ if __name__ == "__main__":
                 expired=False,
                 active=False,
                 upcoming=True,
+                status=CampaignStatus.UPCOMING,
                 eligible=False,
                 finished=False,
                 link_url="https://google.com",
@@ -2842,6 +3205,8 @@ if __name__ == "__main__":
             can_claim=False,
             can_earn=lambda: False,
             is_claimed=False,
+            status=DropStatus.AVAILABLE,
+            is_estimated=False,
             preconditions=True,
             benefits=benefits,
             rewards_text=lambda: ', '.join(b.name for b in benefits),
@@ -2877,6 +3242,9 @@ if __name__ == "__main__":
         )
         mock.change_state = lambda state: mock.gui.print(f"State change: {state.value}")
         mock.state_change = lambda state: partial(mock.change_state, state)
+        mock.request_state = lambda state, **kwargs: mock.gui.print(
+            f"State request: {state.value}"
+        )
         mock.request = aiohttp.request
         # _.set_language("Русский")
         gui = GUIManager(mock)  # type: ignore
@@ -2939,7 +3307,7 @@ if __name__ == "__main__":
             "Wardrobe Cleaning", "Cleaning Masters", ["Fancy Pants"], 2, 7, 0, 240
         )
         campaign = drop.campaign
-        await gui.inv.add_campaign(campaign)
+        gui.inv.set_campaigns([campaign])
 
         gui.print("Single-line test message")
         await asyncio.sleep(1)

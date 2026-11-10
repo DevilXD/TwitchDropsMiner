@@ -118,6 +118,7 @@ class GUIProgress(TypedDict):
     remaining: str
     drop_progress: str
     campaign_progress: str
+    estimated: str
 
 
 class GUIChannelHeadings(TypedDict):
@@ -156,11 +157,38 @@ class GUIInvStatus(TypedDict):
     upcoming: str
     claimed: str
     ready_to_claim: str
+    finished: str
+
+
+class GUIInvHeadings(TypedDict):
+    campaign: str
+    game: str
+    status: str
+    progress: str
+    ends: str
+    linked: str
+
+
+class GUIInvSetup(TypedDict):
+    priority_empty: str
+    choose_games: str
+
+
+class GUIInvActions(TypedDict):
+    add_priority: str
+    in_priority: str
+    exclude: str
+    excluded: str
 
 
 class GUIInventory(TypedDict):
     filter: GUIInvFilter
     status: GUIInvStatus
+    headings: GUIInvHeadings
+    setup: GUIInvSetup
+    actions: GUIInvActions
+    details: str
+    select_campaign: str
     starts: str
     ends: str
     allowed_channels: str
@@ -168,6 +196,8 @@ class GUIInventory(TypedDict):
     and_more: str
     percent_progress: str
     minutes_progress: str
+    estimated: str
+    loading: str
 
 
 class GUISettingsGeneral(TypedDict):
@@ -404,7 +434,30 @@ default_translation: Translation = {
                 "expired": "Expired ❌",
                 "claimed": "Claimed ✔",
                 "ready_to_claim": "Ready to claim ⏳",
+                "finished": "Finished ✔",
             },
+            "headings": {
+                "campaign": "Campaign",
+                "game": "Game",
+                "status": "Status",
+                "progress": "Progress",
+                "ends": "Ends",
+                "linked": "Linked",
+            },
+            "setup": {
+                "priority_empty": (
+                    "Priority list is empty — add games to start mining."
+                ),
+                "choose_games": "Choose games",
+            },
+            "actions": {
+                "add_priority": "Add game to Priority",
+                "in_priority": "In Priority ✔",
+                "exclude": "Exclude game",
+                "excluded": "Excluded ❌",
+            },
+            "details": "Campaign Details",
+            "select_campaign": "Select a campaign to see details.",
             "starts": "Starts: {time}",
             "ends": "Ends: {time}",
             "allowed_channels": "Allowed Channels:",
@@ -412,6 +465,8 @@ default_translation: Translation = {
             "and_more": "and {amount} more...",
             "percent_progress": "{percent} of {minutes} minutes",
             "minutes_progress": "{minutes} minutes",
+            "estimated": " (estimated)",
+            "loading": "Loading campaigns...",
         },
         "settings": {
             "general": {
@@ -443,7 +498,10 @@ default_translation: Translation = {
             "priority": "Priority",
             "exclude": "Exclude",
             "reload": "Reload",
-            "reload_text": "Most changes require a reload to take an immediate effect: ",
+            "reload_text": (
+                "Reload fetches new campaigns; priority and exclude changes "
+                "apply automatically: "
+            ),
         },
         "help": {
             "links": {
@@ -467,8 +525,8 @@ default_translation: Translation = {
                 "2. Ensure your Twitch account is linked to all campaigns "
                 "you're interested in mining.\n"
                 "3. If you're interested in mining everything possible, "
-                "change the Priority Mode to anything other than \"Priority list only\" "
-                "and press on \"Reload\".\n"
+                "change the Priority Mode to anything other than \"Priority list only\". "
+                "The change applies automatically.\n"
                 "4. If you want to mine specific games first, use the \"Priority\" list "
                 "to set up an ordered list of games of your choice. "
                 "Games from the top of the list will be attempted to be mined first, "
@@ -478,9 +536,8 @@ default_translation: Translation = {
                 "Or not - it's up to you.\n"
                 "6. Use the \"Exclude\" list to tell the application "
                 "which games should never be mined.\n"
-                "7. Changing the contents of either of the lists, or changing "
-                "the \"Priority mode\", requires you to press on \"Reload\" "
-                "for the changes to take an effect."
+                "7. Priority, Exclude, and Priority mode changes apply automatically. "
+                "Press \"Reload\" only when you want to fetch new campaigns."
             ),
             "invalidate": {
                 "button": "Invalidate",
