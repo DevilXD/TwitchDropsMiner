@@ -53,6 +53,9 @@ async def first_to_complete(coros: abc.Iterable[abc.Coroutine[Any, Any, _T]]) ->
     done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
     for task in pending:
         task.cancel()
+    if pending:
+        # Await cancellation to consume any exceptions raised while stopping.
+        await asyncio.gather(*pending, return_exceptions=True)
     return await next(iter(done))
 
 

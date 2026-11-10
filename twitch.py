@@ -1545,7 +1545,7 @@ class Twitch:
             if campaign.can_earn(watching_channel):
                 self.restart_watching()
             else:
-                self.change_state(State.INVENTORY_FETCH)
+                self.request_state(State.INVENTORY_FETCH)
             return
         assert msg_type == "drop-progress"
         if drop is not None:
@@ -1760,18 +1760,33 @@ class Twitch:
     async def fetch_inventory(self) -> None:
         status_update = self.gui.status.update
         status_update(_("gui", "status", "fetching_inventory"))
+        # These two queries are independent. Running them concurrently saves a
+        # full network round-trip on every inventory refresh. On failure, cancel
+        # the sibling too: gather alone would leave it running against a session
+        # that the caller is about to close.
+        inventory_task = asyncio.create_task(self.gql_request(GQL_QUERIES["Inventory"]))
+        campaigns_task = asyncio.create_task(self.gql_request(GQL_QUERIES["Campaigns"]))
+        try:
+            inventory_response, campaigns_response = await asyncio.gather(
+                inventory_task, campaigns_task
+            )
+        except BaseException:
+            await self._cancel_tasks((inventory_task, campaigns_task))
+            raise
         # fetch in-progress campaigns (inventory)
-        response = await self.gql_request(GQL_QUERIES["Inventory"])
-        inventory: JsonType = response["data"]["currentUser"]["inventory"]
+        inventory: JsonType = (
+            cast(JsonType, inventory_response)["data"]["currentUser"]["inventory"]
+        )
         ongoing_campaigns: list[JsonType] = inventory["dropCampaignsInProgress"] or []
         # this contains claimed benefit edge IDs, not drop IDs
         claimed_benefits: dict[str, datetime] = {
             b["id"]: timestamp(b["lastAwardedAt"]) for b in inventory["gameEventDrops"]
         }
         inventory_data: dict[str, JsonType] = {c["id"]: c for c in ongoing_campaigns}
-        # fetch general available campaigns data (campaigns)
-        response = await self.gql_request(GQL_QUERIES["Campaigns"])
-        available_list: list[JsonType] = response["data"]["currentUser"]["dropCampaigns"] or []
+        # general available campaigns data (campaigns)
+        available_list: list[JsonType] = (
+            cast(JsonType, campaigns_response)["data"]["currentUser"]["dropCampaigns"] or []
+        )
         applicable_statuses = ("ACTIVE", "UPCOMING")
         available_campaigns: dict[str, JsonType] = {
             c["id"]: c
@@ -1789,10 +1804,9 @@ class Twitch:
                 chunk_campaigns_data = await coro
                 # merge the inventory and campaigns datas together
                 inventory_data = self._merge_data(inventory_data, chunk_campaigns_data)
-        except Exception:
-            # asyncio.as_completed doesn't cancel tasks on errors
-            for task in fetch_campaigns_tasks:
-                task.cancel()
+        except BaseException:
+            # asyncio.as_completed doesn't cancel tasks on errors or cancellation
+            await self._cancel_tasks(fetch_campaigns_tasks)
             raise
         # filter out invalid campaigns
         for campaign_id in list(inventory_data.keys()):
@@ -1858,7 +1872,9 @@ class Twitch:
             self._mnt_triggers.popleft()
         # NOTE: maintenance task is restarted at the end of each inventory fetch
         if self._mnt_task is not None and not self._mnt_task.done():
-            self._mnt_task.cancel()
+            await self._cancel_tasks([self._mnt_task])
+        # Keep the user-visible schedule in sync with the task's own first period.
+        self._next_reload_at = datetime.now(timezone.utc) + timedelta(hours=1)
         self._mnt_task = asyncio.create_task(self._maintenance_task())
 
     def get_active_campaign(self, channel: Channel | None = None) -> DropsCampaign | None:

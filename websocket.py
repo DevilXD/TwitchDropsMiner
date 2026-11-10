@@ -59,6 +59,9 @@ class Websocket:
         # topics stuff
         self.topics: dict[str, WebsocketTopic] = {}
         self._submitted: set[WebsocketTopic] = set()
+        # Message handler tasks are tracked so shutdown can cancel/await them
+        # before the aiohttp session closes.
+        self._msg_tasks: set[asyncio.Task[Any]] = set()
         # notify GUI
         self.set_status(_("gui", "websocket", "disconnected"))
 
@@ -101,6 +104,11 @@ class Websocket:
                 with suppress(asyncio.TimeoutError, asyncio.CancelledError):
                     await asyncio.wait_for(self._handle_task, timeout=2)
                 self._handle_task = None
+            if self._msg_tasks:
+                for task in self._msg_tasks:
+                    task.cancel()
+                await asyncio.gather(*self._msg_tasks, return_exceptions=True)
+                self._msg_tasks.clear()
             if remove:
                 self.topics.clear()
                 self._topics_changed.set()
@@ -251,7 +259,7 @@ class Websocket:
                 raw_message: aiohttp.WSMessage = await ws.receive(timeout=timeout)
             except aiohttp.ClientConnectionError:
                 raise WebsocketClosed(received=False)
-            ws_logger.debug(f"Websocket[{self._idx}] received: {raw_message}")
+            ws_logger.debug("Websocket[%s] received: %s", self._idx, raw_message)
             if raw_message.type is WSMsgType.TEXT:
                 message: JsonType = json.loads(raw_message.data)
                 messages.append(message)
@@ -269,12 +277,19 @@ class Websocket:
             else:
                 ws_logger.error(f"Websocket[{self._idx}] error: Unknown message: {raw_message}")
 
+    def _message_done(self, task: asyncio.Task[Any]) -> None:
+        self._msg_tasks.discard(task)
+        if not task.cancelled() and (exc := task.exception()) is not None:
+            ws_logger.error("Websocket message handler failed", exc_info=exc)
+
     def _handle_message(self, message):
         # request the assigned topic to process the response
         topic = self.topics.get(message["data"]["topic"])
         if topic is not None:
             # use a task to not block the websocket
-            asyncio.create_task(topic(json.loads(message["data"]["message"])))
+            task = asyncio.create_task(topic(json.loads(message["data"]["message"])))
+            self._msg_tasks.add(task)
+            task.add_done_callback(self._message_done)
 
     async def _handle_recv(self):
         """
@@ -302,14 +317,23 @@ class Websocket:
             else:
                 ws_logger.warning(f"Websocket[{self._idx}] received unknown payload: {message}")
 
-    def add_topics(self, topics_set: set[WebsocketTopic]):
+    def add_topics(self, topics_set: set[WebsocketTopic]) -> set[WebsocketTopic]:
+        """
+        Add as many topics as this websocket can hold.
+
+        Returns the topics that didn't fit. Returning them explicitly (instead of
+        mutating the caller's set) keeps the capacity overflow visible at the call
+        site and makes the pool logic easy to reason about.
+        """
+        remaining: set[WebsocketTopic] = set(topics_set)
         changed: bool = False
-        while topics_set and len(self.topics) < WS_TOPICS_LIMIT:
-            topic = topics_set.pop()
+        while remaining and len(self.topics) < WS_TOPICS_LIMIT:
+            topic = remaining.pop()
             self.topics[str(topic)] = topic
             changed = True
         if changed:
             self._topics_changed.set()
+        return remaining
 
     def remove_topics(self, topics_set: set[str]):
         existing = topics_set.intersection(self.topics.keys())
@@ -330,7 +354,7 @@ class Websocket:
             await ws.send_json(message, dumps=json_minify)
         except aiohttp.ClientConnectionError:
             raise WebsocketClosed(received=False)
-        ws_logger.debug(f"Websocket[{self._idx}] sent: {message}")
+        ws_logger.debug("Websocket[%s] sent: %s", self._idx, message)
 
 
 class WebsocketPool:
@@ -348,11 +372,22 @@ class WebsocketPool:
 
     async def start(self):
         self._running.set()
-        await asyncio.gather(*(ws.start() for ws in self.websockets))
+        # Do not block the miner on websocket readiness. Each socket has its own
+        # reconnect/backoff loop; inventory and GQL work can proceed meanwhile.
+        for ws in self.websockets:
+            ws.start_nowait()
 
     async def stop(self, *, clear_topics: bool = False):
         self._running.clear()
-        await asyncio.gather(*(ws.stop(remove=clear_topics) for ws in self.websockets))
+        # One broken socket must not prevent the others (or the HTTP session)
+        # from closing cleanly.
+        results = await asyncio.gather(
+            *(ws.stop(remove=clear_topics) for ws in self.websockets),
+            return_exceptions=True,
+        )
+        for result in results:
+            if isinstance(result, BaseException):
+                ws_logger.warning("Websocket stop failed", exc_info=result)
 
     def add_topics(self, topics: abc.Iterable[WebsocketTopic]):
         # ensure no topics end up duplicated
@@ -374,8 +409,8 @@ class WebsocketPool:
                 if self.running:
                     ws.start_nowait()
                 self.websockets.append(ws)
-            # ask websocket to take any topics it can - this modifies the set in-place
-            ws.add_topics(topics_set)
+            # ask websocket to take any topics it can - leftovers go to the next connection
+            topics_set = ws.add_topics(topics_set)
             # see if there's any leftover topics for the next websocket connection
             if not topics_set:
                 return

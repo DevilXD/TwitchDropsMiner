@@ -158,7 +158,12 @@ class BaseDrop:
     @property
     def preconditions_met(self) -> bool:
         campaign = self.campaign
-        return all(campaign.timed_drops[pid].is_claimed for pid in self.precondition_drops)
+        # NOTE: Use `.get` and treat a missing precondition as unmet. A campaign
+        # can omit a referenced drop, and a KeyError here would kill the watch loop.
+        return all(
+            (drop := campaign.timed_drops.get(pid)) is not None and drop.is_claimed
+            for pid in self.precondition_drops
+        )
 
     def _on_state_changed(self) -> None:
         raise NotImplementedError
@@ -402,19 +407,19 @@ class TimedDrop(BaseDrop):
             and self.required_minutes > 0
             # NOTE: This may be a bad idea, as it invalidates the can_earn status
             # and provides no way to recover from this state until the next reload.
-            and self.extra_current_minutes < MAX_EXTRA_MINUTES
+            # `DropsCampaign.bump_minutes` now explicitly requests a reload when this
+            # happens, which is the recovery path.
+            and not self.is_saturated
         )
 
     def _on_state_changed(self) -> None:
         self._twitch.gui.inv.update_drop(self)
 
     def _update_real_minutes(self, delta: int) -> None:
-        if self.real_current_minutes + delta < 0:
-            self.real_current_minutes = 0
-        if self.real_current_minutes + delta < self.required_minutes:
-            self.real_current_minutes += delta
-        else:
-            self.real_current_minutes = self.required_minutes
+        # Clamp in one step. The old two-if version could add a negative delta
+        # after clamping to zero, producing negative minutes.
+        new_minutes = self.real_current_minutes + delta
+        self.real_current_minutes = max(0, min(self.required_minutes, new_minutes))
         self.extra_current_minutes = 0
         self._on_state_changed()
 
@@ -621,12 +626,16 @@ class DropsCampaign:
     def bump_minutes(self, channel: Channel) -> None:
         # NOTE: Use a temporary list to ensure all drops are bumped before checking
         if any([drop._bump_minutes(channel) for drop in self.drops]):
-            # Executes if any drop's extra_current_minutes reach MAX_ESTIMATED_MINUTES
-            # TODO: Figure out a better way to handle this case
+            # Executes if any drop's extra_current_minutes reach MAX_EXTRA_MINUTES.
+            # At this point the drop is no longer earnable, so staying in the watch
+            # loop cannot make progress. A reload is the only operation that
+            # resynchronises the real values with Twitch and clears the estimates.
             logger.warning(
                 f"At least one of the drops in campaign \"{self.name}({self.game.name})\" "
                 "has reached the maximum extra minutes limit!"
             )
-            self._twitch.change_state(State.CHANNEL_SWITCH)
+            message = _("status", "progress_stalled").format(game=self.game.name)
+            self._twitch.print(message)
+            self._twitch.request_state(State.INVENTORY_FETCH, reason=message)
         if (first_drop := self.first_drop) is not None:
             first_drop.display()
