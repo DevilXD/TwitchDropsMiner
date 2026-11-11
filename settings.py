@@ -68,6 +68,11 @@ class Settings:
         self._settings: SettingsFile = json_load(SETTINGS_PATH, default_settings)
         self._args: ParsedArgs = args
         self._altered: bool = False
+        # A hand-edited or old settings file can contain an unknown priority mode.
+        # The settings panel also checks this, but the miner reads settings before
+        # (and without) that panel being built, so validate here as the source of truth.
+        if not isinstance(self._settings.get("priority_mode"), PriorityMode):
+            self._settings["priority_mode"] = default_settings["priority_mode"]
 
     # default logic of reading settings is to check args first, then the settings file
     def __getattr__(self, name: str, /) -> Any:

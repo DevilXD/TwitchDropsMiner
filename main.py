@@ -17,6 +17,7 @@ if __name__ == "__main__":
     import traceback
     import tkinter as tk
     from tkinter import messagebox
+    from logging.handlers import RotatingFileHandler
     from typing import NoReturn, TYPE_CHECKING
 
     import truststore
@@ -59,7 +60,15 @@ if __name__ == "__main__":
             try:
                 super().exit(status, message)  # sys.exit(2)
             finally:
-                messagebox.showerror("Argument Parser Error", self._message.getvalue())
+                # Create the dialog root lazily. Normal startup never reaches this
+                # method, so this saves a whole Tk root creation on every launch.
+                root = tk.Tk()
+                root.withdraw()
+                set_root_icon(root, resource_path("icons/pickaxe.ico"))
+                try:
+                    messagebox.showerror("Argument Parser Error", self._message.getvalue())
+                finally:
+                    root.destroy()
 
     class ParsedArgs(argparse.Namespace):
         _verbose: int
@@ -96,13 +105,7 @@ if __name__ == "__main__":
             return logging.NOTSET
 
     # handle input parameters
-    # NOTE: parser output is shown via message box
-    # we also need a dummy invisible window for the parser
-    root = tk.Tk()
-    root.overrideredirect(True)
-    root.withdraw()
-    set_root_icon(root, resource_path("icons/pickaxe.ico"))
-    root.update()
+    # NOTE: parser output is shown via message box (created lazily on exit)
     parser = Parser(
         SELF_PATH.name,
         description="A program that allows you to mine timed drops on Twitch.",
@@ -129,10 +132,8 @@ if __name__ == "__main__":
             f"There was an error while loading the settings file:\n\n{traceback.format_exc()}"
         )
         sys.exit(4)
-    # dummy window isn't needed anymore
-    root.destroy()
     # get rid of unneeded objects
-    del root, parser
+    del parser
 
     # client run
     async def main():
@@ -151,7 +152,12 @@ if __name__ == "__main__":
         logger = logging.getLogger("TwitchDrops")
         logger.setLevel(settings.logging_level)
         if settings.log:
-            handler = logging.FileHandler(LOG_PATH)
+            handler = RotatingFileHandler(
+                LOG_PATH,
+                maxBytes=5 * 1024 * 1024,
+                backupCount=3,
+                encoding="utf8",
+            )
             handler.setFormatter(FILE_FORMATTER)
             logger.addHandler(handler)
         logging.getLogger("TwitchDrops.gql").setLevel(settings.debug_gql)
@@ -185,6 +191,7 @@ if __name__ == "__main__":
             client.gui.tray.change_icon("error")
             client.print(_("status", "terminated"))
             client.gui.status.update(_("gui", "status", "terminated"))
+            client.gui.set_state_hint("")
             # notify the user about the closure
             client.gui.grab_attention(sound=True)
         await client.gui.wait_until_closed()

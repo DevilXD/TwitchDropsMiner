@@ -84,13 +84,16 @@ def _merge_vars(base_vars: JsonType, vars: JsonType) -> None:
 # Base Paths
 if IS_APPIMAGE:
     SELF_PATH = Path(os.environ["APPIMAGE"]).resolve()
-else:
-    # NOTE: pyinstaller will set sys.argv[0] to its own executable when building
-    # NOTE: sys.argv[0] will point to gui.py when running the gui.py directly for GUI debug
-    # detect these and use __file__ and main.py redirection instead
+elif IS_PACKAGED:
+    # PyInstaller sets sys.argv[0] to the executable path at runtime. Persistent
+    # files must live next to that executable, not next to the temporary _MEIPASS dir.
     SELF_PATH = Path(sys.argv[0]).resolve()
-    if SELF_PATH.stem == "pyinstaller" or SELF_PATH.name == "gui.py":
-        SELF_PATH = Path(__file__).with_name("main.py").resolve()
+else:
+    # In development, persistent files belong next to the source, no matter how the
+    # interpreter was invoked (python main.py, python gui.py, pytest, a helper tool,
+    # or PyInstaller importing this module while building). Deriving this from
+    # sys.argv[0] made the app write settings/cookies next to whatever launched it.
+    SELF_PATH = Path(__file__).with_name("main.py").resolve()
 WORKING_DIR = SELF_PATH.parent
 # Development paths
 VENV_PATH = Path(WORKING_DIR, "env")
@@ -256,6 +259,7 @@ class State(Enum):
     CHANNELS_FETCH = auto()
     CHANNELS_CLEANUP = auto()
     CHANNEL_SWITCH = auto()
+    RULES_UPDATE = auto()
     RESTART = auto()
     EXIT = auto()
 

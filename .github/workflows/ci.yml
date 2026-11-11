@@ -41,11 +41,39 @@ jobs:
             exit 1
           fi
 
+  tests:
+    name: Tests
+    runs-on: windows-latest
+    needs:
+      - validate
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{env.PYTHON_VERSION}}
+
+      - name: Install project dependencies
+        run: |
+          python -m pip install wheel
+          python -m pip install -r requirements.txt
+          python -m pip install -r requirements-dev.txt
+
+      - name: Run tests
+        run: python -m pytest tests -q
+
+      - name: Lint
+        run: python -m ruff check .
+
   windows:
     name: Windows
     runs-on: windows-latest
     needs:
       - validate
+      - tests
 
     steps:
       - name: Checkout code
@@ -111,6 +139,7 @@ jobs:
     runs-on: macos-latest
     needs:
       - validate
+      - tests
 
     steps:
       - name: Checkout code
@@ -171,6 +200,7 @@ jobs:
     runs-on: ${{matrix.runner}}
     needs:
       - validate
+      - tests
 
     steps:
       - name: Checkout code
@@ -253,6 +283,7 @@ jobs:
     runs-on: ${{matrix.runner}}
     needs:
       - validate
+      - tests
 
     steps:
       - name: Checkout code

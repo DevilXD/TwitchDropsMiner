@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 import math
 import logging
-from enum import Enum
+from enum import Enum, auto
 from itertools import chain
 from typing import TYPE_CHECKING
 from functools import cached_property
@@ -24,10 +24,33 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("TwitchDrops")
 DIMS_PATTERN = re.compile(r'-\d+x\d+(?=\.(?:jpg|png|gif)$)', re.I)
+# Matches a box-art URL and its optional size suffix, capturing the base and extension.
+BOX_ART_URL_PATTERN = re.compile(
+    r'^(.*?)(?:-\d+x\d+)?(\.(?:jpg|jpeg|png|gif|webp))$', re.I
+)
+# The size used by the inventory UI. Twitch's CDN can serve this size directly,
+# which avoids downloading the full-size box art (often 10-100x larger).
+CAMPAIGN_IMAGE_SIZE: tuple[int, int] = (108, 144)
 
 
 def remove_dimensions(url: URLType) -> URLType:
     return URLType(DIMS_PATTERN.sub('', url))
+
+
+def campaign_image_url(url: URLType) -> URLType:
+    """
+    Return a CDN-sized version of a campaign's box art.
+
+    The API hands us a full-size (or large) box-art URL. The GUI displays it at
+    108x144, so asking the CDN for that size directly avoids downloading and
+    decoding a much larger image. Non-Twitch URLs keep the old behaviour.
+    """
+    if "static-cdn.jtvnw.net/ttv-boxart/" not in url:
+        return remove_dimensions(url)
+    width, height = CAMPAIGN_IMAGE_SIZE
+    return URLType(
+        BOX_ART_URL_PATTERN.sub(rf'\1-{width}x{height}\2', url)
+    )
 
 
 class BenefitType(Enum):
@@ -38,6 +61,39 @@ class BenefitType(Enum):
 
     def is_badge_or_emote(self) -> bool:
         return self in (BenefitType.BADGE, BenefitType.EMOTE)
+
+
+class CampaignStatus(Enum):
+    """
+    The time-based lifecycle of a campaign.
+
+    Exactly one of these is true at any moment, which is why it is a single value
+    instead of the three independent `active` / `upcoming` / `expired` booleans
+    the rest of the application used to reason about.
+    """
+
+    ACTIVE = auto()
+    UPCOMING = auto()
+    EXPIRED = auto()
+
+
+class DropStatus(Enum):
+    """
+    The user-visible lifecycle of a single timed drop.
+
+    NOTE: `SATURATED` is special: it means the miner ran out of *locally estimated*
+    progress (Twitch stopped reporting minutes) and must resynchronise. It is not
+    a state Twitch itself reports.
+    """
+
+    CLAIMED = auto()
+    READY_TO_CLAIM = auto()
+    SATURATED = auto()
+    IN_PROGRESS = auto()
+    AVAILABLE = auto()
+    LOCKED = auto()
+    UPCOMING = auto()
+    EXPIRED = auto()
 
 
 class Benefit:
@@ -102,7 +158,12 @@ class BaseDrop:
     @property
     def preconditions_met(self) -> bool:
         campaign = self.campaign
-        return all(campaign.timed_drops[pid].is_claimed for pid in self.precondition_drops)
+        # NOTE: Use `.get` and treat a missing precondition as unmet. A campaign
+        # can omit a referenced drop, and a KeyError here would kill the watch loop.
+        return all(
+            (drop := campaign.timed_drops.get(pid)) is not None and drop.is_claimed
+            for pid in self.precondition_drops
+        )
 
     def _on_state_changed(self) -> None:
         raise NotImplementedError
@@ -279,6 +340,61 @@ class TimedDrop(BaseDrop):
         return self.current_minutes / self.required_minutes
 
     @property
+    def is_estimated(self) -> bool:
+        """
+        True when part of the current progress is a local estimate.
+
+        Twitch sometimes stops reporting drop progress for a while. The miner then
+        advances the displayed minutes itself so the timer keeps moving. That
+        progress is useful, but it is *not* confirmed by Twitch and must be
+        presented as such to the user.
+        """
+        return self.extra_current_minutes > 0
+
+    @property
+    def is_saturated(self) -> bool:
+        """
+        True when the local estimate has reached its limit.
+
+        In this state the drop is deliberately no longer earnable, because the
+        miner refuses to keep inventing progress forever. A reload resynchronises
+        the real values with Twitch.
+        """
+        return self.extra_current_minutes >= MAX_EXTRA_MINUTES
+
+    @property
+    def status(self) -> DropStatus:
+        """
+        The drop's lifecycle, as a single explicit value.
+
+        Order matters: claimable states are reported before time/earn states,
+        because a drop remains claimable for up to 24h after its campaign ends.
+        """
+        if self.is_claimed:
+            return DropStatus.CLAIMED
+        if self.can_claim:
+            return DropStatus.READY_TO_CLAIM
+        if self.is_saturated:
+            return DropStatus.SATURATED
+        if not self.preconditions_met:
+            return DropStatus.LOCKED
+        campaign = self.campaign
+        if campaign.status is CampaignStatus.EXPIRED:
+            return DropStatus.EXPIRED
+        now = datetime.now(timezone.utc)
+        # A drop is only earnable inside the intersection of its own window and
+        # the campaign's window.
+        starts_at = max(self.starts_at, campaign.starts_at)
+        ends_at = min(self.ends_at, campaign.ends_at)
+        if now >= ends_at:
+            return DropStatus.EXPIRED
+        if now < starts_at:
+            return DropStatus.UPCOMING
+        if self.current_minutes > 0:
+            return DropStatus.IN_PROGRESS
+        return DropStatus.AVAILABLE
+
+    @property
     def availability(self) -> float:
         now = datetime.now(timezone.utc)
         if self.required_minutes > 0 and self.total_remaining_minutes > 0 and now < self.ends_at:
@@ -291,19 +407,19 @@ class TimedDrop(BaseDrop):
             and self.required_minutes > 0
             # NOTE: This may be a bad idea, as it invalidates the can_earn status
             # and provides no way to recover from this state until the next reload.
-            and self.extra_current_minutes < MAX_EXTRA_MINUTES
+            # `DropsCampaign.bump_minutes` now explicitly requests a reload when this
+            # happens, which is the recovery path.
+            and not self.is_saturated
         )
 
     def _on_state_changed(self) -> None:
         self._twitch.gui.inv.update_drop(self)
 
     def _update_real_minutes(self, delta: int) -> None:
-        if self.real_current_minutes + delta < 0:
-            self.real_current_minutes = 0
-        if self.real_current_minutes + delta < self.required_minutes:
-            self.real_current_minutes += delta
-        else:
-            self.real_current_minutes = self.required_minutes
+        # Clamp in one step. The old two-if version could add a negative delta
+        # after clamping to zero, producing negative minutes.
+        new_minutes = self.real_current_minutes + delta
+        self.real_current_minutes = max(0, min(self.required_minutes, new_minutes))
         self.extra_current_minutes = 0
         self._on_state_changed()
 
@@ -344,8 +460,7 @@ class DropsCampaign:
         self.linked: bool = data["self"]["isAccountConnected"]
         self.link_url: str = data["accountLinkURL"]
         # campaign's image actually comes from the game object
-        # we use regex to get rid of the dimensions part (ex. ".../game_id-285x380.jpg")
-        self.image_url: URLType = remove_dimensions(data["game"]["boxArtURL"])
+        self.image_url: URLType = campaign_image_url(data["game"]["boxArtURL"])
         self.starts_at: datetime = timestamp(data["startAt"])
         self.ends_at: datetime = timestamp(data["endAt"])
         self._valid: bool = data["status"] != "EXPIRED"
@@ -376,16 +491,28 @@ class DropsCampaign:
         )
 
     @property
+    def status(self) -> CampaignStatus:
+        """
+        The campaign's time-based lifecycle. Exactly one value is always true.
+        """
+        now = datetime.now(timezone.utc)
+        if not self._valid or self.ends_at <= now:
+            return CampaignStatus.EXPIRED
+        if now < self.starts_at:
+            return CampaignStatus.UPCOMING
+        return CampaignStatus.ACTIVE
+
+    @property
     def active(self) -> bool:
-        return self._valid and self.starts_at <= datetime.now(timezone.utc) < self.ends_at
+        return self.status is CampaignStatus.ACTIVE
 
     @property
     def upcoming(self) -> bool:
-        return self._valid and datetime.now(timezone.utc) < self.starts_at
+        return self.status is CampaignStatus.UPCOMING
 
     @property
     def expired(self) -> bool:
-        return not self._valid or self.ends_at <= datetime.now(timezone.utc)
+        return self.status is CampaignStatus.EXPIRED
 
     @property
     def total_drops(self) -> int:
@@ -499,12 +626,16 @@ class DropsCampaign:
     def bump_minutes(self, channel: Channel) -> None:
         # NOTE: Use a temporary list to ensure all drops are bumped before checking
         if any([drop._bump_minutes(channel) for drop in self.drops]):
-            # Executes if any drop's extra_current_minutes reach MAX_ESTIMATED_MINUTES
-            # TODO: Figure out a better way to handle this case
+            # Executes if any drop's extra_current_minutes reach MAX_EXTRA_MINUTES.
+            # At this point the drop is no longer earnable, so staying in the watch
+            # loop cannot make progress. A reload is the only operation that
+            # resynchronises the real values with Twitch and clears the estimates.
             logger.warning(
                 f"At least one of the drops in campaign \"{self.name}({self.game.name})\" "
                 "has reached the maximum extra minutes limit!"
             )
-            self._twitch.change_state(State.CHANNEL_SWITCH)
+            message = _("status", "progress_stalled").format(game=self.game.name)
+            self._twitch.print(message)
+            self._twitch.request_state(State.INVENTORY_FETCH, reason=message)
         if (first_drop := self.first_drop) is not None:
             first_drop.display()
