@@ -135,17 +135,18 @@ class _AuthState:
             # but this would have to be tested first. This below is a reminder to do that first.
             raise RuntimeError("Browser login has only been tested for the ANDROID_APP client")
 
+        login_url: str = (
+            f"https://www.twitch.tv/login?client_id={client_info.CLIENT_ID}&"
+            f"redirect_params=client_id%3D{client_info.CLIENT_ID}%26"
+            "redirect_uri%3Dhttps%253A%252F%252Fwww.twitch.tv%252F%26response_type%3Dtoken"
+        )
         while True:
             gui_print(_("login", "browser", "startup"))
             # login_data = await login_form.ask_login()
             browser: zendriver.Browser | None = None
             try:
                 browser = await zendriver.start()
-                await browser.get(
-                    f"https://www.twitch.tv/login?client_id={client_info.CLIENT_ID}&"
-                    f"redirect_params=client_id%3D{client_info.CLIENT_ID}%26"
-                    "redirect_uri%3Dhttps%253A%252F%252Fwww.twitch.tv%252F%26response_type%3Dtoken"
-                )
+                await browser.get(login_url)
                 # auto login
                 # username_input = await page.select("#login-username")
                 # password_input = await page.select("#password-input")
@@ -188,7 +189,16 @@ class _AuthState:
                 else:
                     gui_print(_("login", "browser", "closed_window"))
             except FileNotFoundError:
+                # no Chromium-based browser available - let the user log in using
+                # their default browser, and paste the redirect URL back in
                 gui_print(_("login", "browser", "not_found"))
+                redirect_url: str = await coro_unless_closed(
+                    login_form.ask_redirect_url(login_url)
+                )
+                match = re.search(r'#access_token=(\w+)', redirect_url, re.I)
+                if match is not None:
+                    return match.group(1)
+                gui_print(_("login", "browser", "no_token"))
             finally:
                 if browser is not None:
                     await browser.stop()

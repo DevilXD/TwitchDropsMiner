@@ -84,6 +84,7 @@ class GUILoginForm(TypedDict):
     username: str
     password: str
     twofa_code: str
+    redirect_url: str
     button: str
 
 
@@ -261,8 +262,9 @@ default_translation: Translation = {
                 "The browser window was closed before the login procedure could be completed."
             ),
             "not_found": (
-                "No compatible browser could be found. "
-                "Please install a compatible browser (Chrome, Edge, or Brave) and try again."
+                "No compatible browser (Chrome, Edge or Brave) could be found. "
+                "Log in using your default browser instead, then paste the address "
+                "of the page you end up on into the Login Form and press Login."
             ),
         },
         "error_code": "Login error code: {error_code}",
@@ -314,6 +316,7 @@ default_translation: Translation = {
             "username": "Username",
             "password": "Password",
             "twofa_code": "2FA code (optional)",
+            "redirect_url": "Page address after login",
             "button": "Login",
         },
         "websocket": {
